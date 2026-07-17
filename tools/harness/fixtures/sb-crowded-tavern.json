@@ -1,0 +1,38 @@
+{
+  "_doc": "sb-crowded-tavern.json -- the work order's CORE scenario. A tavern of ordinary dwarves with ROUTINE unmet needs. RAW native fields only (no pre-baked bits): the test runs each unit through sb_predicate_ref.nativePredicate (the native table) and asserts FEW bubbles, ZERO-to-few DISTRACTED -- and, as the test-the-test, that the OLD predicate (has_unmet_needs) would have turned nearly the whole room yellow. has_unmet_needs is TRUE for most of the room (DF's HAVE_NEGATIVE_NEED is true for a large fraction of any real fort) yet native focus% stays healthy (>80), so native draws no DISTRACTED for them. Magnitudes are realistic: timers below the native thresholds (thirst 25000 / hunger 50000 / sleep 57600); focus 85-100%.",
+  "thresholds": { "thirst": 25000, "hunger": 50000, "sleep": 57600, "stress": 10000, "focus_pct": 80 },
+  "expect": {
+    "population": 26,
+    "native_distracted_max_fraction": 0.15,
+    "native_total_bubble_max_fraction": 0.35,
+    "old_distracted_min_fraction": 0.6
+  },
+  "units": [
+    { "id": 1,  "note": "ordinary taverngoer: routine unmet need, focus fine", "has_unmet_needs": true, "focus_current": 95, "focus_undistracted": 100, "hunger_timer": 12000, "thirst_timer": 8000 },
+    { "id": 2,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 90, "focus_undistracted": 100, "hunger_timer": 20000, "thirst_timer": 5000 },
+    { "id": 3,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 100, "focus_undistracted": 100, "hunger_timer": 3000 },
+    { "id": 4,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 88, "focus_undistracted": 100, "thirst_timer": 15000 },
+    { "id": 5,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 92, "focus_undistracted": 100, "sleepiness_timer": 30000 },
+    { "id": 6,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 97, "focus_undistracted": 100 },
+    { "id": 7,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 85, "focus_undistracted": 100, "hunger_timer": 40000 },
+    { "id": 8,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 99, "focus_undistracted": 100 },
+    { "id": 9,  "note": "ordinary", "has_unmet_needs": true, "focus_current": 91, "focus_undistracted": 100, "thirst_timer": 20000 },
+    { "id": 10, "note": "ordinary", "has_unmet_needs": true, "focus_current": 100, "focus_undistracted": 100 },
+    { "id": 11, "note": "ordinary, focus exactly at 82% -- still ABOVE the 80 cut, no yellow", "has_unmet_needs": true, "focus_current": 82, "focus_undistracted": 100 },
+    { "id": 12, "note": "ordinary", "has_unmet_needs": true, "focus_current": 96, "focus_undistracted": 100 },
+    { "id": 13, "note": "ordinary", "has_unmet_needs": true, "focus_current": 93, "focus_undistracted": 100, "hunger_timer": 10000 },
+    { "id": 14, "note": "ordinary", "has_unmet_needs": true, "focus_current": 89, "focus_undistracted": 100 },
+    { "id": 15, "note": "ordinary content", "has_unmet_needs": false, "focus_current": 100, "focus_undistracted": 100 },
+    { "id": 16, "note": "ordinary content", "has_unmet_needs": false, "focus_current": 100, "focus_undistracted": 100 },
+    { "id": 17, "note": "ordinary", "has_unmet_needs": true, "focus_current": 94, "focus_undistracted": 100 },
+    { "id": 18, "note": "ordinary", "has_unmet_needs": true, "focus_current": 87, "focus_undistracted": 100, "thirst_timer": 9000 },
+    { "id": 19, "note": "genuinely THIRSTY (>=25000) -- a real droplet", "has_unmet_needs": true, "focus_current": 90, "focus_undistracted": 100, "thirst_timer": 26000 },
+    { "id": 20, "note": "genuinely HUNGRY (>=50000)", "has_unmet_needs": true, "focus_current": 90, "focus_undistracted": 100, "hunger_timer": 52000 },
+    { "id": 21, "note": "genuinely DROWSY (>=57600)", "has_unmet_needs": true, "focus_current": 90, "focus_undistracted": 100, "sleepiness_timer": 58000 },
+    { "id": 22, "note": "asleep in a bed: unconscious + Sleep job -> the Zz, not a need face", "has_unmet_needs": true, "focus_current": 90, "focus_undistracted": 100, "unconscious": 500, "job": "Sleep", "sleepiness_timer": 57600, "on_ground": true },
+    { "id": 23, "note": "genuinely STRESSED (raw stress >= 10000), no mood", "has_unmet_needs": true, "focus_current": 90, "focus_undistracted": 100, "stress": 14000 },
+    { "id": 24, "note": "TRULY distracted: focus 60% (<=80) with no concrete need -> a legit yellow face", "has_unmet_needs": true, "focus_current": 60, "focus_undistracted": 100 },
+    { "id": 25, "note": "TRULY distracted: focus 78%", "has_unmet_needs": true, "focus_current": 78, "focus_undistracted": 100 },
+    { "id": 26, "note": "content, no needs, sharp focus -> no bubble at all", "has_unmet_needs": false, "focus_current": 100, "focus_undistracted": 100 }
+  ]
+}

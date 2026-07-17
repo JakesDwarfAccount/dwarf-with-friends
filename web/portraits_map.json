@@ -1,0 +1,10145 @@
+{
+ "_v": 1,
+ "races": {
+  "AARDVARK": {
+   "adult": {
+    "cx": 384,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "AARDVARK_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ADDER": {
+   "adult": {
+    "cx": 384,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ADDER_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ALBATROSS_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ALLIGATOR": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ALLIGATOR SNAPPING TURTLE": {
+   "adult": {
+    "cx": 384,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ALLIGATOR_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ALPACA": {
+   "adult": {
+    "cx": 0,
+    "cy": 0,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 0,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ANACONDA": {
+   "adult": {
+    "cx": 384,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ANACONDA_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ANOLE": {
+   "adult": {
+    "cx": 192,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ANOLE_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ANT": {
+   "adult": {
+    "cx": 384,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ARMADILLO": {
+   "adult": {
+    "cx": 384,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ARMADILLO MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ARMADILLO, GIANT": {
+   "adult": {
+    "cx": 384,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "AXOLOTL": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "AXOLOTL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 0,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "AYE-AYE": {
+   "adult": {
+    "cx": 576,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "AYE-AYE_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BADGER": {
+   "adult": {
+    "cx": 0,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BADGER MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BADGER, GIANT": {
+   "adult": {
+    "cx": 0,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BARK_SCORPION": {
+   "adult": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BARK_SCORPION_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BARN_OWL_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_BLACK": {
+   "adult": {
+    "cx": 0,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_BLACK_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_GRIZZLY": {
+   "adult": {
+    "cx": 192,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_GRIZZLY_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_POLAR": {
+   "adult": {
+    "cx": 384,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_POLAR_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAR_SLOTH": {
+   "adult": {
+    "cx": 576,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAVER": {
+   "adult": {
+    "cx": 0,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEAVER_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEETLE": {
+   "adult": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BEETLE_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_ALBATROSS": {
+   "adult": {
+    "cx": 0,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_BLUEJAY": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_BUSHTIT": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_BUZZARD": {
+   "adult": {
+    "cx": 0,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_CARDINAL": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_CASSOWARY": {
+   "adult": {
+    "cx": 576,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_CHICKEN": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 192,
+      "cy": 96,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 288,
+      "cy": 96,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 96,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 288,
+      "cy": 96,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "BIRD_COCKATIEL": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_CROW": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_DUCK": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 192,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 0,
+      "cy": 576,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 192,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 0,
+      "cy": 576,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "BIRD_EAGLE": {
+   "adult": {
+    "cx": 0,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_EMU": {
+   "adult": {
+    "cx": 384,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_FALCON_PEREGRINE": {
+   "adult": {
+    "cx": 384,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_GOOSE": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_GRACKLE": {
+   "adult": {
+    "cx": 576,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_GUINEAFOWL": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_HORNBILL": {
+   "adult": {
+    "cx": 192,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_KAKAPO": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_KEA": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_KESTREL": {
+   "adult": {
+    "cx": 576,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_KIWI": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_KIWI_GIANT": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_LOON": {
+   "adult": {
+    "cx": 0,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_LORIKEET": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_LOVEBIRD_MASKED": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_LOVEBIRD_PEACH-FACED": {
+   "adult": {
+    "cx": 0,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_MAGPIE": {
+   "adult": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_ORIOLE": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_OSPREY": {
+   "adult": {
+    "cx": 192,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_OSTRICH": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 288,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 480,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 192,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 672,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "BIRD_OSTRICH_GIANT": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 288,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 480,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 192,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 672,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "BIRD_OWL_BARN": {
+   "adult": {
+    "cx": 192,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_OWL_GREAT_HORNED": {
+   "adult": {
+    "cx": 384,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_OWL_SNOWY": {
+   "adult": {
+    "cx": 576,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PARAKEET": {
+   "adult": {
+    "cx": 192,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PARROT_GREY": {
+   "adult": {
+    "cx": 384,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PEAFOWL_BLUE": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 288,
+      "cy": 0,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 384,
+      "cy": 0,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 192,
+      "cy": 0,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 384,
+      "cy": 0,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "BIRD_PENGUIN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PENGUIN_EMPEROR": {
+   "adult": {
+    "cx": 0,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PENGUIN_GIANT": {
+   "adult": {
+    "cx": 0,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PENGUIN_LITTLE": {
+   "adult": {
+    "cx": 384,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_PUFFIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_RAVEN": {
+   "adult": {
+    "cx": 576,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_RW_BLACKBIRD": {
+   "adult": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_STORK_WHITE": {
+   "adult": {
+    "cx": 576,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_SWAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_TURKEY": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_VULTURE": {
+   "adult": {
+    "cx": 192,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BIRD_WREN": {
+   "adult": {
+    "cx": 672,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BLACK_MAMBA": {
+   "adult": {
+    "cx": 0,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BLACK_MAMBA_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BLUEJAY_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BOBCAT": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BOBCAT_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BONOBO": {
+   "adult": {
+    "cx": 576,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BROWN_RECLUSE_SPIDER_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUMBLEBEE": {
+   "adult": {
+    "cx": 288,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUSHMASTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUSHMASTER_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUSHTIT_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUTTERFLY_MONARCH": {
+   "adult": {
+    "cx": 576,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUTTERFLY_MONARCH_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "BUZZARD_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAMEL_1_HUMP": {
+   "adult": {
+    "cx": 192,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAMEL_1_HUMP_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAMEL_2_HUMP": {
+   "adult": {
+    "cx": 0,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAMEL_2_HUMP_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAPUCHIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAPUCHIN_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAPYBARA": {
+   "adult": {
+    "cx": 0,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAPYBARA MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAPYBARA, GIANT": {
+   "adult": {
+    "cx": 0,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CARDINAL_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CASSOWARY_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAT": {
+   "adult": {
+    "cx": 480,
+    "cy": 0,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 576,
+    "cy": 0,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CAVY": {
+   "adult": {
+    "cx": 672,
+    "cy": 0,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 0,
+    "cy": 96,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHAMELEON": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHAMELEON_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHEETAH": {
+   "adult": {
+    "cx": 192,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHEETAH_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHIMPANZEE": {
+   "adult": {
+    "cx": 384,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHINCHILLA": {
+   "adult": {
+    "cx": 0,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHINCHILLA_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHIPMUNK": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CHIPMUNK_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COATI": {
+   "adult": {
+    "cx": 192,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COATI_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COCKATIEL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COPPERHEAD_SNAKE": {
+   "adult": {
+    "cx": 0,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COPPERHEAD_SNAKE_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COUGAR": {
+   "adult": {
+    "cx": 0,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COUGAR_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COW": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COYOTE": {
+   "adult": {
+    "cx": 0,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "COYOTE_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CRAB": {
+   "adult": {
+    "cx": 0,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CRAB_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CROCODILE_SALTWATER": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CROCODILE_SALTWATER_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CROW_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CUTTLEFISH": {
+   "adult": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "CUTTLEFISH_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DAMSELFLY": {
+   "adult": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DAMSELFLY_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 384,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DEER": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 384,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 384,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "DEER_MAN": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 480,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 672,
+      "cy": 384,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "DESERT TORTOISE": {
+   "adult": {
+    "cx": 0,
+    "cy": 3360,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3360,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DESERT_TORTOISE_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DINGO": {
+   "adult": {
+    "cx": 192,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DINGO_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DOG": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DONKEY": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DRAGONFLY": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "DRAGONFLY_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "EAGLE_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ECHIDNA": {
+   "adult": {
+    "cx": 576,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ECHIDNA_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ELEPHANT": {
+   "adult": {
+    "cx": 0,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ELEPHANT_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ELEPHANT_SEAL": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ELEPHANT_SEAL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ELK": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 672,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 288,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 576,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 288,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "ELK_MAN": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 576,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 576,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "EMU_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 576,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FIREFLY": {
+   "adult": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FIREFLY_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 576,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_ANCHOVY": {
+   "adult": {
+    "cx": 480,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_BARRACUDA_GREAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_BLUEFISH": {
+   "adult": {
+    "cx": 672,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_BULLHEAD_BLACK": {
+   "adult": {
+    "cx": 480,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_BULLHEAD_BROWN": {
+   "adult": {
+    "cx": 672,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_BULLHEAD_YELLOW": {
+   "adult": {
+    "cx": 576,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_CARP": {
+   "adult": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_CHAR": {
+   "adult": {
+    "cx": 288,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_CLOWNFISH": {
+   "adult": {
+    "cx": 96,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_COD": {
+   "adult": {
+    "cx": 96,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_COELACANTH": {
+   "adult": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_CONGER_EEL": {
+   "adult": {
+    "cx": 288,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_FLOUNDER": {
+   "adult": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_GAR_LONGNOSE": {
+   "adult": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_GLASSEYE": {
+   "adult": {
+    "cx": 480,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_GROUPER_GIANT": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_GUPPY": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_HAGFISH": {
+   "adult": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_HAKE": {
+   "adult": {
+    "cx": 384,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_HALIBUT": {
+   "adult": {
+    "cx": 0,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_HERRING": {
+   "adult": {
+    "cx": 96,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_KNIFEFISH_BANDED": {
+   "adult": {
+    "cx": 192,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_LAMPREY_BROOK": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_LAMPREY_SEA": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_LOACH_CLOWN": {
+   "adult": {
+    "cx": 672,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_LUNGFISH": {
+   "adult": {
+    "cx": 480,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_MACKEREL": {
+   "adult": {
+    "cx": 192,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_MARLIN": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_MILKFISH": {
+   "adult": {
+    "cx": 576,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_MOLLY_SAILFIN": {
+   "adult": {
+    "cx": 672,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_OPAH": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_PERCH": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_PIKE": {
+   "adult": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_PUFFER_WHITE_SPOTTED": {
+   "adult": {
+    "cx": 96,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_RATFISH_SPOTTED": {
+   "adult": {
+    "cx": 96,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_RAY_BAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_RAY_MANTA": {
+   "adult": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_RAY_THORNBACK": {
+   "adult": {
+    "cx": 0,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SALMON": {
+   "adult": {
+    "cx": 288,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SEAHORSE": {
+   "adult": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SHAD": {
+   "adult": {
+    "cx": 576,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SKATE_COMMON": {
+   "adult": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SOLE": {
+   "adult": {
+    "cx": 0,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_STINGRAY": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_STURGEON": {
+   "adult": {
+    "cx": 384,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SUNFISH_OCEAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_SWORDFISH": {
+   "adult": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_TIGERFISH": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_TROUT_RAINBOW": {
+   "adult": {
+    "cx": 0,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_TROUT_STEELHEAD": {
+   "adult": {
+    "cx": 288,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FISH_TUNA_BLUEFIN": {
+   "adult": {
+    "cx": 480,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FLY": {
+   "adult": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FLYING_SQUIRREL_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 576,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FLY_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 576,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FOX": {
+   "adult": {
+    "cx": 576,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "FOX_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 576,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GAZELLE": {
+   "adult": {
+    "cx": 384,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GAZELLE_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 576,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GECKO_LEOPARD": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT PEREGRINE FALCON": {
+   "adult": {
+    "cx": 384,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT TORTOISE": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT TORTOISE MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_AARDVARK": {
+   "adult": {
+    "cx": 384,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ADDER": {
+   "adult": {
+    "cx": 384,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ALBATROSS": {
+   "adult": {
+    "cx": 0,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ALLIGATOR": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ANACONDA": {
+   "adult": {
+    "cx": 384,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ANOLE": {
+   "adult": {
+    "cx": 192,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_AXOLOTL": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_AYE-AYE": {
+   "adult": {
+    "cx": 576,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BARK_SCORPION": {
+   "adult": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BARN_OWL": {
+   "adult": {
+    "cx": 192,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BEAR_BLACK": {
+   "adult": {
+    "cx": 0,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BEAR_GRIZZLY": {
+   "adult": {
+    "cx": 192,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BEAR_POLAR": {
+   "adult": {
+    "cx": 384,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BEAVER": {
+   "adult": {
+    "cx": 0,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BEETLE": {
+   "adult": {
+    "cx": 672,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BLACK_MAMBA": {
+   "adult": {
+    "cx": 0,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BLUEJAY": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BOBCAT": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BROWN_RECLUSE_SPIDER": {
+   "adult": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BUSHMASTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BUSHTIT": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BUTTERFLY_MONARCH": {
+   "adult": {
+    "cx": 576,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_BUZZARD": {
+   "adult": {
+    "cx": 0,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CAMEL_1_HUMP": {
+   "adult": {
+    "cx": 192,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CAMEL_2_HUMP": {
+   "adult": {
+    "cx": 0,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1344,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CAPUCHIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CARDINAL": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CASSOWARY": {
+   "adult": {
+    "cx": 576,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CHAMELEON": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CHEETAH": {
+   "adult": {
+    "cx": 192,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CHINCHILLA": {
+   "adult": {
+    "cx": 0,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CHIPMUNK": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_COATI": {
+   "adult": {
+    "cx": 192,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_COCKATIEL": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_COPPERHEAD_SNAKE": {
+   "adult": {
+    "cx": 0,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_COUGAR": {
+   "adult": {
+    "cx": 0,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_COYOTE": {
+   "adult": {
+    "cx": 0,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CRAB": {
+   "adult": {
+    "cx": 0,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CROCODILE_SALTWATER": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CROW": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_CUTTLEFISH": {
+   "adult": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_DAMSELFLY": {
+   "adult": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_DEER": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 384,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 2592,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 384,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "GIANT_DESERT_TORTOISE": {
+   "adult": {
+    "cx": 0,
+    "cy": 3360,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3360,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_DINGO": {
+   "adult": {
+    "cx": 192,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_DRAGONFLY": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_EAGLE": {
+   "adult": {
+    "cx": 0,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ECHIDNA": {
+   "adult": {
+    "cx": 576,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ELEPHANT": {
+   "adult": {
+    "cx": 0,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ELEPHANT_SEAL": {
+   "adult": {
+    "cx": 192,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ELK": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 672,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 288,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 576,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 288,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "GIANT_EMU": {
+   "adult": {
+    "cx": 384,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2592,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_FIREFLY": {
+   "adult": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_FLY": {
+   "adult": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_FLYING_SQUIRREL": {
+   "adult": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_FOX": {
+   "adult": {
+    "cx": 576,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GAZELLE": {
+   "adult": {
+    "cx": 384,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GILA_MONSTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GIRAFFE": {
+   "adult": {
+    "cx": 576,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GOAT_MOUNTAIN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GRACKLE": {
+   "adult": {
+    "cx": 576,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GRASSHOPPER": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GRAY_LANGUR": {
+   "adult": {
+    "cx": 192,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GREAT_HORNED_OWL": {
+   "adult": {
+    "cx": 384,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GREEN_TREE_FROG": {
+   "adult": {
+    "cx": 0,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GREY_PARROT": {
+   "adult": {
+    "cx": 384,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_GROUNDHOG": {
+   "adult": {
+    "cx": 384,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HAMSTER": {
+   "adult": {
+    "cx": 96,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HARE": {
+   "adult": {
+    "cx": 0,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HARP_SEAL": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HEDGEHOG": {
+   "adult": {
+    "cx": 672,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HIPPO": {
+   "adult": {
+    "cx": 384,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HORNBILL": {
+   "adult": {
+    "cx": 192,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HORSESHOE_CRAB": {
+   "adult": {
+    "cx": 192,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_HYENA": {
+   "adult": {
+    "cx": 480,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 576,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_IBEX": {
+   "adult": {
+    "cx": 576,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_IGUANA": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_IMPALA": {
+   "adult": {
+    "cx": 192,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_JACKAL": {
+   "adult": {
+    "cx": 384,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_JAGUAR": {
+   "adult": {
+    "cx": 384,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_JUMPING_SPIDER": {
+   "adult": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KAKAPO": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KANGAROO": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KEA": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KESTREL": {
+   "adult": {
+    "cx": 576,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KINGSNAKE": {
+   "adult": {
+    "cx": 192,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KING_COBRA": {
+   "adult": {
+    "cx": 192,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_KOALA": {
+   "adult": {
+    "cx": 192,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LEECH": {
+   "adult": {
+    "cx": 96,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LEOPARD": {
+   "adult": {
+    "cx": 576,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LEOPARD_GECKO": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LEOPARD_SEAL": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LION": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "GIANT_LION_TAMARIN": {
+   "adult": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LIZARD": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LOON": {
+   "adult": {
+    "cx": 0,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LORIKEET": {
+   "adult": {
+    "cx": 576,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LOUSE": {
+   "adult": {
+    "cx": 384,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_LYNX": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MACAQUE_RHESUS": {
+   "adult": {
+    "cx": 384,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MAGPIE": {
+   "adult": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MANDRILL": {
+   "adult": {
+    "cx": 576,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MANTIS": {
+   "adult": {
+    "cx": 480,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MARMOT_HOARY": {
+   "adult": {
+    "cx": 192,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MASKED_LOVEBIRD": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MINK": {
+   "adult": {
+    "cx": 0,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MONGOOSE": {
+   "adult": {
+    "cx": 192,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MONITOR_LIZARD": {
+   "adult": {
+    "cx": 192,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MOON_SNAIL": {
+   "adult": {
+    "cx": 288,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MOSQUITO": {
+   "adult": {
+    "cx": 288,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MOTH": {
+   "adult": {
+    "cx": 0,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_MUSKOX": {
+   "adult": {
+    "cx": 192,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_NAUTILUS": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_OCELOT": {
+   "adult": {
+    "cx": 0,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_OCTOPUS": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_OPOSSUM": {
+   "adult": {
+    "cx": 192,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ORCA": {
+   "adult": {
+    "cx": 192,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ORIOLE": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_OSPREY": {
+   "adult": {
+    "cx": 192,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2496,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_OTTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_PANGOLIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_PARAKEET": {
+   "adult": {
+    "cx": 192,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_PEACH-FACED_LOVEBIRD": {
+   "adult": {
+    "cx": 0,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_POND_TURTLE": {
+   "adult": {
+    "cx": 576,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_PORCUPINE": {
+   "adult": {
+    "cx": 576,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_PUFFIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1728,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_PYTHON": {
+   "adult": {
+    "cx": 576,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_RACCOON": {
+   "adult": {
+    "cx": 0,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_RATTLESNAKE": {
+   "adult": {
+    "cx": 0,
+    "cy": 3072,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3072,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_RAVEN": {
+   "adult": {
+    "cx": 576,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_RHINOCEROS": {
+   "adult": {
+    "cx": 192,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_ROACH": {
+   "adult": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_RW_BLACKBIRD": {
+   "adult": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SKINK": {
+   "adult": {
+    "cx": 384,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SKUNK": {
+   "adult": {
+    "cx": 384,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SLOTH": {
+   "adult": {
+    "cx": 0,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SLOTH_BEAR": {
+   "adult": {
+    "cx": 576,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 960,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SLUG": {
+   "adult": {
+    "cx": 288,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SNAIL": {
+   "adult": {
+    "cx": 96,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SNAPPING_TURTLE": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SNOWY_OWL": {
+   "adult": {
+    "cx": 576,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2400,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SPARROW": {
+   "adult": {
+    "cx": 480,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SPERM_WHALE": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SPIDER_MONKEY": {
+   "adult": {
+    "cx": 0,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SPONGE": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SQUIRREL_GRAY": {
+   "adult": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SQUIRREL_RED": {
+   "adult": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_STOAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_SWAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_TAPIR": {
+   "adult": {
+    "cx": 192,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_THRIPS": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_TICK": {
+   "adult": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_TIGER": {
+   "adult": {
+    "cx": 288,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 384,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_TOAD": {
+   "adult": {
+    "cx": 0,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_VULTURE": {
+   "adult": {
+    "cx": 192,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2688,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WALRUS": {
+   "adult": {
+    "cx": 0,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WARTHOG": {
+   "adult": {
+    "cx": 384,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WEASEL": {
+   "adult": {
+    "cx": 576,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WHITE_STORK": {
+   "adult": {
+    "cx": 576,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2784,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WILD_BOAR": {
+   "adult": {
+    "cx": 192,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WOLF": {
+   "adult": {
+    "cx": 576,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WOLVERINE": {
+   "adult": {
+    "cx": 576,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WOMBAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIANT_WREN": {
+   "adult": {
+    "cx": 672,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_BILOU": {
+   "adult": {
+    "cx": 576,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 576,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_BLACK_CRESTED": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 96,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 672,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 96,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 576,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "GIBBON_BLACK_HANDED": {
+   "adult": {
+    "cx": 192,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 192,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_GRAY": {
+   "adult": {
+    "cx": 288,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_PILEATED": {
+   "adult": {
+    "cx": 480,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_SIAMANG": {
+   "adult": {
+    "cx": 0,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 0,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_SILVERY": {
+   "adult": {
+    "cx": 384,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 384,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_WHITE_BROWED": {
+   "adult": {
+    "cx": 672,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIBBON_WHITE_HANDED": {
+   "adult": {
+    "cx": 96,
+    "cy": 0,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3168,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIGANTIC SQUID": {
+   "adult": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIGANTIC TORTOISE": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GILA_MONSTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GILA_MONSTER_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIRAFFE": {
+   "adult": {
+    "cx": 576,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GIRAFFE_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GOAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 192,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 192,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GOAT_MOUNTAIN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GOAT_MOUNTAIN_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1344,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GORILLA": {
+   "adult": {
+    "cx": 192,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GRACKLE_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GRASSHOPPER": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GRASSHOPPER_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GRAY_LANGUR": {
+   "adult": {
+    "cx": 192,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GRAY_LANGUR_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GREAT_HORNED_OWL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GREEN_TREE_FROG": {
+   "adult": {
+    "cx": 0,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GREEN_TREE_FROG_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GREY_PARROT_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GROUNDHOG": {
+   "adult": {
+    "cx": 384,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "GROUNDHOG_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HAMSTER": {
+   "adult": {
+    "cx": 96,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HAMSTER_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HARE": {
+   "adult": {
+    "cx": 0,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HARE_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HARP_SEAL": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HARP_SEAL_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HEDGEHOG": {
+   "adult": {
+    "cx": 672,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HEDGEHOG_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 768,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HIPPO": {
+   "adult": {
+    "cx": 384,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HIPPO_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HONEY BADGER": {
+   "adult": {
+    "cx": 192,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HONEY BADGER MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HONEY BADGER, GIANT": {
+   "adult": {
+    "cx": 192,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HONEY_BEE": {
+   "adult": {
+    "cx": 192,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HORNBILL_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HORSE": {
+   "adult": {
+    "cx": 192,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HORSESHOE_CRAB": {
+   "adult": {
+    "cx": 192,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2112,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HORSESHOE_CRAB_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HYENA": {
+   "adult": {
+    "cx": 480,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 576,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "HYENA_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "IBEX": {
+   "adult": {
+    "cx": 576,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "IBEX_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "IGUANA": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "IGUANA_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "IMPALA": {
+   "adult": {
+    "cx": 192,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1920,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "IMPALA_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "JACKAL": {
+   "adult": {
+    "cx": 384,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "JACKAL_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "JAGUAR": {
+   "adult": {
+    "cx": 384,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "JAGUAR_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "JELLYFISH_SEA_NETTLE": {
+   "adult": {
+    "cx": 384,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "JUMPING_SPIDER_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KAKAPO_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KANGAROO": {
+   "adult": {
+    "cx": 384,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KANGAROO_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KEA_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KESTREL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 960,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KINGSNAKE": {
+   "adult": {
+    "cx": 192,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2976,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KINGSNAKE_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KING_COBRA": {
+   "adult": {
+    "cx": 192,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KING_COBRA_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KIWI MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KOALA": {
+   "adult": {
+    "cx": 192,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "KOALA_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEECH": {
+   "adult": {
+    "cx": 96,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEECH_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEOPARD": {
+   "adult": {
+    "cx": 576,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEOPARD_GECKO_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEOPARD_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEOPARD_SEAL": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LEOPARD_SEAL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LION": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 864,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "LION_MAN": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 1152,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 1152,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "LION_TAMARIN": {
+   "adult": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LION_TAMARIN_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LIZARD": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LIZARD_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LLAMA": {
+   "adult": {
+    "cx": 384,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LOON_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LORIKEET_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LOUSE": {
+   "adult": {
+    "cx": 384,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LOUSE_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LYNX": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "LYNX_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MACAQUE_RHESUS": {
+   "adult": {
+    "cx": 384,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MACAQUE_RHESUS_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MAGPIE_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MANDRILL": {
+   "adult": {
+    "cx": 576,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MANDRILL_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MANTIS": {
+   "adult": {
+    "cx": 480,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MANTIS_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MARMOT_HOARY": {
+   "adult": {
+    "cx": 192,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MARMOT_HOARY_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 864,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MASKED_LOVEBIRD_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MINK": {
+   "adult": {
+    "cx": 0,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MINK_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MONGOOSE": {
+   "adult": {
+    "cx": 192,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MONGOOSE_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MONITOR_LIZARD": {
+   "adult": {
+    "cx": 192,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MONITOR_LIZARD_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1248,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MOON_SNAIL": {
+   "adult": {
+    "cx": 288,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MOON_SNAIL_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1344,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MOOSE": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 480,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 384,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "MOOSE MAN": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 192,
+      "cy": 1344,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 1344,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "MOOSE, GIANT": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 480,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 384,
+      "cy": 1344,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 192,
+      "cy": 3072,
+      "h": 96,
+      "ih": 3456,
+      "img": "portraits/creature_surface_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "MOSQUITO": {
+   "adult": {
+    "cx": 288,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MOSQUITO_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1344,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MOTH": {
+   "adult": {
+    "cx": 0,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MOTH_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1344,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MULE": {
+   "adult": {
+    "cx": 576,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 288,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MUSKOX": {
+   "adult": {
+    "cx": 192,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 96,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MUSKOX_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1344,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "MUSSEL": {
+   "adult": {
+    "cx": 480,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "NARWHAL": {
+   "adult": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "NARWHAL MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1344,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "NARWHAL, GIANT": {
+   "adult": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "NAUTILUS": {
+   "adult": {
+    "cx": 0,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "NAUTILUS_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OCELOT": {
+   "adult": {
+    "cx": 0,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1824,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OCELOT_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OCTOPUS": {
+   "adult": {
+    "cx": 0,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OCTOPUS_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OPOSSUM": {
+   "adult": {
+    "cx": 192,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OPOSSUM_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ORANGUTAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1248,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ORCA": {
+   "adult": {
+    "cx": 192,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ORCA_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ORIOLE_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OSPREY_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1440,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OSTRICH MAN": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 96,
+      "cy": 1536,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 0,
+      "cy": 1536,
+      "h": 96,
+      "ih": 2304,
+      "img": "portraits/animal_people_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "OTTER_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1536,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "OYSTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 864,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PANDA": {
+   "adult": {
+    "cx": 384,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PANDA MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1536,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PANDA, GIGANTIC": {
+   "adult": {
+    "cx": 384,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PANGOLIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PANGOLIN_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1536,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PARAKEET_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1536,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PEACH-FACED_LOVEBIRD_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1536,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PENGUIN MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1536,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PEREGRINE FALCON MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PIG": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PLATYPUS": {
+   "adult": {
+    "cx": 384,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PLATYPUS MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PLATYPUS, GIANT": {
+   "adult": {
+    "cx": 384,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2304,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "POND_TURTLE": {
+   "adult": {
+    "cx": 576,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "POND_TURTLE_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PORCUPINE": {
+   "adult": {
+    "cx": 576,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1632,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PORCUPINE_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PUFFIN_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PYTHON": {
+   "adult": {
+    "cx": 576,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2880,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "PYTHON_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RABBIT": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RACCOON": {
+   "adult": {
+    "cx": 0,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1056,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RACCOON_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1632,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RAT": {
+   "adult": {
+    "cx": 192,
+    "cy": 1056,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/creature_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RATTLESNAKE": {
+   "adult": {
+    "cx": 0,
+    "cy": 3072,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 3072,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RATTLESNAKE_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RAT_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RAVEN_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RED PANDA": {
+   "adult": {
+    "cx": 576,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RED PANDA MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RED PANDA, GIANT": {
+   "adult": {
+    "cx": 576,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 576,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "REINDEER": {
+   "adult": {
+    "cx": 384,
+    "cy": 384,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 384,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RHINOCEROS": {
+   "adult": {
+    "cx": 192,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 672,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RHINOCEROS_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RIVER OTTER": {
+   "adult": {
+    "cx": 384,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ROACH_LARGE": {
+   "adult": {
+    "cx": 96,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "ROACH_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "RW_BLACKBIRD_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SEA OTTER": {
+   "adult": {
+    "cx": 576,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_ANGEL": {
+   "adult": {
+    "cx": 192,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_BASKING": {
+   "adult": {
+    "cx": 0,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_BLUE": {
+   "adult": {
+    "cx": 288,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_BULL": {
+   "adult": {
+    "cx": 384,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_FRILL": {
+   "adult": {
+    "cx": 672,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_GREAT_WHITE": {
+   "adult": {
+    "cx": 0,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_HAMMERHEAD": {
+   "adult": {
+    "cx": 192,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_MAKO_LONGFIN": {
+   "adult": {
+    "cx": 576,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_MAKO_SHORTFIN": {
+   "adult": {
+    "cx": 192,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_NURSE": {
+   "adult": {
+    "cx": 0,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_REEF_BLACKTIP": {
+   "adult": {
+    "cx": 480,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_REEF_WHITETIP": {
+   "adult": {
+    "cx": 576,
+    "cy": 672,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_SPINY_DOGFISH": {
+   "adult": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_TIGER": {
+   "adult": {
+    "cx": 96,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_WHALE": {
+   "adult": {
+    "cx": 96,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHARK_WOBBEGONG_SPOTTED": {
+   "adult": {
+    "cx": 384,
+    "cy": 768,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SHEEP": {
+   "castes": {
+    "FEMALE": {
+     "adult": {
+      "cx": 672,
+      "cy": 384,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 96,
+      "cy": 480,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    },
+    "MALE": {
+     "adult": {
+      "cx": 576,
+      "cy": 384,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     },
+     "child": {
+      "cx": 0,
+      "cy": 480,
+      "h": 96,
+      "ih": 672,
+      "img": "portraits/creature_domestic_portrait.png",
+      "iw": 768,
+      "w": 96
+     }
+    }
+   }
+  },
+  "SKINK": {
+   "adult": {
+    "cx": 384,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SKINK_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SKUNK": {
+   "adult": {
+    "cx": 384,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SKUNK_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SLOTH": {
+   "adult": {
+    "cx": 0,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SLOTH_BEAR_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SLOTH_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SLUG": {
+   "adult": {
+    "cx": 288,
+    "cy": 0,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SLUG_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SNAIL": {
+   "adult": {
+    "cx": 96,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SNAIL_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1824,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SNAPPING TURTLE": {
+   "adult": {
+    "cx": 192,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SNAPPING_TURTLE_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SNOWY_OWL_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPARROW": {
+   "adult": {
+    "cx": 480,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPARROW_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPERM_WHALE": {
+   "adult": {
+    "cx": 0,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPERM_WHALE_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPIDER_BROWN_RECLUSE": {
+   "adult": {
+    "cx": 288,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPIDER_JUMPING": {
+   "adult": {
+    "cx": 288,
+    "cy": 384,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPIDER_MONKEY": {
+   "adult": {
+    "cx": 0,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 1440,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPIDER_MONKEY_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPONGE": {
+   "adult": {
+    "cx": 576,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SPONGE_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUID": {
+   "adult": {
+    "cx": 96,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_aquatic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUID MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUIRREL_FLYING": {
+   "adult": {
+    "cx": 480,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUIRREL_GRAY": {
+   "adult": {
+    "cx": 288,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUIRREL_GRAY_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 672,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUIRREL_RED": {
+   "adult": {
+    "cx": 96,
+    "cy": 288,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SQUIRREL_RED_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 1728,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "STOAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "STOAT_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 1920,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "SWAN_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TAPIR": {
+   "adult": {
+    "cx": 192,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2208,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TAPIR_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TERMITE": {
+   "adult": {
+    "cx": 96,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "THRIPS": {
+   "adult": {
+    "cx": 192,
+    "cy": 192,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "THRIPS_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TICK": {
+   "adult": {
+    "cx": 672,
+    "cy": 96,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TICK_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TIGER": {
+   "adult": {
+    "cx": 288,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 384,
+    "cy": 864,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TIGER_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TOAD": {
+   "adult": {
+    "cx": 0,
+    "cy": 576,
+    "h": 96,
+    "ih": 960,
+    "img": "portraits/creature_surface_small_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "TOAD_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "VULTURE_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 2016,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WALRUS": {
+   "adult": {
+    "cx": 0,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 96,
+    "cy": 480,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WALRUS_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WARTHOG": {
+   "adult": {
+    "cx": 384,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WARTHOG_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WATER_BUFFALO": {
+   "adult": {
+    "cx": 384,
+    "cy": 480,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 480,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WEASEL": {
+   "adult": {
+    "cx": 576,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 3264,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WEASEL_MAN": {
+   "adult": {
+    "cx": 192,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WHITE_STORK_MAN": {
+   "adult": {
+    "cx": 288,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WILD_BOAR": {
+   "adult": {
+    "cx": 192,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 288,
+    "cy": 2016,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WILD_BOAR_MAN": {
+   "adult": {
+    "cx": 384,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WOLF": {
+   "adult": {
+    "cx": 576,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 768,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WOLF_MAN": {
+   "adult": {
+    "cx": 480,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WOLVERINE": {
+   "adult": {
+    "cx": 576,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 1536,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WOLVERINE_MAN": {
+   "adult": {
+    "cx": 576,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WOMBAT": {
+   "adult": {
+    "cx": 384,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 480,
+    "cy": 1152,
+    "h": 96,
+    "ih": 3456,
+    "img": "portraits/creature_surface_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WOMBAT_MAN": {
+   "adult": {
+    "cx": 672,
+    "cy": 2112,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WORM": {
+   "adult": {
+    "cx": 0,
+    "cy": 1152,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/creature_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WORM_MAN": {
+   "adult": {
+    "cx": 0,
+    "cy": 2208,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "WREN_MAN": {
+   "adult": {
+    "cx": 96,
+    "cy": 2208,
+    "h": 96,
+    "ih": 2304,
+    "img": "portraits/animal_people_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  },
+  "YAK": {
+   "adult": {
+    "cx": 576,
+    "cy": 480,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   },
+   "child": {
+    "cx": 672,
+    "cy": 480,
+    "h": 96,
+    "ih": 672,
+    "img": "portraits/creature_domestic_portrait.png",
+    "iw": 768,
+    "w": 96
+   }
+  }
+ }
+}

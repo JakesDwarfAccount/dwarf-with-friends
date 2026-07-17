@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "surface.work_orders.condition_editor",
+  "kind": "surface",
+  "title": "Work-order condition editor",
+  "definition": "The native work-order surface that presents existing item conditions, their next-check state, and generated suggested conditions for one selected order.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "native-sections",
+      "statement": "The editor presents existing item-condition rows and a separate Suggested conditions section for the selected work order.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+          "selectors": ["record-0-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "matching-suggestion-remains-listed",
+      "statement": "A suggested row remains listed when its filter identity matches an existing item condition; matching affects the row's add action rather than the row's text visibility.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+          "selectors": ["record-0-frame-0"]
+        }
+      ]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "same-condition-two-state-corpus",
+      "statement": "The suggestion rows and add-control state are self-contained in recorder v2, but the editor still lacks a bound capture of the same existing condition in both satisfied and unsatisfied states.",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.corpus.rule-0003-condition-colors-683c721d",
+        "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+      }]
+    }
+  ],
+  "relationships": {
+    "parents": [],
+    "children": [
+      "control.work_orders.condition.existing_row",
+      "control.work_orders.condition.suggested_row",
+      "flow.work_orders.open_condition_editor"
+    ],
+    "dependencies": ["rule.0002.work-order-suggested-conditions", "rule.0003.work-order-condition-status-color"],
+    "rules": ["rule.0002.work-order-suggested-conditions", "rule.0003.work-order-condition-status-color"],
+    "flows": ["flow.work_orders.open_condition_editor", "flow.work_orders.add_suggested_condition"],
+    "controls": [
+      "control.work_orders.condition.existing_row",
+      "control.work_orders.condition.suggested_row",
+      "control.work_orders.condition.add_suggested"
+    ],
+    "assets": ["asset.work_orders.add_suggested_condition"]
+  },
+  "requiredStates": ["state.work_orders.condition.satisfied", "state.work_orders.condition.unsatisfied"],
+  "requiredCases": {
+    "positive": ["An order with at least one existing item condition and all generated suggested rows visible."],
+    "boundary": ["The same suggested filter both with and without an existing matching condition."],
+    "counterexamples": ["A matching existing condition must not remove the suggested row's text from the Suggested conditions section."]
+  },
+  "absenceGuards": [
+    "Do not hide an entire suggested row merely because its filter matches an existing condition.",
+    "Do not apply a condition's next-check status styling to its operator, quantity, or item description."
+  ],
+  "recorderRequirements": {
+    "stateSlice": ["selected work-order id", "existing item conditions", "generated suggested item conditions", "cached satisfaction results"],
+    "requiredFrames": ["Editor with no matching existing condition", "Editor with a matching existing condition", "The same existing row in satisfied and unsatisfied states"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "captured",
+    "productMapping": "mapped-conflicting",
+    "verification": "untested",
+    "release": "not-shippable"
+  }
+}

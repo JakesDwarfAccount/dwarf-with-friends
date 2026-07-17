@@ -1,0 +1,663 @@
+<!doctype html>
+<!--
+  dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+  Copyright (C) 2026 Gabriel Rios
+  Copyright (C) 2026 Jake Taplin
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+  Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+  Full license: see LICENSE. Third-party credits: see NOTICE.
+
+  SPDX-License-Identifier: AGPL-3.0-only
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<!-- WT20 (mobile): viewport-fit=cover fills notched phone screens; interactive-widget=
+     resizes-content makes Android Chrome RESIZE the layout viewport when the on-screen keyboard
+     opens (canvas + bottom-anchored chat reflow above it). iOS ignores both gracefully -- its
+     overlay keyboard is handled by the visualViewport --dfvv-kb-inset var (dwf-touch.js).
+     Desktop browsers ignore both additions. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Dwarf with Friends!</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/css/dwf.css?v=6.12.0-b229-b233-b231-b224r2-b237-b226-b236-b232r2-b217r2-b252-b254-b262scroll-n0715c-b285w2-p0716z1-dwfui1-plist1-pos0-sprepaintctl1">
+<!-- VERSION-MISMATCH GATE: the client's baked build stamp. The server STAMPS this at serve time --
+     GET /view replaces the DFCAPTURE_BUILD placeholder token (the quoted value in the script tag
+     below) with its own build id (wire CRC + git short hash), so a freshly loaded tab always
+     matches the server, while a tab still holding an OLD index.html keeps that old stamp and trips
+     the "refresh -- stale tab" banner once the server is redeployed. No manual lockstep needed. If
+     the placeholder is left un-replaced (e.g. an old DLL that doesn't stamp, or the raw static
+     file), the client treats it as "unknown" and shows no banner.
+     B210: this comment must NEVER spell the underscore-delimited token out literally -- deployed
+     DLLs up to win33 replace only the FIRST occurrence, so a literal token here would absorb the
+     stamp and leave the script tag un-stamped, killing the gate (that happened; see
+     tools/harness/view_stamp_test.mjs, which enforces exactly-one occurrence in this file).
+     W9 NOTE: the DFCAPTURE_BUILD name (window global + its server-side placeholder + the CMake
+     DFCAPTURE_GIT_HASH / DFCAPTURE_BUILD_STAMP defines) is an INTERNAL build-identity wire name,
+     deliberately EXEMPT from the dwf plugin rename. It is a client/server version-gate contract,
+     not a user-facing or plugin-file identity, and the parity build tooling passes it by this name
+     (-DDFCAPTURE_BUILD_STAMP); renaming it would require a lockstep change across that tooling for
+     no user-visible benefit. Both sides (here and src/session_routes.cpp) must stay identical. -->
+<script>window.DFCAPTURE_BUILD = "__DFCAPTURE_BUILD__";</script>
+</head>
+<body tabindex="0">
+<!-- D1-CRISP: the 1-bit glyph-mask threshold that --dwfui-text-crisp (css/dwf.css) references.
+     It MUST live inline in THIS document: Chrome does not support external or data:-URL filter
+     refs (measured). The filter discretizes the glyph mask's ALPHA back to 1 bit, which is what a
+     bitmap font IS -- it undoes DirectWrite's ClearType edge smear WITHOUT touching the font, the
+     geometry, or the DOM (the text stays real, selectable, and tinted by CSS `color`).
+     tableValues="0 0 0 1" = threshold 0.75, centred in the measured safe band (a false edge pixel
+     never exceeds 0.6 coverage; a true ink pixel is never below 0.875). Delete this <svg> and the
+     class degrades to a HARMLESS NO-OP -- a missing filter ref renders UNFILTERED, not blank. -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <filter id="dwfui-crisp" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feComponentTransfer><feFuncA type="discrete" tableValues="0 0 0 1"/></feComponentTransfer>
+  </filter>
+</svg>
+<!-- MAP SURFACE: the DF tile renderer (dwf-tiles.js) draws straight to this canvas,
+     replacing the old server-rendered JPEG <img>. All HUD panels/overlays below still sit on
+     top of it; dwf-core.js owns camera + designation input and drives the renderer. -->
+<canvas id="view" tabindex="0"></canvas>
+<canvas id="zoneOverlay" aria-hidden="true"></canvas>
+<div id="hud">
+  <!-- WD-7: real DF left-edge ALERT plate (00-base-map.png ground truth: a maroon/gold
+       plate reading "ALERT" -- DF renders this as text, the same way it renders the
+       "Stocks" button as text, so this is a styled text label rather than a sprite cell,
+       not a deviation from DF's own presentation). The category-icon column below it is
+       #alertStack (real announcement_alerts.png sprite cells, one per ACTIVE alert
+       category -- already wired to open a popup / recenter on click, right-click
+       dismiss). Native has no separate bottom-left announcement stream. -->
+  <div id="leftBadges">
+    <button class="badge alert-badge" data-panel="alerts" title="Announcements">
+      <span class="alert-badge-text" aria-hidden="true">ALERT</span>
+    </button>
+  </div>
+  <!-- WD-8.5: active dig/designation-tool status plate (top-left, 01-dig.png ground
+       truth: e.g. "Regular mining"). Shown only while a dig-family tool is selected;
+       text driven from TOOL_MODE_LABELS in dwf-controls-placement.js. -->
+  <div id="toolModeLabel" class="mode-label-plate" aria-hidden="true"></div>
+  <!-- WD-5: DF's real top bar (00-base-map.png ground truth), restyled but not invented:
+       name plate | Pop N + 7 stress-face icons | Stocks | Food/Drink/Seeds/Meat/Fish
+       (labeled, colored per capture) | weather block (moon phase, overridden to rain/snow
+       art -- see dwf-unit-hud-notifications.js renderHud) | date (3-line) |
+       pause/play/settings-gear/help cluster at the bar's right end (formerly the separate
+       #pauseRow -- DF draws these INSIDE the top bar, per the manifest correction). -->
+  <div id="topbar" class="df-panel">
+    <div class="fort-lines">
+      <div id="fortName">Fortress</div>
+      <div id="siteName">Site</div>
+      <div id="rankName">Outpost</div>
+    </div>
+    <div class="status-group" id="popGroup">
+      <span class="mood-cell pop-cell"><span class="label">Pop</span><span id="population" class="mood-n">0</span></span>
+      <div class="moods" id="moods">
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="0"></span><span class="mood-n">0</span></span>
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="1"></span><span class="mood-n">0</span></span>
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="2"></span><span class="mood-n">0</span></span>
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="3"></span><span class="mood-n">0</span></span>
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="4"></span><span class="mood-n">0</span></span>
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="5"></span><span class="mood-n">0</span></span>
+        <span class="mood-cell"><span class="mood-icon" data-mood-icon="6"></span><span class="mood-n">0</span></span>
+      </div>
+    </div>
+    <button class="top-button" data-panel="stocks" title="Stock levels and item management.&#10;Hotkey: k">Stocks</button>
+    <div class="stock-counts">
+      <div class="status-group hide-small"><span class="label stock-food">Food</span><span id="food" class="stock-val">~0</span></div>
+      <div class="status-group hide-small"><span class="label stock-drink">Drink</span><span id="drink" class="stock-val">~0</span></div>
+      <div class="status-group hide-small"><span class="label stock-seeds">Seeds</span><span id="seeds" class="stock-val">~0</span></div>
+      <div class="status-group hide-small"><span class="label stock-meat">Meat</span><span id="meat" class="stock-val">~0</span></div>
+      <div class="status-group hide-small"><span class="label stock-fish">Fish</span><span id="fish" class="stock-val">~0</span></div>
+    </div>
+    <div class="moon" id="moon" title="Weather"></div>
+    <div class="fort-lines">
+      <div><span id="dateDay">1st</span> <span id="dateMonth">Granite</span></div>
+      <div id="dateSeason">Early Spring</div>
+      <div>Year <span id="dateYear">0</span></div>
+    </div>
+    <div class="topbar-controls">
+      <button class="square-button" data-action="pause" title="Pause">&#10074;&#10074;</button>
+      <button class="square-button" data-action="play" title="Play">&#9654;</button>
+      <button class="square-button" id="lobbyBtn" title="Players / lobby">&#9787;</button>
+      <button class="square-button" id="analyticsBtn" title="Fortress activity">&#128202;</button>
+      <button class="square-button" id="world3dBtn" title="3D world viewer (Shift+V)">&#9638;</button>
+      <!-- WT14: fortress-vote ballot. HIDDEN until the first {"type":"vote"} frame proves the
+           server carries the vote wire (feature detect -- stays invisible on an old server). -->
+      <button class="square-button" id="voteBtn" title="Fortress vote" style="display:none">&#9745;</button>
+      <!-- WT26/W23: DFHack command console. HIDDEN until GET /write-guards reports the host
+           enabled dfhack_console (default off; the ROUTE is gated server-side either way --
+           this hide is honesty, not the gate). dwf-console-panel.js shows it. -->
+      <button class="square-button" id="consoleBtn" title="Command console (DFHack)" style="display:none">&#8250;_</button>
+      <button class="square-button" id="settingsBtn" title="Settings">&#9881;</button>
+      <button class="square-button" id="helpBtn" title="Help">?</button>
+    </div>
+  </div>
+  <!-- WT03(a): multiplayer lobby -- connected players in their colors + ping (dwf-lobby.js) -->
+  <div id="lobbyPanel"></div>
+  <div id="settingsMenu">
+    <h3>Client settings</h3>
+    <div class="set-row" id="setInstantDig" title="Toggle how dig/zone/stockpile selections are drawn while you drag">
+      <div class="set-toggle"></div>
+      <div class="set-label">
+        <b>Instant designations</b>
+        <span>Draw the drag selection in your browser with no lag. Off = Dwarf Fortress' grid (smoother look, slight delay while dragging).</span>
+      </div>
+    </div>
+    <div class="set-row" id="setPredictivePan" title="Hide camera-pan latency by shifting the current frame immediately while the server catches up">
+      <div class="set-toggle"></div>
+      <div class="set-label">
+        <b>Predictive panning</b>
+        <span>Pan the camera instantly by sliding the current frame, then snap to the server frame as it catches up. Off = wait for each panned frame.</span>
+      </div>
+    </div>
+    <div class="set-row" id="setUnitImages" title="Toggle native unit portrait/body image requests">
+      <div class="set-toggle"></div>
+      <div class="set-label">
+        <b>Unit images</b>
+        <span>Show native portraits and body sprites in unit lists. Off = text glyphs only, avoiding DF unit texture generation.</span>
+      </div>
+    </div>
+    <div class="set-row" id="setShowAttribution" title="Show which player ordered a building or work order">
+      <div class="set-toggle"></div>
+      <div class="set-label">
+        <b>Show attribution</b>
+        <span>Show a colored dot with the name of the player who ordered a building, stockpile, zone, or work order. Off = hide the attribution dots.</span>
+      </div>
+    </div>
+    <div class="set-row set-row-zoom" id="setZoomRow" title="Map zoom: how much of the map fills the screen">
+      <div class="set-label">
+        <b>Zoom</b>
+        <span>How much of the map fills the screen. Also mouse wheel, or the <b>[</b> / <b>]</b> keys.</span>
+      </div>
+      <div class="zoom-controls">
+        <button type="button" id="zoomOutBtn" title="Zoom out (])">&minus;</button>
+        <span id="zoomReadout">100%</span>
+        <button type="button" id="zoomInBtn" title="Zoom in ([)">+</button>
+        <button type="button" id="zoomResetBtn" title="Reset zoom">Reset</button>
+      </div>
+    </div>
+    <div class="set-row set-row-zoom" id="setUiScaleRow" title="UI scale: size of the game interface (replaces browser page zoom)">
+      <div class="set-label">
+        <b>UI scale</b>
+        <span>Size of the interface panels and toolbars. Also <b>Ctrl</b> + mouse wheel, or <b>Ctrl</b> <b>+</b> / <b>&minus;</b> / <b>0</b>. (Use this instead of the browser's own zoom.)</span>
+      </div>
+      <div class="zoom-controls">
+        <button type="button" id="uiScaleOutBtn" title="Smaller UI">&minus;</button>
+        <span id="uiScaleReadout">100%</span>
+        <button type="button" id="uiScaleInBtn" title="Larger UI">+</button>
+        <button type="button" id="uiScaleResetBtn" title="Reset UI scale">Reset</button>
+      </div>
+    </div>
+    <div class="set-row" data-action="reset" title="Reset camera to host view">
+      <div class="set-label">
+        <b>Reset camera to host view</b>
+      </div>
+    </div>
+  </div>
+  <!-- WD-6: real DF minimap/z cluster, top-right (00-base-map.png ground truth): a
+       vertical tool column LEFT of the minimap (follow/x-marker, recenter surface/deepest,
+       z +/-, the two DISPLAY_TOGGLE_* buttons), the minimap + "Elevation N" label, and a
+       full-height z scrollbar along the map's right edge. -->
+  <div id="rightHud">
+    <!-- B245: pre-hydrate fallback; dwf-interface-shell.js minimapMarkup() is the real
+         builder. Column order matches B243-oracle-native-icon.png: recenter-locations opener,
+         surface, deepest, the two pair rows, then the superset clear-tracking X (hidden while
+         nothing is tracked). -->
+    <div id="minimapToolCol">
+      <button class="square-button" id="recenterLocationsBtn" title="Recenter locations (saved camera bookmarks)"></button>
+      <button class="square-button" data-recenter="surface" title="Recenter on the surface at this location"></button>
+      <button class="square-button" data-recenter="deepest" title="Recenter on the deepest discovered area"></button>
+      <div class="tool-col-pair">
+        <button class="square-button" data-move-z="1" title="Up one elevation">+</button>
+        <button class="square-button" id="liquidNumbersBtn" title="Toggle liquid numerals (DISPLAY_TOGGLE_LIQUID_NUMBERS)"></button>
+      </div>
+      <div class="tool-col-pair">
+        <button class="square-button" data-move-z="-1" title="Down one elevation">-</button>
+        <button class="square-button" id="rampArrowsBtn" title="Toggle ramp-down arrows (DISPLAY_TOGGLE_RAMP_ARROWS)"></button>
+      </div>
+      <button class="square-button" id="followBtn" title="Stop following / clear camera lock" hidden></button>
+    </div>
+    <div id="minimap" class="df-panel">
+      <canvas id="minimapGrid" title="Click to center your camera here"></canvas>
+      <div id="elevation">Elevation 0</div>
+    </div>
+  </div>
+  <div id="zScrollbar" title="Drag to change elevation">
+    <div id="zScrollTrack">
+      <div id="zScrollSurfaceTick" class="z-tick"></div>
+      <div id="zScrollCamMarker" class="z-marker"></div>
+    </div>
+  </div>
+  <!-- WD-8: dig submenu 1:1 with 01-dig.png / 01b-dig-expanded.png:
+       base row = dig + 3-way stair split + ramp + channel + remove, then the
+       rectangle/free-paint pair, then the orange expand arrow (n); advanced row
+       (expand) = mine modes, priority, marker + warm/damp, and the marker-convert
+       trio. Stairs: the endpoint already accepts up/upstair, down/downstair,
+       stairs/updown (src/placement.cpp:101-131) -- this is a client-only split of
+       the single "stairs" tool DF's own submenu only shows one icon for in the
+       capture; art reuses the real DESIGNATION_DIG_STAIR_UP/DOWN/UPDOWN cells
+       (designations.png) since no distinct BUTTON_* trio exists in the raws. -->
+  <div id="digSubmenu" class="tool-group" aria-hidden="true">
+    <button class="tool-button" data-dig-tool="dig" title="Regular dig"></button>
+    <button class="tool-button" data-dig-tool="stairup" title="Dig stairs up"></button>
+    <button class="tool-button" data-dig-tool="stairdown" title="Dig stairs down"></button>
+    <button class="tool-button" data-dig-tool="stairupdown" title="Dig up/down stairwell"></button>
+    <button class="tool-button" data-dig-tool="ramp" title="Dig ramp"></button>
+    <button class="tool-button" data-dig-tool="channel" title="Dig channel"></button>
+    <button class="tool-button" data-dig-tool="remove" title="Remove stairs/ramps and constructions"></button>
+    <button class="tool-button" data-paint-mode="rect" title="Paint mode: rectangle corners"></button>
+    <button class="tool-button" data-paint-mode="free" title="Paint mode: free-hand paint"></button>
+    <button class="dig-expand" data-dig-expand title="More dig options (priority, marker, mine mode)">&#9656;</button>
+    <div class="dig-adv">
+      <button class="dig-mode" data-dig-mode="0" title="Dig every tile selected (v)">All</button>
+      <button class="dig-mode" data-dig-mode="1" title="Dig only ore/gems selected, and automine any of the same type uncovered (Shift+V)">Auto</button>
+      <button class="dig-mode" data-dig-mode="2" title="Dig only ore and gems selected (o)">Ore</button>
+      <button class="dig-mode" data-dig-mode="3" title="Dig only gems selected">Gem</button>
+      <button class="dig-opt" data-dig-opt="marker" title="Marker mode: place designations as blueprint markers (not active until toggled live)"></button>
+      <button class="dig-opt" data-dig-opt="warmdamp" title="Mark for uninterrupted digging through damp or warm tiles (Ctrl+d)">&#8779;</button>
+      <div class="dig-prio" title="Designation priority (1 = highest, default 4)">
+        <button data-dig-prio="1">1</button><button data-dig-prio="2">2</button><button data-dig-prio="3">3</button><button data-dig-prio="4">4</button><button data-dig-prio="5">5</button><button data-dig-prio="6">6</button><button data-dig-prio="7">7</button>
+      </div>
+      <!-- WD-8.3: marker-convert trio (01b-dig-expanded.png right end). ENDPOINT
+           PENDING: server /designate does not yet accept
+           tool=convert-to-marker|convert-to-standard (would need an
+           ENDPOINT-EXTEND in src/placement.cpp -- opus/http_server.cpp territory
+           tonight, not touched here). Wired with graceful degradation: the
+           request 400s cleanly (unrecognized tool -> designate_on_render_thread
+           returns false) and is swallowed like any other failed designate call;
+           no false-success UI state. -->
+      <button class="tool-button" data-dig-tool="convertmarker" title="Convert existing designations to marker mode (server endpoint pending)"></button>
+      <button class="tool-button" data-dig-tool="convertstandard" title="Convert existing designations to standard mode (server endpoint pending)"></button>
+    </div>
+  </div>
+  <!-- WD-9: chop/gather submenu, 02-chop.png / 03-gather.png ground truth. DF shows only
+       ONE tool icon at a time (whichever of chop/gather is active -- both buttons stay in
+       the DOM, controls-placement.js hides the inactive one), then the stamp/paint pair
+       (shared paintMode, same as dig), then the expand arrow, then priority. No marker for
+       this family (the captures show none -- that's smooth-family only, see #smoothSubmenu).
+       Both captures show the priority row already visible (arrow pointing left = DF's own
+       "expanded" state per 01b-dig-expanded.png's tooltip), so plantAdvOpen defaults true. -->
+  <div id="plantSubmenu" class="tool-group" aria-hidden="true">
+    <button class="tool-button" data-plant-tool="chop" title="Set tree chopping orders"></button>
+    <button class="tool-button" data-plant-tool="gather" title="Set plant gathering orders"></button>
+    <button class="tool-button" data-paint-mode="rect" title="Paint mode: rectangle corners"></button>
+    <button class="tool-button" data-paint-mode="free" title="Paint mode: free-hand paint"></button>
+    <button class="dig-expand" data-plant-expand title="More plant order options (priority)">&#9656;</button>
+    <div class="dig-adv plant-adv">
+      <div class="dig-prio" title="Designation priority (1 = highest, default 4)">
+        <button data-dig-prio="1">1</button><button data-dig-prio="2">2</button><button data-dig-prio="3">3</button><button data-dig-prio="4">4</button><button data-dig-prio="5">5</button><button data-dig-prio="6">6</button><button data-dig-prio="7">7</button>
+      </div>
+    </div>
+  </div>
+  <!-- WD-9: smooth submenu, 04-smooth.png ground truth: 4 tool icons always shown together
+       (smooth/engrave/track/fortify, one highlighted) + stamp/paint pair + expand arrow +
+       priority -- same shape as plantSubmenu. Audit gap this item closes: the marker toggle
+       (server /designate already accepts marker=1 for every designation kind, phase0 §6) was
+       never exposed in this submenu even though dig's was -- added to the advanced row here,
+       reusing the same shared markerMode state + BUTTON_DES_BLUEPRINT sprite as #digSubmenu. -->
+  <div id="smoothSubmenu" class="tool-group" aria-hidden="true">
+    <button class="tool-button" data-smooth-tool="smooth" title="Smooth rough stone"></button>
+    <button class="tool-button" data-smooth-tool="engrave" title="Engrave artwork into smooth stone"></button>
+    <button class="tool-button" data-smooth-tool="track" title="Carve minecart track in stone floor or ramp"></button>
+    <button class="tool-button" data-smooth-tool="fortify" title="Carve fortification in smooth wall"></button>
+    <button class="tool-button" data-paint-mode="rect" title="Paint mode: rectangle corners"></button>
+    <button class="tool-button" data-paint-mode="free" title="Paint mode: free-hand paint"></button>
+    <button class="dig-expand" data-smooth-expand title="More smoothing order options (priority, marker)">&#9656;</button>
+    <div class="dig-adv smooth-adv">
+      <button class="dig-opt" data-dig-opt="marker" title="Marker mode: place wall/smoothing orders as blueprint markers (not active until toggled live)"></button>
+      <div class="dig-prio" title="Designation priority (1 = highest, default 4)">
+        <button data-dig-prio="1">1</button><button data-dig-prio="2">2</button><button data-dig-prio="3">3</button><button data-dig-prio="4">4</button><button data-dig-prio="5">5</button><button data-dig-prio="6">6</button><button data-dig-prio="7">7</button>
+      </div>
+    </div>
+  </div>
+  <!-- WD-10: item/building designations submenu, 12-item-designations.png ground truth --
+       8 buttons in DF's exact order (claim/forbid/dump/undump/melt/unmelt/unhide/hide) +
+       stamp/paint pair. No priority/marker/expand row (not present in the capture). The
+       server side is src/placement.cpp's WD-10 item-designation tool= values; the client
+       uses the same graceful-degradation pattern as WD-8's marker-convert trio -- a failed
+       /designate call is swallowed and surfaced only as a console.warn. -->
+  <div id="itemDesigSubmenu" class="tool-group" aria-hidden="true">
+    <button class="tool-button" data-itemdesig-tool="claim" title="Claim forbidden items and buildings"></button>
+    <button class="tool-button" data-itemdesig-tool="forbid" title="Forbid items and buildings"></button>
+    <button class="tool-button" data-itemdesig-tool="dump" title="Designate items for dumping"></button>
+    <button class="tool-button" data-itemdesig-tool="undump" title="Cancel dump designations"></button>
+    <button class="tool-button" data-itemdesig-tool="melt" title="Designate items for melting"></button>
+    <button class="tool-button" data-itemdesig-tool="unmelt" title="Cancel melt designations"></button>
+    <button class="tool-button" data-itemdesig-tool="unhide" title="Set items visible"></button>
+    <button class="tool-button" data-itemdesig-tool="hide" title="Hide items"></button>
+    <button class="tool-button" data-paint-mode="rect" title="Paint mode: rectangle corners"></button>
+    <button class="tool-button" data-paint-mode="free" title="Paint mode: free-hand paint"></button>
+  </div>
+  <!-- WD-12: stockpile submenu -- 07-stockpile-mode.png (entry stage: a single "+ new
+       stockpile" icon; existing piles stay click-through to their detail panel, since
+       stockPreset/stockRepaintId both stay null until "+" is clicked -- DF's "existing-
+       stockpiles context") / 07b-stockpile-paint.png (paint stage: rect/free paint pair +
+       erase + remove-existing, the 4-icon row, then the floating "Click in the play area..."
+       + Accept dialog, #stockPalette in dwf-controls-placement.js). Paint-mode pair
+       reuses the shared [data-paint-mode]/paintMode plumbing, same as the dig/plant/smooth/
+       item-desig submenus above. Config (category presets + custom item editor) happens
+       AFTER Accept, in the existing stockpile detail panel -- DF doesn't ask for a category
+       before painting either, so there is no palette here (the old palette-first grid this
+       replaces is gone; see the completion report / WD-12 code comments). -->
+  <div id="stockSubmenu" class="tool-group" aria-hidden="true">
+    <button class="tool-button" data-stock-new title="New stockpile"></button>
+    <button class="tool-button" data-paint-mode="rect" title="Paint mode: rectangle corners"></button>
+    <button class="tool-button" data-paint-mode="free" title="Paint mode: free-hand paint"></button>
+    <button class="tool-button" data-stock-erase title="Erase-paint: repaint (trim) an existing stockpile's footprint"></button>
+    <button class="tool-button" data-stock-remove-existing title="Remove an existing stockpile"></button>
+  </div>
+  <!-- WD-14: zone paint submenu, visible only during the zone PAINT stage (a type armed in
+       the 08-zones.png left palette). Same 4-tool shape as the stockpile paint row above:
+       shared rect/free paint pair + zone erase (ZONE_ERASE_*; needs a server zone-repaint
+       route that hasn't landed -- graceful degradation, see zoneEraseDrag) + remove-existing
+       (ZONE_REMOVE_EXISTING -> the LIVE /zone-action?action=remove). New-zone paint
+       accumulates a client-side union bbox and submits ONE POST /zone on Accept, because the
+       backend has no zone repaint/extend route to grow a zone incrementally (verified
+       src/building_zone.cpp zone_action_on_core_thread op list). -->
+  <div id="zoneSubmenu" class="tool-group" aria-hidden="true">
+    <button class="tool-button" data-paint-mode="rect" title="Paint mode: rectangle corners"></button>
+    <button class="tool-button" data-paint-mode="free" title="Paint mode: free-hand paint"></button>
+    <button class="tool-button" data-zone-erase title="Erase-paint: trim an existing zone's footprint"></button>
+    <button class="tool-button" data-zone-remove-existing title="Remove an existing zone"></button>
+  </div>
+  <div id="trafficSubmenu" class="tool-group" aria-hidden="true"></div>
+  <!-- WD-4: DF's real 3-cluster bottom toolbar (00-base-map.png ground truth). 22
+       [data-df-btn] buttons total: 8 info-window openers (left) + 12 designation/
+       structure/mode tools in 4 sub-groups (center) + 2 (squads/world, right).
+       Order, grouping and art tokens match the ui-truth captures; see
+       dwf-controls-placement.js's SPRITE_TOKENS + TOOLBAR_TOOLTIPS for the
+       per-button DF sprite + hover-text/hotkey table (titles are set from that
+       table at runtime, not hardcoded here). -->
+  <div id="bottomBar">
+    <div class="tool-group" id="leftTools">
+      <button class="tool-button" data-df-btn data-panel="citizens"></button>
+      <button class="tool-button" data-df-btn data-panel="orders"></button>
+      <button class="tool-button" data-df-btn data-panel="locations"></button>
+      <button class="tool-button" data-df-btn data-panel="labor"></button>
+      <button class="tool-button" data-df-btn data-panel="workorders"></button>
+      <button class="tool-button" data-df-btn data-panel="nobles"></button>
+      <button class="tool-button" data-df-btn data-panel="objects"></button>
+      <button class="tool-button" data-df-btn data-panel="justice"></button>
+    </div>
+    <div class="tool-group" id="centerTools">
+      <div class="tool-subgroup" id="designationBar">
+        <button class="tool-button" data-df-btn data-dig-menu></button>
+        <button class="tool-button" data-df-btn data-designation-tool="chop"></button>
+        <button class="tool-button" data-df-btn data-designation-tool="gather"></button>
+        <button class="tool-button" data-df-btn data-designation-tool="smooth"></button>
+        <button class="tool-button" data-df-btn data-designation-tool="erase"></button>
+      </div>
+      <div class="tool-subgroup" id="structureTools">
+        <button class="tool-button" data-df-btn data-panel="build"></button>
+        <button class="tool-button" data-df-btn data-panel="stockpile"></button>
+        <button class="tool-button" data-df-btn data-panel="zone"></button>
+      </div>
+      <div class="tool-subgroup" id="modeTools">
+        <button class="tool-button" data-df-btn data-mode-tool="burrow"></button>
+        <button class="tool-button" data-df-btn data-mode-tool="hauling"></button>
+        <button class="tool-button" data-df-btn data-mode-tool="traffic"></button>
+      </div>
+      <div class="tool-subgroup" id="itemDesigTools">
+        <button class="tool-button" data-df-btn data-mode-tool="itemdesig"></button>
+      </div>
+    </div>
+    <div class="tool-group" id="rightTools">
+      <button class="tool-button" data-df-btn data-panel="squads"></button>
+      <button class="tool-button" data-df-btn data-panel="worldmap"></button>
+    </div>
+  </div>
+</div>
+<div id="selection" aria-live="polite"></div>
+<div id="clientPanel" aria-live="polite"></div>
+<div id="digSelect"></div>
+<div id="tileFlash"></div>
+<div id="hoverInfo"></div>
+<div id="alertStack" aria-live="polite"></div>
+<div id="alertPopup"></div>
+<!-- WD-28: in-UI hotkey reference overlay (Shift+H / ? / F1 / top-bar Help button). Content is
+     rendered entirely by dwf-keymap.js from its own keymap table -- see that file. -->
+<div id="hotkeyOverlay" aria-live="polite"></div>
+<!-- B207: the full "?" help reference -- a searchable list of EVERY tooltip/guide/shortcut the
+     client carries. Rendered by dwf-help-panel.js from the harvested corpus
+     (dwf-help-corpus.js, generated by tools/harness/help_corpus_extractor.mjs). The compact
+     hotkey overlay above stays on Shift+H. -->
+<div id="helpReference" aria-live="polite"></div>
+<!-- WD-26: DF-styled tooltip (delegated against every [title] element -- see
+     dwf-tooltip.js) + the first-time help-popup system (help_context_type). -->
+<div id="dfTooltip" aria-hidden="true"></div>
+<div id="helpPopup" aria-live="polite"></div>
+<!-- WD-27: World screen (hotkey Shift+Y / the bottom-right toolbar button) -- a full-screen
+     takeover, not a floating panel; see dwf-worldmap.js. -->
+<div id="worldScreen" aria-live="polite"></div>
+<!-- WD-27: Esc menu -- DF's real menu list, client-scoped; see dwf-escmenu.js. -->
+<div id="escMenu" aria-live="polite"></div>
+<script src="/js/dwf-bitmap-text.js?v=1.1.2-gatec-n0715d-dwfui1"></script>
+<!-- Text-color: DF's [C:fg:bg:bright] markup parser (window.DwfDfMarkup), a faithful port of
+     Gui::MTB_parse. Standalone (no deps); loads before any consumer of raw DF markup strings. -->
+<script src="/js/dwf-df-markup.js?v=1.0.0-textcolor-n0715d"></script>
+<script src="/js/dwf-ui-components.js?v=2.6.0-b252-b254-b276-temple-honesty-n0715d-p0716v1-dwfui1"></script>
+<!-- W23: guarded-write flag mirror (fail-closed). Loads early so every panel can consult it. -->
+<script src="/js/dwf-write-guards.js?v=1.0.0-w23-n0715d-zdel3-pos0"></script>
+<script>
+window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", "searchHtml", "scrollHtml", "headerHtml", "stepperHtml", "switchHtml", "statusHtml"]);
+</script>
+<script src="/js/dwf-interface-shell.js?v=1.0.0-dfcui-n0715d-dwfui1"></script>
+<!-- Tile renderer must load BEFORE core so window.DwfTiles exists when core inits the
+     map surface. It only auto-boots standalone when a #tilemap canvas is present (tiles.html);
+     here there is none, so it just exposes its API for core.js to drive. -->
+<!-- WA-12: the protocol v1 reference decoder. Needed as an ambient global in TWO places --
+     dwf-ws.js decodes each binary frame's 10-byte HEADER directly on the main thread
+     (cheap slice, before dispatching the payload), and dwf-cache-worker.js's fallback
+     (non-dedicated-worker) mode expects it too (a real dedicated Worker self-loads its own
+     copy via importScripts instead). Must load before BOTH of those. -->
+<script src="/js/dwf-wire-v1.js?v=1.1.0-wavea.r26.fx-n0715d"></script>
+<!-- WA-6 world cache: dwf-ws.js's deliver() posts every surviving map message into
+     DwfCache (shadow-only until WA-7 rewires the tile renderer to read from it). The
+     worker script doubles as the synchronous ingest-core fallback when loaded as a plain
+     <script> (see the dual-mode banner in dwf-cache-worker.js), so it must load first. -->
+<script src="/js/dwf-cache-worker.js?v=1.0.9-b204-n0715d"></script>
+<script src="/js/dwf-cache.js?v=2.3.0-b211-n0715d"></script>
+<!-- WS push transport must load BEFORE the tile renderer so window.DwfWS exists
+     when it wires the push hook. Absent => the renderer just keeps HTTP polling. -->
+<script src="/js/dwf-ws.js?v=2.0.6-b238-n0715d"></script>
+<!-- WB-6: shared 8-neighbor adjacency (wall-join upgrade + WB-7's shadow-decal tables).
+     Renderer-agnostic, must load before dwf-tiles.js's drawWallJoin/drawTileComposite
+     reference window.DwfAdjacency. -->
+<script src="/js/dwf-adjacency.js?v=1.0.1-b36wall.r26.fx-n0715d"></script>
+<!-- B206 PAUSE-ANIM: server-driven pause-aware WORLD animation clock. Both renderers subtract its
+     paused-span offset from their sprite/flow/machine clocks so game-world animations (miasma,
+     fire, water shimmer, machine frames) freeze while the game is paused and resume with no jump.
+     Must load BEFORE the renderers so window.DFAnimClock exists when they first read it. -->
+<script src="/js/dwf-animclock.js?v=1.0.0-b206-n0715d"></script>
+<script src="/js/dwf-farm-crops.js?v=1.0.0-tx4.r26.fx-n0715d"></script>
+<script src="/js/dwf-tiles.js?v=8.4.1-gatec-b235-b71r3-b211-b273r2-n0715d-p0716f1-blink1-plist2-join1-drag2-wscam1-scrub1"></script>
+<!-- WB-8/WB-9 GL renderer: the instanced-quad atlas packer + the WebGL2 core pipeline. Behind
+     the ?renderer=gl seam flag (default stays canvas2d until WB-14). Load BEFORE render.js so
+     its gl impl can reference window.DwfGL / window.DwfGLAtlas at init. -->
+<script src="/js/dwf-gl-atlas.js?v=1.0.5-spritefresh.r26.fx-n0715d"></script>
+<script src="/js/dwf-gl.js?v=7.6.0-b206-b235-b71r3-b211-b273r2-n0715d-p0716f1-blink1-scrub1"></script>
+<!-- Renderer seam (WB-1): registers canvas2d/gl + selection/fallback. Loads AFTER
+     dwf-tiles.js (so window.DwfTiles already exists) and BEFORE core.js. -->
+<script src="/js/dwf-render.js?v=2.3.0-b211-n0715d"></script>
+<!-- WP-C player action attribution: fetches /attrib and merges creator dots into inspect
+     panels + the work-orders list. Loads AFTER dwf-tiles.js (window.DwfTiles
+     .playerColor) and BEFORE the panels that call attribRowHtml(). Graceful on the pre-WP-C
+     DLL (/attrib 404 -> dormant, no dots, no errors). -->
+<script src="/js/dwf-attribution.js?v=1.0.1-wpcfix.r26.fx-n0715d"></script>
+<script src="/js/dwf-core.js?v=4.1.6-b232r2-b217r2-n0715d-p0716z1-p0716z2-dwfui1-plist2-wscam1-sprepaintctl1-scrub1"></script>
+<!-- B169 DWFUI shared component layer: dumb declarative HTML builders (rows, tabs, action
+     clusters, tri-state marks, search, headers, tokens). Dependency-free; must load BEFORE any
+     panel module that builds markup through window.DWFUI (building-zone-stockpile-panels first).
+     Spec: docs/superpowers/specs/2026-07-10-ui-component-architecture.md -->
+<script src="/js/dwf-menu-tree.js?v=1.0.0-truemenu.r26.fx-n0715d"></script>
+<script src="/js/dwf-building-zone-stockpile-panels.js?v=2.9.0-b229-b231-b217r2-b251-w23-b276-location-access-n0715d-p0716v1-p0716z1-p0716f1-dwfui1-zdel2-sprepaintctl1"></script>
+<script src="/js/dwf-tradedepot-panel.js?v=1.2.0-tradescreen.b226-n0715d-dwfui1"></script>
+<!-- B226: the full trade screen (barter, oracle B226-barter-1..4) + the bring-goods-to-depot
+     screen (B226-depot-1..7). Loads AFTER dwf-ui-components.js (DWFUI) and after the
+     depot panel whose plaques open it. -->
+<script src="/js/dwf-tradescreen.js?v=1.0.0-tradescreen.b226-n0715d-dwfui1-scrub1"></script>
+<script src="/js/dwf-hospital-panel.js?v=1.0.1-b276-location-access-n0715d-dwfui1"></script>
+<!-- B229: Location Details (occupants / occupation assignment / temple-deity + guild pickers /
+     rented rooms). Loads AFTER the hospital panel: openLocationPanel hands a hospital location
+     off to openHospitalPanel, which must already be on window. -->
+<script src="/js/dwf-location-panel.js?v=1.1.1-b276-temple-honesty-n0715d-p0716v1-dwfui1"></script>
+<!-- TX14: shared announcement formatting (DwfAnnouncementFormat) -- the 37-entry
+     category table + the zoom-target resolver (pos/pos2, zoom_type/zoom_type2, NONE
+     handling). Must load BEFORE every consumer: unit-hud-notifications (popups/alert
+     stack), announcements (the alerts panel) and combatlog-panel. -->
+<script src="/js/dwf-announcement-format.js?v=1.0.0-tx14-n0715d"></script>
+<!-- B232: the announcement TAXONOMY, GENERATED from DF's own raws (data/init/announcements.txt)
+     by tools/harness/gen_announce_taxonomy.py, which emits this file AND src/announce_taxonomy.gen.h
+     from the same table so the server and the browser cannot drift. It maps every announcement
+     token to its section (combat / sieges / artifacts / trade / nobles / deaths / misc) and its DF
+     behaviour flags (BOX, ALERT, UCR, ...). The server normally SHIPS the section on each report;
+     this is the fallback + the label table. Loads BEFORE announcements.js. DO NOT HAND-EDIT. -->
+<script src="/js/dwf-announce-taxonomy.js?v=1.0.1-b232-n0715d"></script>
+<!-- B202 ROOT CAUSE was here: the unit-hud tag lost its closing </script> in the B192 buster
+     bump, so the HTML parser swallowed the ENTIRE build-info-panels tag as script text -- the
+     module never existed in the DOM and the input layer died at init (win31 outage). Keep
+     these two tags CLOSED. ui_drift_guard now pins unclosed-script-tag detection. -->
+<script src="/js/dwf-unit-hud-notifications.js?v=2.7.2-portrait-reuse-b233-b232r2-n0715d-p0716v1-dwfui1-plist2"></script>
+<script src="/js/dwf-build-info-panels.js?v=2.2.4-b225-b229-b236-b232r2-b254-n0715d-p0716v1-p0716f1-dwfui1"></script>
+<script src="/js/dwf-labor-work-orders.js?v=0.9.1-gatec-n0715c-b285w2-recorder-v3-dwfui1-scrub1"></script>
+<script src="/js/dwf-squads.js?v=1.2.0-gatec-b233-b252-w23-n0715d-p0716v1-dwfui1-zdel3-pos0"></script>
+<script src="/js/dwf-announcements.js?v=1.1.0-b232r2-n0715d-dwfui1"></script>
+<script src="/js/dwf-combatlog-panel.js?v=2.2.1-dfcui-scroll-n0715d-dwfui1"></script>
+<!-- WT13: Fortress-activity (analytics) overview. Aggregates GET /attrib (the AttributionRegistry)
+     client-side into per-player action counts. Loads AFTER dwf-ui-components.js (DWFUI) +
+     dwf-attribution.js (window.attribRefresh); registers with DFPanelFrame lazily. -->
+<script src="/js/dwf-analytics-panel.js?v=1.0.0-wt13-n0715d-dwfui1"></script>
+<!-- WT14: fortress-elevation vote popup. Push-driven ({"type":"vote"} WS frames via
+     dwf-ws.js); makes ZERO requests until the wire proves itself, so it is fully dormant
+     against a server without the vote routes. Loads AFTER dwf-ui-components.js (DWFUI). -->
+<script src="/js/dwf-vote.js?v=1.0.0-wt14-n0715d-dwfui1"></script>
+<!-- WT26: browser DFHack command console (gui/launcher equivalent). Fetches the helpdb catalog +
+     server deny table once from GET /console/commands and filters client-side; POST /console/run
+     executes. Available to any AUTHED player (not host-only, the owner decision) -- containment is the
+     server-side blocklist (src/console_policy.h). Loads AFTER dwf-ui-components.js (DWFUI). -->
+<script src="/js/dwf-console-panel.js?v=1.1.0-w23-n0715d-dwfui1"></script>
+<!-- WT28/B218: native popup mirror. Push-driven ({"type":"popup"} WS frames via dwf-ws.js);
+     fully dormant against a server without the popup routes. Any player can dismiss the mirrored
+     native modal (POST /popup/dismiss) so an unattended host PC never wedges the fortress.
+     Loads AFTER dwf-ui-components.js (DWFUI). -->
+<script src="/js/dwf-popup.js?v=1.0.0-wt28-n0715d-dwfui1"></script>
+<!-- B225: petitions/diplomacy left-rail detector plaques + diplomacy meeting mirror. Consumes
+     {"type":"diplo"} frames (feature-detect: an old server never emits them, so the module
+     stays invisible there). Loads AFTER dwf-build-info-panels.js (openPanel) and
+     dwf-ui-components.js (DWFUI.lightPlaqueHtml). -->
+<script src="/js/dwf-diplo.js?v=1.0.0-b225-n0715d-dwfui1"></script>
+<script src="/js/dwf-fort-panels.js?v=0.9.1-nightsync.r26.fx-n0715d-dwfui1"></script>
+<script src="/js/dwf-fort-admin.js?v=1.2.0-b227-justiceguards-b227-n0715d-dwfui1-pet1-scrub1"></script>
+<!-- WT15: summonable Obligations board (noble mandates + guildhall/temple agreements). -->
+<script src="/js/dwf-obligations.js?v=1.0.0-wt15-n0715d-dwfui1"></script>
+<!-- WD-13: the invented add-unit-by-id burrows window was removed. DF's real burrows mode
+     (full-height left panel + tile painting, 09-burrows.png) lives in
+     dwf-controls-placement.js now, and the old panel was already unreachable
+     (nothing called openBurrowsPanel; openPanel("burrows") hit the renderLocalPanel stub). -->
+<script src="/js/dwf-kitchen.js?v=0.8.3-gatec-n0715d-dwfui1"></script>
+<!-- WD-27: World screen rebuilt as a full-screen takeover (was a floating fort-window panel). -->
+<script src="/js/dwf-worldmap.js?v=2.0.1-win17.r26.fx-n0715d-dwfui1"></script>
+<!-- WT11: 3D world viewer. THREE pure stages (model -> voxelizer -> mesher) + a WebGL2 overlay.
+     Loads AFTER dwf-tiles.js (needs DwfTiles.tileColor) and dwf-cache.js
+     (windowView + mapDims). The model carries the orbit camera + z-slab state machines. -->
+<script src="/js/dwf-world3d-model.js?v=2.1.0-wt11r-n0715d"></script>
+<script src="/js/dwf-voxelizer.js?v=2.1.0-wt11r-n0715d"></script>
+<script src="/js/dwf-voxel-mesh.js?v=1.1.0-wt11r-n0715d"></script>
+<script src="/js/dwf-world3d.js?v=2.1.0-wt11r-b237-n0715d-dwfui1"></script>
+<!-- WD-26: DF-styled tooltip + first-time help-popup component. Delegation-based (no
+     call-site changes needed anywhere else), so load order relative to the panel scripts
+     doesn't matter -- placed here alongside the other chrome helpers. -->
+<script src="/js/dwf-tooltip.js?v=1.0.1-wd26.r26.fx-n0715d"></script>
+<!-- WD-3: interface-sprite blit helper (interface_map.json + DFChrome.icon/
+     dfChromeIcon). Loads BEFORE controls-placement.js so window.DFChrome
+     exists when paintSprite() calls into it. -->
+<script src="/js/dwf-chrome.js?v=0.9.1-wd6.r26.fx-n0715d"></script>
+<script src="/js/dwf-control-shell.js?v=1.1.0-toolbar-align-b230-b233-b231-b217r2-b267-b268-w23-n0715d-dwfui1-zdel2"></script>
+<script src="/js/dwf-controls-placement.js?v=4.9.0-b223-pingflow-b230-b233-b231-b238-b267-b268-w23-n0715d-p0716v1-p0716z1-p0716z2-dwfui1-wthr1-plist2-zdel2-drag1-sprepaintctl1"></script>
+<!-- WT20 (mobile): touch-gesture layer for the map canvas -- one-finger pan / pinch zoom /
+     two-finger z-swipe / tap-as-click, all routed into the EXISTING camera+selection
+     primitives (window.DFTouchNav from core.js, window.DFPlacementArmed from
+     controls-placement.js). Acts only on pointerType==="touch" events; a mouse-only desktop
+     never enters it. Also maintains the --dfvv-kb-inset keyboard var for chat. -->
+<script src="/js/dwf-touch.js?v=1.0.0-wt20-n0715d"></script>
+<!-- WD-27: Esc menu (client-scoped; see file header for the host-gating rationale). -->
+<script src="/js/dwf-escmenu.js?v=1.1.1-settings.r26.fx-n0715d-dwfui1"></script>
+<!-- HOST SETTINGS panel: host-only point-and-click for pause permissions, join password, and the
+     connected-players roster. Self-contained (own <style>); entry row injected into the Esc menu
+     for the loopback host only. Dormant-graceful against an older DLL (missing routes -> hints). -->
+<script src="/js/dwf-hostpanel.js?v=1.1.0-hostpanel-w23-n0715d-dwfui1-zdel3-pos0"></script>
+<!-- WD-28: keyboard parity audit + keymap documentation + in-UI hotkey reference overlay -->
+<script src="/js/dwf-keymap.js?v=1.0.1-wavee.r26.fx.b203-n0715d"></script>
+<!-- B207: full "?" help reference. Corpus is generated from source (never hand-maintained);
+     curated adds optional one-line clarifications; panel renders the searchable reference. Loads
+     after dwf-ui-components.js (DWFUI) and dwf-keymap.js. -->
+<script src="/js/dwf-help-corpus.js?v=3.2.0-b247-helpcorpus-b254-b267-b268-w23-n0715d-sprepaint1"></script>
+<script src="/js/dwf-help-curated.js?v=1.0.0-b207-n0715d"></script>
+<script src="/js/dwf-help-panel.js?v=1.0.0-b207-n0715d-dwfui1"></script>
+<script src="/js/dwf-lobby.js?v=1.1.3-panels.r26.fx-n0715d-dwfui1-plist2-rename1"></script>
+<!-- WP-B: pause-arbiter client consumer ({"type":"pause"} who-paused line + toast, {"type":"busy"}
+     saving indicator). Loads after lobby.js (calls DwfLobby.setPauseText) + ws.js (routes
+     the frames here). Inert-graceful against an old DLL that never emits these frames. -->
+<script src="/js/dwf-pause.js?v=2.1.0-b206-n0715d-dwfui1"></script>
+<!-- WP-D: multiplayer chat consumer. Collapsible bottom-left box; server-authoritative relay over
+     the WS push channel + GET /chat scrollback. Loads after ws.js (routes {"type":"chat"} here) +
+     tiles.js (player colors + live unit roster), core.js (window.playerName/camera), and DWFUI
+     (composer/suggestion components). XSS-safe: raw chat reaches textContent/safe link attributes
+     only. Graceful-dormant against an old DLL (no /chat route -> disabled). -->
+<script src="/js/dwf-digest.js?v=1.0.0-wt09.r26.fx-n0715d-dwfui1"></script>
+<script src="/js/dwf-chat.js?v=2.2.0-b223-pingflow-n0715d-dwfui1"></script>
+<!-- B04: per-tile unit selection cycling. Loads after core.js + unit-hud so it can read the
+     shared `player`/`selectedUnitData`/`showUnitSheet` bindings; injects a unit-cycle bar into
+     the open unit sheet whenever the clicked tile holds more than one unit. -->
+<script src="/js/dwf-unitcycle.js?v=3.1.1-gatec-n0715d-dwfui1"></script>
+<!-- B15: saved map-location (DF hotkey) fly-out panel. Self-contained; reads GET /hotkeys,
+     mutates POST /hotkey-action; recenters via the shared `player` camera. -->
+<script src="/js/dwf-hotkeys.js?v=1.0.2-panels.r26.sf.fx.b203-n0715d-dwfui1"></script>
+<!-- WC-20: weather ambience (rain/snow) overlay. Self-contained top layer above the map
+     canvases; reads DwfTiles.getLatest().env; ?weatherfx=0 disables (parity kill switch). -->
+<script src="/js/dwf-weather.js?v=1.1.0-rainjitter-n0715d-wthr1"></script>
+<!-- Audio DIRECTOR (spec 2026-07-09-audio-director-spec.md): sparse lockstep music (play/gap
+     schedule derived from server env.music), budgeted+hysteretic ambience bed, spaced/ducked
+     stingers. Self-contained; graceful-dormant vs a DLL with no /sound route (shows "host needs
+     update"). Kill switch: ?audio=0. -->
+<script src="/js/dwf-audio.js?v=1.2.2-win18.r26.fx-n0715d-dwfui1"></script>
+<!-- Phase-5 client Settings panel (Esc > Settings): keybind remapping, interface prefs, UI scale
+     (absorbs PDF-B17), read-only info. Self-contained (own injected DOM/CSS). Exposes
+     window.DFKeybinds.resolve() consumed by dwf-controls-placement.js's hotkey switch.
+     Fully dormant-safe: zero behavior change if the panel is never opened / this file never loads. -->
+<script src="/js/dwf-panelframe.js?v=1.0.4-chrome.r26.sf.fx-n0715d-dwfui1"></script>
+<script src="/js/dwf-settings.js?v=1.0.1-win22.r26.fx.b203-n0715d-dwfui1-wthr2"></script>
+<!-- B08/B18 (WC-7 residual): renderer-agnostic building-overlay pass -- stockpile designation
+     boxes (always) + queued/unbuilt construction boxes (dormant until the server ships `built`).
+     Self-owned canvas above the map; reads DwfTiles.getRenderRect/getLatest, so canvas2d
+     and WebGL reach parity for free (lives in neither renderer). -->
+<script src="/js/dwf-overlay-boxes.js?v=1.0.0-overlay.r26.fx-n0715d-scrub1"></script>
+<!-- B230 BURROW TILE OVERLAY: draws each burrow's assigned tiles (the `rects` /burrows has shipped
+     since WD-13 and nothing consumed) while burrow mode is open, tinted with the burrow's own DF
+     palette colour. Same self-owned-canvas shape as overlay-boxes.js above, for the same reason:
+     renderer-agnostic, so canvas2d and WebGL reach parity for free. -->
+<script src="/js/dwf-burrow-overlay.js?v=1.1.0-b238-n0715d"></script>
+<!-- JOIN SECURITY + VERSION GATE (ship-blockers): renders the join screen (name + password) and
+     the stale-tab banner, then boots the app. Self-contained; must define DwfJoin before the
+     boot call below. -->
+<script src="/js/dwf-join.js?v=1.0.1-win18.r26.fx-n0715d-dwfui1-join1-rename1-stalepin1"></script>
+<!-- Boot through the join gate: it fetches /version, shows the join screen when the host set a
+     passphrase (or a first-time name screen), then calls startDwf(). If the join module
+     failed to load for any reason, fall back to booting directly so the app is never bricked. -->
+<script>
+  if (window.DwfJoin && typeof DwfJoin.gate === "function") DwfJoin.gate(startDwf);
+  else startDwf();
+</script>
+</body>
+</html>

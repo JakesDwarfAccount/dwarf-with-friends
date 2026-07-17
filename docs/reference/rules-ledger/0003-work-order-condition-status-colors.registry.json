@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "rule.0003.work-order-condition-status-color",
+  "kind": "rule",
+  "title": "Work-order condition status colors",
+  "definition": "Native DF renders an existing item condition's next-check status label and text attributes from its cached satisfaction result.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "satisfied-label-color",
+      "statement": "A true cached result is labeled Satisfied for next check in bright native green foreground index 2 on black background index 0.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+        "selectors": ["0x14038c3c0", "0x140390a03"]
+      }]
+    },
+    {
+      "id": "unsatisfied-label-color",
+      "statement": "A false cached result is labeled Not satisfied for next check in bright native red foreground index 4 on black background index 0.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+          "selectors": ["0x14038c3c0", "0x140390a57"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0003-condition-colors-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "status-annotation-scope",
+      "statement": "These attributes apply to the status annotation at the right of an existing item condition, not to its operator, quantity, or item-description fragments.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+        "selectors": ["0x14038c3c0"]
+      }]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "satisfied-state-corpus",
+      "statement": "The corpus confirms the false-state wording and colors, but the same condition has not yet been recorded in the true cached state."
+    }
+  ],
+  "relationships": {
+    "parents": [],
+    "children": [],
+    "dependencies": [],
+    "rules": [],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["The same existing item-condition row with a true cached result shows the exact satisfied text and bright green-on-black attributes."],
+    "boundary": ["Foreground, background, and brightness planes are all checked rather than inferring color from visible text."],
+    "counterexamples": ["The same row with a false cached result shows the exact unsatisfied text and bright red-on-black attributes."]
+  },
+  "absenceGuards": ["Do not apply the status annotation color to the operator, quantity, or item-description fragments."],
+  "recorderRequirements": {
+    "stateSlice": ["selected condition id", "cached satisfaction result", "character plane", "foreground plane", "background plane", "brightness plane"],
+    "requiredFrames": ["The same condition row in satisfied and unsatisfied next-check states"]
+  },
+  "predicate": {
+    "file": "docs/reference/rules-ledger/predicates/0003-work-order-condition-status-colors.mjs",
+    "tests": ["tools/harness/rules_ledger_predicates_test.mjs"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "captured",
+    "productMapping": "mapped-conflicting",
+    "verification": "fixture-verified",
+    "release": "not-shippable"
+  }
+}

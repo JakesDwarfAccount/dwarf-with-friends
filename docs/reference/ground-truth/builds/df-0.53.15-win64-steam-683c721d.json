@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "recordType": "build",
+  "id": "build.df.0.53.15-win64-steam-683c721d",
+  "dfVersion": "0.53.15",
+  "platform": "win64",
+  "distribution": "STEAM",
+  "executable": {
+    "fileName": "Dwarf Fortress.exe",
+    "sha256": "683C721D1261E77FF862A2E01DFE3FF93D107AB7B1C92B5A3B6F313CCC8FC284",
+    "peTimestamp": "0x6A268FCD"
+  },
+  "dfhack": {
+    "version": "53.15-r1",
+    "symbolsBinaryTimestamp": "0x6A268FCD"
+  },
+  "assets": [
+    {
+      "relativePath": "data/vanilla/vanilla_interface/graphics/graphics_interface.txt",
+      "sha256": "DE78337D972E1471E10B286C3C3D27A23E374EFF1CAE58C059611D1CCC0F628B"
+    }
+  ],
+  "recordedOn": "2026-07-15"
+}

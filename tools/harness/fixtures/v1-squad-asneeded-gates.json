@@ -1,0 +1,27 @@
+{
+  "provenance": {
+    "purpose": "v1 gap-closure: behaviorally isolate the market / population / replacement sub-gates of position_is_as_needed_squad_appointable (src/squads.cpp + src/fort_admin.cpp).",
+    "companionSourcePin": "tools/harness/b293_noble_squad_availability_test.mjs asserts the C++ predicate contains the HAS_BEEN_REPLACED / HAS_MET_POP_REQ / REQUIRES_MARKET / HAS_MET_MARKET_REQ clauses; this fixture proves each clause is behaviorally load-bearing.",
+    "dfStructures": "df.entity.xml entity_position flags: HAS_BEEN_REPLACED, requires_population, REQUIRES_MARKET"
+  },
+  "note": "possibleAppointable is EMPTY on purpose: with nothing DF-offered, the AS_NEEDED squad fallback is the ONLY path to creatable, so each excluded variant is excluded SOLELY by the one sub-gate it violates. Every variant below is clean on ALL OTHER gates (number:-1 AS_NEEDED, squadSize>0, a non-empty appointedBy whose office is held).",
+  "positions": [
+    { "id": 4, "code": "MILITIA_COMMANDER", "squadSize": 10, "number": 1, "appointedBy": [1], "requiresPopulation": 0, "hasMetPopulationRequirement": true, "requiresMarket": false, "hasMetMarketRequirement": true, "hasBeenReplaced": false },
+    { "id": 5, "code": "MILITIA_CAPTAIN", "squadSize": 10, "number": -1, "appointedBy": [4], "requiresPopulation": 0, "hasMetPopulationRequirement": true, "requiresMarket": false, "hasMetMarketRequirement": false, "hasBeenReplaced": false },
+    { "id": 6, "code": "MILITIA_CAPTAIN_MARKET_GATED", "squadSize": 10, "number": -1, "appointedBy": [4], "requiresPopulation": 0, "hasMetPopulationRequirement": true, "requiresMarket": true, "hasMetMarketRequirement": false, "hasBeenReplaced": false },
+    { "id": 7, "code": "MILITIA_CAPTAIN_POP_GATED", "squadSize": 10, "number": -1, "appointedBy": [4], "requiresPopulation": 20, "hasMetPopulationRequirement": false, "requiresMarket": false, "hasMetMarketRequirement": false, "hasBeenReplaced": false },
+    { "id": 8, "code": "MILITIA_CAPTAIN_REPLACED", "squadSize": 10, "number": -1, "appointedBy": [4], "requiresPopulation": 0, "hasMetPopulationRequirement": true, "requiresMarket": false, "hasMetMarketRequirement": false, "hasBeenReplaced": true }
+  ],
+  "assignments": [
+    { "id": 100, "positionId": 1, "histfig": 5000, "squadId": -1 },
+    { "id": 101, "positionId": 4, "histfig": 5001, "squadId": 42 }
+  ],
+  "possibleAppointable": [],
+  "expectedCreatablePositionIds": [5],
+  "gateVariants": {
+    "market": 6,
+    "population": 7,
+    "replacement": 8,
+    "clean": 5
+  }
+}

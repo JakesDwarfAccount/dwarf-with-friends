@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "flow.work_orders.add_suggested_condition",
+  "kind": "flow",
+  "title": "Add a suggested work-order condition",
+  "definition": "The native mutation flow initiated from an available suggested-row add control to attach that suggested filter as an existing item condition.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "availability-precondition",
+      "statement": "The add flow is offered only when the native already-present test does not find an existing condition with matching scalar and string filter identity.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x14038c3c0"]
+      }]
+    },
+    {
+      "id": "suggestion-source",
+      "statement": "The flow operates on the generated suggestion represented by its row rather than recomputing a threshold from the work-order quantity.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x140a9d510", "0x1403c2190"]
+      }]
+    },
+    {
+      "id": "mutation-and-editor-persistence",
+      "statement": "Activating the available control added a second, distinct complete filter; both filters remained exact after closing and reopening the editor, and cleanup restored the original single filter.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.corpus.rule-0002-mutation-persistence-v2-683c721d",
+        "selectors": ["record-95-frame-0", "record-498-frame-0", "record-598-frame-0", "record-614-frame-0", "record-859-frame-0"]
+      }]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "mutation-corpus",
+      "statement": "The pinned sequence covers activation, exact identity, editor close/reopen persistence, and cleanup, but not a disk save/reload cycle or a controlled initial cached-satisfaction transition.",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.corpus.rule-0002-mutation-persistence-v2-683c721d",
+        "selectors": ["record-95-frame-0", "record-498-frame-0", "record-598-frame-0", "record-614-frame-0", "record-859-frame-0"]
+      }]
+    }
+  ],
+  "relationships": {
+    "parents": ["control.work_orders.condition.suggested_row"],
+    "children": [],
+    "dependencies": ["control.work_orders.condition.add_suggested", "rule.0002.work-order-suggested-conditions"],
+    "rules": ["rule.0002.work-order-suggested-conditions"],
+    "flows": [],
+    "controls": ["control.work_orders.condition.add_suggested"],
+    "assets": ["asset.work_orders.add_suggested_condition"]
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["Activating an available add control creates an existing item condition with the generated suggestion's copied filter and fixed comparison."],
+    "boundary": ["A matching existing filter suppresses entry to the flow even if operator, comparison value, or contained-reagent indexes differ."],
+    "counterexamples": ["A nonmatching scalar or string filter must leave the add flow available; the resulting threshold must not come from order quantity."]
+  },
+  "absenceGuards": [
+    "Do not enter the add flow when the native already-present test suppresses its control.",
+    "Do not claim mutation success or persistence without a post-action state slice."
+  ],
+  "recorderRequirements": {
+    "stateSlice": ["selected order id", "selected suggestion full filter", "existing condition ids before and after", "new condition full filter", "cached satisfaction result", "persistence witness"],
+    "requiredFrames": ["Control available before activation", "First stable frame after activation", "Reopened editor after save persistence check"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "captured",
+    "productMapping": "mapped-conflicting",
+    "verification": "untested",
+    "release": "not-shippable"
+  }
+}

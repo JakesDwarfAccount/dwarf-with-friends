@@ -1,0 +1,1211 @@
+{
+ "_note": "W-E scout 2026-07-07 evidence sample (live fort, DF 53.15). Full dump regenerable via tools/ws2/scout_units.lua.",
+ "window": {
+  "x": 79,
+  "y": 93,
+  "z": 161
+ },
+ "gps": {
+  "dimx": 172,
+  "dimy": 78,
+  "viewport_h": 20,
+  "viewport_w": 29
+ },
+ "census": {
+  "total_active_units": 76,
+  "with_composite_texpos": 18,
+  "off_camera_z_with_texpos": 0
+ },
+ "all_units_texpos": [
+  {
+   "id": 3658,
+   "race": "DWARF",
+   "x": 104,
+   "y": 86,
+   "z": 161,
+   "tex": [
+    [
+     166733,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166734,
+   "tex_refresh": false
+  },
+  {
+   "id": 5505,
+   "race": "DWARF",
+   "x": 93,
+   "y": 96,
+   "z": 161,
+   "tex": [
+    [
+     166831,
+     0
+    ],
+    [
+     166830,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166832,
+   "tex_refresh": false
+  },
+  {
+   "id": 5506,
+   "race": "DWARF",
+   "x": 93,
+   "y": 94,
+   "z": 161,
+   "tex": [
+    [
+     166973,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166974,
+   "tex_refresh": false
+  },
+  {
+   "id": 5507,
+   "race": "DWARF",
+   "x": 119,
+   "y": 106,
+   "z": 161,
+   "tex": [
+    [
+     166834,
+     0
+    ],
+    [
+     166833,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166835,
+   "tex_refresh": false
+  },
+  {
+   "id": 5508,
+   "race": "DWARF",
+   "x": 97,
+   "y": 95,
+   "z": 161,
+   "tex": [
+    [
+     166836,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166837,
+   "tex_refresh": false
+  },
+  {
+   "id": 5509,
+   "race": "DWARF",
+   "x": 93,
+   "y": 97,
+   "z": 161,
+   "tex": [
+    [
+     166839,
+     166838
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166840,
+   "tex_refresh": false
+  },
+  {
+   "id": 5510,
+   "race": "DWARF",
+   "x": 80,
+   "y": 96,
+   "z": 161,
+   "tex": [
+    [
+     166937,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166938,
+   "tex_refresh": false
+  },
+  {
+   "id": 5511,
+   "race": "DWARF",
+   "x": 91,
+   "y": 108,
+   "z": 161,
+   "tex": [
+    [
+     166841,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166842,
+   "tex_refresh": false
+  },
+  {
+   "id": 5513,
+   "race": "DOG",
+   "x": 95,
+   "y": 97,
+   "z": 161,
+   "tex": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 0,
+   "tex_refresh": true
+  },
+  {
+   "id": 5515,
+   "race": "CAT",
+   "x": 98,
+   "y": 103,
+   "z": 161,
+   "tex": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 0,
+   "tex_refresh": true
+  },
+  {
+   "id": 5518,
+   "race": "WATER_BUFFALO",
+   "x": 97,
+   "y": 98,
+   "z": 161,
+   "tex": [
+    [
+     166808,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166809,
+   "tex_refresh": false
+  },
+  {
+   "id": 5521,
+   "race": "YAK",
+   "x": 99,
+   "y": 95,
+   "z": 161,
+   "tex": [
+    [
+     166843,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166844,
+   "tex_refresh": false
+  },
+  {
+   "id": 5522,
+   "race": "ELEPHANT",
+   "x": 93,
+   "y": 93,
+   "z": 161,
+   "tex": [
+    [
+     166845,
+     166846
+    ],
+    [
+     166847,
+     166848
+    ],
+    [
+     166849,
+     166850
+    ]
+   ],
+   "sheet_icon": 166851,
+   "tex_refresh": false
+  },
+  {
+   "id": 5527,
+   "race": "GRAY_LANGUR",
+   "x": 64,
+   "y": 134,
+   "z": 161,
+   "tex": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 0,
+   "tex_refresh": true
+  },
+  {
+   "id": 5639,
+   "race": "DWARF",
+   "x": 48,
+   "y": 128,
+   "z": 161,
+   "tex": [
+    [
+     166852,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166853,
+   "tex_refresh": false
+  },
+  {
+   "id": 5641,
+   "race": "DWARF",
+   "x": 95,
+   "y": 101,
+   "z": 161,
+   "tex": [
+    [
+     166905,
+     0
+    ],
+    [
+     166904,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166906,
+   "tex_refresh": false
+  },
+  {
+   "id": 5642,
+   "race": "DWARF",
+   "x": 114,
+   "y": 111,
+   "z": 161,
+   "tex": [
+    [
+     166810,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166811,
+   "tex_refresh": false
+  },
+  {
+   "id": 5643,
+   "race": "DWARF",
+   "x": 94,
+   "y": 95,
+   "z": 161,
+   "tex": [
+    [
+     166870,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166871,
+   "tex_refresh": false
+  },
+  {
+   "id": 5744,
+   "race": "DWARF",
+   "x": 97,
+   "y": 99,
+   "z": 161,
+   "tex": [
+    [
+     166877,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166878,
+   "tex_refresh": false
+  },
+  {
+   "id": 5745,
+   "race": "DWARF",
+   "x": 97,
+   "y": 107,
+   "z": 161,
+   "tex": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 0,
+   "tex_refresh": true
+  },
+  {
+   "id": 5746,
+   "race": "DWARF",
+   "x": 106,
+   "y": 108,
+   "z": 161,
+   "tex": [
+    [
+     166854,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166855,
+   "tex_refresh": false
+  },
+  {
+   "id": 5747,
+   "race": "DWARF",
+   "x": 107,
+   "y": 110,
+   "z": 161,
+   "tex": [
+    [
+     166856,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "sheet_icon": 166857,
+   "tex_refresh": false
+  }
+ ],
+ "dwarves": [
+  {
+   "body_modifiers": [
+    78,
+    98
+   ],
+   "body_parts": "<89 entries stripped; see scout_units.lua>",
+   "caste_id": "FEMALE",
+   "caste_tissue_styles": [
+    {
+     "id": 36,
+     "token": "HAIR"
+    }
+   ],
+   "civ_id": 305,
+   "colors": [
+    {
+     "color_tokens": [
+      "AMBER"
+     ],
+     "index": 0,
+     "part": "hair",
+     "pattern_id": 0,
+     "pattern_token": "AMBER",
+     "selected": 0
+    },
+    {
+     "color_tokens": [
+      "GRAY"
+     ],
+     "index": 1,
+     "part": "hair",
+     "pattern_id": 49,
+     "pattern_token": "GRAY",
+     "selected": 0
+    },
+    {
+     "color_tokens": [
+      "WHITE"
+     ],
+     "index": 2,
+     "part": "hair",
+     "pattern_id": 112,
+     "pattern_token": "WHITE",
+     "selected": 0
+    },
+    {
+     "color_tokens": [
+      "SEPIA"
+     ],
+     "index": 3,
+     "part": "skin",
+     "pattern_id": 95,
+     "pattern_token": "SEPIA",
+     "selected": 14
+    },
+    {
+     "color_tokens": [
+      "WHITE",
+      "BLACK",
+      "RUST"
+     ],
+     "index": 4,
+     "part": "eyes",
+     "pattern_id": 223,
+     "pattern_token": "IRIS_EYE_RUST",
+     "selected": 12
+    }
+   ],
+   "custom_profession": "",
+   "genes": {
+    "appearance": [
+     35,
+     121,
+     122,
+     169,
+     85,
+     96,
+     205,
+     130,
+     223,
+     45,
+     41,
+     165,
+     60,
+     212,
+     119,
+     206,
+     144,
+     159,
+     38,
+     72,
+     157,
+     210,
+     49,
+     201,
+     152,
+     101,
+     202,
+     108,
+     84,
+     101,
+     99,
+     48,
+     146,
+     119
+    ],
+    "colors": [
+     0,
+     10,
+     0,
+     0,
+     0,
+     0,
+     14,
+     17,
+     12,
+     12
+    ]
+   },
+   "id": 3658,
+   "inventory": [
+    {
+     "body_part_id": 1,
+     "dyed_mat_index": 616,
+     "dyed_mat_type": 37,
+     "item_id": 2307,
+     "item_type": "PANTS",
+     "mat": "CREATURE:SPIDER_CAVE:SILK",
+     "mat_color": 112,
+     "mat_color_token": "WHITE",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_PANTS_PANTS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 0,
+     "dyed_mat_index": 616,
+     "dyed_mat_type": 37,
+     "item_id": 2308,
+     "item_type": "ARMOR",
+     "mat": "CREATURE:SPIDER_CAVE:SILK",
+     "mat_color": 112,
+     "mat_color_token": "WHITE",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_ARMOR_DRESS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 9,
+     "dyed_mat_index": 186,
+     "dyed_mat_type": 24,
+     "item_id": 2309,
+     "item_type": "GLOVES",
+     "mat": "CREATURE:LLAMA:HAIR",
+     "mat_color": 49,
+     "mat_color_token": "GRAY",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_GLOVES_GLOVES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 8,
+     "dyed_mat_index": 186,
+     "dyed_mat_type": 24,
+     "item_id": 2310,
+     "item_type": "GLOVES",
+     "mat": "CREATURE:LLAMA:HAIR",
+     "mat_color": 49,
+     "mat_color_token": "GRAY",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_GLOVES_GLOVES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 15,
+     "dyed_mat_index": 615,
+     "dyed_mat_type": 19,
+     "item_id": 2311,
+     "item_type": "SHOES",
+     "mat": "CREATURE:SPIDER_CAVE_GIANT:SILK",
+     "mat_color": 112,
+     "mat_color_token": "WHITE",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SOCKS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 15,
+     "item_id": 2312,
+     "item_type": "SHOES",
+     "mat": "CREATURE:BIRD_TURKEY:LEATHER",
+     "mat_color": 12,
+     "mat_color_token": "BROWN",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SHOES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 14,
+     "dyed_mat_index": 615,
+     "dyed_mat_type": 19,
+     "item_id": 2313,
+     "item_type": "SHOES",
+     "mat": "CREATURE:SPIDER_CAVE_GIANT:SILK",
+     "mat_color": 112,
+     "mat_color_token": "WHITE",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SOCKS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 14,
+     "item_id": 2314,
+     "item_type": "SHOES",
+     "mat": "CREATURE:BIRD_TURKEY:LEATHER",
+     "mat_color": 12,
+     "mat_color_token": "BROWN",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SHOES",
+     "wear": 0
+    }
+   ],
+   "name": "Thob Egulducim \"Controlledwork\", Peasant",
+   "pos": {
+    "x": 104,
+    "y": 86,
+    "z": 161
+   },
+   "profession": "STANDARD",
+   "profession2": "STANDARD",
+   "sheet_icon": 166734,
+   "size_modifier": 76,
+   "squad_id": -1,
+   "syndromes": [],
+   "tex": [
+    [
+     166733,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "tissue": [
+    {
+     "index": 0,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 1,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 2,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 3,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 4,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 5,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    }
+   ]
+  },
+  {
+   "body_modifiers": [
+    95,
+    101
+   ],
+   "body_parts": "<89 entries stripped; see scout_units.lua>",
+   "caste_id": "MALE",
+   "caste_tissue_styles": [
+    {
+     "id": 36,
+     "token": "HAIR"
+    },
+    {
+     "id": 37,
+     "token": "BEARD"
+    },
+    {
+     "id": 38,
+     "token": "MOUSTACHE"
+    },
+    {
+     "id": 39,
+     "token": "SIDEBURNS"
+    }
+   ],
+   "civ_id": 305,
+   "colors": [
+    {
+     "color_tokens": [
+      "BURNT_SIENNA"
+     ],
+     "index": 0,
+     "part": "hair",
+     "pattern_id": 14,
+     "pattern_token": "BURNT_SIENNA",
+     "selected": 5
+    },
+    {
+     "color_tokens": [
+      "GRAY"
+     ],
+     "index": 1,
+     "part": "hair",
+     "pattern_id": 49,
+     "pattern_token": "GRAY",
+     "selected": 0
+    },
+    {
+     "color_tokens": [
+      "WHITE"
+     ],
+     "index": 2,
+     "part": "hair",
+     "pattern_id": 112,
+     "pattern_token": "WHITE",
+     "selected": 0
+    },
+    {
+     "color_tokens": [
+      "DARK_BROWN"
+     ],
+     "index": 3,
+     "part": "skin",
+     "pattern_id": 30,
+     "pattern_token": "DARK_BROWN",
+     "selected": 4
+    },
+    {
+     "color_tokens": [
+      "WHITE",
+      "BLACK",
+      "COPPER"
+     ],
+     "index": 4,
+     "part": "eyes",
+     "pattern_id": 161,
+     "pattern_token": "IRIS_EYE_COPPER",
+     "selected": 5
+    }
+   ],
+   "custom_profession": "",
+   "genes": {
+    "appearance": [
+     78,
+     141,
+     102,
+     110,
+     125,
+     186,
+     214,
+     147,
+     130,
+     197,
+     11,
+     180,
+     98,
+     150,
+     115,
+     238,
+     147,
+     120,
+     169,
+     33,
+     232,
+     218,
+     89,
+     218,
+     72,
+     3,
+     191,
+     45,
+     99,
+     136,
+     183,
+     83,
+     165,
+     200
+    ],
+    "colors": [
+     5,
+     15,
+     0,
+     0,
+     0,
+     0,
+     4,
+     7,
+     8,
+     5
+    ]
+   },
+   "id": 5505,
+   "inventory": [
+    {
+     "body_part_id": 1,
+     "dyed_mat_index": 616,
+     "dyed_mat_type": 37,
+     "item_id": 401,
+     "item_type": "PANTS",
+     "mat": "CREATURE:SPIDER_CAVE:SILK",
+     "mat_color": 112,
+     "mat_color_token": "WHITE",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_PANTS_PANTS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 0,
+     "dyed_mat_index": 174,
+     "dyed_mat_type": 422,
+     "item_id": 402,
+     "item_type": "ARMOR",
+     "mat": "PLANT:GRASS_TAIL_PIG:THREAD",
+     "mat_color": 49,
+     "mat_color_token": "GRAY",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_ARMOR_DRESS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 9,
+     "item_id": 403,
+     "item_type": "GLOVES",
+     "mat": "CREATURE:GRAY_LANGUR:LEATHER",
+     "mat_color": 12,
+     "mat_color_token": "BROWN",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_GLOVES_GLOVES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 8,
+     "item_id": 404,
+     "item_type": "GLOVES",
+     "mat": "CREATURE:GRAY_LANGUR:LEATHER",
+     "mat_color": 12,
+     "mat_color_token": "BROWN",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_GLOVES_GLOVES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 15,
+     "dyed_mat_index": 174,
+     "dyed_mat_type": 422,
+     "item_id": 405,
+     "item_type": "SHOES",
+     "mat": "PLANT:GRASS_TAIL_PIG:THREAD",
+     "mat_color": 49,
+     "mat_color_token": "GRAY",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SOCKS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 15,
+     "item_id": 406,
+     "item_type": "SHOES",
+     "mat": "CREATURE:DRUNIAN:LEATHER",
+     "mat_color": 12,
+     "mat_color_token": "BROWN",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SHOES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 14,
+     "dyed_mat_index": 174,
+     "dyed_mat_type": 422,
+     "item_id": 407,
+     "item_type": "SHOES",
+     "mat": "PLANT:GRASS_TAIL_PIG:THREAD",
+     "mat_color": 49,
+     "mat_color_token": "GRAY",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SOCKS",
+     "wear": 0
+    },
+    {
+     "body_part_id": 14,
+     "item_id": 408,
+     "item_type": "SHOES",
+     "mat": "CREATURE:DRUNIAN:LEATHER",
+     "mat_color": 12,
+     "mat_color_token": "BROWN",
+     "mode": "Worn",
+     "quality": 0,
+     "subtype_token": "ITEM_SHOES_SHOES",
+     "wear": 0
+    },
+    {
+     "body_part_id": 9,
+     "item_id": 513,
+     "item_type": "WEAPON",
+     "mat": "INORGANIC:IRON",
+     "mat_color": 49,
+     "mat_color_token": "GRAY",
+     "mode": "Weapon",
+     "quality": 0,
+     "subtype_token": "ITEM_WEAPON_PICK",
+     "wear": 0
+    }
+   ],
+   "name": "Sarvesh Kerfikod \"Eyeglaze\", Miner",
+   "pos": {
+    "x": 93,
+    "y": 96,
+    "z": 161
+   },
+   "profession": "MINER",
+   "profession2": "MINER",
+   "sheet_icon": 166832,
+   "size_modifier": 95,
+   "squad_id": -1,
+   "syndromes": [],
+   "tex": [
+    [
+     166831,
+     0
+    ],
+    [
+     166830,
+     0
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "tissue": [
+    {
+     "index": 0,
+     "length": 0,
+     "style": "CLEAN_SHAVEN",
+     "style_civ": 305,
+     "style_id": 2,
+     "style_type": 39
+    },
+    {
+     "index": 1,
+     "length": 0,
+     "style": "CLEAN_SHAVEN",
+     "style_civ": 305,
+     "style_id": 2,
+     "style_type": 39
+    },
+    {
+     "index": 2,
+     "length": 122,
+     "style": "NEATLY_COMBED",
+     "style_civ": 305,
+     "style_id": 0,
+     "style_type": 37
+    },
+    {
+     "index": 3,
+     "length": 194,
+     "style": "NEATLY_COMBED",
+     "style_civ": 305,
+     "style_id": 1,
+     "style_type": 38
+    },
+    {
+     "index": 4,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 5,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 6,
+     "length": 55,
+     "style": "NEATLY_COMBED",
+     "style_civ": 305,
+     "style_id": 3,
+     "style_type": 36
+    },
+    {
+     "index": 7,
+     "length": 55,
+     "style": "NEATLY_COMBED",
+     "style_civ": 305,
+     "style_id": 3,
+     "style_type": 36
+    },
+    {
+     "index": 8,
+     "length": 122,
+     "style": "NEATLY_COMBED",
+     "style_civ": 305,
+     "style_id": 0,
+     "style_type": 37
+    },
+    {
+     "index": 9,
+     "length": 122,
+     "style": "NEATLY_COMBED",
+     "style_civ": 305,
+     "style_id": 0,
+     "style_type": 37
+    },
+    {
+     "index": 10,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    },
+    {
+     "index": 11,
+     "length": -30000,
+     "style": "NONE",
+     "style_civ": -1,
+     "style_id": -1,
+     "style_type": -1
+    }
+   ]
+  }
+ ]
+}

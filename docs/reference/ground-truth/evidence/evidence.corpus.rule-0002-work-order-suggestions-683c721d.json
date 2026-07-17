@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "recordType": "evidence",
+  "id": "evidence.corpus.rule-0002-work-order-suggestions-683c721d",
+  "kind": "corpus",
+  "buildId": "build.df.0.53.15-win64-steam-683c721d",
+  "source": {
+    "contentSha256": "D5E7D59A6BD424294943E49EDF2BF5CDAC43283EF5396CBD38E1E0D50B53D387",
+    "privateLocator": "recorder://qualification/2026-07-15T17-56-38-599Z-work-order/session"
+  },
+  "selectors": {
+    "frameIds": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+  },
+  "producer": {
+    "tool": "tools/ground_truth/reduce_work_orders.mjs",
+    "version": "schema 1; plugin 69e066c1; DLL 2CDC5DCA0BCAC1EFA840D9E4626B6B3102ECD7DFA3E2068E755854D63E8EC63F"
+  },
+  "captureContext": {
+    "pluginBuild": "0x73105d34-69e066c1",
+    "recorderSchemaVersion": 1
+  },
+  "createdAt": "2026-07-15T17:56:41Z",
+  "structuralValidation": {
+    "passed": true,
+    "method": "Pinned-identity reducer decoded all three rich records, composed native screen planes, normalized complete filters, and reproduced all three predicted suggestion rows, including the visible row whose filter identity matches an existing condition; the add control is outside recorder v1's stored planes."
+  }
+}

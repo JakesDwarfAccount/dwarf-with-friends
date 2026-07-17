@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "control.work_orders.condition.suggested_row",
+  "kind": "control",
+  "title": "Suggested work-order item-condition row",
+  "definition": "An informational row generated from the selected work order's products or required inputs, with an add action when no existing filter match suppresses that action.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "generated-content",
+      "statement": "Product filters generate less-than-10 suggestions and required-input filters generate greater-than-10 suggestions using a complete copy of the native filter fields.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x140a9d510"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+          "selectors": ["record-0-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "visible-despite-match",
+      "statement": "The row's text remains visible when its filter identity matches an existing condition.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+          "selectors": ["record-0-frame-0"]
+        }
+      ]
+    }
+  ],
+  "uncertainties": [],
+  "relationships": {
+    "parents": ["surface.work_orders.condition_editor"],
+    "children": ["control.work_orders.condition.add_suggested", "flow.work_orders.add_suggested_condition"],
+    "dependencies": ["rule.0002.work-order-suggested-conditions"],
+    "rules": ["rule.0002.work-order-suggested-conditions"],
+    "flows": ["flow.work_orders.add_suggested_condition"],
+    "controls": ["control.work_orders.condition.add_suggested"],
+    "assets": ["asset.work_orders.add_suggested_condition"]
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["An ordinary product and a required input each generate their native suggestion row."],
+    "boundary": ["A container product emits its empty variant before the ordinary product row; a zero-capacity tool does not."],
+    "counterexamples": ["A matching existing condition leaves the suggested text row visible even when its add action is unavailable."]
+  },
+  "absenceGuards": [
+    "Do not derive the comparison value from the work-order quantity.",
+    "Do not treat row visibility and add-control availability as the same state."
+  ],
+  "recorderRequirements": {
+    "stateSlice": ["generated product filters", "required input filters", "existing item conditions", "normalized full-filter identity"],
+    "requiredFrames": ["Product and required-input suggestions", "Container empty-first ordering", "Matching and nonmatching existing-condition cases"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "corpus-confirmed",
+    "productMapping": "mapped-partial",
+    "verification": "live-verified",
+    "release": "not-shippable"
+  }
+}

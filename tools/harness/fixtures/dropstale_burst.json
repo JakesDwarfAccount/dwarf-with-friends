@@ -1,0 +1,693 @@
+{
+ "_note": "WA-4 dropstale_test.mjs fixture -- synthetic but wire-shape-faithful stall-then-burst replay: 60 back-to-back deltas with NO rescuing keyframe (the lag_lab.py stall-2s-every-8s class, specs/2026-07-06-ws-transport-report.md SS-evidence), then the servers fresh keyframe answering the clients reqkey escape hatch, then a small trickle of ordinary deltas. Tile fields are minimal (x,y,tt,hidden,v) since dwf-ws.js forwards map payloads opaquely -- it never inspects tile schema, only origin/width/height/tiles length matter to the queue+policy logic under test.",
+ "origin": {
+  "x": 100,
+  "y": 200,
+  "z": 12
+ },
+ "width": 4,
+ "height": 4,
+ "burstDeltas": [
+  [
+   {
+    "x": 100,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 0
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 1
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 2
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 3
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 4
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 5
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 6
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 7
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 8
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 9
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 10
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 11
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 12
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 13
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 14
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 15
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 16
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 17
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 18
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 19
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 20
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 21
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 22
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 23
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 24
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 25
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 26
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 27
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 28
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 29
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 30
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 31
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 32
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 33
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 34
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 35
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 36
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 37
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 38
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 39
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 40
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 41
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 42
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 43
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 44
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 45
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 46
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 203,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 47
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 48
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 49
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 50
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 51
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 52
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 53
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 54
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 55
+   }
+  ],
+  [
+   {
+    "x": 100,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 56
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 57
+   }
+  ],
+  [
+   {
+    "x": 102,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 58
+   }
+  ],
+  [
+   {
+    "x": 103,
+    "y": 202,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 59
+   }
+  ]
+ ],
+ "rescueKeyframe": [
+  {
+   "x": 100,
+   "y": 200,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1000
+  },
+  {
+   "x": 101,
+   "y": 200,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1001
+  },
+  {
+   "x": 102,
+   "y": 200,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1002
+  },
+  {
+   "x": 103,
+   "y": 200,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1003
+  },
+  {
+   "x": 100,
+   "y": 201,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1004
+  },
+  {
+   "x": 101,
+   "y": 201,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1005
+  },
+  {
+   "x": 102,
+   "y": 201,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1006
+  },
+  {
+   "x": 103,
+   "y": 201,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1007
+  },
+  {
+   "x": 100,
+   "y": 202,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1008
+  },
+  {
+   "x": 101,
+   "y": 202,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1009
+  },
+  {
+   "x": 102,
+   "y": 202,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1010
+  },
+  {
+   "x": 103,
+   "y": 202,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1011
+  },
+  {
+   "x": 100,
+   "y": 203,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1012
+  },
+  {
+   "x": 101,
+   "y": 203,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1013
+  },
+  {
+   "x": 102,
+   "y": 203,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1014
+  },
+  {
+   "x": 103,
+   "y": 203,
+   "tt": "Wall",
+   "hidden": false,
+   "v": 1015
+  }
+ ],
+ "trailingDeltas": [
+  [
+   {
+    "x": 100,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 2000
+   }
+  ],
+  [
+   {
+    "x": 101,
+    "y": 200,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 2001
+   },
+   {
+    "x": 102,
+    "y": 201,
+    "tt": "Wall",
+    "hidden": false,
+    "v": 2002
+   }
+  ]
+ ]
+}

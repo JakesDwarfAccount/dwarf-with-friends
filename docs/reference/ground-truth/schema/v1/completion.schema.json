@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dwarf-with-friends.local/ground-truth/schema/v1/completion.schema.json",
+  "type": "object",
+  "required": ["schemaVersion", "recordType", "id", "taskId", "startSha256", "pins", "implementationCommit", "changedFiles", "evidenceIds", "mappingIds", "commands", "supplementalCommands", "predicateResults", "sourceWitnesses", "binaryArtifact", "missingGates", "unresolvedUncertainties", "outOfScopeFindings", "result", "createdAt", "sealSha256"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "recordType": { "const": "completion" },
+    "id": { "$ref": "common.schema.json#/$defs/completionId" },
+    "taskId": { "$ref": "common.schema.json#/$defs/taskId" },
+    "startSha256": { "$ref": "common.schema.json#/$defs/sha256" },
+    "pins": { "$ref": "task.schema.json#/properties/pins" },
+    "implementationCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "changedFiles": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/relativePath" } },
+    "evidenceIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/evidenceId" } },
+    "mappingIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/mappingId" } },
+    "commands": { "type": "array", "items": { "$ref": "#/$defs/commandResult" } },
+    "supplementalCommands": { "type": "array", "items": { "$ref": "#/$defs/commandResult" } },
+    "predicateResults": { "type": "object", "required": ["positiveIds", "boundaryIds", "counterexampleIds"], "additionalProperties": false, "properties": { "positiveIds": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" }, "boundaryIds": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" }, "counterexampleIds": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" } } },
+    "sourceWitnesses": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" },
+    "binaryArtifact": { "type": "object", "required": ["path", "size", "sha256", "buildIdentity", "junctionTarget", "witnessIds", "buildTranscript"], "additionalProperties": false, "properties": { "path": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "size": { "type": "integer", "minimum": 1 }, "sha256": { "$ref": "common.schema.json#/$defs/sha256" }, "buildIdentity": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "junctionTarget": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "witnessIds": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" }, "buildTranscript": { "$ref": "#/$defs/artifact" } } },
+    "missingGates": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" },
+    "unresolvedUncertainties": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" },
+    "outOfScopeFindings": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" },
+    "result": { "enum": ["pass", "fail", "blocked"] },
+    "createdAt": { "$ref": "common.schema.json#/$defs/dateTime" },
+    "sealSha256": { "$ref": "common.schema.json#/$defs/sha256" }
+  },
+  "$defs": {
+    "artifact": { "type": "object", "required": ["path", "sha256"], "additionalProperties": false, "properties": { "path": { "$ref": "common.schema.json#/$defs/relativePath" }, "sha256": { "$ref": "common.schema.json#/$defs/sha256" } } },
+    "commandResult": { "type": "object", "required": ["id", "executable", "args", "exitCode", "checkId", "verifierVersion", "transcript", "artifacts", "caseResults"], "additionalProperties": false, "properties": { "id": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "executable": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "args": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/nonEmptyString" } }, "exitCode": { "type": "integer" }, "checkId": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "verifierVersion": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "transcript": { "$ref": "#/$defs/artifact" }, "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } }, "caseResults": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "result", "nativeIds", "evidenceIds", "sessionSha256", "frameIds"], "additionalProperties": false, "properties": { "id": { "$ref": "common.schema.json#/$defs/nonEmptyString" }, "kind": { "enum": ["positive", "boundary", "counterexample"] }, "result": { "enum": ["pass", "fail", "inconclusive"] }, "nativeIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/entityId" } }, "evidenceIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/evidenceId" } }, "sessionSha256": { "$ref": "common.schema.json#/$defs/sha256" }, "frameIds": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" } } } } } }
+  }
+}

@@ -1,0 +1,1365 @@
+{
+ "_doc": "Construction-remainder review enumeration (2026-07-09 native sprite review): ident + verdict per reviewed cell, reduced to the two fields construction_remainder_test.mjs asserts over. The full review artifacts stay in the private dev tree.",
+ "cards": [
+  {
+   "ident": "liquid|water|5|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "liquid|water|2|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "liquid|water|6|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "liquid|water|1|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "liquid|water|7|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "liquid|water|4|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "liquid|water|3|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "creature|WORM_KNUCKLE|DEFAULT|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|WORM_KNUCKLE|DEFAULT|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|GIANT_GIRAFFE|FEMALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|GIANT_GIRAFFE|MALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "bld|Statue|-1|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "creature|GILA_MONSTER|FEMALE|",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "creature|GILA_MONSTER|MALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|AYE-AYE|FEMALE|",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "creature|AYE-AYE|FEMALE|",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "creature|AYE-AYE|MALE|",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_5",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_11",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_3",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_13",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_19",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:PEWTER_TRIFLE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:BILLON",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_7",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:ROSE_GOLD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_15",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:MYTHICAL_REMNANT_1",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:BISMUTH_BRONZE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:BLACK_BRONZE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:COPPER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:GOLD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:ALUMINUM",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_1",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|PLANT_MAT:WILLOW:WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:ADAMANTINE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|PLANT_MAT:FEATHER:WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:STERLING_SILVER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:BRONZE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:ZINC",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:PEWTER_LAY",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_9",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:NICKEL_SILVER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:LEAD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:PIG_IRON",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:BRASS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:TIN",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:STEEL",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:SILVER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:ELECTRUM",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:ORTHOCLASE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:PEWTER_FINE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|PLANT_MAT:MANGROVE:WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:DIVINE_17",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:MARBLE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:BISMUTH",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|PLANT_MAT:OAK:WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:MICROCLINE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|HATCH_COVER|-1|INORGANIC:NICKEL",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:BILLON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:BISMUTH_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:PIG_IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:ROSE_GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_3",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:PEWTER_TRIFLE",
+   "verdict": "broken"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:LEAD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:NICKEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:PEWTER_FINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:STEEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:BISMUTH",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:ELECTRUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:BLACK_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_7",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_5",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|CREATURE_MAT:COW:BONE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:PEWTER_LAY",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:ZINC",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:NICKEL_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:PLATINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:ALUMINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_13",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_17",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:BRASS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:STERLING_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:TIN",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:MYTHICAL_REMNANT_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_11",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_15",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:ADAMANTINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:COPPER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_19",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:DIVINE_9",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|PLANT_MAT:OAK:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|0|INORGANIC:IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|LEOPARD_GECKO_MAN|FEMALE|",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "creature|LEOPARD_GECKO_MAN|MALE|",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "creature|MONITOR_LIZARD|FEMALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|MONITOR_LIZARD|FEMALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|MONITOR_LIZARD|MALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|GIANT_SPERM_WHALE|MALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|GIANT_SPERM_WHALE|FEMALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|DEMON_8|MALE|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "creature|DEMON_8|FEMALE|",
+   "verdict": "broken"
+  },
+  {
+   "ident": "creature|DEMON_8|FEMALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|PLANT_MAT:OAK:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_15",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:PLATINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:ADAMANTINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_5",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_3",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:ZINC",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:STERLING_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:ALUMINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:NICKEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:NICKEL_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:BISMUTH",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:ROSE_GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_19",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_9",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:MYTHICAL_REMNANT_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:LEAD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:BRASS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:PEWTER_FINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:PEWTER_TRIFLE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:PEWTER_LAY",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_11",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:TIN",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:STEEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:BLACK_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:PIG_IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_13",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:ELECTRUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:BISMUTH_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_17",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:BILLON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:DIVINE_7",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|CREATURE_MAT:COW:BONE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:COPPER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|1|INORGANIC:GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|GIANT_ORCA|MALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|GIANT_ORCA|FEMALE|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_5|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_11|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_3|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_13|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:MARBLE|BLOCKS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|ramp|GLASS_GREEN|BLOCKS",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:MICROCLINE|BOULDER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:ORTHOCLASE|BOULDER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_17|BAR",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_7|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_1|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_19|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_9|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:MYTHICAL_REMNANT_1|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|GLASS_CLEAR|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:MARBLE|BOULDER",
+   "verdict": "unsure"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:DIVINE_15|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:MICROCLINE|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|GLASS_CRYSTAL|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:TETRAHEDRITE|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:TETRAHEDRITE|BOULDER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|PLANT_MAT:MANGROVE:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|PLANT_MAT:OAK:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|PLANT_MAT:WILLOW:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|PLANT_MAT:FEATHER:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:PEWTER_TRIFLE|BAR",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|ramp|INORGANIC:LEAD|BAR",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_5|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_11|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_13|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_3|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_7|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:ORTHOCLASE|BOULDER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:MARBLE|BLOCKS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_17|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:MYTHICAL_REMNANT_1|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:TETRAHEDRITE|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:MARBLE|BOULDER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_1|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_19|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:MICROCLINE|BLOCKS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_9|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:DIVINE_15|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:TETRAHEDRITE|BOULDER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:MICROCLINE|BOULDER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|GLASS_CLEAR|BLOCKS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|PLANT_MAT:OAK:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|PLANT_MAT:MANGROVE:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|PLANT_MAT:WILLOW:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|GLASS_CRYSTAL|BLOCKS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:PIG_IRON|BAR",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|GLASS_GREEN|BLOCKS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:PEWTER_TRIFLE|BAR",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|floor|PLANT_MAT:FEATHER:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|floor|INORGANIC:LEAD|BAR",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|OYSTER|DEFAULT|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|OYSTER|DEFAULT|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|NIGHT_CREATURE_21|DEFAULT|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "creature|NIGHT_CREATURE_21|DEFAULT|",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:COPPER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_17",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_19",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:TIN",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_7",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:ELECTRUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:BLACK_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:MYTHICAL_REMNANT_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:PEWTER_FINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:LEAD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:PEWTER_TRIFLE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_11",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:STEEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:BILLON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_9",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:BRASS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|PLANT_MAT:OAK:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:PIG_IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_3",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:NICKEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:ROSE_GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:ADAMANTINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:ALUMINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_13",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:NICKEL_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_15",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:BISMUTH",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:BISMUTH_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:PLATINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:DIVINE_5",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:ZINC",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:PEWTER_LAY",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:STERLING_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|INORGANIC:IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|AMMO|2|CREATURE_MAT:COW:BONE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|PLANT_MAT:FEATHER:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:COPPER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|PLANT_MAT:OAK:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|PLANT_MAT:WILLOW:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:MARBLE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:MICROCLINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:ORTHOCLASE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|PLANT_MAT:MANGROVE:WOOD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_5",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:BRASS",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_9",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:TIN",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_19",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_7",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:NICKEL_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:ELECTRUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_17",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:BISMUTH",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:PEWTER_LAY",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:STEEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_11",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:ROSE_GOLD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:STERLING_SILVER",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:PEWTER_FINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:MYTHICAL_REMNANT_1",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:PLATINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_15",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:LEAD",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:ALUMINUM",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:NICKEL",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:BLACK_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:ZINC",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_3",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:BILLON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:ADAMANTINE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:PEWTER_TRIFLE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:BISMUTH_BRONZE",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:PIG_IRON",
+   "verdict": "fine"
+  },
+  {
+   "ident": "item|TOOL|14|INORGANIC:DIVINE_13",
+   "verdict": "fine"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_19|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:LEAD|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|PLANT_MAT:MANGROVE:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|PLANT_MAT:OAK:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|GLASS_GREEN|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_13|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:PIG_IRON|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:PEWTER_TRIFLE|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:MYTHICAL_REMNANT_1|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:BLACK_BRONZE|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_15|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_3|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:BISMUTH|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_11|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:BRONZE|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|GLASS_CLEAR|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_9|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:BISMUTH_BRONZE|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_7|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:COPPER|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:TETRAHEDRITE|BOULDER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:BRASS|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:TETRAHEDRITE|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|GLASS_CRYSTAL|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|PLANT_MAT:FEATHER:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:ADAMANTINE|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:MICROCLINE|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_5|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:GOLD|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:IRON|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:PEWTER_FINE|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:MICROCLINE|BOULDER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|PLANT_MAT:WILLOW:WOOD|WOOD",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:TIN|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_1|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:BILLON|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:ROSE_GOLD|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:ORTHOCLASE|BOULDER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:NICKEL|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:NICKEL_SILVER|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:ZINC|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:DIVINE_17|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:STERLING_SILVER|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:PLATINUM|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:MARBLE|BLOCKS",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:PEWTER_LAY|BAR",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:MARBLE|BOULDER",
+   "verdict": "broken"
+  },
+  {
+   "ident": "cons|fortification|INORGANIC:ALUMINUM|BAR",
+   "verdict": "broken"
+  }
+ ]
+}

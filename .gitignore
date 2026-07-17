@@ -1,0 +1,80 @@
+# dwf — ignore rules
+#
+# Why this file exists (2026-07-11): the repo had an EMPTY .gitignore and ~23,400 untracked files
+# (generated sprite renders, caches, logs) sitting alongside real source. That made `git add -A`
+# genuinely dangerous — AGENTS.md hard rule 6 bans it — which in turn made every commit a manual
+# minefield, which meant nobody committed, which meant a full day of work could sit unsaved.
+# Ignoring the generated noise makes committing a boring, safe habit again.
+#
+# NOTE: .gitignore never UN-tracks anything. Files already committed under these paths (e.g. the
+# ~1,634 tracked files under tools/spriterange/results/) stay tracked and still show when modified.
+# These rules only stop NEW generated files from cluttering `git status`.
+
+# --- generated sprite/render output (the ~23k problem) ---
+tools/spriterange/results/
+tools/spikes/render-buffer/
+
+# --- python caches ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- agent/codex scratch ---
+.tmp-codex-artifacts/
+
+# --- flight-recorder corpus (ground-truth pipeline Pillar 2; session data, never source) ---
+recordings/
+dfcapture-recordings/
+
+# --- generated ground-truth indexes and reports (source records live under docs/reference/) ---
+/build/ground-truth/
+/build/atlas/
+
+# --- runtime logs ---
+*.log
+
+# --- OS / editor noise ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*~
+# User-supplied comparison font. License is unverified; keep it local and never publish it.
+web/fonts/dwarf-fortress-van-user.ttf
+
+# --- W11 sprite provenance: DF-derived composites are BAKED, never committed ---
+# The client sprites derive from the paid DF graphics. Hosts bake them at install
+# time (host/bake_sprites.mjs + host/sprite_recipe.json); devs may regenerate them
+# locally (tools/ws2/bake_dwarf.py, build_item_map.py, build_creature_map.py) for a
+# deploy, but they must never be tracked again. Enforced by
+# tools/harness/sprite_provenance_gate_test.mjs (fails on any tracked raster here).
+web/dwarf.png
+web/dwarf_dark.png
+web/dwarf_female.png
+web/animal_people_flat.png
+web/item_chair_composite.png
+web/item_hatch_composite.png
+web/item_table_composite.png
+web/favicon.png
+tools/ws2/sprites/*.png
+# agent worktrees (created inside the repo by wave agents)
+wt/
+
+# WER crash dumps (multi-GB full-process memory images -- never commit).
+# A 2.5GB dump was once swept in by an `add -A` and GitHub rejected the push.
+crashdumps/
+
+# Generated review decks belong below tools/ or evidence/, never at repository root.
+/*.html
+
+# working handoff notes never belong at the repo root
+HANDOFF-*.md
+
+# W16 release packages are generated artifacts attached to GitHub Releases, never source.
+/DwarfWithFriends-*.zip
+/dist/
+tools/demo/takes/
+
+# headless-Chrome scratch dirs from the screen-truth rig
+.screen-truth-chrome-*/
+release/

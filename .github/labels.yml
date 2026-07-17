@@ -1,0 +1,21 @@
+- name: bug
+  color: d73a4a
+  description: Something is not working as intended
+- name: enhancement
+  color: a2eeef
+  description: Feature request or improvement idea
+- name: good-first-issue
+  color: 7057ff
+  description: Scoped work with clear entry points and verification
+- name: documentation
+  color: 0075ca
+  description: Documentation-only improvement
+- name: contributor-experience
+  color: 0e8a16
+  description: Repository navigation, tooling, or contribution workflow
+- name: needs-save
+  color: fbca04
+  description: Reproduction needs a world or save file
+- name: live-verification
+  color: b60205
+  description: Requires an explicitly authorized running fortress check

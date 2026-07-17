@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "rule.0002.work-order-suggested-conditions",
+  "kind": "rule",
+  "title": "Work-order suggested item conditions",
+  "definition": "Native DF derives a work order's suggested item conditions from generated products and required inputs with fixed comparison values and native filter-copying and suppression rules.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "fixed-comparisons",
+      "statement": "Each generated product filter yields Amount available is less than 10, and each required-input filter yields Amount available is greater than 10; the value does not come from the order quantity.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x140a9d510"]
+      }]
+    },
+    {
+      "id": "complete-filter-copy",
+      "statement": "Each suggestion copies item type and subtype, material, flags1 through flags5, reaction class, material-reaction-product class, ore, minimum dimension, contained-reagent indexes and reaction id, tool use, and dye color.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x140a9d510"]
+      }]
+    },
+    {
+      "id": "empty-container-variant",
+      "statement": "A container-capable product gets an additional empty product suggestion before its ordinary product suggestion unless flags1 already requires empty. The fixed types are FLASK, GOBLET, CAGE, BARREL, BUCKET, ANIMALTRAP, COFFIN, BOX, BAG, BIN, ARMORSTAND, WEAPONRACK, CABINET, BACKPACK, and QUIVER; TOOL qualifies only when its subtype container_capacity is greater than zero.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x140a9d510", "job_item_flags1.empty=0x400"]
+      }]
+    },
+    {
+      "id": "existing-condition-suppression",
+      "statement": "An existing condition suppresses only a suggestion row's add control when scalar and string filter fields match; the text row remains visible. Compare_type, compare_val, and the contains vector are intentionally ignored by this already-present test even though contains is copied into generated suggestions.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+          "selectors": ["record-0-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "visible-matching-row",
+      "statement": "In three pinned native frames, an empty-barrel suggestion whose add-control identity matched an existing condition remained visibly listed under Suggested conditions, confirming that matching does not remove the text row.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.corpus.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+      }]
+    }
+  ],
+  "uncertainties": [],
+  "relationships": {
+    "parents": [],
+    "children": [],
+    "dependencies": [],
+    "rules": [],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["An ordinary product and a required input prove the two comparison directions and fixed value 10.", "A fixed container type and a positive-capacity TOOL prove empty-first ordering."],
+    "boundary": ["A zero-capacity TOOL and a product already carrying the empty flag do not gain the extra empty suggestion."],
+    "counterexamples": ["An otherwise identical existing condition with a different operator, value, and contains indexes still suppresses the suggestion; a scalar or string filter difference does not suppress it."]
+  },
+  "absenceGuards": ["Do not derive suggestion thresholds from the work-order quantity.", "Do not include compare_type, compare_val, or contains in the already-present suppression test."],
+  "recorderRequirements": {
+    "stateSlice": ["generated product filters", "required input filters", "existing item conditions", "tool container_capacity", "visible suggested-condition rows"],
+    "requiredFrames": ["Ordinary product and required-input suggestions", "Container empty-first ordering", "Zero-capacity and positive-capacity TOOL cases", "Existing-filter suppression despite operator, value, and contains differences"]
+  },
+  "predicate": {
+    "file": "docs/reference/rules-ledger/predicates/0002-work-order-suggestions.mjs",
+    "tests": ["tools/harness/rules_ledger_predicates_test.mjs"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "corpus-confirmed",
+    "productMapping": "mapped-partial",
+    "verification": "live-verified",
+    "release": "not-shippable"
+  }
+}

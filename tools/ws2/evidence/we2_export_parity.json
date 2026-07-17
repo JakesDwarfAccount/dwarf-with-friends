@@ -1,0 +1,327 @@
+{
+  "units_censused": 70,
+  "units_exported": 17,
+  "units_checked": 17,
+  "units_pixel_matched": 17,
+  "match_pct": 100.0,
+  "exporter_stats": {
+    "exportsAttempted": 17,
+    "exportsSucceeded": 17,
+    "exportsSkippedBlank": 0,
+    "hashesNew": 17,
+    "hashesReused": 0,
+    "cacheEvictions": 0,
+    "cacheSize": 17,
+    "recordsTracked": 17,
+    "lastBatchUnits": 15,
+    "lastRenderHopMs": 16.3556
+  },
+  "results": [
+    {
+      "unit": 5505,
+      "exported": {
+        "ah": "e68740010051fa9f",
+        "sw": 2,
+        "sh": 1,
+        "ax": 1,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 2,
+        "sh": 1,
+        "ax": 1,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5744,
+      "exported": {
+        "ah": "4fe248af0dd29743",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5641,
+      "exported": {
+        "ah": "dc78ee6492eefe7f",
+        "sw": 2,
+        "sh": 1,
+        "ax": 1,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 2,
+        "sh": 1,
+        "ax": 1,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5511,
+      "exported": {
+        "ah": "4b9563962f5d7cbd",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 3658,
+      "exported": {
+        "ah": "0c6d244102296fcf",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5506,
+      "exported": {
+        "ah": "17afccc10213d9a9",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5639,
+      "exported": {
+        "ah": "436328675ff1b3bb",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5507,
+      "exported": {
+        "ah": "a884cc4786570261",
+        "sw": 2,
+        "sh": 1,
+        "ax": 1,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 2,
+        "sh": 1,
+        "ax": 1,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5508,
+      "exported": {
+        "ah": "be075f4f8a1aeb23",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5509,
+      "exported": {
+        "ah": "cc6bc57558d86b5a",
+        "sw": 1,
+        "sh": 2,
+        "ax": 0,
+        "ay": 1
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 2,
+        "ax": 0,
+        "ay": 1
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5518,
+      "exported": {
+        "ah": "d12486aecc923765",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5521,
+      "exported": {
+        "ah": "762ad175a612aa8a",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5522,
+      "exported": {
+        "ah": "69c3cd641d8d65cf",
+        "sw": 3,
+        "sh": 2,
+        "ax": 1,
+        "ay": 1
+      },
+      "expected": {
+        "sw": 3,
+        "sh": 2,
+        "ax": 1,
+        "ay": 1
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5643,
+      "exported": {
+        "ah": "5c789a100ef51930",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5745,
+      "exported": {
+        "ah": "a12e41cb3cfe0d2d",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5746,
+      "exported": {
+        "ah": "321c560ea3037732",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    },
+    {
+      "unit": 5747,
+      "exported": {
+        "ah": "e46cbcb477be3538",
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "expected": {
+        "sw": 1,
+        "sh": 1,
+        "ax": 0,
+        "ay": 0
+      },
+      "geometry_match": true,
+      "pixel_match": true
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.control.work_orders.condition.existing_row",
+  "nativeId": "control.work_orders.condition.existing_row",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woConditionRowHtml",
+      "dfcuiComponent": "DFCUI.rowHtml",
+      "assets": ["WORK_ORDERS_CONDITIONS", "WORK_ORDERS_CHANGE_TYPE", "WORK_ORDERS_CHANGE_MAT", "WORK_ORDERS_CHANGE_ADJ", "WORK_ORDERS_REMOVE"],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs", "tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "server",
+      "file": "dwf.lua",
+      "symbol": "conditions_json",
+      "wireField": "orders[].itemConditions[]",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    },
+    {
+      "kind": "component",
+      "file": "web/css/dwf.css",
+      "symbol": ".wo-condition-row.is-satisfied",
+      "assets": ["--dfui-text-good"],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    }
+  ],
+  "disposition": "conflicting",
+  "audit": {
+    "classification": "local-repair",
+    "findings": ["Native DF colors only the right-side status annotation, while the current browser styling also colors the condition description."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

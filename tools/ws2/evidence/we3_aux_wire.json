@@ -1,0 +1,74 @@
+{
+  "item": "WE-3 - wire: appearance-hash on unit records (AUX)",
+  "spec": "docs/superpowers/specs/2026-07-07-WE-dwarf-compositing-spec.md#we-3",
+  "captured_utc": "2026-07-07T09:4x-09:5xZ",
+  "note": "AUX stays plain JSON per the spec intro ('Wire host: W-A AUX channel ... this spec is that renegotiation, kept JSON') -- confirmed against world_stream.cpp (kTypeAux frame body is UTF-8 JSON, deflated only over the 8KB threshold, decoded client-side with JSON.parse in web/js/dwf-ws.js:468) and against tile_map_dump.cpp's shared emit_units(). No BLOCK_SET-style binary record grammar applies to AUX, so no change was needed to wire_v1.h/.cpp or tools/harness/gen_wire_fixture.mjs / wire_decode_test.mjs -- those cover BLOCK_SET tile records only.",
+
+  "legacy_json_path_GET_mapdata_excerpt": {
+    "endpoint": "GET /mapdata?player=probe&x=0&y=0&z=100&w=80&h=50 (per-player camera_for_player default = host window, actually resolved to origin 70,85,160)",
+    "unit_record": {
+      "x": 85, "y": 89, "z": 160, "id": 5505, "race": 572, "caste": 1,
+      "rt": "DWARF", "ct": "MALE", "name": "Sarvesh Eyeglaze",
+      "ah": "e68740010051fa9f", "sw": 2, "sh": 1, "ax": 1, "ay": 0
+    },
+    "observation": "miner-class unit (id 5505) carries ah/sw/sh/ax/ay; sw=2 matches the spec fixture ('miner-class unit wielding tool reports sw=2'). Units without a live composite (e.g. cats, or dwarves emit_units skips before export) simply omit ah/sw/sh/ax/ay -- byte-identical to pre-WE-3 shape otherwise."
+  },
+
+  "v1_aux_path_ws_probe_auxdump": {
+    "command": "python ws_probe.py we3probe 15 proto1 auxdump",
+    "raw_result_file": "tools/harness/results/auxdump_we3probe.json (gitignored -- summary below)",
+    "summary": {
+      "units_seen": 4,
+      "units_with_ah": 1,
+      "units_without_ah": 3,
+      "bad_hash_count": 0,
+      "detail": {
+        "5505": { "first_seen_s": 0.025, "first_ah_s": 0.025, "last_ah": "e68740010051fa9f" },
+        "5725": { "first_seen_s": 4.94, "first_ah_s": null, "note": "id resolved via dfhack lua: creature_id=CAT, texpos=[0,0,0,0,0,0] -- DF never composited it (flat animal), so no ah, exactly per spec ('flat animals carry none')" },
+        "5727": { "first_seen_s": 7.28, "first_ah_s": null, "note": "CAT, same as above" },
+        "5728": { "first_seen_s": 5.72, "first_ah_s": null, "note": "CAT, same as above" }
+      }
+    },
+    "aux_frame_rate": "453 AUX frames / 15.0s = 30.1/s, 0 gaps>500ms, all v1 acks accounted for",
+    "hash_format_check": "bad_hash_count=0 -- every emitted ah matched ^[0-9a-f]{16}$ (ws_probe.py's new AUXDUMP mode regex-checks every ah value live)"
+  },
+
+  "unit_sprite_route_resolve_check": {
+    "GET_unit_sprite_listing": {
+      "5505": { "ah": "e68740010051fa9f", "sw": 2, "sh": 1, "ax": 1, "ay": 0 },
+      "5641": { "ah": "dc78ee6492eefe7f", "sw": 2, "sh": 1, "ax": 1, "ay": 0 },
+      "3658": { "ah": "0c6d244102296fcf", "sw": 1, "sh": 1, "ax": 0, "ay": 0 }
+    },
+    "GET_unit_sprite_hash_png_resolve": [
+      { "url": "/unit-sprite/e68740010051fa9f.png", "http_status": 200, "content_type": "image/png", "bytes": 908 },
+      { "url": "/unit-sprite/dc78ee6492eefe7f.png", "http_status": 200, "content_type": "image/png", "bytes": 1072 }
+    ],
+    "observation": "3658 (1x1 dwarf, matches spec fixture 'a 1x1 dwarf sw=sh=1'); 5505/5641 (miners, sw=2, matches 'miner-class unit reports sw=2'). Elephant-class (id 5522 and 6 others) present in the fort but had texpos all-zero (never composited -- DF only composites units it actually renders on some player's viewport; none of this fort's players' cameras have passed over an elephant yet). Optional per spec ('elephant-class if in view') -- not forced; would require driving the live host camera over one, which is WE-7 (composite warmer) territory, out of WE-3 scope."
+  },
+
+  "perf_gate": {
+    "command": "python gate_perf.py --secs 20",
+    "result_file": "tools/harness/results/perf-20260707T094230Z.json",
+    "pass": true,
+    "phases": {
+      "local-idle":  { "fps": 30.1, "gaps": 0, "stalls": 0 },
+      "local-pan":   { "fps": 30.1, "gaps": 0, "stalls": 0, "pan_moves": 70 },
+      "tunnel-idle": { "fps": 30.3, "gaps": 0, "stalls": 0 },
+      "tunnel-pan":  { "fps": 30.1, "gaps": 0, "stalls": 0, "pan_moves": 58 }
+    },
+    "note": "run with capture-unit-census on + capture-unit-sprites on (both feature flags live end-to-end) and 0 foreign WS players attached (/diag checked before and after)."
+  },
+
+  "regression_check": {
+    "target": "GET /tiles.html?player=we3regress&diag=0 (legacy client, pre-WA-8/9 wire path)",
+    "method": "agent-browser: open, wait 8s for streaming, console/errors dump, screenshot, close --all",
+    "result": "page loaded (title 'Dwf - Tiles'), /diag showed 1 connected legacy player streaming at ~30/s (delta mode), zero console messages, zero errors captured. Unknown JSON fields (ah/sw/sh/ax/ay) are silently ignored by the legacy renderer as expected -- no code there reads them.",
+    "screenshot": "tools/harness/results/we3_tiles_regress.png (gitignored, local only)"
+  },
+
+  "code_changes": [
+    "src/tile_map_dump.cpp: emit_units() -- one unit_sprite_snapshot() copy per call (skipped entirely when capture-unit-sprites is off), O(1) per-unit lookup; appends ah/sw/sh/ax/ay ONLY when a record with a non-empty hash exists. Shared verbatim by build_map_json_impl (full frame) and build_map_delta_for_camera (delta) -- both call sites unchanged.",
+    "src/world_stream.cpp: UnitRec gains ah/sw/sh/ax/ay (default empty/0); populated during the WA-9 single global units scan (one sprite_snapshot copy before the loop, per-unit O(1) lookup, same pattern); the per-connection AUX JSON assembly emits the fields only when ah is non-empty.",
+    "tools/harness/ws_probe.py: new 'auxdump' token -- decodes every v1 AUX frame (inflating deflated payloads), tracks each unit id's first-seen / first-ah timestamps, validates ah is 16 lowercase hex chars, and writes results/auxdump_<player>.json. Used as this item's live wire-contract verification instrument (no BLOCK_SET-style fixture change was in scope since AUX stays JSON)."
+  ]
+}

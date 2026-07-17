@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/JakesDwarfAccount/dwarf-with-friends/blob/main/TROUBLESHOOTING.md
+    about: Try this first — a hard refresh (Ctrl+Shift+R) fixes most issues.
+  - name: How to report a bug well
+    url: https://github.com/JakesDwarfAccount/dwarf-with-friends/blob/main/docs/REPORTING-BUGS.md
+    about: A short plain-English guide to what information helps us fix things fast.

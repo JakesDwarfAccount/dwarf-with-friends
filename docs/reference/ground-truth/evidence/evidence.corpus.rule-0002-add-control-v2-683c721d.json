@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "recordType": "evidence",
+  "id": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+  "kind": "corpus",
+  "buildId": "build.df.0.53.15-win64-steam-683c721d",
+  "source": {
+    "contentSha256": "ED2240F6B4D72E6F01F5BD7DECC17628FF77419D2D5FC2056132A5E7D1452923",
+    "privateLocator": "recorder://qualification/2026-07-15T19-17-02-227Z-work-order/session-v2"
+  },
+  "selectors": {
+    "frameIds": ["record-0-frame-0"]
+  },
+  "producer": {
+    "tool": "tools/ground_truth/reduce_work_orders.mjs",
+    "version": "schema 1; recorder schema 2; plugin 69e066c1; DLL A1FBFF1121FEB1CC4388034A080B73E8A9709ED832A47848D620F0AA4E24E3B8"
+  },
+  "captureContext": {
+    "pluginBuild": "0x73105d34-69e066c1",
+    "recorderSchemaVersion": 2
+  },
+  "createdAt": "2026-07-15T19:17:04Z",
+  "structuralValidation": {
+    "passed": true,
+    "method": "Pinned-identity reducer decoded the complete recorder-v2 GPS stack and independently inventoried product, input, label, and add-control identities. It reproduced all three suggestion filters and rows in native order, observed the same lower-plane 4-by-3 add control on both addable rows, and observed no add-control cell on the still-visible row matching the existing condition. Reducer summary: pass 8, fail 0, inconclusive 2; only Rule 0003 two-state binding remained inconclusive."
+  }
+}

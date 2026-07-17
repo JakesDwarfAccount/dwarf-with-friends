@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "flow.work_orders.open_condition_editor",
+  "kind": "flow",
+  "title": "Open the work-order condition editor",
+  "definition": "The native navigation flow from a selected work order into its condition editor surface.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "destination",
+      "statement": "The observed destination is the condition editor for one selected order, with its existing conditions and generated suggested-condition section visible together.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        }
+      ]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "entry-transition",
+      "statement": "The pinned recorder session begins after the editor is open, so it does not establish the exact source surface, input gesture, focus change, or back-navigation transition."
+    }
+  ],
+  "relationships": {
+    "parents": ["surface.work_orders.condition_editor"],
+    "children": [],
+    "dependencies": ["surface.work_orders.condition_editor"],
+    "rules": [],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["Opening conditions for a selected order lands on that order's editor and not another order's data."],
+    "boundary": ["An order with no existing conditions still reaches the editor and exposes its honest empty state and suggestions."],
+    "counterexamples": ["Changing the selected order before entry must not leave the previous order's condition rows in the destination state."]
+  },
+  "absenceGuards": ["Do not claim the exact native entry gesture or back-navigation behavior from a session that starts after the editor is already open."],
+  "recorderRequirements": {
+    "stateSlice": ["source surface identity", "selected work-order id", "navigation action", "destination surface identity", "destination condition owner id"],
+    "requiredFrames": ["Immediately before opening the editor", "First stable editor frame", "Back-navigation destination"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "captured",
+    "productMapping": "mapped-partial",
+    "verification": "untested",
+    "release": "not-shippable"
+  }
+}

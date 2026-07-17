@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dwarf-with-friends.local/ground-truth/schema/v1/build.schema.json",
+  "type": "object",
+  "required": ["schemaVersion", "recordType", "id", "dfVersion", "platform", "distribution", "executable", "dfhack", "recordedOn"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "recordType": { "const": "build" },
+    "id": { "$ref": "common.schema.json#/$defs/buildId" },
+    "dfVersion": { "$ref": "common.schema.json#/$defs/nonEmptyString" },
+    "platform": { "enum": ["win64", "linux64", "macos64"] },
+    "distribution": { "$ref": "common.schema.json#/$defs/nonEmptyString" },
+    "executable": {
+      "type": "object",
+      "required": ["fileName", "sha256", "peTimestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "fileName": { "$ref": "common.schema.json#/$defs/nonEmptyString" },
+        "sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "peTimestamp": { "type": "string", "pattern": "^0x[0-9A-F]{8}$" }
+      }
+    },
+    "dfhack": {
+      "type": "object",
+      "required": ["version", "symbolsBinaryTimestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "$ref": "common.schema.json#/$defs/nonEmptyString" },
+        "symbolsBinaryTimestamp": { "type": "string", "pattern": "^0x[0-9A-F]{8}$" }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["relativePath", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "relativePath": { "$ref": "common.schema.json#/$defs/relativePath" },
+          "sha256": { "$ref": "common.schema.json#/$defs/sha256" }
+        }
+      }
+    },
+    "recordedOn": { "$ref": "common.schema.json#/$defs/date" }
+  }
+}

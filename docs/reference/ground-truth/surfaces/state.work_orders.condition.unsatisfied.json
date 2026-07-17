@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "state.work_orders.condition.unsatisfied",
+  "kind": "state",
+  "title": "Work-order condition unsatisfied state",
+  "definition": "The visible existing-condition state selected when the native cached next-check result is false.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "label-and-color",
+      "statement": "A false cached result renders the annotation Not satisfied for next check in bright native red foreground index 4 on black background index 0.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+          "selectors": ["0x14038c3c0", "0x140390a57"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0003-condition-colors-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "annotation-only",
+      "statement": "The unsatisfied attributes apply to the next-check annotation, not the row's operator, quantity, or item-description fragments.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+        "selectors": ["0x14038c3c0"]
+      }]
+    }
+  ],
+  "uncertainties": [],
+  "relationships": {
+    "parents": ["control.work_orders.condition.existing_row"],
+    "children": [],
+    "dependencies": ["rule.0003.work-order-condition-status-color"],
+    "rules": ["rule.0003.work-order-condition-status-color"],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["A false cached result displays the exact unsatisfied annotation and all three color attributes."],
+    "boundary": ["Only the annotation span is bright red; adjacent condition fragments retain their own attributes."],
+    "counterexamples": ["The same row with a true cached result uses the satisfied state instead."]
+  },
+  "absenceGuards": ["Do not color the operator, quantity, or item-description fragments bright red as part of this state."],
+  "recorderRequirements": {
+    "stateSlice": ["selected condition id", "cached false result", "character plane", "foreground plane", "background plane", "brightness plane"],
+    "requiredFrames": ["Existing row with a false cached result and the complete next-check annotation span"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "corpus-confirmed",
+    "productMapping": "mapped-conflicting",
+    "verification": "untested",
+    "release": "not-shippable"
+  }
+}

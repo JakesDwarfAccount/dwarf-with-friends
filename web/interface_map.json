@@ -1,0 +1,10510 @@
+{
+ "ADVENTURE_ABILITY": {
+  "cx": 320,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_BUILD": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_BURDEN_HEAVY": {
+  "cx": 64,
+  "cy": 84,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_BURDEN_LIGHT": {
+  "cx": 64,
+  "cy": 72,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_CLIMB": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_OPTIONS": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_ACCORDING_OFF": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_ACCORDING_ON": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_DEF_ACCORDING_OFF": {
+  "cx": 256,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_DEF_ACCORDING_ON": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_DEF_MOVE_OFF": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_DEF_MOVE_ON": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_DEF_STAND_OFF": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_DEF_STAND_ON": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_OFF": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_CHARGE_ON": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_DODGE_MOVE_OFF": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_DODGE_MOVE_ON": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_DODGE_STAND_OFF": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_DODGE_STAND_ON": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_STRIKE_OFF": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_STRIKE_ON": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_WRESTLE_OFF": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMBAT_PREF_WRESTLE_ON": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_combat_prefs.png",
+  "w": 32
+ },
+ "ADVENTURE_COMPANIONS": {
+  "cx": 0,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_COMPANIONS_ASSUME_CONTROL": {
+  "cx": 32,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_COMPANIONS_FOLLOW_LEADER": {
+  "cx": 64,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_COMPANIONS_MANUAL_CONTROL": {
+  "cx": 96,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_CRAFT": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_E": {
+  "cx": 96,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_N": {
+  "cx": 0,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_NE": {
+  "cx": 160,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_NW": {
+  "cx": 128,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_S": {
+  "cx": 32,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_SE": {
+  "cx": 224,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_SW": {
+  "cx": 192,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_RAMP_W": {
+  "cx": 64,
+  "cy": 132,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_DOWN_STAIRS": {
+  "cx": 192,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_GO_UP_STAIRS": {
+  "cx": 160,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_ANIMATE_CORPSE": {
+  "cx": 192,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_BLIND": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_BLISTER": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_CAUSE_BLEEDING": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_CAUSE_DIZZINESS": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_CAUSE_PAIN": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_CREATE_GHOUL": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_EMIT_DUST": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_EMIT_GAS": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_EMIT_VAPOR": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_HURL_FIREBALL": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_LAUNCH_ICE_BOLT": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_LUCK_CURSE": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_PARALYZE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_PROPEL_AWAY": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_RAISE_FOG": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_RAISE_INTELLIGENT_UNDEAD": {
+  "cx": 224,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_RETRACT_INTO_BP": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_ROOT_AROUND": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_ROT": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SICKEN_COUGH_BLOOD": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SICKEN_NAUSEA": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SICKEN_VOMIT_BLOOD": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPIT_LIQUID_GLOB": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPIT_SOLID_GLOB": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPRAY_DUST": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPRAY_FIRE_JET": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPRAY_GAS": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPRAY_VAPOR": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SPRAY_WEB": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SUFFOCATE": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SUMMON_BOGEYMAN": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_SUMMON_NIGHTMARE": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_TRANSFORM": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_UNRETRACT_FROM_BP": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INTERACTION_ICON_VANISH": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "ability_list_icons.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_DROP_ACTIVE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_DROP_INACTIVE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_EAT_DRINK_ACTIVE": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_EAT_DRINK_INACTIVE": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_INTERACT_ACTIVE": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_INTERACT_INACTIVE": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_ITEM_DETAILS": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 24
+ },
+ "ADVENTURE_INVENTORY_ITEM_DROP": {
+  "cx": 24,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 24
+ },
+ "ADVENTURE_INVENTORY_ITEM_EAT_DRINK": {
+  "cx": 120,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 24
+ },
+ "ADVENTURE_INVENTORY_ITEM_INTERACT": {
+  "cx": 144,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 24
+ },
+ "ADVENTURE_INVENTORY_ITEM_REMOVE": {
+  "cx": 72,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 24
+ },
+ "ADVENTURE_INVENTORY_ITEM_WEAR": {
+  "cx": 48,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 24
+ },
+ "ADVENTURE_INVENTORY_PUT_INTO_ACTIVE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_PUT_INTO_INACTIVE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_REMOVE_ACTIVE": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_REMOVE_INACTIVE": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_WEAR_ACTIVE": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_INVENTORY_WEAR_INACTIVE": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_inventory.png",
+  "w": 32
+ },
+ "ADVENTURE_JUMP": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_LOG": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_LOG_ITEM_ACTIVE": {
+  "cx": 24,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_log.png",
+  "w": 24
+ },
+ "ADVENTURE_LOG_ITEM_INACTIVE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_log.png",
+  "w": 24
+ },
+ "ADVENTURE_LOG_PINNED_ACTIVE": {
+  "cx": 72,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_log.png",
+  "w": 24
+ },
+ "ADVENTURE_LOG_PINNED_INACTIVE": {
+  "cx": 48,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_log.png",
+  "w": 24
+ },
+ "ADVENTURE_MOVEMENT_OPTIONS": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_PERFORM": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_PRONE": {
+  "cx": 384,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_RECENTER": {
+  "cx": 128,
+  "cy": 96,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_SEARCH": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_SHOOT": {
+  "cx": 288,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_SLEEP": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_SPEED_BOX_N": {
+  "cx": 104,
+  "cy": 72,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 8
+ },
+ "ADVENTURE_SPEED_BOX_NE": {
+  "cx": 112,
+  "cy": 72,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 8
+ },
+ "ADVENTURE_SPEED_BOX_NW": {
+  "cx": 96,
+  "cy": 72,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 8
+ },
+ "ADVENTURE_SPEED_BOX_S": {
+  "cx": 104,
+  "cy": 84,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 8
+ },
+ "ADVENTURE_SPEED_BOX_SE": {
+  "cx": 112,
+  "cy": 84,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 8
+ },
+ "ADVENTURE_SPEED_BOX_SW": {
+  "cx": 96,
+  "cy": 84,
+  "h": 12,
+  "img": "interface_bits_adventure.png",
+  "w": 8
+ },
+ "ADVENTURE_STANDING": {
+  "cx": 352,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_STATUS": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_STRIKE": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_TACTICAL_MODE_OFF": {
+  "cx": 0,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_TACTICAL_MODE_ON": {
+  "cx": 32,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_TALK": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_CLOUDS_OFF": {
+  "cx": 312,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_CLOUDS_ON": {
+  "cx": 280,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_DIR_CENTER_NO": {
+  "cx": 32,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_CENTER_YES": {
+  "cx": 8,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_DOWN": {
+  "cx": 48,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_E_NO": {
+  "cx": 40,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_E_YES": {
+  "cx": 16,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_NE_NO": {
+  "cx": 40,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_NE_YES": {
+  "cx": 16,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_NW_NO": {
+  "cx": 24,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_NW_YES": {
+  "cx": 0,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_N_NO": {
+  "cx": 32,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_N_YES": {
+  "cx": 8,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_SE_NO": {
+  "cx": 40,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_SE_YES": {
+  "cx": 16,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_SW_NO": {
+  "cx": 24,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_SW_YES": {
+  "cx": 0,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_S_NO": {
+  "cx": 32,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_S_YES": {
+  "cx": 8,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_UP": {
+  "cx": 48,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_UP_DOWN": {
+  "cx": 48,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_W_NO": {
+  "cx": 24,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_DIR_W_YES": {
+  "cx": 0,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 8
+ },
+ "ADVENTURE_TRAVEL_GO_DOWN": {
+  "cx": 88,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_GO_UP": {
+  "cx": 56,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_LOG": {
+  "cx": 408,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_MAP": {
+  "cx": 216,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_SLEEP": {
+  "cx": 248,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_SNEAK_OFF": {
+  "cx": 184,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_SNEAK_ON": {
+  "cx": 152,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_STOP_TRAVELING": {
+  "cx": 120,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_TRACKS_OFF": {
+  "cx": 376,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_TRAVEL_TRACKS_ON": {
+  "cx": 344,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_travel.png",
+  "w": 32
+ },
+ "ADVENTURE_WEAPONS_DRAWN": {
+  "cx": 320,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_WEAPONS_NONE": {
+  "cx": 288,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_WEAPONS_SHEATHED": {
+  "cx": 288,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_WRESTLE": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_YIELDED_NO": {
+  "cx": 352,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_YIELDED_YES": {
+  "cx": 384,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_YOU_ARE_PROJECTILE": {
+  "cx": 352,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADVENTURE_YOU_ARE_RIDING": {
+  "cx": 320,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_adventure.png",
+  "w": 32
+ },
+ "ADV_LIQUID_NUMBERS_OFF": {
+  "cx": 0,
+  "cy": 96,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_LIQUID_NUMBERS_ON": {
+  "cx": 16,
+  "cy": 96,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_RAMP_ARROWS_OFF": {
+  "cx": 32,
+  "cy": 96,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_RAMP_ARROWS_ON": {
+  "cx": 48,
+  "cy": 96,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_TRACKS_OFF": {
+  "cx": 16,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_TRACKS_ON": {
+  "cx": 0,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_ZOOM_IN_OFF": {
+  "cx": 16,
+  "cy": 48,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_ZOOM_IN_ON": {
+  "cx": 0,
+  "cy": 48,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_ZOOM_OUT_OFF": {
+  "cx": 48,
+  "cy": 48,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ADV_ZOOM_OUT_ON": {
+  "cx": 32,
+  "cy": 48,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ANGEL_ICON": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "generated_list_icons.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_NOT_PAUSING_ON_NEW_REPORT": {
+  "cx": 24,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_announcements.png",
+  "w": 24
+ },
+ "ANNOUNCEMENT_OPEN_ALL_ANNOUNCEMENTS": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_announcements.png",
+  "w": 24
+ },
+ "ANNOUNCEMENT_OPEN_FROM_MAIN": {
+  "cx": 72,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_announcements.png",
+  "w": 24
+ },
+ "ANNOUNCEMENT_PAUSING_ON_NEW_REPORT": {
+  "cx": 48,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_announcements.png",
+  "w": 24
+ },
+ "ARENA_CONDITION_ASSIGNED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_CONDITION_UNASSIGNED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_CREATE_CREATURE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_CREATE_TREE": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_DECREASE_EQUIPMENT": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_DECREASE_SKILL": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_DECREASE_TEAM": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_ENTER_AMOUNT": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_MAGMA_SELECTED": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_MAGMA_UNSELECTED": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_MUD_SELECTED": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_MUD_UNSELECTED": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_REMOVE_SELECTED": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_REMOVE_UNSELECTED": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_SNOW_SELECTED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_SNOW_UNSELECTED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_WATER_SELECTED": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_FLUIDS_WATER_UNSELECTED": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ARENA_INCREASE_EQUIPMENT": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_INCREASE_SKILL": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_INCREASE_TEAM": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ARENA_WEATHER": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_arena.png",
+  "w": 32
+ },
+ "ASSIGN_TRADE_BEING_BROUGHT": {
+  "cx": 448,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "ASSIGN_TRADE_CULLING_MANDATES_OFF": {
+  "cx": 256,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "ASSIGN_TRADE_CULLING_MANDATES_ON": {
+  "cx": 256,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "ASSIGN_TRADE_IN_DEPOT": {
+  "cx": 424,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "ASSIGN_TRADE_NOT_SELECTED": {
+  "cx": 400,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "ASSIGN_TRADE_PROHIBITED": {
+  "cx": 472,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "ASSIGN_TRADE_SELECTED": {
+  "cx": 376,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "ASSIGN_TRADE_SORT_BY_DISTANCE_OFF": {
+  "cx": 320,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "ASSIGN_TRADE_SORT_BY_DISTANCE_ON": {
+  "cx": 320,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "ASSIGN_TRADE_SORT_BY_VALUE_OFF": {
+  "cx": 288,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "ASSIGN_TRADE_SORT_BY_VALUE_ON": {
+  "cx": 288,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_BOTTOM": {
+  "cx": 32,
+  "cy": 48,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BORDER_BOTTOM_INTERSECTION": {
+  "cx": 72,
+  "cy": 48,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_BOTTOM_LEFT": {
+  "cx": 0,
+  "cy": 48,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_BOTTOM_RIGHT": {
+  "cx": 40,
+  "cy": 48,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_LEFT": {
+  "cx": 0,
+  "cy": 36,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_LEFT_INTERSECTION": {
+  "cx": 208,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BORDER_MIDDLE_INTERSECTION": {
+  "cx": 72,
+  "cy": 36,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_RIGHT": {
+  "cx": 40,
+  "cy": 36,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_RIGHT_INTERSECTION": {
+  "cx": 232,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BORDER_TOP": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BORDER_TOP_INTERSECTION": {
+  "cx": 72,
+  "cy": 12,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_TOP_LEFT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BORDER_TOP_RIGHT": {
+  "cx": 40,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BOTTOM_BUTTON_BORDER_E": {
+  "cx": 240,
+  "cy": 348,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BOTTOM_BUTTON_BORDER_INTERIOR": {
+  "cx": 232,
+  "cy": 348,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BOTTOM_BUTTON_BORDER_N": {
+  "cx": 232,
+  "cy": 336,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BOTTOM_BUTTON_BORDER_NE": {
+  "cx": 240,
+  "cy": 336,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BOTTOM_BUTTON_BORDER_NW": {
+  "cx": 224,
+  "cy": 336,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BOTTOM_BUTTON_BORDER_W": {
+  "cx": 224,
+  "cy": 348,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BUILDING_INFO_ACTIVE": {
+  "cx": 376,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_FISH": {
+  "cx": 400,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_FISH_ACTIVE": {
+  "cx": 400,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_GEM": {
+  "cx": 424,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_GEM_ACTIVE": {
+  "cx": 424,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_MEAT": {
+  "cx": 376,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_MEAT_ACTIVE": {
+  "cx": 376,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_NONE": {
+  "cx": 448,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_ANIMAL_TRAP_NONE_ACTIVE": {
+  "cx": 448,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_DOOR_FORBIDDEN": {
+  "cx": 400,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_DOOR_FORBIDDEN_ACTIVE": {
+  "cx": 376,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_DOOR_PERMITTED": {
+  "cx": 448,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_DOOR_PERMITTED_ACTIVE": {
+  "cx": 424,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_INACTIVE": {
+  "cx": 400,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_FIRE_AT_WILL": {
+  "cx": 424,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_FIRE_AT_WILL_ACTIVE": {
+  "cx": 424,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_KEEP_LOADED": {
+  "cx": 472,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_KEEP_LOADED_ACTIVE": {
+  "cx": 472,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_NOT_IN_USE": {
+  "cx": 472,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_NOT_IN_USE_ACTIVE": {
+  "cx": 472,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_PRACTICE_FIRE": {
+  "cx": 352,
+  "cy": 504,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_PRACTICE_FIRE_ACTIVE": {
+  "cx": 352,
+  "cy": 468,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_PREPARE_TO_FIRE": {
+  "cx": 448,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_INFO_SIEGE_ENGINE_PREPARE_TO_FIRE_ACTIVE": {
+  "cx": 448,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_ANIMAL": {
+  "cx": 472,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_BAIT": {
+  "cx": 400,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_DEAD": {
+  "cx": 448,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_INCORPORATED": {
+  "cx": 424,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_LOADED": {
+  "cx": 424,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_OTHER": {
+  "cx": 472,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_TASK": {
+  "cx": 400,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_ITEM_TRADE": {
+  "cx": 448,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_ACTIVE": {
+  "cx": 472,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_DO_NOW": {
+  "cx": 400,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_DO_NOW_ACTIVE": {
+  "cx": 400,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_PRIORITY_UP": {
+  "cx": 448,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_QUOTA": {
+  "cx": 472,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_REMOVE": {
+  "cx": 448,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_REMOVE_WORKER": {
+  "cx": 376,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_REPEAT": {
+  "cx": 376,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_REPEAT_ACTIVE": {
+  "cx": 376,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_SUSPENDED": {
+  "cx": 424,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_JOBS_SUSPENDED_ACTIVE": {
+  "cx": 424,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUILDING_PLACEMENT_ACTIVE_BUTTON": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_BRIDGE_E": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_BRIDGE_N": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_BRIDGE_RETRACT": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_BRIDGE_S": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_BRIDGE_W": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_E": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_INACTIVE_BUTTON": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_N": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_NE": {
+  "cx": 0,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_NS": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_NW": {
+  "cx": 96,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_ACTIVE_TRIGGER": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_INACTIVE_TRIGGER": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_0_OFF": {
+  "cx": 192,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_0_ON": {
+  "cx": 192,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_1_OFF": {
+  "cx": 0,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_1_ON": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_2_OFF": {
+  "cx": 32,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_2_ON": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_3_OFF": {
+  "cx": 64,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_3_ON": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_4_OFF": {
+  "cx": 96,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_4_ON": {
+  "cx": 96,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_5_OFF": {
+  "cx": 128,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_5_ON": {
+  "cx": 128,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_6_OFF": {
+  "cx": 160,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_6_ON": {
+  "cx": 160,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_7_OFF": {
+  "cx": 192,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_MAGMA_7_ON": {
+  "cx": 192,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_0_OFF": {
+  "cx": 160,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_0_ON": {
+  "cx": 160,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_1_OFF": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_1_ON": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_2_OFF": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_2_ON": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_3_OFF": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_3_ON": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_4_OFF": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_4_ON": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_5_OFF": {
+  "cx": 128,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_5_ON": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_6_OFF": {
+  "cx": 160,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_6_ON": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_7_OFF": {
+  "cx": 192,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_PRESSURE_PLATE_WATER_7_ON": {
+  "cx": 192,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_ROLLERS_SPEED_1": {
+  "cx": 0,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_ROLLERS_SPEED_2": {
+  "cx": 32,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_ROLLERS_SPEED_3": {
+  "cx": 64,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_ROLLERS_SPEED_4": {
+  "cx": 96,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_ROLLERS_SPEED_5": {
+  "cx": 128,
+  "cy": 288,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_S": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_SCREW_PUMP_E": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_SCREW_PUMP_N": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_SCREW_PUMP_S": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_SCREW_PUMP_W": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_SE": {
+  "cx": 32,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_SW": {
+  "cx": 64,
+  "cy": 324,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_TRACK_STOP_FRICTION_HIGH": {
+  "cx": 96,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_TRACK_STOP_FRICTION_HIGHEST": {
+  "cx": 128,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_TRACK_STOP_FRICTION_LOW": {
+  "cx": 32,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_TRACK_STOP_FRICTION_LOWEST": {
+  "cx": 0,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_TRACK_STOP_FRICTION_MIDDLE": {
+  "cx": 64,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_TRACK_STOP_NO_DUMPING": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_W": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_PLACEMENT_WE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_placement.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_ASSIGN_WORKER": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_CLEAR_WORKER": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_DISPLAY_FURNITURE_ITEM_OFF": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_DISPLAY_FURNITURE_ITEM_ON": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_FARM_ACTIVE_OPTION": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_FARM_INACTIVE_OPTION": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUILDING_SHEET_REMOVE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_sheet.png",
+  "w": 32
+ },
+ "BUILDING_SHORT_ITEM_TASK": {
+  "cx": 256,
+  "cy": 480,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BURROW_ADD_UNIT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BURROW_DELETE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_burrows.png",
+  "w": 32
+ },
+ "BURROW_RECENTER": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BURROW_REPAINT": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_burrows.png",
+  "w": 32
+ },
+ "BURROW_SUSPEND_ACTIVE": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BURROW_SUSPEND_INACTIVE": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BURROW_WORKSHOPS_BURROW_ONLY": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_burrows.png",
+  "w": 32
+ },
+ "BURROW_WORKSHOPS_EVERYWHERE": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_burrows.png",
+  "w": 32
+ },
+ "BUTTON_ADD": {
+  "cx": 24,
+  "cy": 84,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_ADD_HOVER": {
+  "cx": 48,
+  "cy": 84,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_ADD_INVALID": {
+  "cx": 72,
+  "cy": 84,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_ADD_PRESSED": {
+  "cx": 96,
+  "cy": 84,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_BUILDING_ACTIVE": {
+  "cx": 160,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_BUILDING_INACTIVE": {
+  "cx": 128,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_BURROW_ACTIVE": {
+  "cx": 160,
+  "cy": 480,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_BURROW_INACTIVE": {
+  "cx": 128,
+  "cy": 480,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_CATEGORY_RECTANGLE": {
+  "cx": 96,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_CATEGORY_RECTANGLE_OFF": {
+  "cx": 232,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_CATEGORY_RECTANGLE_OFF_SELECTED": {
+  "cx": 232,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_CATEGORY_RECTANGLE_ON": {
+  "cx": 208,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_CATEGORY_RECTANGLE_ON_SELECTED": {
+  "cx": 208,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_CATEGORY_RECTANGLE_SELECTED": {
+  "cx": 96,
+  "cy": 156,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_CLICK_ACTIVE": {
+  "cx": 288,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_CLICK_INACTIVE": {
+  "cx": 256,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_CLOSE_LEFT": {
+  "cx": 96,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_BLUEPRINT_ACTIVE": {
+  "cx": 32,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_BLUEPRINT_INACTIVE": {
+  "cx": 0,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_CHOP_ACTIVE": {
+  "cx": 32,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_CHOP_INACTIVE": {
+  "cx": 0,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_CLAIM_ACTIVE": {
+  "cx": 160,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_CLAIM_INACTIVE": {
+  "cx": 128,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_DUMP_ACTIVE": {
+  "cx": 160,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_DUMP_INACTIVE": {
+  "cx": 128,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_ERASE": {
+  "cx": 192,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_FORBID_ACTIVE": {
+  "cx": 224,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_FORBID_INACTIVE": {
+  "cx": 192,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_FROM_BLUEPRINT_ACTIVE": {
+  "cx": 160,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_FROM_BLUEPRINT_INACTIVE": {
+  "cx": 128,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_GATHER_ACTIVE": {
+  "cx": 96,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_GATHER_INACTIVE": {
+  "cx": 64,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_HIDE_ACTIVE": {
+  "cx": 224,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_HIDE_INACTIVE": {
+  "cx": 192,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_ITEM_BUILDING": {
+  "cx": 192,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_MELT_ACTIVE": {
+  "cx": 160,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_MELT_INACTIVE": {
+  "cx": 128,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_ACTIVE": {
+  "cx": 32,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_ENGRAVE_ACTIVE": {
+  "cx": 32,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_ENGRAVE_INACTIVE": {
+  "cx": 0,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_FORTIFY_ACTIVE": {
+  "cx": 96,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_FORTIFY_INACTIVE": {
+  "cx": 64,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_INACTIVE": {
+  "cx": 0,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_SMOOTH_ACTIVE": {
+  "cx": 96,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_SMOOTH_INACTIVE": {
+  "cx": 64,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_TRACK_ACTIVE": {
+  "cx": 288,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_SMOOTH_TRACK_INACTIVE": {
+  "cx": 256,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TO_BLUEPRINT_ACTIVE": {
+  "cx": 96,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TO_BLUEPRINT_INACTIVE": {
+  "cx": 64,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC": {
+  "cx": 128,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_HIGH_ACTIVE": {
+  "cx": 160,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_HIGH_INACTIVE": {
+  "cx": 128,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_LOW_ACTIVE": {
+  "cx": 160,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_LOW_INACTIVE": {
+  "cx": 128,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_NORMAL_ACTIVE": {
+  "cx": 224,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_NORMAL_INACTIVE": {
+  "cx": 192,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_RESTRICTED_ACTIVE": {
+  "cx": 224,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_TRAFFIC_RESTRICTED_INACTIVE": {
+  "cx": 192,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_UNDUMP_ACTIVE": {
+  "cx": 224,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_UNDUMP_INACTIVE": {
+  "cx": 192,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_UNHIDE_ACTIVE": {
+  "cx": 160,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_UNHIDE_INACTIVE": {
+  "cx": 128,
+  "cy": 696,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_UNMELT_ACTIVE": {
+  "cx": 224,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DES_UNMELT_INACTIVE": {
+  "cx": 192,
+  "cy": 660,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG": {
+  "cx": 0,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_CHANNEL_ACTIVE": {
+  "cx": 96,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_CHANNEL_INACTIVE": {
+  "cx": 64,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_DIG_ACTIVE": {
+  "cx": 32,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_DIG_INACTIVE": {
+  "cx": 0,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_ALL_ACTIVE": {
+  "cx": 32,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_ALL_INACTIVE": {
+  "cx": 0,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_AUTO_ACTIVE": {
+  "cx": 96,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_AUTO_INACTIVE": {
+  "cx": 64,
+  "cy": 372,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_ONLY_GEM_ACTIVE": {
+  "cx": 96,
+  "cy": 408,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_ONLY_GEM_INACTIVE": {
+  "cx": 64,
+  "cy": 408,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_ONLY_ORE_GEM_ACTIVE": {
+  "cx": 32,
+  "cy": 408,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_MODE_ONLY_ORE_GEM_INACTIVE": {
+  "cx": 0,
+  "cy": 408,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_RAMP_ACTIVE": {
+  "cx": 32,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_RAMP_INACTIVE": {
+  "cx": 0,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_REMOVE_STAIRS_RAMPS_ACTIVE": {
+  "cx": 32,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_REMOVE_STAIRS_RAMPS_INACTIVE": {
+  "cx": 0,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_STAIRS_ACTIVE": {
+  "cx": 96,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_DIG_STAIRS_INACTIVE": {
+  "cx": 64,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_EXPANDER_CLOSED": {
+  "cx": 168,
+  "cy": 156,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_EXPANDER_OPEN": {
+  "cx": 184,
+  "cy": 156,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_FILTER": {
+  "cx": 0,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 48
+ },
+ "BUTTON_FILTER_NAME": {
+  "cx": 32,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "BUTTON_FILTER_NO_MAG_RIGHT": {
+  "cx": 176,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "BUTTON_FREE_PAINT_ACTIVE": {
+  "cx": 64,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_FREE_PAINT_BORDER_ACTIVE": {
+  "cx": 256,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_FREE_PAINT_BORDER_INACTIVE": {
+  "cx": 256,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_FREE_PAINT_INACTIVE": {
+  "cx": 64,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_HAULING_ACTIVE": {
+  "cx": 160,
+  "cy": 516,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_HAULING_INACTIVE": {
+  "cx": 128,
+  "cy": 516,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_HELP": {
+  "cx": 176,
+  "cy": 228,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_INFO_CREATURES": {
+  "cx": 256,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_CREATURES_ACTIVE": {
+  "cx": 320,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_JUSTICE": {
+  "cx": 256,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_JUSTICE_ACTIVE": {
+  "cx": 320,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_LABOR": {
+  "cx": 256,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_LABOR_ACTIVE": {
+  "cx": 320,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_NOBLES": {
+  "cx": 288,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_NOBLES_ACTIVE": {
+  "cx": 352,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_OBJECTS": {
+  "cx": 320,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_OBJECTS_ACTIVE": {
+  "cx": 384,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_PLACES": {
+  "cx": 320,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_PLACES_ACTIVE": {
+  "cx": 384,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_TASKS": {
+  "cx": 288,
+  "cy": 264,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_TASKS_ACTIVE": {
+  "cx": 352,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_WORK_ORDERS": {
+  "cx": 192,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_INFO_WORK_ORDERS_ACTIVE": {
+  "cx": 352,
+  "cy": 624,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_LOWER_MENU": {
+  "cx": 32,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_OPEN_RIGHT": {
+  "cx": 64,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PAINT_RECTANGLE_ACTIVE": {
+  "cx": 96,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PAINT_RECTANGLE_BORDER_ACTIVE": {
+  "cx": 288,
+  "cy": 588,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PAINT_RECTANGLE_BORDER_INACTIVE": {
+  "cx": 288,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PAINT_RECTANGLE_INACTIVE": {
+  "cx": 96,
+  "cy": 228,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PAUSE_ACTIVE": {
+  "cx": 144,
+  "cy": 336,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_PAUSE_INACTIVE": {
+  "cx": 128,
+  "cy": 336,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_PICTURE_BOX": {
+  "cx": 0,
+  "cy": 120,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_PICTURE_BOX_DARK": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_selection.png",
+  "w": 24
+ },
+ "BUTTON_PICTURE_BOX_HIGHLIGHTED": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_unit_selector.png",
+  "w": 24
+ },
+ "BUTTON_PICTURE_BOX_LIGHT": {
+  "cx": 24,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_building_selection.png",
+  "w": 24
+ },
+ "BUTTON_PICTURE_BOX_SELECTED": {
+  "cx": 24,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_unit_selector.png",
+  "w": 24
+ },
+ "BUTTON_PICTURE_BOX_SEL_HIGHLIGHTED": {
+  "cx": 24,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_unit_selector.png",
+  "w": 24
+ },
+ "BUTTON_PLAY_ACTIVE": {
+  "cx": 176,
+  "cy": 336,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_PLAY_INACTIVE": {
+  "cx": 160,
+  "cy": 336,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_PRIORITY_1_ACTIVE": {
+  "cx": 32,
+  "cy": 444,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_1_INACTIVE": {
+  "cx": 0,
+  "cy": 444,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_2_ACTIVE": {
+  "cx": 96,
+  "cy": 444,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_2_INACTIVE": {
+  "cx": 64,
+  "cy": 444,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_3_ACTIVE": {
+  "cx": 32,
+  "cy": 480,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_3_INACTIVE": {
+  "cx": 0,
+  "cy": 480,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_4_ACTIVE": {
+  "cx": 96,
+  "cy": 480,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_4_INACTIVE": {
+  "cx": 64,
+  "cy": 480,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_5_ACTIVE": {
+  "cx": 32,
+  "cy": 516,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_5_INACTIVE": {
+  "cx": 0,
+  "cy": 516,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_6_ACTIVE": {
+  "cx": 96,
+  "cy": 516,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_6_INACTIVE": {
+  "cx": 64,
+  "cy": 516,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_7_ACTIVE": {
+  "cx": 32,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_PRIORITY_7_INACTIVE": {
+  "cx": 0,
+  "cy": 552,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_RECTANGLE": {
+  "cx": 0,
+  "cy": 84,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_RECTANGLE_DARK": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_selection.png",
+  "w": 24
+ },
+ "BUTTON_RECTANGLE_DIVIDER": {
+  "cx": 48,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_selection.png",
+  "w": 8
+ },
+ "BUTTON_RECTANGLE_LIGHT": {
+  "cx": 24,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_building_selection.png",
+  "w": 24
+ },
+ "BUTTON_RECTANGLE_SELECTED": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_SETTINGS": {
+  "cx": 160,
+  "cy": 228,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_SQUADS": {
+  "cx": 192,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_STOCKPILE_ACTIVE": {
+  "cx": 160,
+  "cy": 408,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_STOCKPILE_INACTIVE": {
+  "cx": 128,
+  "cy": 408,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_STOCKPILE_NEW": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "BUTTON_STOCKPILE_REMOVE": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "BUTTON_STRESS_0": {
+  "cx": 256,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_STRESS_1": {
+  "cx": 272,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_STRESS_2": {
+  "cx": 288,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_STRESS_3": {
+  "cx": 304,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_STRESS_4": {
+  "cx": 320,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_STRESS_5": {
+  "cx": 336,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_STRESS_6": {
+  "cx": 352,
+  "cy": 72,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "BUTTON_SUBTRACT": {
+  "cx": 24,
+  "cy": 120,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_SUBTRACT_HOVER": {
+  "cx": 48,
+  "cy": 120,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_SUBTRACT_INVALID": {
+  "cx": 72,
+  "cy": 120,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_SUBTRACT_PRESSED": {
+  "cx": 96,
+  "cy": 120,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "BUTTON_WORLD": {
+  "cx": 224,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_ZONE_ACTIVE": {
+  "cx": 160,
+  "cy": 444,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_ZONE_INACTIVE": {
+  "cx": 128,
+  "cy": 444,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "BUTTON_ZONE_REMOVE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "CALENDAR_DAY_CURRENT": {
+  "cx": 96,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 24
+ },
+ "CALENDAR_DAY_FUTURE": {
+  "cx": 96,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 24
+ },
+ "CALENDAR_DAY_PAST": {
+  "cx": 96,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 24
+ },
+ "CALENDAR_MONTH:10_0": {
+  "cx": 72,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:10_1": {
+  "cx": 80,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:10_2": {
+  "cx": 88,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:11_0": {
+  "cx": 72,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:11_1": {
+  "cx": 80,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:11_2": {
+  "cx": 88,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:12_0": {
+  "cx": 72,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:12_1": {
+  "cx": 80,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:12_2": {
+  "cx": 88,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:1_0": {
+  "cx": 0,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:1_1": {
+  "cx": 8,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:1_2": {
+  "cx": 16,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:2_0": {
+  "cx": 0,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:2_1": {
+  "cx": 8,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:2_2": {
+  "cx": 16,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:3_0": {
+  "cx": 0,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:3_1": {
+  "cx": 8,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:3_2": {
+  "cx": 16,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:4_0": {
+  "cx": 24,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:4_1": {
+  "cx": 32,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:4_2": {
+  "cx": 40,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:5_0": {
+  "cx": 24,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:5_1": {
+  "cx": 32,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:5_2": {
+  "cx": 40,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:6_0": {
+  "cx": 24,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:6_1": {
+  "cx": 32,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:6_2": {
+  "cx": 40,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:7_0": {
+  "cx": 48,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:7_1": {
+  "cx": 56,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:7_2": {
+  "cx": 64,
+  "cy": 0,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:8_0": {
+  "cx": 48,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:8_1": {
+  "cx": 56,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:8_2": {
+  "cx": 64,
+  "cy": 12,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:9_0": {
+  "cx": 48,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:9_1": {
+  "cx": 56,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "CALENDAR_MONTH:9_2": {
+  "cx": 64,
+  "cy": 24,
+  "h": 12,
+  "img": "calendar.png",
+  "w": 8
+ },
+ "COMBAT_ICON_BP_BREATHE": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_CIRCULATION": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_DIGIT": {
+  "cx": 192,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_FLIER": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_GRASP": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_GUTS": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_HEAD": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_HEAR": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_INTERNAL": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_JOINT": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_LIMB_GRASP": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_LIMB_STANCE": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_LOWERBODY": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_NERVOUS": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_SIGHT": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_SMELL": {
+  "cx": 224,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_STANCE": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_THOUGHT": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_THROAT": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BP_UPPERBODY": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_BREAK": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_CHARGE": {
+  "cx": 128,
+  "cy": 180,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_CHOKE": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_GOUGE": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_GRAB": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_HEAVY": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_JOINT_LOCK": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_LATCHED_ON": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_LOOSEN": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_MULTI": {
+  "cx": 160,
+  "cy": 180,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_PINCH": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_PRECISE": {
+  "cx": 96,
+  "cy": 180,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_QUICK": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_SHAKE": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_STRANGLE": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_TAKEDOWN": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_THROW": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_BASH": {
+  "cx": 128,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_BITE": {
+  "cx": 32,
+  "cy": 252,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_HACK": {
+  "cx": 96,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_KICK": {
+  "cx": 0,
+  "cy": 252,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_LASH": {
+  "cx": 160,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_PINCER": {
+  "cx": 96,
+  "cy": 252,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_POMMEL_STRIKE": {
+  "cx": 192,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_PUNCH": {
+  "cx": 224,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_PUSH": {
+  "cx": 128,
+  "cy": 252,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_SLAP": {
+  "cx": 64,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_SLASH": {
+  "cx": 32,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_STAB": {
+  "cx": 0,
+  "cy": 216,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_VERB_STING": {
+  "cx": 64,
+  "cy": 252,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_WILD": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_WRESTLE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "combat_icons.png",
+  "w": 32
+ },
+ "COMBAT_ICON_WRESTLE_EQUAL": {
+  "cx": 232,
+  "cy": 180,
+  "h": 12,
+  "img": "combat_icons.png",
+  "w": 8
+ },
+ "COMBAT_ICON_WRESTLE_LEFT": {
+  "cx": 240,
+  "cy": 180,
+  "h": 12,
+  "img": "combat_icons.png",
+  "w": 8
+ },
+ "COMBAT_ICON_WRESTLE_RIGHT": {
+  "cx": 224,
+  "cy": 180,
+  "h": 12,
+  "img": "combat_icons.png",
+  "w": 8
+ },
+ "CONTRACT_LIST": {
+  "cx": 0,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "CONTRACT_LIST_SMALL": {
+  "cx": 0,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "CREATURE_IS_DEAD": {
+  "cx": 128,
+  "cy": 0,
+  "h": 32,
+  "img": "icons_unit_selector.png",
+  "w": 32
+ },
+ "CREATURE_IS_TRAVELING": {
+  "cx": 96,
+  "cy": 0,
+  "h": 32,
+  "img": "icons_unit_selector.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_CORPSES_OFF": {
+  "cx": 256,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_CORPSES_ON": {
+  "cx": 256,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_EMPTY_ANIMAL_TRAP_OFF": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_EMPTY_ANIMAL_TRAP_ON": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_EMPTY_CAGE_OFF": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_EMPTY_CAGE_ON": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_INORGANIC_OFF": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_INORGANIC_ON": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_ORGANIC_OFF": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_ORGANIC_ON": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_PREPARED_FOOD_OFF": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_PREPARED_FOOD_ON": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_UNUSABLE_ARMOR_OFF": {
+  "cx": 224,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_UNUSABLE_ARMOR_ON": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_UNUSABLE_WEAPON_OFF": {
+  "cx": 256,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_UNUSABLE_WEAPON_ON": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_USABLE_ARMOR_OFF": {
+  "cx": 192,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_USABLE_ARMOR_ON": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_USABLE_WEAPON_OFF": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_STOCKPILE_USABLE_WEAPON_ON": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "CUSTOM_SYMBOL": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "custom_symbols.png",
+  "w": 32
+ },
+ "DAMP_STONE_WARNING": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "mining_indicators.png",
+  "w": 32
+ },
+ "DEMON_ICON": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "generated_list_icons.png",
+  "w": 32
+ },
+ "DESIGNATION_CHOP": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_CHANNEL": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_RAMP": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_REMOVE_CONSTRUCTION": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_STAIR_DOWN": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_STAIR_UP": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_STAIR_UPDOWN": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_DIG_STANDARD": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_ENGRAVE": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_FORTIFY": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_GATHER": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_ITEM_DUMP": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "designation_item.png",
+  "w": 32
+ },
+ "DESIGNATION_ITEM_FORBIDDEN": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "designation_item.png",
+  "w": 32
+ },
+ "DESIGNATION_ITEM_FORBIDDEN_DUMP": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "designation_item.png",
+  "w": 32
+ },
+ "DESIGNATION_ITEM_FORBIDDEN_MELT": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "designation_item.png",
+  "w": 32
+ },
+ "DESIGNATION_ITEM_HIDDEN": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "designation_item.png",
+  "w": 32
+ },
+ "DESIGNATION_ITEM_MELT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "designation_item.png",
+  "w": 32
+ },
+ "DESIGNATION_PRIORITY": {
+  "cx": 0,
+  "cy": -32,
+  "h": 224,
+  "img": "designation_priority.png",
+  "w": 32
+ },
+ "DESIGNATION_SMOOTH": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_E": {
+  "cx": 32,
+  "cy": 96,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_N": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NE": {
+  "cx": 32,
+  "cy": 192,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NS": {
+  "cx": 32,
+  "cy": 128,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NSE": {
+  "cx": 32,
+  "cy": 352,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NSW": {
+  "cx": 32,
+  "cy": 320,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NSWE": {
+  "cx": 32,
+  "cy": 448,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NW": {
+  "cx": 32,
+  "cy": 160,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_NWE": {
+  "cx": 32,
+  "cy": 384,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_S": {
+  "cx": 32,
+  "cy": 32,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_SE": {
+  "cx": 32,
+  "cy": 256,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_SW": {
+  "cx": 32,
+  "cy": 224,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_SWE": {
+  "cx": 32,
+  "cy": 416,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_W": {
+  "cx": 32,
+  "cy": 64,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRACK_WE": {
+  "cx": 32,
+  "cy": 288,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRAFFIC_HIGH": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRAFFIC_LOW": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DESIGNATION_TRAFFIC_RESTRICTED": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "designations.png",
+  "w": 32
+ },
+ "DIPLOMACY_LIGHT": {
+  "cx": 232,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "EMBARK_CONTRACT_X_ACTIVE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 12,
+  "img": "interface_bits_embark.png",
+  "w": 32
+ },
+ "EMBARK_CONTRACT_X_INACTIVE": {
+  "cx": 32,
+  "cy": 48,
+  "h": 12,
+  "img": "interface_bits_embark.png",
+  "w": 32
+ },
+ "EMBARK_CONTRACT_Y_ACTIVE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_embark.png",
+  "w": 16
+ },
+ "EMBARK_CONTRACT_Y_INACTIVE": {
+  "cx": 48,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_embark.png",
+  "w": 16
+ },
+ "EMBARK_EXPAND_X_ACTIVE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 12,
+  "img": "interface_bits_embark.png",
+  "w": 32
+ },
+ "EMBARK_EXPAND_X_INACTIVE": {
+  "cx": 0,
+  "cy": 48,
+  "h": 12,
+  "img": "interface_bits_embark.png",
+  "w": 32
+ },
+ "EMBARK_EXPAND_Y_ACTIVE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_embark.png",
+  "w": 16
+ },
+ "EMBARK_EXPAND_Y_INACTIVE": {
+  "cx": 16,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_embark.png",
+  "w": 16
+ },
+ "EMBARK_NOT_SELECTED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "EMBARK_SELECTED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ERROR_CURSOR_CURSOR": {
+  "cx": 128,
+  "cy": 0,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "EXPAND_LIST": {
+  "cx": 32,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "EXPAND_LIST_SMALL": {
+  "cx": 32,
+  "cy": 336,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "FORGOTTEN_BEAST_ICON": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "generated_list_icons.png",
+  "w": 32
+ },
+ "GRID_CELL_ACTIVE": {
+  "cx": 288,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "GRID_CELL_BUTTON": {
+  "cx": 312,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "GRID_CELL_INACTIVE": {
+  "cx": 264,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "HAULING_ADD_STOP": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_ADD_VEHICLE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_DELETE_ROUTE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_DELETE_STOP": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_RENAME_ROUTE": {
+  "cx": 0,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_RENAME_STOP": {
+  "cx": 0,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_ANY_ITEMS": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_AT_LEAST": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_AT_MOST": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_DECREASE": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_DELETE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_DESIRED_ITEMS": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_E": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_GUIDE": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_INCREASE": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_N": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_NEW": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_PUSH_OFF": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_RIDE": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_S": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_CONDITIONS_W": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_ITEMS": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS_ADD_EXCHANGE_WITH_STOCKPILE": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS_ADD_GIVE_TO_STOCKPILE": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS_ADD_TAKE_FROM_STOCKPILE": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS_EXCHANGE_WITH_STOCKPILE": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS_GIVE_TO_STOCKPILE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_STOP_LINKS_TAKE_FROM_STOCKPILE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_VEHICLE_GOOD": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_VEHICLE_MOVING": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HAULING_VEHICLE_TROUBLED": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_hauling.png",
+  "w": 32
+ },
+ "HELP_BORDER": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_help.png",
+  "w": 24
+ },
+ "HELP_CLOSE": {
+  "cx": 88,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_help.png",
+  "w": 24
+ },
+ "HELP_CORNER": {
+  "cx": 24,
+  "cy": 0,
+  "h": 72,
+  "img": "interface_bits_help.png",
+  "w": 64
+ },
+ "HELP_HIDE": {
+  "cx": 88,
+  "cy": 24,
+  "h": 24,
+  "img": "interface_bits_help.png",
+  "w": 24
+ },
+ "HELP_REVEAL": {
+  "cx": 88,
+  "cy": 48,
+  "h": 24,
+  "img": "interface_bits_help.png",
+  "w": 24
+ },
+ "HORIZONTAL_OPTION_ACTIVE": {
+  "cx": 168,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "HORIZONTAL_OPTION_CONFIRM": {
+  "cx": 24,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_2.png",
+  "w": 24
+ },
+ "HORIZONTAL_OPTION_INACTIVE": {
+  "cx": 200,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "HORIZONTAL_OPTION_LEFT_ORNAMENT": {
+  "cx": 136,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "HORIZONTAL_OPTION_REMOVE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_2.png",
+  "w": 24
+ },
+ "HORIZONTAL_OPTION_RIGHT_ORNAMENT": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "HOVER_CLOSE": {
+  "cx": 152,
+  "cy": 108,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "HOVER_RECTANGLE": {
+  "cx": 104,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "HOVER_RECTANGLE_JOIN_E_S": {
+  "cx": 192,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "HOVER_RECTANGLE_JOIN_E_SE": {
+  "cx": 128,
+  "cy": 24,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "HOVER_RECTANGLE_JOIN_W_S": {
+  "cx": 128,
+  "cy": 12,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "HOVER_RECTANGLE_JOIN_W_SW": {
+  "cx": 128,
+  "cy": 0,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "HOVER_TAB": {
+  "cx": 104,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "HOVER_TAB_INACTIVE": {
+  "cx": 120,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "HOVER_TAB_INSIDE_CORNER_BOTTOM": {
+  "cx": 112,
+  "cy": 72,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "HOVER_TAB_INSIDE_CORNER_TOP": {
+  "cx": 104,
+  "cy": 72,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "ILLEGAL_JUMP_CURSOR": {
+  "cx": 96,
+  "cy": 0,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "INTERFACE_BACKGROUND": {
+  "cx": 32,
+  "cy": 36,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "INTERIOR_BORDER_N_S": {
+  "cx": 344,
+  "cy": 96,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "INTERIOR_BORDER_N_S_W_E": {
+  "cx": 352,
+  "cy": 96,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "INTERIOR_BORDER_N_W_E": {
+  "cx": 336,
+  "cy": 108,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "INTERIOR_BORDER_S_W_E": {
+  "cx": 344,
+  "cy": 108,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "INTERIOR_BORDER_W_E": {
+  "cx": 336,
+  "cy": 96,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 8
+ },
+ "INVENTORY_ASSIGNED_CLOTHING": {
+  "cx": 400,
+  "cy": 360,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "INVENTORY_ASSIGNED_SQUAD": {
+  "cx": 376,
+  "cy": 360,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "INVENTORY_ASSIGNED_SYMBOL": {
+  "cx": 448,
+  "cy": 360,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "INVENTORY_ASSIGNED_TOOL": {
+  "cx": 424,
+  "cy": 360,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "KEYBOARD_CURSOR": {
+  "cx": 0,
+  "cy": 736,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "LABOR_EDIT_WORK_DETAIL": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_KITCHEN_BREW_ALLOWED": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_KITCHEN_BREW_CANNOT": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_KITCHEN_BREW_RESTRICTED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_KITCHEN_COOK_ALLOWED": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_KITCHEN_COOK_CANNOT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_KITCHEN_COOK_RESTRICTED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_STONE_USE_ALLOWED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LABOR_STONE_USE_MAGMA_SAFE": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_STONE_USE_MAGMA_UNSAFE": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "LABOR_STONE_USE_RESTRICTED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LABOR_WORKER_ASSIGNED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LABOR_WORKER_ASSIGNED_EVERYBODY": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LABOR_WORKER_ASSIGNED_NOBODY": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LABOR_WORKER_UNASSIGNED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LEGAL_JUMP_CURSOR": {
+  "cx": 64,
+  "cy": 0,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "LEGENDS_TAB_CLOSE_ACTIVE": {
+  "cx": 56,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_legends.png",
+  "w": 8
+ },
+ "LEGENDS_TAB_CLOSE_INACTIVE": {
+  "cx": 48,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_legends.png",
+  "w": 8
+ },
+ "LEGENDS_TAB_PAGE_LEFT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_legends.png",
+  "w": 24
+ },
+ "LEGENDS_TAB_PAGE_RIGHT": {
+  "cx": 24,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_legends.png",
+  "w": 24
+ },
+ "LIQUID_NUMBERS_OFF": {
+  "cx": 0,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "LIQUID_NUMBERS_ON": {
+  "cx": 16,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "LOCATION_ASSIGN_OCCUPATION": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_DOCTOR": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_MERCENARY": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_MONSTER_SLAYER": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_PERFORMER": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_REMOVE_WORKER": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_SCHOLAR": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_SCRIBE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_OCCUPATION_TAVERN_KEEPER": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_OFF_CITIZENS": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_OFF_MEMBERS": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_OFF_RESIDENTS": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_OFF_VISITORS": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_ON_CITIZENS": {
+  "cx": 256,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_ON_MEMBERS": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_ON_RESIDENTS": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_PERMISSION_ON_VISITORS": {
+  "cx": 256,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_POSITION_TEMPLE": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_locations.png",
+  "w": 32
+ },
+ "LOCATION_RESERVED_DECREASE_AMOUNT": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LOCATION_RESERVED_ENTER_AMOUNT": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LOCATION_RESERVED_INCREASE_AMOUNT": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "LOOK_CURSOR": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "MEMORY_MAP:AIR": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:BUILDING": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:DOWN": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:FLOOR": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:ITEM": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:MONSTER": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:RAMP_DOWN": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:RAMP_UP": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:UP": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:UPDOWN": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MEMORY_MAP:WALL": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "memory_map.png",
+  "w": 32
+ },
+ "MOON_FULL_MOON": {
+  "cx": 96,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_NEW_MOON": {
+  "cx": 224,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_RAIN": {
+  "cx": 288,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_SNOW": {
+  "cx": 256,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_WANING_CRESCENT": {
+  "cx": 192,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_WANING_GIBBOUS": {
+  "cx": 128,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_WANING_HALF_MOON": {
+  "cx": 160,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_WAXING_CRESCENT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_WAXING_GIBBOUS": {
+  "cx": 64,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "MOON_WAXING_HALF_MOON": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "moon_weather.png",
+  "w": 32
+ },
+ "NIGHT_CREATURE_ICON": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "generated_list_icons.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_1_ACTIVE": {
+  "cx": 320,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_1_INACTIVE": {
+  "cx": 288,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_2_ACTIVE": {
+  "cx": 320,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_2_INACTIVE": {
+  "cx": 288,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_3_ACTIVE": {
+  "cx": 320,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_3_INACTIVE": {
+  "cx": 288,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_4_ACTIVE": {
+  "cx": 320,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_4_INACTIVE": {
+  "cx": 288,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_5_ACTIVE": {
+  "cx": 256,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ACCOUNTING_5_INACTIVE": {
+  "cx": 256,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ADD": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_ASSIGN_SYMBOL": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_BEDROOM_GOOD": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_BEDROOM_MISSING": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_BEDROOM_NA": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_BEDROOM_PARTIAL": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DEMANDS_NA": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DEMANDS_TIME_GOOD": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DEMANDS_TIME_WARN_1": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DEMANDS_TIME_WARN_2": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DEMANDS_TIME_WARN_3": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DINING_GOOD": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DINING_MISSING": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DINING_NA": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_DINING_PARTIAL": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_FURN_GOOD": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_FURN_MISSING": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_FURN_NA": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_FURN_PARTIAL": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_MANDATES_NA": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_MANDATES_TIME_GOOD": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_MANDATES_TIME_WARN_1": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_MANDATES_TIME_WARN_2": {
+  "cx": 256,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_MANDATES_TIME_WARN_3": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_OFFICE_GOOD": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_OFFICE_MISSING": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_OFFICE_NA": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_OFFICE_PARTIAL": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_TOMB_GOOD": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_TOMB_MISSING": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_TOMB_NA": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOBLES_TOMB_PARTIAL": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_nobles.png",
+  "w": 32
+ },
+ "NOT_PINNED": {
+  "cx": 88,
+  "cy": 288,
+  "h": 12,
+  "img": "interface_bits_shared.png",
+  "w": 16
+ },
+ "OUT_OF_BOUNDS_CURSOR": {
+  "cx": 160,
+  "cy": 0,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "PATROL_ROUTE_LINE": {
+  "cx": 160,
+  "cy": 704,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "PATROL_ROUTE_POINT": {
+  "cx": 128,
+  "cy": 704,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "PETITIONS_LIGHT": {
+  "cx": 336,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_ASSIGN_TRAINER": {
+  "cx": 328,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_ASSIGN_WORK_ANIMAL": {
+  "cx": 400,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_AVAILABLE_AS_PET": {
+  "cx": 424,
+  "cy": 432,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_GELD_ACTIVE": {
+  "cx": 472,
+  "cy": 432,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_GELD_INACTIVE": {
+  "cx": 472,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_HUNT_TRAINING_ACTIVE": {
+  "cx": 376,
+  "cy": 432,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_HUNT_TRAINING_INACTIVE": {
+  "cx": 376,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_SLAUGHTER_ACTIVE": {
+  "cx": 448,
+  "cy": 432,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_SLAUGHTER_INACTIVE": {
+  "cx": 448,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_UNAVAILABLE_AS_PET": {
+  "cx": 424,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_WAR_TRAINING_ACTIVE": {
+  "cx": 352,
+  "cy": 432,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PETS_LIVESTOCK_WAR_TRAINING_INACTIVE": {
+  "cx": 352,
+  "cy": 396,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "PINNED": {
+  "cx": 72,
+  "cy": 288,
+  "h": 12,
+  "img": "interface_bits_shared.png",
+  "w": 16
+ },
+ "QUALITY_DOWN": {
+  "cx": 24,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_chargen.png",
+  "w": 24
+ },
+ "QUALITY_DOWN_INACTIVE": {
+  "cx": 72,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_chargen.png",
+  "w": 24
+ },
+ "QUALITY_UP": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_chargen.png",
+  "w": 24
+ },
+ "QUALITY_UP_INACTIVE": {
+  "cx": 48,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_adventure_chargen.png",
+  "w": 24
+ },
+ "RAMP_ARROWS_OFF": {
+  "cx": 32,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "RAMP_ARROWS_ON": {
+  "cx": 48,
+  "cy": 0,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "RAMP_DOWN_ARROW": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "ramp_arrows.png",
+  "w": 32
+ },
+ "RAMP_UP_ARROW": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "ramp_arrows.png",
+  "w": 32
+ },
+ "RECENTER_DEEPEST": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_recenter.png",
+  "w": 32
+ },
+ "RECENTER_HOTKEYS": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_recenter.png",
+  "w": 32
+ },
+ "RECENTER_INDICATOR_1": {
+  "cx": 32,
+  "cy": 704,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECENTER_INDICATOR_2": {
+  "cx": 64,
+  "cy": 704,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECENTER_INDICATOR_3": {
+  "cx": 96,
+  "cy": 704,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECENTER_RECENTER": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "RECENTER_REMOVE_OR_CLEAR": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "RECENTER_SET_LOCATION": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_recenter.png",
+  "w": 32
+ },
+ "RECENTER_SURFACE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_recenter.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_E": {
+  "cx": 64,
+  "cy": 640,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_INTERIOR": {
+  "cx": 32,
+  "cy": 640,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N": {
+  "cx": 32,
+  "cy": 608,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_E": {
+  "cx": 64,
+  "cy": 608,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_S": {
+  "cx": 128,
+  "cy": 608,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_S_E": {
+  "cx": 160,
+  "cy": 608,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_S_W": {
+  "cx": 96,
+  "cy": 608,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_S_W_E": {
+  "cx": 128,
+  "cy": 672,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_W": {
+  "cx": 0,
+  "cy": 608,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_N_W_E": {
+  "cx": 96,
+  "cy": 640,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_S": {
+  "cx": 32,
+  "cy": 672,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_S_E": {
+  "cx": 64,
+  "cy": 672,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_S_W": {
+  "cx": 0,
+  "cy": 672,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_S_W_E": {
+  "cx": 128,
+  "cy": 640,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_W": {
+  "cx": 0,
+  "cy": 640,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_BAD_W_E": {
+  "cx": 96,
+  "cy": 672,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_E": {
+  "cx": 64,
+  "cy": 64,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_E": {
+  "cx": 64,
+  "cy": 352,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_INTERIOR": {
+  "cx": 32,
+  "cy": 352,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N": {
+  "cx": 32,
+  "cy": 320,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_E": {
+  "cx": 64,
+  "cy": 320,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_S": {
+  "cx": 128,
+  "cy": 320,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_S_E": {
+  "cx": 160,
+  "cy": 320,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_S_W": {
+  "cx": 96,
+  "cy": 320,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_S_W_E": {
+  "cx": 128,
+  "cy": 384,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_W": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_N_W_E": {
+  "cx": 96,
+  "cy": 352,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_S": {
+  "cx": 32,
+  "cy": 384,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_S_E": {
+  "cx": 64,
+  "cy": 384,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_S_W": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_S_W_E": {
+  "cx": 128,
+  "cy": 352,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_E": {
+  "cx": 64,
+  "cy": 448,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_INTERIOR": {
+  "cx": 32,
+  "cy": 448,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N": {
+  "cx": 32,
+  "cy": 416,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_E": {
+  "cx": 64,
+  "cy": 416,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_S": {
+  "cx": 128,
+  "cy": 416,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_S_E": {
+  "cx": 160,
+  "cy": 416,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_S_W": {
+  "cx": 96,
+  "cy": 416,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_S_W_E": {
+  "cx": 128,
+  "cy": 480,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_W": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_N_W_E": {
+  "cx": 96,
+  "cy": 448,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_S": {
+  "cx": 32,
+  "cy": 480,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_S_E": {
+  "cx": 64,
+  "cy": 480,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_S_W": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_S_W_E": {
+  "cx": 128,
+  "cy": 448,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_W": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_UNPASSABLE_W_E": {
+  "cx": 96,
+  "cy": 480,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_W": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_E": {
+  "cx": 64,
+  "cy": 544,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_INTERIOR": {
+  "cx": 32,
+  "cy": 544,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N": {
+  "cx": 32,
+  "cy": 512,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_E": {
+  "cx": 64,
+  "cy": 512,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_S": {
+  "cx": 128,
+  "cy": 512,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_S_E": {
+  "cx": 160,
+  "cy": 512,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_S_W": {
+  "cx": 96,
+  "cy": 512,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_S_W_E": {
+  "cx": 128,
+  "cy": 576,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_W": {
+  "cx": 0,
+  "cy": 512,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_N_W_E": {
+  "cx": 96,
+  "cy": 544,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_S": {
+  "cx": 32,
+  "cy": 576,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_S_E": {
+  "cx": 64,
+  "cy": 576,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_S_W": {
+  "cx": 0,
+  "cy": 576,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_S_W_E": {
+  "cx": 128,
+  "cy": 544,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_W": {
+  "cx": 0,
+  "cy": 544,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_WATER_W_E": {
+  "cx": 96,
+  "cy": 576,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_FAILURE_W_E": {
+  "cx": 96,
+  "cy": 384,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_INTERIOR": {
+  "cx": 32,
+  "cy": 64,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N": {
+  "cx": 32,
+  "cy": 32,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_E": {
+  "cx": 64,
+  "cy": 32,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_S": {
+  "cx": 128,
+  "cy": 32,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_S_E": {
+  "cx": 160,
+  "cy": 32,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_S_W": {
+  "cx": 96,
+  "cy": 32,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_S_W_E": {
+  "cx": 128,
+  "cy": 96,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_W": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_N_W_E": {
+  "cx": 96,
+  "cy": 64,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_S": {
+  "cx": 32,
+  "cy": 96,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_S_E": {
+  "cx": 64,
+  "cy": 96,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_S_W": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_S_W_E": {
+  "cx": 128,
+  "cy": 64,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_E": {
+  "cx": 64,
+  "cy": 160,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_INTERIOR": {
+  "cx": 32,
+  "cy": 160,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N": {
+  "cx": 32,
+  "cy": 128,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_E": {
+  "cx": 64,
+  "cy": 128,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_S": {
+  "cx": 128,
+  "cy": 128,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_S_E": {
+  "cx": 160,
+  "cy": 128,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_S_W": {
+  "cx": 96,
+  "cy": 128,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_S_W_E": {
+  "cx": 128,
+  "cy": 192,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_W": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_N_W_E": {
+  "cx": 96,
+  "cy": 160,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_S": {
+  "cx": 32,
+  "cy": 192,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_S_E": {
+  "cx": 64,
+  "cy": 192,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_S_W": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_S_W_E": {
+  "cx": 128,
+  "cy": 160,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_W": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_UNPASSABLE_W_E": {
+  "cx": 96,
+  "cy": 192,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_W": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_E": {
+  "cx": 64,
+  "cy": 256,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_INTERIOR": {
+  "cx": 32,
+  "cy": 256,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N": {
+  "cx": 32,
+  "cy": 224,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_E": {
+  "cx": 64,
+  "cy": 224,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_S": {
+  "cx": 128,
+  "cy": 224,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_S_E": {
+  "cx": 160,
+  "cy": 224,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_S_W": {
+  "cx": 96,
+  "cy": 224,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_S_W_E": {
+  "cx": 128,
+  "cy": 288,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_W": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_N_W_E": {
+  "cx": 96,
+  "cy": 256,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_S": {
+  "cx": 32,
+  "cy": 288,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_S_E": {
+  "cx": 64,
+  "cy": 288,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_S_W": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_S_W_E": {
+  "cx": 128,
+  "cy": 256,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_W": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_WATER_W_E": {
+  "cx": 96,
+  "cy": 288,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "RECTANGLE_CURSOR_W_E": {
+  "cx": 96,
+  "cy": 96,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "SCROLLBAR": {
+  "cx": 0,
+  "cy": 156,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_BLANK_SCROLLER": {
+  "cx": 48,
+  "cy": 204,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_BLANK_SCROLLER_HOVER": {
+  "cx": 64,
+  "cy": 204,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_BOTTOM_SCROLLER": {
+  "cx": 48,
+  "cy": 216,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_BOTTOM_SCROLLER_HOVER": {
+  "cx": 64,
+  "cy": 216,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_CENTER_SCROLLER": {
+  "cx": 48,
+  "cy": 192,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_CENTER_SCROLLER_HOVER": {
+  "cx": 64,
+  "cy": 192,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_DOWN_HOVER": {
+  "cx": 120,
+  "cy": 180,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_DOWN_PRESSED": {
+  "cx": 136,
+  "cy": 180,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_GROUND": {
+  "cx": 152,
+  "cy": 168,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_OFFCENTER_SCROLLER": {
+  "cx": 80,
+  "cy": 180,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_OFFCENTER_SCROLLER_HOVER": {
+  "cx": 80,
+  "cy": 204,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_SKY": {
+  "cx": 152,
+  "cy": 156,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_SMALL_SCROLLER": {
+  "cx": 16,
+  "cy": 156,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_SMALL_SCROLLER_HOVER": {
+  "cx": 32,
+  "cy": 156,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_TOP_SCROLLER": {
+  "cx": 48,
+  "cy": 180,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_TOP_SCROLLER_HOVER": {
+  "cx": 64,
+  "cy": 180,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_UNDERGROUND": {
+  "cx": 152,
+  "cy": 180,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_UP_HOVER": {
+  "cx": 120,
+  "cy": 156,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SCROLLBAR_UP_PRESSED": {
+  "cx": 136,
+  "cy": 156,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SELECT_ALL": {
+  "cx": 64,
+  "cy": 300,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "SHORT_DUMP": {
+  "cx": 280,
+  "cy": 432,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_DUMP_ACTIVE": {
+  "cx": 280,
+  "cy": 456,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_FORBID": {
+  "cx": 256,
+  "cy": 432,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_FORBID_ACTIVE": {
+  "cx": 256,
+  "cy": 456,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_HIDE": {
+  "cx": 328,
+  "cy": 432,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_HIDE_ACTIVE": {
+  "cx": 328,
+  "cy": 456,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_MELT": {
+  "cx": 304,
+  "cy": 432,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_MELT_ACTIVE": {
+  "cx": 304,
+  "cy": 456,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SHORT_SUBSUBTAB": {
+  "cx": 256,
+  "cy": 528,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "SHORT_SUBSUBTAB_SELECTED": {
+  "cx": 296,
+  "cy": 528,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "SHORT_SUBTAB": {
+  "cx": 256,
+  "cy": 504,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "SHORT_SUBTAB_SELECTED": {
+  "cx": 296,
+  "cy": 504,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "SHORT_TAB": {
+  "cx": 256,
+  "cy": 96,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "SHORT_TAB_SELECTED": {
+  "cx": 296,
+  "cy": 96,
+  "h": 24,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "SIDE_INDICATOR:ALLY": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "side_indicator.png",
+  "w": 32
+ },
+ "SIDE_INDICATOR:BRAWL": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "side_indicator.png",
+  "w": 32
+ },
+ "SIDE_INDICATOR:LETHAL": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "side_indicator.png",
+  "w": 32
+ },
+ "SIDE_INDICATOR:NON_LETHAL": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "side_indicator.png",
+  "w": 32
+ },
+ "SIDE_INDICATOR:YOU": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "side_indicator.png",
+  "w": 32
+ },
+ "SIEGE_LIGHT": {
+  "cx": 208,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SKILL_PROGRESS_BAR_LEFT_EMPTY": {
+  "cx": 48,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_LEFT_FULL": {
+  "cx": 0,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_LEFT_HALF": {
+  "cx": 24,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_MID_EMPTY": {
+  "cx": 56,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_MID_FULL": {
+  "cx": 8,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_MID_HALF": {
+  "cx": 32,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_RIGHT_EMPTY": {
+  "cx": 64,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_RIGHT_FULL": {
+  "cx": 16,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SKILL_PROGRESS_BAR_RIGHT_HALF": {
+  "cx": 40,
+  "cy": 0,
+  "h": 12,
+  "img": "skill_progress_bar.png",
+  "w": 8
+ },
+ "SLIDER": {
+  "cx": 144,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SLIDER_BACKGROUND": {
+  "cx": 120,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SLIDER_HOVER": {
+  "cx": 160,
+  "cy": 192,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 16
+ },
+ "SORT_ASCENDING_ACTIVE": {
+  "cx": 256,
+  "cy": 132,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "SORT_ASCENDING_INACTIVE": {
+  "cx": 256,
+  "cy": 120,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "SORT_DESCENDING_ACTIVE": {
+  "cx": 288,
+  "cy": 132,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "SORT_DESCENDING_INACTIVE": {
+  "cx": 288,
+  "cy": 120,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 32
+ },
+ "SORT_TEXT_ACTIVE": {
+  "cx": 320,
+  "cy": 132,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SORT_TEXT_INACTIVE": {
+  "cx": 320,
+  "cy": 120,
+  "h": 12,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "SOUND_INDICATOR:COMBAT_LARGE": {
+  "cx": 32,
+  "cy": 32,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:COMBAT_LARGE_OLD": {
+  "cx": 96,
+  "cy": 32,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:COMBAT_SMALL": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:COMBAT_SMALL_OLD": {
+  "cx": 64,
+  "cy": 32,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:DANCING": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:DANCING_OLD": {
+  "cx": 64,
+  "cy": 224,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:GRINDING_MECHANISM_LARGE": {
+  "cx": 32,
+  "cy": 96,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:GRINDING_MECHANISM_LARGE_OLD": {
+  "cx": 96,
+  "cy": 96,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:GRINDING_MECHANISM_SMALL": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:GRINDING_MECHANISM_SMALL_OLD": {
+  "cx": 64,
+  "cy": 96,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:MOVEMENT_LARGE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:MOVEMENT_LARGE_OLD": {
+  "cx": 96,
+  "cy": 0,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:MOVEMENT_SMALL": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:MOVEMENT_SMALL_OLD": {
+  "cx": 64,
+  "cy": 0,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:MUSICAL_VOICE": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:MUSICAL_VOICE_OLD": {
+  "cx": 64,
+  "cy": 192,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:POEM_RECITATION": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:POEM_RECITATION_OLD": {
+  "cx": 64,
+  "cy": 160,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:PREACHING": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:PREACHING_OLD": {
+  "cx": 64,
+  "cy": 256,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:STORYTELLING": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:STORYTELLING_OLD": {
+  "cx": 64,
+  "cy": 128,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:VOCALIZATION_LARGE": {
+  "cx": 32,
+  "cy": 64,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:VOCALIZATION_LARGE_OLD": {
+  "cx": 96,
+  "cy": 64,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:VOCALIZATION_SMALL": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SOUND_INDICATOR:VOCALIZATION_SMALL_OLD": {
+  "cx": 64,
+  "cy": 64,
+  "h": 32,
+  "img": "sound_indicators.png",
+  "w": 32
+ },
+ "SQUADS_CANCEL_ORDER": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_CHANGE_ALERT": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_DEFEND_BURROW_ORDER": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_DISBAND": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_AMMO_GOOD": {
+  "cx": 256,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_AMMO_MISSING": {
+  "cx": 256,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_AMMO_WARNING": {
+  "cx": 256,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_ARMOR_GOOD": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_ARMOR_MISSING": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_ARMOR_WARNING": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_BACKPACK_GOOD": {
+  "cx": 288,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_BACKPACK_MISSING": {
+  "cx": 288,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_BACKPACK_WARNING": {
+  "cx": 288,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_FLASK_GOOD": {
+  "cx": 320,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_FLASK_MISSING": {
+  "cx": 320,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_FLASK_WARNING": {
+  "cx": 320,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_GLOVES_GOOD": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_GLOVES_MISSING": {
+  "cx": 160,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_GLOVES_WARNING": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_HELMET_GOOD": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_HELMET_MISSING": {
+  "cx": 128,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_HELMET_WARNING": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_PANTS_GOOD": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_PANTS_MISSING": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_PANTS_WARNING": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_QUIVER_GOOD": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_QUIVER_MISSING": {
+  "cx": 224,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_QUIVER_WARNING": {
+  "cx": 224,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_SHIELD_GOOD": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_SHIELD_MISSING": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_SHIELD_WARNING": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_SHOES_GOOD": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_SHOES_MISSING": {
+  "cx": 192,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_SHOES_WARNING": {
+  "cx": 192,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_WEAPON_GOOD": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_WEAPON_MISSING": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_EQUIPMENT_WEAPON_WARNING": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_INSPECT": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "SQUADS_KILL_ORDER": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_LEFT_ACTIVE": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_LEFT_INACTIVE": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_MOVE_ORDER": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_NOT_SELECTED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "SQUADS_PATROL_ORDER": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_POSITIONS": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "SQUADS_RECENTER": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "SQUADS_RIGHT_ACTIVE": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_RIGHT_INACTIVE": {
+  "cx": 256,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "SQUADS_SELECTED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "SQUADS_TRAIN_ORDER": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_squads.png",
+  "w": 32
+ },
+ "STEALTH_VISION:DIRECT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "stealth_vision.png",
+  "w": 32
+ },
+ "STEALTH_VISION:DIRECT_DOWN": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "stealth_vision.png",
+  "w": 32
+ },
+ "STEALTH_VISION:DIRECT_UP": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "stealth_vision.png",
+  "w": 32
+ },
+ "STEALTH_VISION:PERIPHERAL": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "stealth_vision.png",
+  "w": 32
+ },
+ "STEALTH_VISION:PERIPHERAL_DOWN": {
+  "cx": 32,
+  "cy": 32,
+  "h": 32,
+  "img": "stealth_vision.png",
+  "w": 32
+ },
+ "STEALTH_VISION:PERIPHERAL_UP": {
+  "cx": 32,
+  "cy": 64,
+  "h": 32,
+  "img": "stealth_vision.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_ADD_GIVE_LINK": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_ADD_TAKE_LINK": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_GIVE_LINK": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_REMOVE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_TAKE_LINK": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_WORKSHOP_ADD_GIVE_LINK": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_WORKSHOP_ADD_TAKE_LINK": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_WORKSHOP_GIVE_LINK": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_CONNECTIONS_WORKSHOP_TAKE_LINK": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_ERASE_ACTIVE": {
+  "cx": 32,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "STOCKPILE_ERASE_INACTIVE": {
+  "cx": 0,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_ALL": {
+  "cx": 0,
+  "cy": 608,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_AMMO": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_ANIMALS": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_ARMOR": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_BARS": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_BLANK": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_CLOTH": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_COINS": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_CORPSES": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_CUSTOM": {
+  "cx": 0,
+  "cy": 576,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_FINISHED_GOODS": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_FOOD": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_FURNITURE": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_GEMS": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_LEATHER": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_REFUSE": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SHEETS": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_ALL": {
+  "cx": 0,
+  "cy": 608,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_AMMO": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_ANIMALS": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_ARMOR": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_BARS": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_BLANK": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_CLOTH": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_COINS": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_CORPSES": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_CUSTOM": {
+  "cx": 0,
+  "cy": 576,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_FINISHED_GOODS": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_FOOD": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_FURNITURE": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_GEMS": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_LEATHER": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_REFUSE": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_SHEETS": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_STONE": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_WEAPONS": {
+  "cx": 0,
+  "cy": 512,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_SIGNLESS_WOOD": {
+  "cx": 0,
+  "cy": 544,
+  "h": 32,
+  "img": "stockpile_icons_signless.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_STONE": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_WEAPONS": {
+  "cx": 0,
+  "cy": 512,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_ICON_WOOD": {
+  "cx": 0,
+  "cy": 544,
+  "h": 32,
+  "img": "stockpile_icons.png",
+  "w": 32
+ },
+ "STOCKPILE_OFF": {
+  "cx": 192,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_ON": {
+  "cx": 128,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_PARTIAL": {
+  "cx": 160,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_REMOVE_EXISTING": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_REPAINT": {
+  "cx": 64,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_SET_CONNECTIONS": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_TAKE_FROM_ANYWHERE": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_TAKE_FROM_LINKS_ONLY": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_TOOLS_DECREASE_AMOUNT": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "STOCKPILE_TOOLS_ENTER_AMOUNT": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "STOCKPILE_TOOLS_INCREASE_AMOUNT": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "STOCKPILE_TOOL_SETTINGS": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_TYPE_ACTIVE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKPILE_TYPE_INACTIVE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_stockpiles.png",
+  "w": 32
+ },
+ "STOCKS_DUMP": {
+  "cx": 328,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_DUMP_ACTIVE": {
+  "cx": 328,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_FORBID": {
+  "cx": 304,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_FORBID_ACTIVE": {
+  "cx": 304,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_HIDE": {
+  "cx": 376,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_HIDE_ACTIVE": {
+  "cx": 376,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_MELT": {
+  "cx": 352,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_MELT_ACTIVE": {
+  "cx": 352,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_RECENTER": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "STOCKS_VIEW_ITEM": {
+  "cx": 280,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 24
+ },
+ "TAB": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "TAB_SELECTED": {
+  "cx": 168,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits.png",
+  "w": 40
+ },
+ "TALK_CURSOR": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "TARGET_INDICATOR_1": {
+  "cx": 32,
+  "cy": 736,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "TARGET_INDICATOR_2": {
+  "cx": 64,
+  "cy": 736,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "TARGET_INDICATOR_3": {
+  "cx": 96,
+  "cy": 736,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "TITAN_ICON": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "generated_list_icons.png",
+  "w": 32
+ },
+ "TYPE_FILTER_LEFT": {
+  "cx": 0,
+  "cy": 288,
+  "h": 12,
+  "img": "interface_bits_shared.png",
+  "w": 24
+ },
+ "TYPE_FILTER_RIGHT": {
+  "cx": 24,
+  "cy": 288,
+  "h": 12,
+  "img": "interface_bits_shared.png",
+  "w": 24
+ },
+ "TYPE_FILTER_TEXT": {
+  "cx": 48,
+  "cy": 288,
+  "h": 12,
+  "img": "interface_bits_shared.png",
+  "w": 24
+ },
+ "UNIT_SELECTOR_ASSIGNED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "UNIT_SELECTOR_PASTURE": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "icons_unit_selector.png",
+  "w": 32
+ },
+ "UNIT_SELECTOR_PIT": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "icons_unit_selector.png",
+  "w": 32
+ },
+ "UNIT_SELECTOR_POND": {
+  "cx": 64,
+  "cy": 0,
+  "h": 32,
+  "img": "icons_unit_selector.png",
+  "w": 32
+ },
+ "UNIT_SELECTOR_UNASSIGNED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "UNIT_SHEET_CAMERA_ACTIVE": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "UNIT_SHEET_CAMERA_INACTIVE": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "UNIT_SHEET_CUSTOMIZE": {
+  "cx": 0,
+  "cy": 252,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "UNIT_SHEET_EXPEL": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_unit_sheet.png",
+  "w": 32
+ },
+ "UNIT_SHEET_VIEW_REPORTS": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_announcements.png",
+  "w": 32
+ },
+ "UNIT_STATUS:BERSERK": {
+  "cx": 0,
+  "cy": 608,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:CLIMBING": {
+  "cx": 0,
+  "cy": 1280,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:DEPRESSION": {
+  "cx": 0,
+  "cy": 512,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:DISTRACTED": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:DROWSY": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:ENRAGED": {
+  "cx": 0,
+  "cy": 640,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:FELL_MOOD": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:FEVERED": {
+  "cx": 0,
+  "cy": 992,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:FEY_MOOD": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:GROUNDED": {
+  "cx": 0,
+  "cy": 1216,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:HUNGRY": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MACABRE_MOOD": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MADNESS": {
+  "cx": 0,
+  "cy": 544,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MAJOR_INJURY": {
+  "cx": 0,
+  "cy": 800,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MARTIAL_TRANCE": {
+  "cx": 0,
+  "cy": 672,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MELANCHOLY": {
+  "cx": 0,
+  "cy": 576,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MIGRANT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:MINOR_INJURY": {
+  "cx": 0,
+  "cy": 768,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:NAUSEA": {
+  "cx": 0,
+  "cy": 896,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:NO_DESTINATION": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:NO_JOB": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:OBLIVIOUS": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:PARALYZED": {
+  "cx": 0,
+  "cy": 832,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:PERFORMING": {
+  "cx": 0,
+  "cy": 1152,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:PLAYING_MAKE_BELIEVE": {
+  "cx": 0,
+  "cy": 1056,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:POSSESSED": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:PROJECTILE": {
+  "cx": 0,
+  "cy": 1184,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:RECITING_POETRY": {
+  "cx": 0,
+  "cy": 1120,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:SECRETIVE_MOOD": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:SLEEPING": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:STRESSED": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:STUNNED": {
+  "cx": 0,
+  "cy": 864,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:TANTRUM": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:TELLING_A_STORY": {
+  "cx": 0,
+  "cy": 1088,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:TERRIFIED": {
+  "cx": 0,
+  "cy": 704,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:THIRSTY": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:UNCONSCIOUS": {
+  "cx": 0,
+  "cy": 960,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:WEBBED": {
+  "cx": 0,
+  "cy": 1248,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:WINDED": {
+  "cx": 0,
+  "cy": 928,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:WRESTLING": {
+  "cx": 0,
+  "cy": 736,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "UNIT_STATUS:YIELDING": {
+  "cx": 0,
+  "cy": 1024,
+  "h": 32,
+  "img": "unit_status.png",
+  "w": 32
+ },
+ "VAMPIRE_SENSE_MARKER": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "vampire_sense_markers.png",
+  "w": 32
+ },
+ "VIEWPORT_GRID": {
+  "cx": 0,
+  "cy": 704,
+  "h": 32,
+  "img": "cursors.png",
+  "w": 32
+ },
+ "WARM_STONE_WARNING": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "mining_indicators.png",
+  "w": 32
+ },
+ "WORKER_DO_ANY_AVAILABLE_JOB": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORKER_ONLY_DO_ASSIGNED_JOBS": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_1": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_2": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_3": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_4": {
+  "cx": 256,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_5": {
+  "cx": 288,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_6": {
+  "cx": 320,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_7": {
+  "cx": 352,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_CUSTOM_8": {
+  "cx": 384,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_ENGRAVERS": {
+  "cx": 288,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_FISHERMEN": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_HAULERS": {
+  "cx": 352,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_HUNTERS": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_MINERS": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_ORDERLIES": {
+  "cx": 384,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_PLANTERS": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_PLANT_GATHERERS": {
+  "cx": 320,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_SIEGE_OPERATORS": {
+  "cx": 96,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_STONECUTTERS": {
+  "cx": 256,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_DETAIL_WOODCUTTERS": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_labor.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ACTIVE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ADD_ITEM_CONDITION": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ADD_ORDER_CONDITION": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ADD_SUGGESTED_CONDITION": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ADJECTIVE_NOT_SELECTED": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ADJECTIVE_SELECTED": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CHANGE_ADJ": {
+  "cx": 64,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CHANGE_FREQUENCY": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CHANGE_MAT": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CHANGE_ORDER_CONDITION_CHECK_TYPE": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CHANGE_TYPE": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CHECKING": {
+  "cx": 96,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CONDITIONS": {
+  "cx": 96,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_CREATE_NEW": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_DECREASE_AMOUNT": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_DETAILS": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_ENTER_AMOUNT": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_INCREASE_AMOUNT": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_NOT_VALIDATED": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_PRIORITY_DOWN": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_PRIORITY_UP": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_READY": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_REMOVE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "WORK_ORDERS_VALIDATED": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "WORK_ORDERS_WAITING": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_work_orders.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE": {
+  "cx": 64,
+  "cy": 480,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_E": {
+  "cx": 64,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N": {
+  "cx": 64,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_E": {
+  "cx": 64,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_S": {
+  "cx": 64,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_S_E": {
+  "cx": 64,
+  "cy": 448,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_S_W": {
+  "cx": 64,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_S_W_E": {
+  "cx": 64,
+  "cy": 0,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_W": {
+  "cx": 64,
+  "cy": 32,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_N_W_E": {
+  "cx": 64,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_S": {
+  "cx": 64,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_S_E": {
+  "cx": 64,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_S_W": {
+  "cx": 64,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_S_W_E": {
+  "cx": 64,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_W": {
+  "cx": 64,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ACTIVE_W_E": {
+  "cx": 64,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ANIMAL_TRAINING": {
+  "cx": 160,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ARCHERY_RANGE": {
+  "cx": 192,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ASSIGN_UNIT": {
+  "cx": 0,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ZONE_BARRACKS": {
+  "cx": 192,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_BEDROOM": {
+  "cx": 192,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_CLAY": {
+  "cx": 160,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_DINING_HALL": {
+  "cx": 192,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_DORMITORY": {
+  "cx": 192,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_DUMP": {
+  "cx": 160,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_DUNGEON": {
+  "cx": 192,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_ERASE_ACTIVE": {
+  "cx": 32,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ZONE_ERASE_INACTIVE": {
+  "cx": 0,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ZONE_FISHING": {
+  "cx": 160,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER": {
+  "cx": 160,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER_FALLEN_ACTIVE": {
+  "cx": 96,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER_FALLEN_INACTIVE": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER_SHRUB_ACTIVE": {
+  "cx": 64,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER_SHRUB_INACTIVE": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER_TREE_ACTIVE": {
+  "cx": 32,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_GATHER_TREE_INACTIVE": {
+  "cx": 32,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL": {
+  "cx": 128,
+  "cy": 480,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_E": {
+  "cx": 128,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N": {
+  "cx": 128,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_E": {
+  "cx": 128,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_S": {
+  "cx": 128,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_S_E": {
+  "cx": 128,
+  "cy": 448,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_S_W": {
+  "cx": 128,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_S_W_E": {
+  "cx": 128,
+  "cy": 0,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_W": {
+  "cx": 128,
+  "cy": 32,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_N_W_E": {
+  "cx": 128,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_S": {
+  "cx": 128,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_S_E": {
+  "cx": 128,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_S_W": {
+  "cx": 128,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_S_W_E": {
+  "cx": 128,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_W": {
+  "cx": 128,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GENERAL_W_E": {
+  "cx": 128,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GRAND_GUILDHALL": {
+  "cx": 192,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_GUILDHALL": {
+  "cx": 192,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_HOSPITAL": {
+  "cx": 160,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_E": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_E": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_S": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_S_E": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_S_W": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_S_W_E": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_W": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_N_W_E": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_S": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED": {
+  "cx": 32,
+  "cy": 480,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_E": {
+  "cx": 32,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N": {
+  "cx": 32,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_E": {
+  "cx": 32,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_S": {
+  "cx": 32,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_S_E": {
+  "cx": 32,
+  "cy": 448,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_S_W": {
+  "cx": 32,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_S_W_E": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_W": {
+  "cx": 32,
+  "cy": 32,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_N_W_E": {
+  "cx": 32,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_S": {
+  "cx": 32,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_S_E": {
+  "cx": 32,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_S_W": {
+  "cx": 32,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_S_W_E": {
+  "cx": 32,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_W": {
+  "cx": 32,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_SELECTED_W_E": {
+  "cx": 32,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_S_E": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_S_W": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_S_W_E": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_W": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_INACTIVE_W_E": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_LIBRARY": {
+  "cx": 192,
+  "cy": 32,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_LOCATION_ASSIGN": {
+  "cx": 0,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_LOCATION_DETAILS": {
+  "cx": 32,
+  "cy": 216,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_MEETING": {
+  "cx": 160,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_MULTI": {
+  "cx": 160,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_NEXT": {
+  "cx": 32,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_OFFICE": {
+  "cx": 192,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_PEN": {
+  "cx": 160,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_PICK_ANIMALS": {
+  "cx": 0,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_PIT": {
+  "cx": 160,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_PIT_ACTIVE": {
+  "cx": 32,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_PIT_INACTIVE": {
+  "cx": 0,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_POND_ACTIVE": {
+  "cx": 96,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_POND_INACTIVE": {
+  "cx": 64,
+  "cy": 180,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_PREVIOUS": {
+  "cx": 0,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_REMOVE_EXISTING": {
+  "cx": 32,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_REPAINT": {
+  "cx": 0,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SAND": {
+  "cx": 160,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED": {
+  "cx": 96,
+  "cy": 480,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_E": {
+  "cx": 96,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N": {
+  "cx": 96,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_E": {
+  "cx": 96,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_S": {
+  "cx": 96,
+  "cy": 288,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_S_E": {
+  "cx": 96,
+  "cy": 448,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_S_W": {
+  "cx": 96,
+  "cy": 416,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_S_W_E": {
+  "cx": 96,
+  "cy": 0,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_W": {
+  "cx": 96,
+  "cy": 32,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_N_W_E": {
+  "cx": 96,
+  "cy": 352,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_S": {
+  "cx": 96,
+  "cy": 256,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_S_E": {
+  "cx": 96,
+  "cy": 96,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_S_W": {
+  "cx": 96,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_S_W_E": {
+  "cx": 96,
+  "cy": 384,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_W": {
+  "cx": 96,
+  "cy": 224,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SELECTED_W_E": {
+  "cx": 96,
+  "cy": 320,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_DOWN_ACTIVE": {
+  "cx": 224,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_DOWN_INACTIVE": {
+  "cx": 224,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_LEFT_ACTIVE": {
+  "cx": 128,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_LEFT_INACTIVE": {
+  "cx": 128,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_RIGHT_ACTIVE": {
+  "cx": 160,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_RIGHT_INACTIVE": {
+  "cx": 160,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_UP_ACTIVE": {
+  "cx": 192,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHOOT_UP_INACTIVE": {
+  "cx": 192,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SHRINE": {
+  "cx": 192,
+  "cy": 128,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_INDIV_EQ_ACTIVE": {
+  "cx": 192,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_INDIV_EQ_INACTIVE": {
+  "cx": 192,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_LIST": {
+  "cx": 64,
+  "cy": 0,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_SLEEP_ACTIVE": {
+  "cx": 128,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_SLEEP_INACTIVE": {
+  "cx": 128,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_SQUAD_EQ_ACTIVE": {
+  "cx": 224,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_SQUAD_EQ_INACTIVE": {
+  "cx": 224,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_TRAIN_ACTIVE": {
+  "cx": 160,
+  "cy": 72,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SQUAD_TRAIN_INACTIVE": {
+  "cx": 160,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_SUSPEND": {
+  "cx": 96,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ZONE_SUSPEND_INACTIVE": {
+  "cx": 64,
+  "cy": 108,
+  "h": 36,
+  "img": "interface_bits_shared.png",
+  "w": 32
+ },
+ "ZONE_TAVERN": {
+  "cx": 192,
+  "cy": 0,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_TEMPLE": {
+  "cx": 192,
+  "cy": 160,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_TEMPLE_COMPLEX": {
+  "cx": 192,
+  "cy": 192,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_TOMB": {
+  "cx": 192,
+  "cy": 448,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZONE_TOMB_CITIZEN_BURIAL_ACTIVE": {
+  "cx": 160,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_TOMB_CITIZEN_BURIAL_INACTIVE": {
+  "cx": 128,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_TOMB_PET_BURIAL_ACTIVE": {
+  "cx": 224,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_TOMB_PET_BURIAL_INACTIVE": {
+  "cx": 192,
+  "cy": 144,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_TYPE_ACTIVE": {
+  "cx": 32,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_TYPE_INACTIVE": {
+  "cx": 0,
+  "cy": 36,
+  "h": 36,
+  "img": "interface_bits_zones.png",
+  "w": 32
+ },
+ "ZONE_WATER_SOURCE": {
+  "cx": 160,
+  "cy": 64,
+  "h": 32,
+  "img": "activity_zones.png",
+  "w": 32
+ },
+ "ZOOM_IN_OFF": {
+  "cx": 16,
+  "cy": 24,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ZOOM_IN_ON": {
+  "cx": 0,
+  "cy": 24,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ZOOM_OUT_OFF": {
+  "cx": 48,
+  "cy": 24,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "ZOOM_OUT_ON": {
+  "cx": 32,
+  "cy": 24,
+  "h": 24,
+  "img": "interface_bits_display_toggles.png",
+  "w": 16
+ },
+ "_v": 1
+}

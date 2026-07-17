@@ -1,0 +1,89 @@
+name: Bug report
+description: Something broke in Dwarf With Friends? Tell us here.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping test the beta! Before filing, please try a **hard refresh**
+        (**Ctrl+Shift+R**) in the game tab — it fixes most transient issues — and skim
+        [TROUBLESHOOTING.md](https://github.com/JakesDwarfAccount/dwarf-with-friends/blob/main/TROUBLESHOOTING.md).
+        If the problem survives a hard refresh, it's worth reporting. Only the first two
+        questions are required; everything else helps but don't let it stop you.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Are you the host or a friend who joined?
+      options:
+        - Host
+        - Friend
+        - Not sure
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+      placeholder: The map went black and the game stopped responding after about ten minutes.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: What were you (and the host) doing right before it happened? Numbered steps are perfect.
+      placeholder: |
+        1. Host opened the native zone location picker.
+        2. I deleted that zone from the browser.
+        3. Game crashed.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser + version
+      placeholder: e.g. Chrome 141, Brave, Firefox
+    validations:
+      required: false
+  - type: textarea
+    id: f3-diagnostics
+    attributes:
+      label: F3 diagnostics
+      description: >-
+        Press F3 in the game to open the diagnostics overlay, then paste the Transport line
+        (WS delta / HTTP), the Renderer line (gl / canvas2d), and any FPS or latency numbers.
+        Optional, but ideal for lag reports.
+      placeholder: |
+        Transport: WS delta
+        Renderer: gl
+        FPS: 12, latency: 480ms
+    validations:
+      required: false
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Browser console errors
+      description: "Press F12, open the Console tab, and copy any red error messages. Optional."
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: dfhack-log
+    attributes:
+      label: DFHack log tail (host only)
+      description: >-
+        If the game itself crashed and you are the host, paste the last ~30 lines of
+        stderr.log from your Dwarf Fortress folder.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Quick checks
+      options:
+        - label: I hard-refreshed (Ctrl+Shift+R) and it still happens
+        - label: I'm on the latest release

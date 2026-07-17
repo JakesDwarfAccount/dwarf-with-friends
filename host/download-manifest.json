@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "dfhack": {
+    "version": "53.15-r1",
+    "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r1/dfhack-53.15-r1-Windows-64bit.zip",
+    "manualUrl": "https://github.com/DFHack/dfhack/releases/tag/53.15-r1",
+    "sha256": "BAKE_DFHACK_SHA256_AT_PACKAGING_TIME"
+  },
+  "cloudflared": {
+    "version": "2026.6.1",
+    "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.6.1/cloudflared-windows-amd64.exe",
+    "manualUrl": "https://github.com/cloudflare/cloudflared/releases/tag/2026.6.1",
+    "sha256": "5253e66f1f493c4e13539749f1aa86fd0c61e3072900fec29a44ba046a6d97e2"
+  }
+}

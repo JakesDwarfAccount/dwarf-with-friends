@@ -1,0 +1,642 @@
+{
+ "_source": "generated boundary sweep over DF's decoded ladder + the one native oracle capture",
+ "units": [
+  {
+   "id": 0,
+   "name": "healthy baseline (every counter zero)"
+  },
+  {
+   "id": 1,
+   "name": "dizziness = 0 (DF band edge \"Dizzy\" @ 0)",
+   "dizziness": 0
+  },
+  {
+   "id": 2,
+   "name": "dizziness = 1 (DF band edge \"Dizzy\" @ 0, +1)",
+   "dizziness": 1
+  },
+  {
+   "id": 3,
+   "name": "dizziness = 2500 (DF band edge \"Dizzy\" @ 0, +2500)",
+   "dizziness": 2500
+  },
+  {
+   "id": 4,
+   "name": "dizziness = 4999 (DF band edge \"Dizzy\" @ 0, +4999)",
+   "dizziness": 4999
+  },
+  {
+   "id": 5,
+   "name": "nausea = 0 (DF band edge \"Nauseous\" @ 0)",
+   "nausea": 0
+  },
+  {
+   "id": 6,
+   "name": "nausea = 1 (DF band edge \"Nauseous\" @ 0, +1)",
+   "nausea": 1
+  },
+  {
+   "id": 7,
+   "name": "nausea = 2500 (DF band edge \"Nauseous\" @ 0, +2500)",
+   "nausea": 2500
+  },
+  {
+   "id": 8,
+   "name": "nausea = 4999 (DF band edge \"Nauseous\" @ 0, +4999)",
+   "nausea": 4999
+  },
+  {
+   "id": 9,
+   "name": "pain = 99 (DF band edge \"Extreme pain\" @ 100, -1)",
+   "pain": 99
+  },
+  {
+   "id": 10,
+   "name": "pain = 100 (DF band edge \"Extreme pain\" @ 100)",
+   "pain": 100
+  },
+  {
+   "id": 11,
+   "name": "pain = 101 (DF band edge \"Extreme pain\" @ 100, +1)",
+   "pain": 101
+  },
+  {
+   "id": 12,
+   "name": "pain = 2600 (DF band edge \"Extreme pain\" @ 100, +2500)",
+   "pain": 2600
+  },
+  {
+   "id": 13,
+   "name": "pain = 5099 (DF band edge \"Extreme pain\" @ 100, +4999)",
+   "pain": 5099
+  },
+  {
+   "id": 14,
+   "name": "pain = 49 (DF band edge \"Pain\" @ 50, -1)",
+   "pain": 49
+  },
+  {
+   "id": 15,
+   "name": "pain = 50 (DF band edge \"Pain\" @ 50)",
+   "pain": 50
+  },
+  {
+   "id": 16,
+   "name": "pain = 51 (DF band edge \"Pain\" @ 50, +1)",
+   "pain": 51
+  },
+  {
+   "id": 17,
+   "name": "pain = 2550 (DF band edge \"Pain\" @ 50, +2500)",
+   "pain": 2550
+  },
+  {
+   "id": 18,
+   "name": "pain = 5049 (DF band edge \"Pain\" @ 50, +4999)",
+   "pain": 5049
+  },
+  {
+   "id": 19,
+   "name": "pain = 49 (DF band edge \"Pain\" @ 50, -1)",
+   "pain": 49
+  },
+  {
+   "id": 20,
+   "name": "pain = 50 (DF band edge \"Pain\" @ 50)",
+   "pain": 50
+  },
+  {
+   "id": 21,
+   "name": "pain = 51 (DF band edge \"Pain\" @ 50, +1)",
+   "pain": 51
+  },
+  {
+   "id": 22,
+   "name": "pain = 2550 (DF band edge \"Pain\" @ 50, +2500)",
+   "pain": 2550
+  },
+  {
+   "id": 23,
+   "name": "pain = 5049 (DF band edge \"Pain\" @ 50, +4999)",
+   "pain": 5049
+  },
+  {
+   "id": 24,
+   "name": "stunned = 0 (DF band edge \"Stunned\" @ 0)",
+   "stunned": 0
+  },
+  {
+   "id": 25,
+   "name": "stunned = 1 (DF band edge \"Stunned\" @ 0, +1)",
+   "stunned": 1
+  },
+  {
+   "id": 26,
+   "name": "stunned = 2500 (DF band edge \"Stunned\" @ 0, +2500)",
+   "stunned": 2500
+  },
+  {
+   "id": 27,
+   "name": "stunned = 4999 (DF band edge \"Stunned\" @ 0, +4999)",
+   "stunned": 4999
+  },
+  {
+   "id": 28,
+   "name": "unconscious = 0 (DF band edge \"Unconscious\" @ 0)",
+   "unconscious": 0
+  },
+  {
+   "id": 29,
+   "name": "unconscious = 1 (DF band edge \"Unconscious\" @ 0, +1)",
+   "unconscious": 1
+  },
+  {
+   "id": 30,
+   "name": "unconscious = 2500 (DF band edge \"Unconscious\" @ 0, +2500)",
+   "unconscious": 2500
+  },
+  {
+   "id": 31,
+   "name": "unconscious = 4999 (DF band edge \"Unconscious\" @ 0, +4999)",
+   "unconscious": 4999
+  },
+  {
+   "id": 32,
+   "name": "webbed = 0 (DF band edge \"Webbed\" @ 0)",
+   "webbed": 0
+  },
+  {
+   "id": 33,
+   "name": "webbed = 1 (DF band edge \"Webbed\" @ 0, +1)",
+   "webbed": 1
+  },
+  {
+   "id": 34,
+   "name": "webbed = 2500 (DF band edge \"Webbed\" @ 0, +2500)",
+   "webbed": 2500
+  },
+  {
+   "id": 35,
+   "name": "webbed = 4999 (DF band edge \"Webbed\" @ 0, +4999)",
+   "webbed": 4999
+  },
+  {
+   "id": 36,
+   "name": "webbed = 0 (DF band edge \"Partially webbed\" @ 0)",
+   "webbed": 0
+  },
+  {
+   "id": 37,
+   "name": "webbed = 1 (DF band edge \"Partially webbed\" @ 0, +1)",
+   "webbed": 1
+  },
+  {
+   "id": 38,
+   "name": "webbed = 2500 (DF band edge \"Partially webbed\" @ 0, +2500)",
+   "webbed": 2500
+  },
+  {
+   "id": 39,
+   "name": "webbed = 4999 (DF band edge \"Partially webbed\" @ 0, +4999)",
+   "webbed": 4999
+  },
+  {
+   "id": 40,
+   "name": "exhaustion = 5999 (DF band edge \"Exhausted\" @ 6000, -1)",
+   "exhaustion": 5999
+  },
+  {
+   "id": 41,
+   "name": "exhaustion = 6000 (DF band edge \"Exhausted\" @ 6000)",
+   "exhaustion": 6000
+  },
+  {
+   "id": 42,
+   "name": "exhaustion = 6001 (DF band edge \"Exhausted\" @ 6000, +1)",
+   "exhaustion": 6001
+  },
+  {
+   "id": 43,
+   "name": "exhaustion = 8500 (DF band edge \"Exhausted\" @ 6000, +2500)",
+   "exhaustion": 8500
+  },
+  {
+   "id": 44,
+   "name": "exhaustion = 10999 (DF band edge \"Exhausted\" @ 6000, +4999)",
+   "exhaustion": 10999
+  },
+  {
+   "id": 45,
+   "name": "exhaustion = 3999 (DF band edge \"Over-exerted\" @ 4000, -1)",
+   "exhaustion": 3999
+  },
+  {
+   "id": 46,
+   "name": "exhaustion = 4000 (DF band edge \"Over-exerted\" @ 4000)",
+   "exhaustion": 4000
+  },
+  {
+   "id": 47,
+   "name": "exhaustion = 4001 (DF band edge \"Over-exerted\" @ 4000, +1)",
+   "exhaustion": 4001
+  },
+  {
+   "id": 48,
+   "name": "exhaustion = 6500 (DF band edge \"Over-exerted\" @ 4000, +2500)",
+   "exhaustion": 6500
+  },
+  {
+   "id": 49,
+   "name": "exhaustion = 8999 (DF band edge \"Over-exerted\" @ 4000, +4999)",
+   "exhaustion": 8999
+  },
+  {
+   "id": 50,
+   "name": "exhaustion = 1999 (DF band edge \"Tired\" @ 2000, -1)",
+   "exhaustion": 1999
+  },
+  {
+   "id": 51,
+   "name": "exhaustion = 2000 (DF band edge \"Tired\" @ 2000)",
+   "exhaustion": 2000
+  },
+  {
+   "id": 52,
+   "name": "exhaustion = 2001 (DF band edge \"Tired\" @ 2000, +1)",
+   "exhaustion": 2001
+  },
+  {
+   "id": 53,
+   "name": "exhaustion = 4500 (DF band edge \"Tired\" @ 2000, +2500)",
+   "exhaustion": 4500
+  },
+  {
+   "id": 54,
+   "name": "exhaustion = 6999 (DF band edge \"Tired\" @ 2000, +4999)",
+   "exhaustion": 6999
+  },
+  {
+   "id": 55,
+   "name": "fever = 0 (DF band edge \"Fever\" @ 0)",
+   "fever": 0
+  },
+  {
+   "id": 56,
+   "name": "fever = 1 (DF band edge \"Fever\" @ 0, +1)",
+   "fever": 1
+  },
+  {
+   "id": 57,
+   "name": "fever = 2500 (DF band edge \"Fever\" @ 0, +2500)",
+   "fever": 2500
+  },
+  {
+   "id": 58,
+   "name": "fever = 4999 (DF band edge \"Fever\" @ 0, +4999)",
+   "fever": 4999
+  },
+  {
+   "id": 59,
+   "name": "hunger_timer = 74999 (DF band edge \"Starving\" @ 75000, -1)",
+   "hunger_timer": 74999
+  },
+  {
+   "id": 60,
+   "name": "hunger_timer = 75000 (DF band edge \"Starving\" @ 75000)",
+   "hunger_timer": 75000
+  },
+  {
+   "id": 61,
+   "name": "hunger_timer = 75001 (DF band edge \"Starving\" @ 75000, +1)",
+   "hunger_timer": 75001
+  },
+  {
+   "id": 62,
+   "name": "hunger_timer = 77500 (DF band edge \"Starving\" @ 75000, +2500)",
+   "hunger_timer": 77500
+  },
+  {
+   "id": 63,
+   "name": "hunger_timer = 79999 (DF band edge \"Starving\" @ 75000, +4999)",
+   "hunger_timer": 79999
+  },
+  {
+   "id": 64,
+   "name": "hunger_timer = 49999 (DF band edge \"Hungry\" @ 50000, -1)",
+   "hunger_timer": 49999
+  },
+  {
+   "id": 65,
+   "name": "hunger_timer = 50000 (DF band edge \"Hungry\" @ 50000)",
+   "hunger_timer": 50000
+  },
+  {
+   "id": 66,
+   "name": "hunger_timer = 50001 (DF band edge \"Hungry\" @ 50000, +1)",
+   "hunger_timer": 50001
+  },
+  {
+   "id": 67,
+   "name": "hunger_timer = 52500 (DF band edge \"Hungry\" @ 50000, +2500)",
+   "hunger_timer": 52500
+  },
+  {
+   "id": 68,
+   "name": "hunger_timer = 54999 (DF band edge \"Hungry\" @ 50000, +4999)",
+   "hunger_timer": 54999
+  },
+  {
+   "id": 69,
+   "name": "numbness = 0 (DF band edge \"Numb\" @ 0)",
+   "numbness": 0
+  },
+  {
+   "id": 70,
+   "name": "numbness = 1 (DF band edge \"Numb\" @ 0, +1)",
+   "numbness": 1
+  },
+  {
+   "id": 71,
+   "name": "numbness = 2500 (DF band edge \"Numb\" @ 0, +2500)",
+   "numbness": 2500
+  },
+  {
+   "id": 72,
+   "name": "numbness = 4999 (DF band edge \"Numb\" @ 0, +4999)",
+   "numbness": 4999
+  },
+  {
+   "id": 73,
+   "name": "paralysis = 99 (DF band edge \"Paralyzed\" @ 100, -1)",
+   "paralysis": 99
+  },
+  {
+   "id": 74,
+   "name": "paralysis = 100 (DF band edge \"Paralyzed\" @ 100)",
+   "paralysis": 100
+  },
+  {
+   "id": 75,
+   "name": "paralysis = 101 (DF band edge \"Paralyzed\" @ 100, +1)",
+   "paralysis": 101
+  },
+  {
+   "id": 76,
+   "name": "paralysis = 2600 (DF band edge \"Paralyzed\" @ 100, +2500)",
+   "paralysis": 2600
+  },
+  {
+   "id": 77,
+   "name": "paralysis = 5099 (DF band edge \"Paralyzed\" @ 100, +4999)",
+   "paralysis": 5099
+  },
+  {
+   "id": 78,
+   "name": "paralysis = 49 (DF band edge \"Partially paralyzed\" @ 50, -1)",
+   "paralysis": 49
+  },
+  {
+   "id": 79,
+   "name": "paralysis = 50 (DF band edge \"Partially paralyzed\" @ 50)",
+   "paralysis": 50
+  },
+  {
+   "id": 80,
+   "name": "paralysis = 51 (DF band edge \"Partially paralyzed\" @ 50, +1)",
+   "paralysis": 51
+  },
+  {
+   "id": 81,
+   "name": "paralysis = 2550 (DF band edge \"Partially paralyzed\" @ 50, +2500)",
+   "paralysis": 2550
+  },
+  {
+   "id": 82,
+   "name": "paralysis = 5049 (DF band edge \"Partially paralyzed\" @ 50, +4999)",
+   "paralysis": 5049
+  },
+  {
+   "id": 83,
+   "name": "paralysis = 0 (DF band edge \"Sluggish\" @ 0)",
+   "paralysis": 0
+  },
+  {
+   "id": 84,
+   "name": "paralysis = 1 (DF band edge \"Sluggish\" @ 0, +1)",
+   "paralysis": 1
+  },
+  {
+   "id": 85,
+   "name": "paralysis = 2500 (DF band edge \"Sluggish\" @ 0, +2500)",
+   "paralysis": 2500
+  },
+  {
+   "id": 86,
+   "name": "paralysis = 4999 (DF band edge \"Sluggish\" @ 0, +4999)",
+   "paralysis": 4999
+  },
+  {
+   "id": 87,
+   "name": "sleepiness_timer = 149999 (DF band edge \"Very drowsy\" @ 150000, -1)",
+   "sleepiness_timer": 149999
+  },
+  {
+   "id": 88,
+   "name": "sleepiness_timer = 150000 (DF band edge \"Very drowsy\" @ 150000)",
+   "sleepiness_timer": 150000
+  },
+  {
+   "id": 89,
+   "name": "sleepiness_timer = 150001 (DF band edge \"Very drowsy\" @ 150000, +1)",
+   "sleepiness_timer": 150001
+  },
+  {
+   "id": 90,
+   "name": "sleepiness_timer = 152500 (DF band edge \"Very drowsy\" @ 150000, +2500)",
+   "sleepiness_timer": 152500
+  },
+  {
+   "id": 91,
+   "name": "sleepiness_timer = 154999 (DF band edge \"Very drowsy\" @ 150000, +4999)",
+   "sleepiness_timer": 154999
+  },
+  {
+   "id": 92,
+   "name": "sleepiness_timer = 57599 (DF band edge \"Drowsy\" @ 57600, -1)",
+   "sleepiness_timer": 57599
+  },
+  {
+   "id": 93,
+   "name": "sleepiness_timer = 57600 (DF band edge \"Drowsy\" @ 57600)",
+   "sleepiness_timer": 57600
+  },
+  {
+   "id": 94,
+   "name": "sleepiness_timer = 57601 (DF band edge \"Drowsy\" @ 57600, +1)",
+   "sleepiness_timer": 57601
+  },
+  {
+   "id": 95,
+   "name": "sleepiness_timer = 60100 (DF band edge \"Drowsy\" @ 57600, +2500)",
+   "sleepiness_timer": 60100
+  },
+  {
+   "id": 96,
+   "name": "sleepiness_timer = 62599 (DF band edge \"Drowsy\" @ 57600, +4999)",
+   "sleepiness_timer": 62599
+  },
+  {
+   "id": 97,
+   "name": "thirst_timer = 49999 (DF band edge \"Dehydrated\" @ 50000, -1)",
+   "thirst_timer": 49999
+  },
+  {
+   "id": 98,
+   "name": "thirst_timer = 50000 (DF band edge \"Dehydrated\" @ 50000)",
+   "thirst_timer": 50000
+  },
+  {
+   "id": 99,
+   "name": "thirst_timer = 50001 (DF band edge \"Dehydrated\" @ 50000, +1)",
+   "thirst_timer": 50001
+  },
+  {
+   "id": 100,
+   "name": "thirst_timer = 52500 (DF band edge \"Dehydrated\" @ 50000, +2500)",
+   "thirst_timer": 52500
+  },
+  {
+   "id": 101,
+   "name": "thirst_timer = 54999 (DF band edge \"Dehydrated\" @ 50000, +4999)",
+   "thirst_timer": 54999
+  },
+  {
+   "id": 102,
+   "name": "thirst_timer = 24999 (DF band edge \"Thirsty\" @ 25000, -1)",
+   "thirst_timer": 24999
+  },
+  {
+   "id": 103,
+   "name": "thirst_timer = 25000 (DF band edge \"Thirsty\" @ 25000)",
+   "thirst_timer": 25000
+  },
+  {
+   "id": 104,
+   "name": "thirst_timer = 25001 (DF band edge \"Thirsty\" @ 25000, +1)",
+   "thirst_timer": 25001
+  },
+  {
+   "id": 105,
+   "name": "thirst_timer = 27500 (DF band edge \"Thirsty\" @ 25000, +2500)",
+   "thirst_timer": 27500
+  },
+  {
+   "id": 106,
+   "name": "thirst_timer = 29999 (DF band edge \"Thirsty\" @ 25000, +4999)",
+   "thirst_timer": 29999
+  },
+  {
+   "id": 107,
+   "name": "longterm_stress = 99999 (DF band edge \"Harrowed\" @ 100000, -1)",
+   "longterm_stress": 99999
+  },
+  {
+   "id": 108,
+   "name": "longterm_stress = 100000 (DF band edge \"Harrowed\" @ 100000)",
+   "longterm_stress": 100000
+  },
+  {
+   "id": 109,
+   "name": "longterm_stress = 100001 (DF band edge \"Harrowed\" @ 100000, +1)",
+   "longterm_stress": 100001
+  },
+  {
+   "id": 110,
+   "name": "longterm_stress = 102500 (DF band edge \"Harrowed\" @ 100000, +2500)",
+   "longterm_stress": 102500
+  },
+  {
+   "id": 111,
+   "name": "longterm_stress = 104999 (DF band edge \"Harrowed\" @ 100000, +4999)",
+   "longterm_stress": 104999
+  },
+  {
+   "id": 112,
+   "name": "longterm_stress = 49999 (DF band edge \"Haggard\" @ 50000, -1)",
+   "longterm_stress": 49999
+  },
+  {
+   "id": 113,
+   "name": "longterm_stress = 50000 (DF band edge \"Haggard\" @ 50000)",
+   "longterm_stress": 50000
+  },
+  {
+   "id": 114,
+   "name": "longterm_stress = 50001 (DF band edge \"Haggard\" @ 50000, +1)",
+   "longterm_stress": 50001
+  },
+  {
+   "id": 115,
+   "name": "longterm_stress = 52500 (DF band edge \"Haggard\" @ 50000, +2500)",
+   "longterm_stress": 52500
+  },
+  {
+   "id": 116,
+   "name": "longterm_stress = 54999 (DF band edge \"Haggard\" @ 50000, +4999)",
+   "longterm_stress": 54999
+  },
+  {
+   "id": 117,
+   "name": "longterm_stress = 19999 (DF band edge \"Stressed\" @ 20000, -1)",
+   "longterm_stress": 19999
+  },
+  {
+   "id": 118,
+   "name": "longterm_stress = 20000 (DF band edge \"Stressed\" @ 20000)",
+   "longterm_stress": 20000
+  },
+  {
+   "id": 119,
+   "name": "longterm_stress = 20001 (DF band edge \"Stressed\" @ 20000, +1)",
+   "longterm_stress": 20001
+  },
+  {
+   "id": 120,
+   "name": "longterm_stress = 22500 (DF band edge \"Stressed\" @ 20000, +2500)",
+   "longterm_stress": 22500
+  },
+  {
+   "id": 121,
+   "name": "longterm_stress = 24999 (DF band edge \"Stressed\" @ 20000, +4999)",
+   "longterm_stress": 24999
+  },
+  {
+   "id": 122,
+   "name": "thirsty + hungry + drowsy at once",
+   "hunger_timer": 60000,
+   "thirst_timer": 30000,
+   "sleepiness_timer": 70000
+  },
+  {
+   "id": 123,
+   "name": "dehydrated + starving + very drowsy (top bands)",
+   "hunger_timer": 80000,
+   "thirst_timer": 55000,
+   "sleepiness_timer": 160000
+  },
+  {
+   "id": 124,
+   "name": "stressed only (the band B280 found we were silent on)",
+   "longterm_stress": 22000
+  },
+  {
+   "id": 125,
+   "name": "ORACLE Rakust Zuglartimnaer (UNIT-OVERVIEW-status-needs-NATIVE.png): sheet shows Thirsty and nothing else",
+   "thirst_timer": 37500,
+   "_oracle": "evidence/oracles/activities/UNIT-OVERVIEW-status-needs-NATIVE.png",
+   "_expect_words": [
+    "Thirsty"
+   ]
+  }
+ ]
+}

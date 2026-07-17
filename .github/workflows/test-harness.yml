@@ -1,0 +1,54 @@
+name: Test harness (no DF build)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+  offline-harness:
+    name: Offline and skip-safe suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DFCAP_LIVE: "0"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # The repo-owned CDP driver uses Node's built-in WebSocket (stable in Node 22).
+          node-version: "22"
+
+      - name: Install system Python image support
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes python3-pil
+
+      - name: Run Node harness suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset DWF_DF_ROOT DFCAPTURE_DF_ROOT DF_ROOT
+          for suite in tools/harness/*_test.mjs; do
+            echo "::group::$suite"
+            node "$suite"
+            echo "::endgroup::"
+          done
+
+      - name: Prove the UI drift guard can fail
+        run: node tools/harness/ui_drift_guard_test.mjs --selftest
+
+      - name: Run Python unit suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset DWF_DF_ROOT DFCAPTURE_DF_ROOT DF_ROOT
+          for suite in tools/ws2/tests/test_*.py; do python3 "$suite"; done

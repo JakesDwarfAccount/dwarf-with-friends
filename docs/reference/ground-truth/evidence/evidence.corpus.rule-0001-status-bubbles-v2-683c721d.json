@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "recordType": "evidence",
+  "id": "evidence.corpus.rule-0001-status-bubbles-v2-683c721d",
+  "kind": "corpus",
+  "buildId": "build.df.0.53.15-win64-steam-683c721d",
+  "source": {
+    "contentSha256": "68624D7C7A6AF780402F646180A95629D02E8F9B02A03403A1115C99A7AB34AC",
+    "privateLocator": "recorder://qualification/2026-07-15T19-36-19-794Z-status/session-v2"
+  },
+  "selectors": {
+    "frameIds": ["record-0-frame-0", "record-21-frame-0", "record-35-frame-0", "record-52-frame-0", "record-70-frame-0"]
+  },
+  "producer": {
+    "tool": "tools/ground_truth/reduce_status_bubbles.mjs",
+    "version": "schema 1; recorder schema 2; plugin 69e066c1; DLL A1FBFF1121FEB1CC4388034A080B73E8A9709ED832A47848D620F0AA4E24E3B8; UNIT_STATUS raw DE78337D972E1471E10B286C3C3D27A23E374EFF1CAE58C059611D1CCC0F628B"
+  },
+  "captureContext": {
+    "pluginBuild": "0x73105d34-69e066c1",
+    "recorderSchemaVersion": 2
+  },
+  "createdAt": "2026-07-15T19:36:35Z",
+  "structuralValidation": {
+    "passed": true,
+    "method": "Pinned-identity reducer decoded 89 rich graphics-mode recorder-v2 records with the complete GPS plane contract and conservatively associated 23 Hungry cells with the same above-threshold unit. Eighteen cells fell outside the separate text-mode window, which independently supports the graphics/text route distinction rather than a same-frame cadence dispute."
+  }
+}

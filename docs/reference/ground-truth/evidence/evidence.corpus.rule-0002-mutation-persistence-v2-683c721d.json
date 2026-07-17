@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "recordType": "evidence",
+  "id": "evidence.corpus.rule-0002-mutation-persistence-v2-683c721d",
+  "kind": "corpus",
+  "buildId": "build.df.0.53.15-win64-steam-683c721d",
+  "source": {
+    "contentSha256": "727EE654699ABFA91DCB95EAFB0D13D95E343C3C23507954BC92133B79013B1F",
+    "privateLocator": "recorder://live/work-order-mutation-20260715/session-v2"
+  },
+  "selectors": {
+    "frameIds": [
+      "record-95-frame-0",
+      "record-498-frame-0",
+      "record-598-frame-0",
+      "record-614-frame-0",
+      "record-859-frame-0"
+    ]
+  },
+  "producer": {
+    "tool": "tools/ground_truth/reduce_work_orders.mjs",
+    "version": "schema 1; recorder schema 2; plugin 69e066c1; DLL A1FBFF1121FEB1CC4388034A080B73E8A9709ED832A47848D620F0AA4E24E3B8"
+  },
+  "captureContext": {
+    "pluginBuild": "0x73105d34-69e066c1",
+    "recorderSchemaVersion": 2
+  },
+  "createdAt": "2026-07-15T21:13:29Z",
+  "structuralValidation": {
+    "passed": true,
+    "method": "Pinned-identity reducer selected five exact ordinal, frame, and timestamp checkpoints from the recorder-v2 session. It compared complete canonical filter identities and native suppression identities, verified the exact one-condition to two-condition transition, observed the matching suggested row remain visible with its add action suppressed, verified editor closure and exact two-condition persistence on reopening, and verified cleanup restored the exact original one-condition identity. Mutation checks: pass 7, fail 0. Whole-session selected-frame summary: pass 31, fail 0, inconclusive 2; the unrelated status-state checks were not captured in this session."
+  }
+}

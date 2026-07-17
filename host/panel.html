@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dwf host panel</title>
+  <link rel="stylesheet" href="/panel.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">dwf <span class="brand-sub">host panel</span></div>
+    <div id="df-root" class="df-root" title="Dwarf Fortress folder">&nbsp;</div>
+  </header>
+
+  <main class="panel-main">
+
+    <!-- ============================ STATUS ============================ -->
+    <section class="card" id="sec-status">
+      <h2>Status</h2>
+      <div class="hosting-card">
+        <button id="start-hosting" class="btn primary hosting-button">Start hosting</button>
+        <div id="hosting-message" class="hosting-message">Opens Dwarf Fortress, waits while you load your fortress, then creates the friend link.</div>
+        <div id="hosting-error" class="hosting-error" hidden></div>
+        <div id="hosting-stuck" class="hosting-stuck" hidden>
+          <button id="retry-link" class="btn primary">Restart the tunnel</button>
+          <span class="muted small">The newest tunnel log lines are shown under Tunnel &amp; controls below.</span>
+        </div>
+      </div>
+      <div class="grid grid-4">
+        <div class="stat"><div class="stat-label">Dwarf Fortress</div><div class="stat-val" id="s-df">—</div></div>
+        <div class="stat"><div class="stat-label">Browser stream</div><div class="stat-val" id="s-server">—</div></div>
+        <div class="stat"><div class="stat-label">World loaded</div><div class="stat-val" id="s-world">—</div></div>
+        <div class="stat"><div class="stat-label">Players connected</div><div class="stat-val" id="s-players">—</div></div>
+      </div>
+      <div class="muted small status-foot"><span id="s-build-wrap">build <span class="mono" id="s-build">—</span> · </span>auto-refreshing every 4s</div>
+    </section>
+
+    <!-- ======================== FRIEND ACCESS ========================= -->
+    <section class="card" id="sec-access">
+      <h2>Friend access</h2>
+      <div class="access-label">Friend link</div>
+      <div class="friend-link-row" id="friend-link-row">
+        <code id="friend-url" class="friend-url is-empty">no friend link yet — press Start hosting</code>
+        <button class="btn primary big copy" data-copy="friend-url" id="copy-friend" disabled>Copy link</button>
+      </div>
+      <div class="muted small" id="friend-link-note">The link works while Dwarf Fortress and the tunnel are both running.</div>
+
+      <div class="access-label pw-label">Join password</div>
+      <div class="pw-row" id="pw-row-set" hidden>
+        <code id="friend-password" class="pw-value">••••••••</code>
+        <button class="btn small" id="pw-toggle">Show</button>
+        <button class="btn small copy" data-copy="friend-password" id="pw-copy">Copy</button>
+        <button class="btn small" id="pw-change">Change</button>
+        <button class="btn small danger" id="pw-off">Turn off</button>
+      </div>
+      <div class="pw-row" id="pw-row-open" hidden>
+        <span class="pw-open-note">No password — anyone with the link can join.</span>
+        <button class="btn small primary" id="pw-set">Set a password</button>
+      </div>
+      <div class="pw-editor" id="pw-editor" hidden>
+        <input id="a-pw" type="text" autocomplete="off" spellcheck="false" placeholder="type a password, or press Generate">
+        <button class="btn small" id="pw-generate">Generate</button>
+        <button class="btn small primary" id="a-save">Save</button>
+        <button class="btn small" id="pw-cancel">Cancel</button>
+      </div>
+      <div class="muted small" id="a-note">Friends type this once when they join. Changes apply to new joins immediately — no restart needed.</div>
+    </section>
+
+    <!-- ====================== TUNNEL & CONTROLS ======================= -->
+    <section class="card" id="sec-tunnel">
+      <h2>Tunnel &amp; controls</h2>
+      <div class="ctl">
+        <div class="ctl-title">Friend tunnel <span id="t-state" class="ctl-state">—</span></div>
+        <button class="btn primary" data-action="start-cf" data-confirm="Start the friend tunnel?">Start tunnel</button>
+        <button class="btn danger" id="stop-cf" data-confirm="Stop the tunnel? The friend link stops working.">Stop tunnel</button>
+        <button id="fetch-cf" class="btn" data-action="fetch-cf">Fetch cloudflared</button>
+      </div>
+      <div class="ctl">
+        <div class="ctl-title">Game view (this computer)</div>
+        <code id="l-local" class="mono">—</code>
+        <button class="btn small copy" data-copy="l-local">Copy</button>
+        <a class="btn small" id="l-local-open" target="_blank" rel="noopener">Open</a>
+      </div>
+      <div class="ctl">
+        <div class="ctl-title">Dwarf Fortress</div>
+        <button class="btn primary" data-action="start-df" data-confirm="Start Dwarf Fortress now?">Start DF</button>
+        <button class="btn danger" data-action="stop-df" data-confirm="Stop Dwarf Fortress? Anyone playing will be disconnected and unsaved progress since the last save is lost.">Stop DF</button>
+      </div>
+      <div class="muted small" id="srv-note"></div>
+
+      <div class="log-card">
+        <div class="log-head">
+          <div>
+            <div class="ctl-title">Tunnel log tail</div>
+            <div class="muted small" id="cf-log-note">Newest lines from host/cloudflared.log</div>
+          </div>
+          <button class="btn small" id="cf-log-refresh">Refresh log</button>
+        </div>
+        <pre id="cf-log" class="log-tail" aria-label="cloudflared log tail">Loading...</pre>
+      </div>
+
+      <details class="advanced" id="sec-advanced">
+        <summary>Advanced settings</summary>
+        <div class="field check">
+          <label><input id="c-audio" type="checkbox"> Friends can hear game audio</label>
+        </div>
+        <div class="field check">
+          <label><input id="c-autopause" type="checkbox"> Pause when someone disconnects</label>
+        </div>
+        <div class="field check">
+          <label><input id="c-hostunpause" type="checkbox"> Only I can unpause</label>
+        </div>
+        <div class="field">
+          <label for="c-port">Game connection port</label>
+          <input id="c-port" type="number" min="1" max="65535" inputmode="numeric">
+          <div class="dim">Most people should leave this at 8765. A change takes effect the next time you start hosting.</div>
+        </div>
+        <div class="row-actions">
+          <button id="c-save" class="btn primary">Save config</button>
+          <span class="muted" id="c-note"></span>
+        </div>
+        <p class="hint dim">Process controls are Windows-only. On other systems, start Dwarf Fortress
+          and cloudflared yourself; Status and Friend access still work.</p>
+      </details>
+    </section>
+  </main>
+
+  <script src="/panel.js"></script>
+</body>
+</html>

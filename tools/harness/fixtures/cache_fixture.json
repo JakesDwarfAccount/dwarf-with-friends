@@ -1,0 +1,66 @@
+{
+ "_note": "WA-6/WA-7 cache_test.mjs fixture -- a small keyframe over a 6x6 window at z=10 (origin 40,60,10), followed by 3 deltas that touch a mix of already-covered tiles and a NEW tile just outside the keyframe window (world-addressed persistence is the whole point of a chunked cache: the delta's tile at 50,60 lands in a DIFFERENT 16x16 chunk than the keyframe's). Every tile carries x/y (matches the real push wire, ground truth SS1.2 DOC-DRIFT: every pushed tile -- keyframe or delta -- carries per-tile world x/y). `tiletypeMeta` gives each distinct tt value ONE fixed (ttname,shape,mat,special) tuple -- exactly the /tiletype_meta.json shape WA-7's windowView() resolves against -- so every tile using the same tt is internally consistent (a real DF tiletype value never maps to two different materials).",
+ "tiletypeMeta": [
+  [1, "Wall", "WALL", "STONE", "NONE"],
+  [2, "Floor", "FLOOR", "STONE", "NONE"],
+  [4, "SoilFloor", "FLOOR", "SOIL", "NONE"],
+  [5, "RiverWater", "FLOOR", "POOL", "NONE"],
+  [6, "MagmaFloor", "FLOOR", "MAGMA", "NONE"],
+  [7, "GrassFloor", "FLOOR", "GRASS_LIGHT", "NONE"]
+ ],
+ "keyframe": {
+  "origin": { "x": 40, "y": 60, "z": 10 },
+  "width": 6,
+  "height": 6,
+  "z": 10,
+  "tiles": [
+   { "x": 40, "y": 60, "tt": 1, "ttname": "Wall", "shape": "WALL", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7 },
+   { "x": 41, "y": 60, "tt": 2, "ttname": "Floor", "shape": "FLOOR", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7 },
+   { "x": 42, "y": 60, "tt": 1, "ttname": "Wall", "shape": "WALL", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7 },
+   { "x": 43, "y": 60, "tt": -1 },
+   { "x": 44, "y": 60, "tt": 5, "ttname": "RiverWater", "shape": "FLOOR", "mat": "POOL", "special": "NONE", "flow": 4, "liquid": "water", "hidden": 0, "outside": 1, "base_mt": -1, "base_mi": -1 },
+   { "x": 45, "y": 60, "tt": 4, "ttname": "SoilFloor", "shape": "FLOOR", "mat": "SOIL", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 1, "outside": 0, "base_mt": 1, "base_mi": 2,
+     "item": { "type": "BOULDER", "mat_type": 0, "mat_index": 1 } },
+   { "x": 40, "y": 61, "tt": 7, "ttname": "GrassFloor", "shape": "FLOOR", "mat": "GRASS_LIGHT", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 1, "base_mt": 0, "base_mi": 0,
+     "plant": { "id": "GRASS_TAIL_PIG", "part": "SHRUB" } },
+   { "x": 41, "y": 61, "tt": 1, "ttname": "Wall", "shape": "WALL", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7,
+     "spatter": { "mat_type": 5, "mat_index": -1, "amount": 42 } },
+   { "x": 42, "y": 61, "tt": 1, "ttname": "Wall", "shape": "WALL", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7 },
+   { "x": 43, "y": 61, "tt": 2, "ttname": "Floor", "shape": "FLOOR", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7,
+     "desig": { "dig": "Default", "smooth": 0, "traffic": 0, "track": 0, "marker": 0 } },
+   { "x": 44, "y": 61, "tt": 2, "ttname": "Floor", "shape": "FLOOR", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7,
+     "desig": { "dig": "No", "smooth": 2, "traffic": 0, "track": 3, "marker": 1 } },
+   { "x": 45, "y": 61, "tt": 2, "ttname": "Floor", "shape": "FLOOR", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7 }
+  ]
+ },
+ "deltas": [
+  {
+   "origin": { "x": 40, "y": 60, "z": 10 },
+   "width": 6,
+   "height": 6,
+   "z": 10,
+   "tiles": [
+    { "x": 41, "y": 60, "tt": 6, "ttname": "MagmaFloor", "shape": "FLOOR", "mat": "MAGMA", "special": "NONE", "flow": 7, "liquid": "magma", "hidden": 0, "outside": 0, "base_mt": -1, "base_mi": -1 }
+   ]
+  },
+  {
+   "origin": { "x": 40, "y": 60, "z": 10 },
+   "width": 6,
+   "height": 6,
+   "z": 10,
+   "tiles": [
+    { "x": 50, "y": 60, "tt": 1, "ttname": "Wall", "shape": "WALL", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 4, "base_mi": 0 },
+    { "x": 43, "y": 60, "tt": 2, "ttname": "Floor", "shape": "FLOOR", "mat": "STONE", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 3, "base_mi": 7 }
+   ]
+  },
+  {
+   "origin": { "x": 40, "y": 60, "z": 10 },
+   "width": 6,
+   "height": 6,
+   "z": 10,
+   "tiles": [
+    { "x": 45, "y": 60, "tt": 4, "ttname": "SoilFloor", "shape": "FLOOR", "mat": "SOIL", "special": "NONE", "flow": 0, "liquid": "none", "hidden": 0, "outside": 0, "base_mt": 1, "base_mi": 2 }
+   ]
+  }
+ ]
+}

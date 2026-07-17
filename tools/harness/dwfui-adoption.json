@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "dwfuiVersion": "2.0.0",
+  "queuedBaseline": 24,
+  "surfaceQueuedBaseline": 0,
+  "modules": {
+    "dwf-adjacency.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-analytics-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "analytics"
+    },
+    "dwf-animclock.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-announce-taxonomy.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-announcement-format.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-announcements.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "announcements"
+    },
+    "dwf-attribution.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-audio.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "browser-native",
+      "handBuilt": 1,
+      "reason": "the mixer slider template (5 channels): DF has NO continuous-value control. Declared, not migrated."
+    },
+    "dwf-bitmap-text.js": {
+      "kind": "foundation"
+    },
+    "dwf-df-markup.js": {
+      "kind": "foundation"
+    },
+    "dwf-build-info-panels.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "build-and-information",
+      "handBuilt": 3,
+      "reason": "Three browser-native editable/choice controls remain: per-requirement material and livestock-trainer selects, plus typed numeric thresholds. Replacing dropdown behavior with a cycler/chooser or million-value typed entry with a +/- stepper would not be a pure refactor."
+    },
+    "dwf-building-zone-stockpile-panels.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "buildings",
+      "handBuilt": 52
+    },
+    "dwf-burrow-overlay.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-cache-worker.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-cache.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-chat.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "browser-native",
+      "handBuilt": 1,
+      "reason": "the chat composer text field -- the spec-declared editable-input exception."
+    },
+    "dwf-chrome.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-combatlog-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "combat-log"
+    },
+    "dwf-console-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "command-console"
+    },
+    "dwf-control-shell.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "toolbar-and-designations",
+      "handBuilt": 1,
+      "reason": "The traffic-cost range input is a continuous browser control; DWFUI has no continuous-value native control, and replacing it would change interaction behavior."
+    },
+    "dwf-controls-placement.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "toolbar-and-designations"
+    },
+    "dwf-core.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "selection-and-shell"
+    },
+    "dwf-digest.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "announcements"
+    },
+    "dwf-diplo.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "diplomacy"
+    },
+    "dwf-escmenu.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "browser-native"
+    },
+    "dwf-farm-crops.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-fort-admin.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "information",
+      "handBuilt": 0
+    },
+    "dwf-fort-panels.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "information",
+      "handBuilt": 0
+    },
+    "dwf-gl-atlas.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-gl.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-help-corpus.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-help-curated.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-help-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "help"
+    },
+    "dwf-hospital-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "buildings"
+    },
+    "dwf-hostpanel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "browser-native"
+    },
+    "dwf-hotkeys.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "global-chrome"
+    },
+    "dwf-interface-shell.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "global-chrome",
+      "handBuilt": 1
+    },
+    "dwf-join.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "browser-native",
+      "handBuilt": 2,
+      "reason": "the name + passphrase text fields -- the spec-declared editable-input exception."
+    },
+    "dwf-keymap.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-kitchen.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "labor"
+    },
+    "dwf-labor-work-orders.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "labor-and-work-orders",
+      "handBuilt": 14
+    },
+    "dwf-lobby.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "browser-native"
+    },
+    "dwf-location-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "buildings"
+    },
+    "dwf-menu-tree.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-obligations.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "administration"
+    },
+    "dwf-overlay-boxes.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-panelframe.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-pause.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "browser-native"
+    },
+    "dwf-popup.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "popup"
+    },
+    "dwf-render.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-settings.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "browser-native",
+      "handBuilt": 1,
+      "reason": "deliberately remains partial: the UI-scale slider is the sole hand-built control. DF has NO continuous-value control (interface_map.json has no SLIDER/TRACK/THUMB value affordance), so DWFUI has no native grammar to render and must not invent sliderHtml."
+    },
+    "dwf-squads.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "military",
+      "handBuilt": 13
+    },
+    "dwf-texture-lab.js": {
+      "kind": "devtool",
+      "note": "standalone sprite/texture inspection page (web/texture-lab.html); never loaded by the game client's index.html. Tracked so a fresh clone can run texture_lab_test."
+    },
+    "dwf-tiles.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-tooltip.js": {
+      "kind": "surface",
+      "status": "specialized",
+      "family": "global-chrome",
+      "reason": "Positioning/popup engine. It places other modules' markup; it renders no DWFUI surface of its own."
+    },
+    "dwf-touch.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-tradedepot-panel.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "buildings"
+    },
+    "dwf-tradescreen.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "buildings"
+    },
+    "dwf-ui-components.js": {
+      "kind": "foundation"
+    },
+    "dwf-unit-hud-notifications.js": {
+      "kind": "surface",
+      "status": "partial",
+      "family": "citizen-and-announcements",
+      "handBuilt": 2
+    },
+    "dwf-unitcycle.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "selection-and-shell"
+    },
+    "dwf-vote.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "browser-native"
+    },
+    "dwf-voxel-mesh.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-voxelizer.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-weather.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-wire-v1.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-world3d-model.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-world3d.js": {
+      "kind": "surface",
+      "status": "specialized",
+      "family": "world",
+      "reason": "WebGL canvas overlay. Its only chrome (header + z-slab / Fit / Refresh plaques, plus the status/hint readouts) goes through DWFUI headerHtml + plaqueBtnHtml + statusHtml; the canvas itself has no DWFUI analogue."
+    },
+    "dwf-worldmap.js": {
+      "kind": "surface",
+      "status": "migrated",
+      "family": "world"
+    },
+    "dwf-write-guards.js": {
+      "kind": "infrastructure"
+    },
+    "dwf-ws.js": {
+      "kind": "infrastructure"
+    }
+  },
+  "handBuiltBaseline": 467,
+  "_bar": [
+    "DWFUI adoption is measured, not asserted. The old bar was `assert.match(source, /\\bDWFUI\\b/)` --",
+    "a file merely had to CONTAIN THE STRING, so a module that mentioned DWFUI in a comment and then",
+    "hand-rolled 17 buttons passed as `migrated`. Two modules did exactly that.",
+    "",
+    "builderCall = a call to one of DWFUI's *Html builders, through any receiver (several modules",
+    "alias DWFUI to a local, e.g. `const D = _anUI()`). `esc`/`require` do NOT count -- they are",
+    "utilities, not UI.",
+    "handBuilt  = <button>/<input>/<select> elements the module still writes itself, i.e. controls",
+    "             DWFUI owns builders for. This is the debt, and it may only shrink.",
+    "",
+    "migrated    = builderCalls >= 1 AND handBuilt == 0",
+    "partial     = builderCalls >= 1, with `handBuilt` stating exactly what is still hand-built",
+    "queued      = builderCalls == 0 (the module does not use DWFUI, whatever its comments say)",
+    "specialized = exempt, and must say why in `reason`"
+  ]
+}

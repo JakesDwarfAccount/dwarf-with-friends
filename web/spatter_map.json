@@ -1,0 +1,2119 @@
+{
+ "_v": 1,
+ "amount_thresholds_default": [
+  {
+   "max": 49,
+   "shape": "PARTIAL_1"
+  },
+  {
+   "max": 109,
+   "shape": "PARTIAL_2"
+  },
+  {
+   "max": 159,
+   "shape": "PARTIAL_3"
+  },
+  {
+   "max": 209,
+   "shape": "PARTIAL_4"
+  },
+  {
+   "max": null,
+   "shape": "FULL"
+  }
+ ],
+ "blood_families": [
+  "BLOOD_RED",
+  "BLOOD_CYAN",
+  "BLOOD_MAGENTA",
+  "BLOOD_ICHOR",
+  "BLOOD_GOO"
+ ],
+ "builtin_material_hints": {
+  "ASH": "DUST",
+  "DUST": "DUST",
+  "GOO": "SLIME",
+  "LAVA": "MAGMA_SPATTER",
+  "MAGMA": "MAGMA_SPATTER",
+  "MUD": "MUD",
+  "SALIVA": "VOMIT",
+  "SLIME": "SLIME",
+  "SNOW": "SNOW",
+  "VOMIT": "VOMIT",
+  "WATER_LIQUID": "WATER_SPATTER",
+  "WATER_POWDER": "SNOW"
+ },
+ "families": {
+  "BLOOD_CYAN": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "blood_cyan.png"
+  },
+  "BLOOD_GOO": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "blood_goo.png"
+  },
+  "BLOOD_ICHOR": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "blood_ichor.png"
+  },
+  "BLOOD_MAGENTA": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "blood_magenta.png"
+  },
+  "BLOOD_RED": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "blood_red.png"
+  },
+  "DUST": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "dust.png"
+  },
+  "FRUIT": {
+   "cells": {
+    "PARTIAL_1A": {
+     "col": 0,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 1,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 2,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 3,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 0,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 1,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 2,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 3,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 0,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 1,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 2,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 3,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 0,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 1,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 2,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 3,
+     "row": 0
+    }
+   },
+   "sheet": "fruit.png"
+  },
+  "FRUIT_LARGE": {
+   "cells": {
+    "PARTIAL_1A": {
+     "col": 0,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 1,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 2,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 3,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 0,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 1,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 2,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 3,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 0,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 1,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 2,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 3,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 0,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 1,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 2,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 3,
+     "row": 0
+    }
+   },
+   "sheet": "fruit_large.png"
+  },
+  "FRUIT_SMALL": {
+   "cells": {
+    "PARTIAL_1A": {
+     "col": 0,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 1,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 2,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 3,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 0,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 1,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 2,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 3,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 0,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 1,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 2,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 3,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 0,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 1,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 2,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 3,
+     "row": 0
+    }
+   },
+   "sheet": "fruit_small.png"
+  },
+  "LEAVES": {
+   "cells": {
+    "PARTIAL_1A": {
+     "col": 0,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 1,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 2,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 3,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 0,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 1,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 2,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 3,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 0,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 1,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 2,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 3,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 0,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 1,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 2,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 3,
+     "row": 0
+    }
+   },
+   "sheet": "leaves.png"
+  },
+  "MAGMA_SPATTER": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "magma_spatter.png"
+  },
+  "MUD": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "mud.png"
+  },
+  "SLIME": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "slime.png"
+  },
+  "SNOW": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "snow.png"
+  },
+  "VOMIT": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "vomit.png"
+  },
+  "WATER_SPATTER": {
+   "cells": {
+    "FULL_E": {
+     "col": 3,
+     "row": 1
+    },
+    "FULL_ISOLATED": {
+     "col": 1,
+     "row": 0
+    },
+    "FULL_N": {
+     "col": 0,
+     "row": 1
+    },
+    "FULL_NE": {
+     "col": 1,
+     "row": 2
+    },
+    "FULL_NS": {
+     "col": 2,
+     "row": 0
+    },
+    "FULL_NSE": {
+     "col": 1,
+     "row": 3
+    },
+    "FULL_NSW": {
+     "col": 0,
+     "row": 3
+    },
+    "FULL_NSWE_A": {
+     "col": 0,
+     "row": 0
+    },
+    "FULL_NSWE_B": {
+     "col": 0,
+     "row": 4
+    },
+    "FULL_NSWE_C": {
+     "col": 1,
+     "row": 4
+    },
+    "FULL_NSWE_D": {
+     "col": 2,
+     "row": 4
+    },
+    "FULL_NSWE_E": {
+     "col": 3,
+     "row": 4
+    },
+    "FULL_NW": {
+     "col": 0,
+     "row": 2
+    },
+    "FULL_NWE": {
+     "col": 2,
+     "row": 3
+    },
+    "FULL_S": {
+     "col": 1,
+     "row": 1
+    },
+    "FULL_SE": {
+     "col": 3,
+     "row": 2
+    },
+    "FULL_SW": {
+     "col": 2,
+     "row": 2
+    },
+    "FULL_SWE": {
+     "col": 3,
+     "row": 3
+    },
+    "FULL_W": {
+     "col": 2,
+     "row": 1
+    },
+    "FULL_WE": {
+     "col": 3,
+     "row": 0
+    },
+    "PARTIAL_1A": {
+     "col": 4,
+     "row": 3
+    },
+    "PARTIAL_1B": {
+     "col": 5,
+     "row": 3
+    },
+    "PARTIAL_1C": {
+     "col": 6,
+     "row": 3
+    },
+    "PARTIAL_1D": {
+     "col": 7,
+     "row": 3
+    },
+    "PARTIAL_2A": {
+     "col": 4,
+     "row": 2
+    },
+    "PARTIAL_2B": {
+     "col": 5,
+     "row": 2
+    },
+    "PARTIAL_2C": {
+     "col": 6,
+     "row": 2
+    },
+    "PARTIAL_2D": {
+     "col": 7,
+     "row": 2
+    },
+    "PARTIAL_3A": {
+     "col": 4,
+     "row": 1
+    },
+    "PARTIAL_3B": {
+     "col": 5,
+     "row": 1
+    },
+    "PARTIAL_3C": {
+     "col": 6,
+     "row": 1
+    },
+    "PARTIAL_3D": {
+     "col": 7,
+     "row": 1
+    },
+    "PARTIAL_4A": {
+     "col": 4,
+     "row": 0
+    },
+    "PARTIAL_4B": {
+     "col": 5,
+     "row": 0
+    },
+    "PARTIAL_4C": {
+     "col": 6,
+     "row": 0
+    },
+    "PARTIAL_4D": {
+     "col": 7,
+     "row": 0
+    }
+   },
+   "sheet": "water_spatter.png"
+  }
+ },
+ "growth_class_family": {
+  "0": "OTHER",
+  "1": "LEAVES",
+  "2": "FRUIT",
+  "3": "FRUIT_SMALL",
+  "4": "FRUIT_LARGE"
+ }
+}

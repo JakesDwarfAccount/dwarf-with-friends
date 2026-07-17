@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "control.work_orders.condition.existing_row",
+  "kind": "control",
+  "title": "Existing work-order item-condition row",
+  "definition": "An informational row for an item condition already attached to the selected work order, including its cached next-check annotation.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "row-content",
+      "statement": "An existing row renders the condition comparison and item description together with a separate next-check status annotation.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0003-condition-colors-683c721d",
+          "selectors": ["record-0-frame-0", "record-1-frame-0", "record-2-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "annotation-state-source",
+      "statement": "The annotation's wording and text attributes are selected from the condition's cached satisfaction result.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0003-condition-colors-683c721d",
+        "selectors": ["0x14038c3c0", "0x140390a03", "0x140390a57"]
+      }]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "satisfied-row-corpus",
+      "statement": "The pinned corpus captures the unsatisfied annotation, but not the same existing row with a true cached result."
+    }
+  ],
+  "relationships": {
+    "parents": ["surface.work_orders.condition_editor"],
+    "children": ["state.work_orders.condition.satisfied", "state.work_orders.condition.unsatisfied"],
+    "dependencies": ["rule.0003.work-order-condition-status-color"],
+    "rules": ["rule.0003.work-order-condition-status-color"],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": ["state.work_orders.condition.satisfied", "state.work_orders.condition.unsatisfied"],
+  "requiredCases": {
+    "positive": ["A cached true result renders the satisfied annotation on an existing row."],
+    "boundary": ["Character, foreground, background, and brightness planes are checked for the annotation span only."],
+    "counterexamples": ["A cached false result renders the unsatisfied annotation without recoloring the comparison or item-description fragments."]
+  },
+  "absenceGuards": ["Do not color the whole row from the cached satisfaction result."],
+  "recorderRequirements": {
+    "stateSlice": ["selected condition id", "cached satisfaction result", "character plane", "foreground plane", "background plane", "brightness plane"],
+    "requiredFrames": ["The same existing row with a true cached result", "The same existing row with a false cached result"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "captured",
+    "productMapping": "mapped-conflicting",
+    "verification": "untested",
+    "release": "not-shippable"
+  }
+}

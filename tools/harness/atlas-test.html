@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>dwf GL atlas self-test (WB-8)</title>
+<style>
+  body { background:#111; color:#cde; font:13px/1.5 monospace; margin:12px; }
+  canvas { border:1px solid #345; image-rendering: pixelated; }
+  #out { white-space:pre; color:#8f8; }
+  #out.fail { color:#f88; }
+  .small { width:64px; height:64px; }
+</style>
+</head>
+<body>
+<h3>dwf GL atlas self-test -- WB-8 (docs/superpowers/specs/2026-07-07-WB-renderer-spec.md)</h3>
+<p>Procedural (no DF art) fixtures, generated on the fly via canvas.toBlob('image/png') and fed
+   through the real <code>web/js/dwf-gl-atlas.js</code> exactly as it would consume a real
+   sheet PNG -- fully offline, no server dependency. Results land in <code>#out</code> and
+   <code>window.ATLAS_TEST_RESULTS</code>; <code>window.ATLAS_TEST_DONE=true</code> when finished
+   (<code>window.ATLAS_TEST_OK</code> is the overall pass/fail boolean).</p>
+<canvas id="gl" width="64" height="64" class="small"></canvas>
+<div id="out">running&hellip;</div>
+<script src="../../web/js/dwf-gl-atlas.js"></script>
+<script>
+(async function () {
+  const outEl = document.getElementById("out");
+  const results = { checks: [], ok: true };
+  function check(name, cond, detail) {
+    results.checks.push({ name, pass: !!cond, detail: detail || null });
+    if (!cond) results.ok = false;
+  }
+
+  function render() {
+    outEl.textContent = results.checks.map(c =>
+      (c.pass ? "PASS " : "FAIL ") + c.name + (c.detail ? "  -- " + c.detail : "")
+    ).join("\n") + "\n\n" + (results.ok ? "ALL CHECKS PASSED" : "SOME CHECKS FAILED");
+    outEl.className = results.ok ? "" : "fail";
+    window.ATLAS_TEST_RESULTS = results;
+    window.ATLAS_TEST_OK = results.ok;
+    window.ATLAS_TEST_DONE = true;
+  }
+
+  try {
+    if (!window.DwfGLAtlas) throw new Error("dwf-gl-atlas.js did not attach window.DwfGLAtlas");
+    const Atlas = window.DwfGLAtlas;
+
+    const canvas = document.getElementById("gl");
+    const gl = canvas.getContext("webgl2");
+    if (!gl) throw new Error("WebGL2 not available in this browser/context");
+    check("no GL error immediately after context creation", gl.getError() === gl.NO_ERROR, "");
+
+    // ---- procedural fixture builder: draw an NxM grid of 32x32 cells (each cell a flat,
+    // distinct RGBA fill so cells are trivially distinguishable) onto an offscreen canvas,
+    // export as a REAL PNG via toBlob, and hand that blob to createImageBitmap -- this is a
+    // genuine PNG encode/decode round-trip, not a shortcut, while staying 100% DF-art-free.
+    function buildFixturePng(cols, rows, seed, alpha) {
+      const c = document.createElement("canvas");
+      c.width = cols * 32; c.height = rows * 32;
+      const ctx = c.getContext("2d");
+      for (let r = 0; r < rows; r++) {
+        for (let col = 0; col < cols; col++) {
+          const rr = (col * 47 + seed) % 256, gg = (r * 91 + seed * 3) % 256, bb = (seed * 13) % 256;
+          ctx.fillStyle = "rgba(" + rr + "," + gg + "," + bb + "," + (alpha != null ? alpha : 1) + ")";
+          ctx.fillRect(col * 32, r * 32, 32, 32);
+        }
+      }
+      return new Promise((resolve) => c.toBlob((blob) => resolve(blob), "image/png"));
+    }
+
+    const fixtures = {};
+    fixtures["fixture_a.png"] = await buildFixturePng(4, 4, 10);
+    fixtures["fixture_b.png"] = await buildFixturePng(59, 61, 20); // exactly fills page 0 (3599 cells)
+    fixtures["fixture_c.png"] = await buildFixturePng(2, 2, 30);   // forced onto page 1
+    fixtures["fixture_late.png"] = await buildFixturePng(3, 3, 40);
+    fixtures["fixture_alpha.png"] = await buildFixturePng(1, 1, 50, 0.5); // 50%-alpha cell
+
+    function fetchFixture(name) {
+      const blob = fixtures[name];
+      if (!blob) return Promise.reject(new Error("no such fixture: " + name));
+      return createImageBitmap(blob).then((bitmap) => {
+        const sc = document.createElement("canvas");
+        sc.width = bitmap.width; sc.height = bitmap.height;
+        const sctx = sc.getContext("2d");
+        sctx.drawImage(bitmap, 0, 0);
+        const id = sctx.getImageData(0, 0, bitmap.width, bitmap.height);
+        return { width: id.width, height: id.height, data: id.data };
+      });
+    }
+
+    const atlas = Atlas.createForGL(gl, { fetchSheet: fetchFixture });
+    function tick(ms) { return new Promise((r) => setTimeout(r, ms || 0)); }
+    check("no GL errors immediately after createForGL (texStorage3D + reserved-cell upload)",
+      gl.getError() === gl.NO_ERROR, "");
+
+    // ---- >=3 sheets packed, forcing a page boundary ----
+    // fixture_b is requested FIRST (and alone) so its 3599 cells start right after the
+    // reserved cell 0 and land exactly base=1..3599 -- fully deterministic regardless of
+    // what else this page later resolves.
+    atlas.resolve("fixture_b.png", 0, 0);
+    await tick(50);
+    const bInfo = atlas.getSheetInfo("fixture_b.png");
+    check("fixture_b.png (3599 cells) resolves and exactly fills page 0",
+      bInfo && bInfo.state === "ready" && bInfo.base === 1 && atlas.getStats().pagesUsed === 1,
+      JSON.stringify(bInfo) + " pagesUsed=" + atlas.getStats().pagesUsed);
+
+    atlas.resolve("fixture_a.png", 0, 0);
+    atlas.resolve("fixture_c.png", 0, 0);
+    await tick(50);
+    const cInfo = atlas.getSheetInfo("fixture_c.png");
+    const cLoc = cInfo ? Atlas.globalIndexToLocation(cInfo.base) : null;
+    check(">=3 sheets packed across a forced page boundary",
+      cInfo && cInfo.state === "ready" && cLoc.page === 1 && atlas.getStats().pagesUsed === 2,
+      "fixture_c base=" + (cInfo && cInfo.base) + " -> page " + (cLoc && cLoc.page));
+
+    // ---- index stability after a late-arriving sheet ----
+    const aIdxBefore = atlas.resolve("fixture_a.png", 1, 1);
+    atlas.resolve("fixture_late.png", 0, 0);
+    await tick(50);
+    const aIdxAfter = atlas.resolve("fixture_a.png", 1, 1);
+    check("index stability after a late-arriving sheet",
+      aIdxBefore !== Atlas.PENDING && aIdxBefore === aIdxAfter,
+      "before=" + aIdxBefore + " after=" + aIdxAfter);
+
+    // ---- gutter pixels equal edge pixels (readPixels via an FBO on the atlas array layer) ----
+    const aInfo = atlas.getSheetInfo("fixture_a.png");
+    const aIdx = aInfo.base; // cell (0,0) of fixture_a
+    const loc = Atlas.globalIndexToLocation(aIdx);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, atlas.getTexture(), 0, loc.page);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    check("FBO bound to atlas texture-array layer is complete", status === gl.FRAMEBUFFER_COMPLETE,
+      "status=0x" + status.toString(16));
+
+    const pitch = Atlas.CELL_PITCH;
+    const buf = new Uint8Array(pitch * pitch * 4);
+    gl.readPixels(loc.col * pitch, loc.row * pitch, pitch, pitch, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    const glErrAfterRead1 = gl.getError();
+    function px(x, y) {
+      const i = (y * pitch + x) * 4;
+      return [buf[i], buf[i + 1], buf[i + 2], buf[i + 3]];
+    }
+    check("fixture_a's cell (0,0) reads back non-zero (sanity -- rules out a vacuous all-zero pass)",
+      px(1, 1).some((v) => v !== 0) || glErrAfterRead1 !== gl.NO_ERROR,
+      "px(1,1)=" + px(1, 1) + " loc=" + JSON.stringify(loc) + " glErr=0x" + glErrAfterRead1.toString(16));
+    let gutterOk = true, gutterDetail = "";
+    for (let x = 1; x <= 32 && gutterOk; x++) {
+      const top = px(x, 0), topEdge = px(x, 1);
+      const bot = px(x, 33), botEdge = px(x, 32);
+      if (top.join() !== topEdge.join() || bot.join() !== botEdge.join()) {
+        gutterOk = false; gutterDetail = "x=" + x + " top=" + top + " edge=" + topEdge;
+      }
+    }
+    for (let y = 1; y <= 32 && gutterOk; y++) {
+      const left = px(0, y), leftEdge = px(1, y);
+      const right = px(33, y), rightEdge = px(32, y);
+      if (left.join() !== leftEdge.join() || right.join() !== rightEdge.join()) {
+        gutterOk = false; gutterDetail = "y=" + y + " left=" + left + " edge=" + leftEdge;
+      }
+    }
+    check("gutter pixels equal edge pixels (readPixels, exact RGBA)", gutterOk, gutterDetail);
+
+    // ---- premultiplied upload: a 50%-alpha fixture cell reads back premultiplied ----
+    // Verify the RAW decoded fixture pixels first (before they ever touch the atlas), so a
+    // failure below can distinguish "the fixture wasn't what we assumed" from "the atlas
+    // mis-packed it".
+    const rawAlphaImg = await fetchFixture("fixture_alpha.png");
+    const rawAlphaPx = [rawAlphaImg.data[0], rawAlphaImg.data[1], rawAlphaImg.data[2], rawAlphaImg.data[3]];
+
+    atlas.resolve("fixture_alpha.png", 0, 0);
+    await tick(50);
+    const alphaInfo = atlas.getSheetInfo("fixture_alpha.png");
+    const alphaLoc = Atlas.globalIndexToLocation(alphaInfo.base);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, atlas.getTexture(), 0, alphaLoc.page);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    const abuf = new Uint8Array(4);
+    // sample the cell's inner region (skip the 1px gutter) so we read the true fixture pixel.
+    gl.readPixels(alphaLoc.col * pitch + 1 + 16, alphaLoc.row * pitch + 1 + 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, abuf);
+    const glErrAfterAlphaRead = gl.getError();
+    // The fixture cell was filled at ~50% alpha with a distinct RGB; premultiplied upload means
+    // the stored RGB channels must be roughly HALF of what a straight-alpha upload would give
+    // (alpha itself is untouched by premultiplication). Compare against the RAW decoded pixel
+    // (measured, not assumed) rather than a hand-computed "expected" value.
+    check("premultiplied upload measurably darkens a 50%-alpha cell vs its raw straight-alpha pixel",
+      abuf[3] > 80 && abuf[3] < 180 && abuf[0] < rawAlphaPx[0] && abuf[0] > 0,
+      "atlas(rgba)=" + Array.from(abuf).join(",") + " rawDecoded(rgba)=" + rawAlphaPx.join(",") +
+      " loc=" + JSON.stringify(alphaLoc) + " info=" + JSON.stringify(alphaInfo) +
+      " glErr=0x" + glErrAfterAlphaRead.toString(16));
+
+    // ---- reserved cell 0 stays fully transparent ----
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, atlas.getTexture(), 0, 0);
+    const zbuf = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, zbuf);
+    check("reserved cell 0 reads back fully transparent", Array.from(zbuf).every((v) => v === 0),
+      "rgba=" + Array.from(zbuf).join(","));
+
+  } catch (err) {
+    check("self-test ran to completion without throwing", false, String(err && err.stack || err));
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

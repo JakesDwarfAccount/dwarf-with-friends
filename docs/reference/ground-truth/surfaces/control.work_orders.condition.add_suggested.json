@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "control.work_orders.condition.add_suggested",
+  "kind": "control",
+  "title": "Add suggested condition control",
+  "definition": "The native per-suggestion action that is available when the suggestion is not considered already present on the work order.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "availability-guard",
+      "statement": "The control is suppressed when an existing condition matches the suggestion's scalar and string filter identity; operator, comparison value, and contained-reagent indexes are not part of that already-present test.",
+      "status": "accepted",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+          "selectors": ["0x14038c3c0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+          "selectors": ["record-0-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "native-asset",
+      "statement": "The control uses the native WORK_ORDERS_ADD_SUGGESTED_CONDITION interface asset.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x14038c3c0"]
+      }]
+    }
+  ],
+  "uncertainties": [],
+  "relationships": {
+    "parents": ["control.work_orders.condition.suggested_row"],
+    "children": ["asset.work_orders.add_suggested_condition"],
+    "dependencies": ["rule.0002.work-order-suggested-conditions"],
+    "rules": ["rule.0002.work-order-suggested-conditions"],
+    "flows": ["flow.work_orders.add_suggested_condition"],
+    "controls": [],
+    "assets": ["asset.work_orders.add_suggested_condition"]
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["A suggested filter with no matching existing condition exposes the add action."],
+    "boundary": ["An otherwise matching existing condition with a different operator, value, or contained-reagent indexes still suppresses the control."],
+    "counterexamples": ["A difference in a scalar or string filter field leaves the control available; suppressing the control does not remove the row text."]
+  },
+  "absenceGuards": [
+    "Do not include operator, comparison value, or contained-reagent indexes in the native already-present test.",
+    "Do not hide the suggested row when only this control is suppressed."
+  ],
+  "recorderRequirements": {
+    "stateSlice": ["normalized suggested filter", "normalized existing filters", "already-present comparison result", "lower interface texture plane", "anchored interface texture plane"],
+    "requiredFrames": ["Control present for a nonmatching suggestion", "Control absent for a matching suggestion while row text remains visible"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "corpus-confirmed",
+    "productMapping": "mapped-partial",
+    "verification": "live-verified",
+    "release": "not-shippable"
+  }
+}

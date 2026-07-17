@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dwarf-with-friends.local/ground-truth/schema/v1/entity.schema.json",
+  "type": "object",
+  "required": ["schemaVersion", "recordType", "id", "kind", "title", "definition", "applicability", "facts", "uncertainties", "relationships", "requiredStates", "requiredCases", "absenceGuards", "recorderRequirements", "computedStatus"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "recordType": { "const": "entity" },
+    "id": { "$ref": "common.schema.json#/$defs/entityId" },
+    "kind": { "enum": ["surface", "control", "state", "flow", "rule", "asset", "catalog", "absence"] },
+    "title": { "$ref": "common.schema.json#/$defs/nonEmptyString" },
+    "definition": { "$ref": "common.schema.json#/$defs/nonEmptyString" },
+    "applicability": { "$ref": "common.schema.json#/$defs/applicability" },
+    "facts": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/fact" } },
+    "uncertainties": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/uncertainty" } },
+    "relationships": { "$ref": "common.schema.json#/$defs/relationships" },
+    "requiredStates": { "$ref": "common.schema.json#/$defs/entityIdList" },
+    "requiredCases": { "$ref": "common.schema.json#/$defs/requiredCases" },
+    "absenceGuards": { "$ref": "common.schema.json#/$defs/nonEmptyStringList" },
+    "recorderRequirements": { "$ref": "common.schema.json#/$defs/recorderRequirements" },
+    "predicate": {
+      "type": "object",
+      "required": ["file", "tests"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "$ref": "common.schema.json#/$defs/relativePath" },
+        "tests": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/relativePath" } }
+      }
+    },
+    "computedStatus": { "$ref": "common.schema.json#/$defs/computedStatus" }
+  }
+}

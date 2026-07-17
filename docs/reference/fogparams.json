@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "location": "Load-bearing fog oracle; moved from tools/spikes/fog by rebrand W5.",
+    "source": "§6.4 fog/lighting calibration, 2026-07-07, DF 53.15 Steam, fort Sazirzes/Bridgedbranded",
+    "oracle": "lossless capture-tiledump ground_truth.png (native DF render); NOT the JPEG path",
+    "consumer": "WebGL FogParams UBO (webgl-render-report §D) / canvas client constants (dwf-tiles.js §3.4)"
+  },
+  "seeDown": {
+    "mode": "screen-space-fog-corrected",
+    "correction": "2026-07-07 sweep #2 (verification-sweep-2 report): The owner reported real bluish depth fog in the actual DF window (elevation ~48, this fort's window_z=164) that the 'identity' verdict below missed -- because /frame.jpg and /tiledump both read a pre-present framebuffer, and DF applies this tint in its screen-space present pass, after both oracles' read point. Verified live: PrintWindow capture of the real window vs /frame.jpg vs /tiledump at the SAME camera (53,75,164) -- real window shows a fully-covered blue-teal valley; /frame.jpg is almost entirely black there; /tiledump shows correct void + unfogged tree-canopy slices only. Both oracles are fog-blind for multi-level scenes (a second, independent gap from the fictional-JPEG-fog finding below). See docs/superpowers/specs/2026-07-06-fog-lighting-report.md §7 for full method/fit.",
+    "fogColorRgb": [88, 138, 158],
+    "fogColorNote": "empirical asymptotic color (alpha->1); within ~10-14/255 of the raws MULTILEVEL_OVERLAY/MULTILEVEL_AIR sheet color (89,146,172,alpha96) noted as unused in the old evidence below -- circumstantial evidence that sheet IS what the present pass applies",
+    "alphaByDepth": {"0": 0.0, "1": 0.354, "2": 0.454, "3": 0.565, "4": 0.670, "5": 0.773, "6": 0.883, "7": 0.985, "8": 1.0, "9": 1.0},
+    "alphaByDepthNote": "depth = camera_z - local_ground_z. Concave/saturating curve, NOT linear through origin -- fit jointly (alternating least squares) across 2 materials (grass base (78,104,52), stone rubble base (110,104,103)) x 3 channels x 10 depths; both materials converge to the same asymptotic color, confirming a material-independent screen-space overlay (not a per-sprite recolor). Mean abs residual 2.85/255.",
+    "linearRateApprox": 0.15,
+    "linearRateApproxNote": "for WB-10 GL hook's single-scalar seeDownTint.a (amt=clamp(depth*rate,0,1)); matches the measured curve well for depth>=5 (where the visual complaint concentrates), undershoots depth 1-3 by ~0.15-0.2 alpha. A depth-indexed LUT (WB-10 already packs a 4-bit depth into the instance attr) would track the curve better -- follow-up, shader change, out of this sweep's docs/JSON-only scope.",
+    "seeDownTintUBOvalue": [0.3451, 0.5412, 0.6196, 0.15],
+    "seeDownTintUBOvalueNote": "[r,g,b,rate] normalized 0-1 (fogColorRgb/255 + linearRateApprox), drop-in for RenderParams.seeDownTint (web/js/dwf-gl.js WB-10 hook) once an executor is ready to wire it -- NOT wired by this sweep (docs/JSON only, no product-code change).",
+    "shaderLinearFit": {
+      "_meta": "WIRED 2026-07-07 (WB-4 fog completion executor): the single-scalar linearRateApprox (0.15) undershoots depth 1-3 by ~0.15-0.2 alpha per this sweep's own note. A least-squares line fit ONLY through the 7 measured non-clipped points (depth 1..7 from alphaByDepth above -- depth 0 is never fogged, depth 8/9 are the curve's own clip-to-1.0) tracks the SAME measured curve far better: mean abs residual ~0.002 alpha (~0.5/255), max resid ~0.004 alpha, vs. the single-rate approximation's much larger low-depth error. This is a re-expression of the SAME fit, not a new curve -- alpha(depth) = clamp(intercept + depth*rate, 0, 1) for depth>=1, else 0.",
+      "intercept": 0.2464,
+      "rate": 0.1057,
+      "fitMethod": "ordinary least squares, y=alphaByDepth[d] vs x=d, for d in 1..7 (8/9 excluded -- they're the measured curve's own clip region, not informative for the line's slope/intercept)",
+      "maxAbsResidual": 0.0038,
+      "meanAbsResidual": 0.0019,
+      "wiredInto": ["web/js/dwf-tiles.js (FOG_ALPHA_INTERCEPT/FOG_ALPHA_RATE/fogAlphaForDepth, canvas2d see-below terrain wash)", "web/js/dwf-gl.js (RenderParams.seeDownCurve.x + seeDownTint.a in the fragment shader's seeDownDepth branch; same constants duplicated for the JS-side building/unit z-fade belowAlpha helper)"],
+      "notWired": "seeAbove/indoor: NOT part of this re-expression -- those verdicts (seeAbove: delete, indoor: identity/remove) are unrelated to the seeDown curve shape and were executed as straight deletions per their own unchanged evidence above, not curve-fitted.",
+      "testEvidence": ["tools/harness/gl_core_test.mjs (WB-10 RenderParams default section)", "tools/harness/fog_canvas_test.mjs"]
+    },
+    "method": "OS-level PrintWindow screenshot of the live DF window (passive, no DF_LOCK for the screenshot) vs /frame.jpg vs /tiledump(gt=1,atlas=0) at the same camera; camera x,y fixed at (53,75), window_z swept 161(depth0)..170(depth9) and restored to the original 160; 3 fixed screen boxes per material (grass, stone rubble), median RGB per box per depth.",
+    "supersededVerdict": {
+      "mode": "identity",
+      "table": [],
+      "evidence": "108 valley floors x cameras z160..z164 pixel-identical (mean|delta|=0.0); flat-ground sweep d0..d10: median tile delta 0.0, frames z165..z171 bit-identical",
+      "note": "DF's internal capture paths (both /frame.jpg's composite_seedown_into and /tiledump) render see-down substitution at FULL brightness -- this part is STILL TRUE, re-confirmed in sweep #2. What this verdict got wrong: it concluded from that that DF itself has no see-down fog. It does -- the fog is applied in the present pass, downstream of where both capture paths read. The JPEG oracle's composite_seedown_into (0.74-0.14(d-1), x0.90G x0.74R) is still fictional/wrong-shaped fog and should still be neutralized or scored against the raw tiledump oracle for CONTENT purposes -- but see the corrected top-level entry for the tint DF's screen actually shows."
+    }
+  },
+  "seeAbove": {
+    "mode": "delete",
+    "evidence": "top_shadow, signpost, tree_plus_one, shadow_tree layers zero in ALL scenes incl. forest and elevated cameras; canopy renders only as camera-plane slices",
+    "note": "DF draws NO above-camera translucent canopy. Delete alphaAbove/brightnessAbove canopy pass (it adds false content)."
+  },
+  "indoor": {
+    "mode": "identity",
+    "washRgba": [0, 0, 0, 0.0],
+    "evidence": "158 subterranean floors: rendered/sprite ratio (1.009,1.0,1.0); A/B on all-dug scene: removing today's rgba(8,10,34,0.17) wash improves MAE 16.71->13.78",
+    "note": "REMOVE the indoor/underground ambient wash entirely. DF applies no indoor darkening."
+  },
+  "sunlitTint": {
+    "mode": "grass-recolor-not-lighting",
+    "grassSummerTargetRgb": [78, 104, 52],
+    "grassSheetBaseRgb": [73, 99, 52],
+    "evidence": "rendered grass +5,+4,-1 vs its own atlas sprite; water/stone/soil identity in same frame; per-pixel diff structured (std~15) -> runtime seasonal grass recolor, not a lighting pass",
+    "note": "GrassLight and GrassDark render IDENTICALLY (same texpos, same color) - drop the client's per-state tint split; calibrate the single summer grass wash to hit (78,104,52). Seasonal palettes = sprite-level recolor keyed on season (coverage agent: grass raws seasonal colors)."
+  },
+  "hidden": {
+    "mode": "sprite",
+    "sheet": "hidden_rock.png",
+    "cells": [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]],
+    "tokens": ["HIDDEN_ROCK_1..5"],
+    "medianRgb": [49, 44, 52],
+    "evidence": "all hidden tiles render texpos 2566 == HIDDEN_ROCK cell, identity (380 undesignated hidden tiles median exactly (49,44,52))",
+    "note": "Replace HIDDEN_COLOR [6,6,8] flat fill with the opaque hatch sprite. True void (no tile) stays black."
+  },
+  "designationHighlight": {
+    "mode": "additive-overlay",
+    "rgbDelta": [27, 29, 26],
+    "evidence": "154 designated hidden tiles: rendered - sprite = (+27,+29,+26) under the pick icon",
+    "note": "DF lightens designated tiles ~+27/255 plus the designation icon sprite. Feed to designation rendering (coverage agent)."
+  },
+  "wallShadows": {
+    "mode": "sprite-decals",
+    "sheet": "shadows_wall.png (5x5, 16 tokens WALL_SHADOW_{STRAIGHT_|NEAR_|AT_CORNER_}*), shadows_ramp.png (9x9, RAMP_SHADOW_*), vision_shadows.png (4x5, 17 VISION_SHADOW_* fog-of-war edges)",
+    "decalRgb": [0, 31, 52],
+    "mask": "shadow_flag bits 2..9 = wall-at N,S,W,E,NW,NE,SW,SE (decoded this session); equivalently derivable client-side from world-cache 8-neighbor wall adjacency",
+    "evidence": "floors with N-wall bit show top-edge gradient x0.75->x0.96 vs clean floors flat; render-buffer verdict's shadow_flag_ratios.json agrees (blue-tinted, R darkest)",
+    "note": "This IS DF's per-tile 'lighting': directional blue-black gradient decals at wall bases + ramp shadows + vision-edge shadows. Exact via sprite blits keyed by the 8-bit adjacency mask (WebGL ingest joinMask). Token-level mask->cell table needs one controlled-scene pass (5-min tiledump study)."
+  },
+  "dayNight": {
+    "mode": "none",
+    "evidence": "24 captures across 10,682 ticks (~9 in-game days, all times of day): scene mean range < 0.9/255",
+    "note": "No diurnal tint exists. Do not add time-of-day to the wire for rendering."
+  },
+  "liquids": {
+    "mode": "sheet-cells-plus-flags",
+    "sheet": "liquids.png col0 water col1 magma, row = 7 - depth, authored alpha (255,255,255,255,230,204,179 for d7..d1)",
+    "depthSource": "designation.flow_size (wire 'flow'); render-buffer liquid_flag low byte = 0x20|(depth<<2), shore/foam high bits",
+    "evidence": "camera-plane pond (d7) renders as the raw depth-7 cell + wave animation (measured (1,86,100) vs cell (0,79,91)); d1-below-camera water unfogged",
+    "note": "No extra tint. Client bug is draw-path (flat waterRgb fill bleeding / wrong stage), not calibration. Foam/wave sprites are runtime-generated (null atlas slots) - animation channel work."
+  },
+  "variation": {
+    "mode": "exact-data-driven",
+    "evidence": "texpos is a pure function of (ttname[, base material]) in every scene tested (e.g. SoilFloor1..4 -> 17241/17517/17526/17535, GrassXFloor1..4 -> 24123..26); 100.000% stable across ticks and camera shifts (render-buffer verdict D)",
+    "note": "No per-(x,y,z) render hash for terrain. Fix = token map must preserve the ttname variant digit (today it collapses 101 stone-floor ttnames to STONE_FLOOR_5). Sweep table (11s/z-level) available as oracle/backstop."
+  }
+}

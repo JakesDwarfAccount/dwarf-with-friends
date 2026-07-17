@@ -1,0 +1,633 @@
+{
+  "schema": "truemenu-expected-v2",
+  "provenance": {
+    "screenshots": "private native-screenshot corpus (not in this distribution) superseded by the NATIVE ORACLE CAPTURES tools/harness/results/truemenu-native/*.json (menu_oracle.lua, paused-capture protocol, 2026-07-08).",
+    "notes": [
+      "v2 REWRITE (tmcontent-executor 2026-07-08): every leaf-ORDER expectation now comes from the actual button[] row order of a native oracle capture, NOT the montages. DF's native leaf order is NEVER alphabetical (alpha_order=0 on every captured row); the v1 fixtures encoded an alpha misreading (B45).",
+      "Capture provenance per category: weapons iron=01, armor glowing-metal=07 (only armor LEAF capture; iron armor order is derived from the same family rule but marked set-only since no iron armor leaf capture exists), furniture gold=08 (order is metal-independent -> encoded for iron), metal clothing adamantine=27, OTHER iron=29 / silver=21, instruments INSTRUMENT_PIECE=28, root=16.",
+      "The gate runs the generator against the SAME live fort these captures came from (active forge id 96, fort civ ENT305), so civ-rolled clothing + world-generated instrument names match byte-for-byte.",
+      "Metal-list panels inside the montages were a reused weapons crop; only the weapons + other-objects metal lists are trustworthy metal-list captures (silver has no ITEMS_ARMOR).",
+      "Trap leaf ORDER is NOT-VERIFIED (no trap LEAF capture) -> set-equality only."
+    ]
+  },
+  "forge_categories_in_order": [
+    "Weapons and ammunition",
+    "Armor",
+    "Furniture",
+    "Siege equipment",
+    "Trap components",
+    "Other objects",
+    "Metal clothing",
+    "Make instrument piece"
+  ],
+  "forge_root_row_count": 8,
+  "instrument_categories_hidden_when_empty": [
+    "Make instrument"
+  ],
+  "weapons_metals_vanilla_prefix": [
+    "iron",
+    "silver",
+    "copper",
+    "bronze",
+    "steel",
+    "bismuth bronze",
+    "adamantine"
+  ],
+  "other_metals_vanilla_prefix": [
+    "iron",
+    "gold",
+    "silver",
+    "copper",
+    "nickel",
+    "zinc",
+    "bronze",
+    "brass",
+    "steel",
+    "platinum",
+    "electrum",
+    "tin",
+    "fine pewter",
+    "trifle pewter",
+    "lay pewter",
+    "lead",
+    "aluminum",
+    "nickel silver",
+    "billon",
+    "sterling silver",
+    "black bronze",
+    "rose gold",
+    "bismuth bronze",
+    "adamantine"
+  ],
+  "armor_metals_must_not_contain": [
+    "silver",
+    "gold",
+    "lead",
+    "tin"
+  ],
+  "armor_metals_must_contain": [
+    "iron",
+    "copper",
+    "bronze",
+    "steel",
+    "bismuth bronze",
+    "adamantine"
+  ],
+  "weapons_iron_leaves_exact": [
+    "Forge iron crossbow",
+    "Forge iron mace",
+    "Forge iron spear",
+    "Forge iron short sword",
+    "Forge iron war hammer",
+    "Forge iron battle axe",
+    "Forge iron pick",
+    "Forge twenty-five iron bolts"
+  ],
+  "weapons_silver_must_not_contain": [
+    "Forge silver crossbow",
+    "Forge silver pick"
+  ],
+  "_comment_trap_metals": "B52: native TRAP metal list (capture 20) == native WEAPONS metal list (17 rows, ITEMS_WEAPON only), NOT the ITEMS_HARD 35. These HARD-only metals must NOT appear in the trap metal list.",
+  "trap_metals_must_not_contain": [
+    "gold",
+    "tin",
+    "lead",
+    "zinc",
+    "nickel",
+    "platinum",
+    "aluminum",
+    "electrum",
+    "brass",
+    "billon"
+  ],
+  "armor_iron_leaves_set": [
+    "Forge iron breastplate",
+    "Forge iron buckler",
+    "Forge iron cap",
+    "Forge iron greaves",
+    "Forge iron helm",
+    "Forge iron leggings",
+    "Forge iron mail shirt",
+    "Forge iron shield",
+    "Forge pair of iron gauntlets",
+    "Forge pair of iron high boots",
+    "Forge pair of iron low boots"
+  ],
+  "armor_glowing_metal_leaves_exact": [
+    "Forge glowing metal mail shirt",
+    "Forge glowing metal breastplate",
+    "Forge glowing metal leggings",
+    "Forge glowing metal greaves",
+    "Forge glowing metal cap",
+    "Forge glowing metal helm",
+    "Forge pair of glowing metal gauntlets",
+    "Forge pair of glowing metal low boots",
+    "Forge pair of glowing metal high boots",
+    "Forge glowing metal shield",
+    "Forge glowing metal buckler"
+  ],
+  "furniture_iron_leaves_exact": [
+    "Forge iron cage",
+    "Forge iron chain",
+    "Forge iron animal trap",
+    "Forge iron bucket",
+    "Forge iron barrel",
+    "Make iron armor stand",
+    "Make iron blocks",
+    "Make iron door",
+    "Make iron floodgate",
+    "Make iron hatch cover",
+    "Make iron grate",
+    "Make iron statue",
+    "Make iron cabinet",
+    "Make iron chest",
+    "Make iron throne",
+    "Make iron sarcophagus",
+    "Make iron table",
+    "Make iron weapon rack",
+    "Make iron bin",
+    "Forge iron pipe section",
+    "Make iron splint",
+    "Make iron crutch"
+  ],
+  "siege_iron_leaves_exact": [
+    "Forge iron ballista arrow head"
+  ],
+  "trap_iron_leaves_set": [
+    "Forge enormous iron corkscrew",
+    "Forge giant iron axe blade",
+    "Forge large, serrated iron disc",
+    "Forge menacing iron spike",
+    "Forge spiked iron ball",
+    "Make iron mechanisms"
+  ],
+  "other_iron_leaves_exact": [
+    "Forge iron anvil",
+    "Make iron crafts",
+    "Forge three iron goblets",
+    "Forge iron toy",
+    "Forge iron nest box",
+    "Forge iron jug",
+    "Forge iron pot",
+    "Forge iron hive",
+    "Forge iron minecart",
+    "Forge iron wheelbarrow",
+    "Forge iron stepladder",
+    "Forge iron scroll rollers",
+    "Forge iron book binding",
+    "Forge iron bookcase",
+    "Forge iron pedestal",
+    "Forge iron altar",
+    "Forge iron die",
+    "Forge three iron flasks",
+    "Mint iron coins",
+    "Stud with iron",
+    "Make iron amulet",
+    "Make iron bracelet",
+    "Make iron earring",
+    "Make iron crown",
+    "Make iron figurine",
+    "Make iron ring",
+    "Make large iron gem",
+    "Make iron scepter"
+  ],
+  "other_must_not_contain": [
+    "Make iron slab",
+    "Forge iron slab",
+    "Make iron toy axe",
+    "Make iron toy boat",
+    "Make iron toy hammer",
+    "Make iron puzzlebox",
+    "Make iron mini-forge"
+  ],
+  "clothing_adamantine_leaves_exact": [
+    "Forge adamantine dress",
+    "Forge adamantine tunic",
+    "Forge adamantine coat",
+    "Forge adamantine vest",
+    "Forge adamantine robe",
+    "Forge adamantine cloak",
+    "Forge adamantine trousers",
+    "Forge adamantine loincloth",
+    "Forge adamantine hood",
+    "Forge pair of adamantine gloves",
+    "Forge pair of adamantine mittens",
+    "Forge pair of adamantine socks",
+    "Forge pair of adamantine shoes",
+    "Make adamantine backpack",
+    "Make adamantine quiver"
+  ],
+  "clothing_must_not_contain": [
+    "Forge adamantine cap",
+    "Forge adamantine helm",
+    "Forge adamantine breastplate"
+  ],
+  "instrument_piece_leaf_count_civ305": 9,
+  "instrument_piece_leaves_ascii_civ305": [
+    "Forge madush case",
+    "Forge madush strings",
+    "Forge zavaz case",
+    "Forge zavaz strings",
+    "Forge umoz strings",
+    "Forge merrang strings"
+  ],
+  "instrument_piece_note": "capture 28: 9 leaves, ALL fort-civ (MAKE_ENT305) CustomReaction, leaf-ONLY category (no metal layer), RAWS order. World-generated names are worldgen-specific + carry CP437-accented bytes (azkob/shosel), so the gate asserts count + kind + leaf-only shape structurally and lists only the ASCII names as a must-contain subset; the exact accented names are diffed live via --served/--oracle against THIS fort's capture 28 (both sides same encoding).",
+  "smelter_reference_capture30": {
+    "note": "FLAT-SHOP follow-up (NOT implemented by tmcontent-executor -- getJobs-derived flat_root has no native label/order model). Encoded for the next agent. Native Smelter add-task root, capture 30.",
+    "native_order_rule": "melt row FIRST, then ores in inorganic raws-index order, then reactions in raws order -- never alphabetical (B45 class).",
+    "label_fidelity": {
+      "ore_suffix": "native 'Smelt hematite ore' (served drops ' ore' -> 'smelt hematite')",
+      "melt_object": "native 'Melt a metal object' (served 'Melt metal object')",
+      "reaction_case": "native capitalizes reaction names via text(); served serves lowercase raws names"
+    },
+    "objection_fixtures_b43": [
+      "[Requires ore]",
+      "[Requires Flux boulders]"
+    ],
+    "leaf_set": "40/40 clean -- content generation is correct; only label composition + order diverge."
+  },
+  "craftsdwarf_reference_capture31": {
+    "note": "FLAT-SHOP SHAPE follow-up (NOT implemented). Native Craftsdwarf add-task root, capture 31, is NOT flat: 51 direct leaves + 4 material-selector submenu rows ('rock/wood/bone/shell (opens menu)') + 2 custom-category rows (Make instrument piece / Make instrument, natively PRESENT here -- independently confirms B40: the civ's instrument reactions attach to Craftsdwarf).",
+    "shape_class": "cat/leaf-and-material-submenu mixed at ROOT -- the shop-shape must be derived from DF's interface_category_building/job structures, not per-shop hardcoded. Served treats Craftsdwarfs as one flat 346-row list.",
+    "submenu_rows": [
+      "rock (opens menu)",
+      "wood (opens menu)",
+      "bone (opens menu)",
+      "shell (opens menu)"
+    ],
+    "custom_category_rows_present": [
+      "Make instrument piece",
+      "Make instrument"
+    ]
+  },
+  "flatshop_smelter_root_labels": [
+    "Melt a metal object",
+    "Smelt hematite ore",
+    "Smelt limonite ore",
+    "Smelt garnierite ore",
+    "Smelt native gold ore",
+    "Smelt native silver ore",
+    "Smelt native copper ore",
+    "Smelt malachite ore",
+    "Smelt galena ore",
+    "Smelt sphalerite ore",
+    "Smelt cassiterite ore",
+    "Smelt native platinum ore",
+    "Smelt tetrahedrite ore",
+    "Smelt horn silver ore",
+    "Smelt bismuthinite ore",
+    "Smelt magnetite ore",
+    "Smelt native aluminum ore",
+    "Make coke from bituminous coal",
+    "Make coke from lignite",
+    "Make brass bars (use ore)",
+    "Make brass bars (use bars)",
+    "Make bronze bars (use ore)",
+    "Make bronze bars (use bars)",
+    "Make electrum bars (use ore)",
+    "Make electrum bars (use bars)",
+    "Make billon bars (use ore)",
+    "Make billon bars (use bars)",
+    "Make fine pewter bars (use ore)",
+    "Make fine pewter bars (use bars)",
+    "Make trifle pewter bars (use ore)",
+    "Make trifle pewter bars (use bars)",
+    "Make lay pewter bars (use bars)",
+    "Make pig iron bars",
+    "Make steel bars",
+    "Make nickel silver bars",
+    "Make black bronze bars",
+    "Make sterling silver bars",
+    "Make rose gold bars",
+    "Make bismuth bronze bars",
+    "Make adamantine wafers"
+  ],
+  "flatshop_kennels_root_labels": [
+    "Catch live land animal",
+    "Tame a small animal"
+  ],
+  "flatshop_craftsdwarf_root_pairs": [
+    [
+      "material_selector",
+      "rock"
+    ],
+    [
+      "material_selector",
+      "wood"
+    ],
+    [
+      "material_selector",
+      "bone"
+    ],
+    [
+      "material_selector",
+      "shell"
+    ],
+    [
+      "job",
+      "Decorate with ivory/tooth"
+    ],
+    [
+      "job",
+      "Decorate with horn"
+    ],
+    [
+      "job",
+      "Decorate with pearl"
+    ],
+    [
+      "job",
+      "Make totem"
+    ],
+    [
+      "job",
+      "Extract metal strands"
+    ],
+    [
+      "custom_category",
+      "Make instrument piece"
+    ],
+    [
+      "custom_category",
+      "Make instrument"
+    ],
+    [
+      "reaction",
+      "Make wax crafts"
+    ],
+    [
+      "reaction",
+      "Make scroll"
+    ],
+    [
+      "reaction",
+      "Make quire"
+    ],
+    [
+      "reaction",
+      "Bind book"
+    ],
+    [
+      "job",
+      "Make cloth crafts"
+    ],
+    [
+      "job",
+      "Make cloth amulet"
+    ],
+    [
+      "job",
+      "Make cloth bracelet"
+    ],
+    [
+      "job",
+      "Make cloth earring"
+    ],
+    [
+      "job",
+      "Make silk crafts"
+    ],
+    [
+      "job",
+      "Make silk amulet"
+    ],
+    [
+      "job",
+      "Make silk bracelet"
+    ],
+    [
+      "job",
+      "Make silk earring"
+    ],
+    [
+      "job",
+      "Make yarn crafts"
+    ],
+    [
+      "job",
+      "Make yarn amulet"
+    ],
+    [
+      "job",
+      "Make yarn bracelet"
+    ],
+    [
+      "job",
+      "Make yarn earring"
+    ],
+    [
+      "job",
+      "Make ivory/tooth crafts"
+    ],
+    [
+      "job",
+      "Make ivory/tooth amulet"
+    ],
+    [
+      "job",
+      "Make ivory/tooth bracelet"
+    ],
+    [
+      "job",
+      "Make ivory/tooth earring"
+    ],
+    [
+      "job",
+      "Make ivory/tooth crown"
+    ],
+    [
+      "job",
+      "Make ivory/tooth figurine"
+    ],
+    [
+      "job",
+      "Make ivory/tooth ring"
+    ],
+    [
+      "job",
+      "Make large ivory/tooth gem"
+    ],
+    [
+      "job",
+      "Make ivory/tooth scepter"
+    ],
+    [
+      "job",
+      "Make horn crafts"
+    ],
+    [
+      "job",
+      "Make horn amulet"
+    ],
+    [
+      "job",
+      "Make horn bracelet"
+    ],
+    [
+      "job",
+      "Make horn earring"
+    ],
+    [
+      "job",
+      "Make horn crown"
+    ],
+    [
+      "job",
+      "Make horn figurine"
+    ],
+    [
+      "job",
+      "Make horn ring"
+    ],
+    [
+      "job",
+      "Make large horn gem"
+    ],
+    [
+      "job",
+      "Make horn scepter"
+    ],
+    [
+      "job",
+      "Make pearl crafts"
+    ],
+    [
+      "job",
+      "Make pearl amulet"
+    ],
+    [
+      "job",
+      "Make pearl bracelet"
+    ],
+    [
+      "job",
+      "Make pearl earring"
+    ],
+    [
+      "job",
+      "Make pearl crown"
+    ],
+    [
+      "job",
+      "Make pearl figurine"
+    ],
+    [
+      "job",
+      "Make pearl ring"
+    ],
+    [
+      "job",
+      "Make large pearl gem"
+    ],
+    [
+      "job",
+      "Make leather crafts"
+    ],
+    [
+      "job",
+      "Make leather amulet"
+    ],
+    [
+      "job",
+      "Make leather bracelet"
+    ],
+    [
+      "job",
+      "Make leather earring"
+    ]
+  ],
+  "flatshop_craftsdwarf_rock_leaves": [
+    "Make rock crafts",
+    "Make three rock mugs",
+    "Make rock short sword",
+    "Make rock nest box",
+    "Make rock jug",
+    "Make rock pot",
+    "Make rock hive",
+    "Make rock scroll rollers",
+    "Make rock book binding",
+    "Make rock die",
+    "Make rock toy",
+    "Make rock figurine",
+    "Make rock amulet",
+    "Make rock scepter",
+    "Make rock crown",
+    "Make rock ring",
+    "Make rock earring",
+    "Make rock bracelet",
+    "Make large rock gem"
+  ],
+  "flatshop_notes": "flatshop-executor 2026-07-08: native captures 30 (Smelter root, 40 rows), 31 (Craftsdwarf root, 57 rows -- 4 material selectors + 51 direct leaves + 2 instrument custom-categories), 32 (Craftsdwarf rock submenu, 19 material-pinned leaves), 33 (Kennels = v50 Vermin Catcher's Shop, 2 rows). Root labels/kinds are ASCII + deterministic (instrument LEAF names are worldgen and live one level below the root, so the root assertion is exact). Selector/custom-category rows are stored bare in the model (client appends ' (opens menu)'). wood/bone/shell submenu CONTENTS are NOT captured -> not gated.",
+  "montage_iron": {
+    "provenance": "wp3-executor 2026-07-08: montage corpus 'Menu Oracle Screenshots/flow images metalsmithing workshop iron/' (9 forge shots). A SECOND, INDEPENDENT oracle -- a DIFFERENT world/civ than the ENT305 native captures: its forge root has 9 categories ('Make instrument' is NON-empty here), different divine metals ('cosmic stardust'/'ruddy metal'/... vs ENT305's), and 'toga' where ENT305 rolls 'dress'. TWO montage caveats, both load-bearing: (1) leaves are shown ALPHABETIZED (search-sort toggle ON: Forge-verb block A-Z, then Make-verb block A-Z) -- so only leaf SETS are portable across the two oracles, NEVER order (the button[] captures give raws order, B45); (2) the metal panels under Armor/Siege/Trap/Metal-clothing are a REUSED weapons (ITEMS_WEAPON) crop -- silver appears under Armor (ITEMS_ARMOR excludes it), and the Metal-clothing shot highlights 'iron' yet lists adamantine leaves -- so montage METAL lists are NOT asserted. Only the civ/world-INDEPENDENT cells are gated: root category order (as an ordered subsequence -- ENT305's 8 vs this world's 9) and the weapons/armor/furniture/siege/trap iron leaf SETS. Metal-clothing + instrument leaves are civ/world-specific -> NOT asserted. The generated model's SETS match these montages exactly (differential agreement, VERIFIED offline).",
+    "root_categories": [
+      "Weapons and ammunition",
+      "Armor",
+      "Furniture",
+      "Siege equipment",
+      "Trap components",
+      "Other objects",
+      "Metal clothing",
+      "Make instrument piece",
+      "Make instrument"
+    ],
+    "weapons_iron_set": [
+      "Forge iron battle axe",
+      "Forge iron crossbow",
+      "Forge iron mace",
+      "Forge iron pick",
+      "Forge iron short sword",
+      "Forge iron spear",
+      "Forge iron war hammer",
+      "Forge twenty-five iron bolts"
+    ],
+    "armor_iron_set": [
+      "Forge iron breastplate",
+      "Forge iron buckler",
+      "Forge iron cap",
+      "Forge iron greaves",
+      "Forge iron helm",
+      "Forge iron leggings",
+      "Forge iron mail shirt",
+      "Forge iron shield",
+      "Forge pair of iron gauntlets",
+      "Forge pair of iron high boots",
+      "Forge pair of iron low boots"
+    ],
+    "furniture_iron_set": [
+      "Forge iron animal trap",
+      "Forge iron barrel",
+      "Forge iron bucket",
+      "Forge iron cage",
+      "Forge iron chain",
+      "Forge iron pipe section",
+      "Make iron armor stand",
+      "Make iron bin",
+      "Make iron blocks",
+      "Make iron cabinet",
+      "Make iron chest",
+      "Make iron crutch",
+      "Make iron door",
+      "Make iron floodgate",
+      "Make iron grate",
+      "Make iron hatch cover",
+      "Make iron sarcophagus",
+      "Make iron splint",
+      "Make iron statue",
+      "Make iron table",
+      "Make iron throne",
+      "Make iron weapon rack"
+    ],
+    "siege_iron_set": [
+      "Forge iron ballista arrow head"
+    ],
+    "trap_iron_set": [
+      "Forge enormous iron corkscrew",
+      "Forge giant iron axe blade",
+      "Forge large, serrated iron disc",
+      "Forge menacing iron spike",
+      "Forge spiked iron ball",
+      "Make iron mechanisms"
+    ]
+  }
+}

@@ -1,0 +1,2056 @@
+{
+ "Ashes1": {
+  "tint": null,
+  "token": "FLOOR_ASHES"
+ },
+ "Ashes2": {
+  "tint": null,
+  "token": "FLOOR_ASHES"
+ },
+ "Ashes3": {
+  "tint": null,
+  "token": "FLOOR_ASHES"
+ },
+ "BrookE": {
+  "tint": null,
+  "token": "BROOK_BED_E"
+ },
+ "BrookN": {
+  "tint": null,
+  "token": "BROOK_BED_N"
+ },
+ "BrookNE": {
+  "tint": null,
+  "token": "BROOK_BED_NE"
+ },
+ "BrookNW": {
+  "tint": null,
+  "token": "BROOK_BED_NW"
+ },
+ "BrookS": {
+  "tint": null,
+  "token": "BROOK_BED_S"
+ },
+ "BrookSE": {
+  "tint": null,
+  "token": "BROOK_BED_SE"
+ },
+ "BrookSW": {
+  "tint": null,
+  "token": "BROOK_BED_SW"
+ },
+ "BrookTop1": {
+  "tint": null,
+  "token": "BROOK_BED"
+ },
+ "BrookTop2": {
+  "tint": null,
+  "token": "BROOK_BED"
+ },
+ "BrookTop3": {
+  "tint": null,
+  "token": "BROOK_BED"
+ },
+ "BrookTop4": {
+  "tint": null,
+  "token": "BROOK_BED"
+ },
+ "BrookW": {
+  "tint": null,
+  "token": "BROOK_BED_W"
+ },
+ "BurningTreeBranches": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "BurningTreeCapFloor": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "BurningTreeCapRamp": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "BurningTreeCapWall": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "BurningTreeTrunk": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "BurningTreeTwigs": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "Campfire": {
+  "tint": null,
+  "token": "CAMPFIRE"
+ },
+ "ConstructedFloor": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackE": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackEW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackN": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNE": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNEW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNS": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNSE": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNSEW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNSW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackNW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackS": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackSE": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackSEW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackSW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFloorTrackW": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ConstructedFortification": {
+  "tint": null,
+  "token": "FORTIFICATION"
+ },
+ "ConstructedPillar": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedRamp": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackN": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackNW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedRampTrackW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "ConstructedStairD": {
+  "tint": null,
+  "token": "STONE_STAIR_DOWN"
+ },
+ "ConstructedStairU": {
+  "tint": null,
+  "token": "STONE_STAIR_UP"
+ },
+ "ConstructedStairUD": {
+  "tint": null,
+  "token": "STONE_STAIR_UPDOWN"
+ },
+ "ConstructedWallL2D": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallL2U": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLD2": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLR": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLRD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLRU": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLRUD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLU": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLU2": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallLUD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallR2D": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallR2U": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallRD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallRD2": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallRU": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallRU2": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallRUD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "ConstructedWallUD": {
+  "tint": null,
+  "token": "ROCK_BLOCKS_WALL_N_S_W_E"
+ },
+ "Driftwood": {
+  "tint": null,
+  "token": "DRIFTWOOD"
+ },
+ "EeriePit": {
+  "tint": null,
+  "token": "EERIE_PIT"
+ },
+ "FeatureBoulder": {
+  "tint": null,
+  "token": "BOULDER"
+ },
+ "FeatureFloor1": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloor2": {
+  "overlay": "STONE_FLOOR_2",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloor3": {
+  "overlay": "STONE_FLOOR_3",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloor4": {
+  "overlay": "STONE_FLOOR_4",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorSmooth": {
+  "tint": null,
+  "token": "SMOOTH_FLOOR"
+ },
+ "FeatureFloorTrackE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackN": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackNW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFloorTrackW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "FeatureFortification": {
+  "tint": null,
+  "token": "FORTIFICATION"
+ },
+ "FeaturePebbles1": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5"
+ },
+ "FeaturePebbles2": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5B"
+ },
+ "FeaturePebbles3": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5C"
+ },
+ "FeaturePebbles4": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5D"
+ },
+ "FeaturePillar": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureRamp": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackN": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackNW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureRampTrackW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "FeatureStairD": {
+  "tint": null,
+  "token": "STONE_STAIR_DOWN"
+ },
+ "FeatureStairU": {
+  "tint": null,
+  "token": "STONE_STAIR_UP"
+ },
+ "FeatureStairUD": {
+  "tint": null,
+  "token": "STONE_STAIR_UPDOWN"
+ },
+ "FeatureWall": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothL2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothL2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLR": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothLUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothR2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothR2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothRD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothRU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallSmoothUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallWorn1": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallWorn2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "FeatureWallWorn3": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "Fire": {
+  "tint": null,
+  "token": "FIRE"
+ },
+ "FrozenFloor1": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloor2": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloor3": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloor4": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorSmooth": {
+  "tint": null,
+  "token": "SMOOTH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackN": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNS": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNSE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNSEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNSW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackNW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackS": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackSE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackSEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackSW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFloorTrackW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenFortification": {
+  "tint": null,
+  "token": "FORTIFICATION_ICE"
+ },
+ "FrozenPillar": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenRamp": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackN": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNS": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNSE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNSEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNSW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackNW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackS": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackSE": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackSEW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackSW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenRampTrackW": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenStairD": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenStairU": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenStairUD": {
+  "tint": null,
+  "token": "ROUGH_ICE_FLOOR"
+ },
+ "FrozenWall": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothL2D": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothL2U": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLD2": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLR": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLRD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLRU": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLRUD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLU": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLU2": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothLUD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothR2D": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothR2U": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothRD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothRD2": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothRU": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothRU2": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothRUD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallSmoothUD": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallWorn1": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallWorn2": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FrozenWallWorn3": {
+  "tint": null,
+  "token": "ICE_WALL_N_S_W_E"
+ },
+ "FurrowedSoil": {
+  "overlay": "DIRT_FLOOR_1",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "GlowingBarrier": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "GlowingFloor": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "Grass1StairD": {
+  "tint": null,
+  "token": "GRASS_STAIR_DOWN"
+ },
+ "Grass1StairU": {
+  "tint": null,
+  "token": "GRASS_STAIR_UP"
+ },
+ "Grass1StairUD": {
+  "tint": null,
+  "token": "GRASS_STAIR_UPDOWN"
+ },
+ "Grass2StairD": {
+  "tint": null,
+  "token": "GRASS_STAIR_DOWN"
+ },
+ "Grass2StairU": {
+  "tint": null,
+  "token": "GRASS_STAIR_UP"
+ },
+ "Grass2StairUD": {
+  "tint": null,
+  "token": "GRASS_STAIR_UPDOWN"
+ },
+ "GrassDarkFloor1": {
+  "tint": "grassSummer",
+  "token": "GRASS_1"
+ },
+ "GrassDarkFloor2": {
+  "tint": "grassSummer",
+  "token": "GRASS_2"
+ },
+ "GrassDarkFloor3": {
+  "tint": "grassSummer",
+  "token": "GRASS_3"
+ },
+ "GrassDarkFloor4": {
+  "tint": "grassSummer",
+  "token": "GRASS_4"
+ },
+ "GrassDarkRamp": {
+  "tint": "grassSummer",
+  "token": "GRASS_RAMP_OTHER"
+ },
+ "GrassDeadFloor1": {
+  "tint": "grassSummer",
+  "token": "GRASS_1"
+ },
+ "GrassDeadFloor2": {
+  "tint": "grassSummer",
+  "token": "GRASS_2"
+ },
+ "GrassDeadFloor3": {
+  "tint": "grassSummer",
+  "token": "GRASS_3"
+ },
+ "GrassDeadFloor4": {
+  "tint": "grassSummer",
+  "token": "GRASS_4"
+ },
+ "GrassDeadRamp": {
+  "tint": "grassSummer",
+  "token": "GRASS_RAMP_OTHER"
+ },
+ "GrassDryFloor1": {
+  "tint": "grassSummer",
+  "token": "GRASS_1"
+ },
+ "GrassDryFloor2": {
+  "tint": "grassSummer",
+  "token": "GRASS_2"
+ },
+ "GrassDryFloor3": {
+  "tint": "grassSummer",
+  "token": "GRASS_3"
+ },
+ "GrassDryFloor4": {
+  "tint": "grassSummer",
+  "token": "GRASS_4"
+ },
+ "GrassDryRamp": {
+  "tint": "grassSummer",
+  "token": "GRASS_RAMP_OTHER"
+ },
+ "GrassLightFloor1": {
+  "tint": "grassSummer",
+  "token": "GRASS_1"
+ },
+ "GrassLightFloor2": {
+  "tint": "grassSummer",
+  "token": "GRASS_2"
+ },
+ "GrassLightFloor3": {
+  "tint": "grassSummer",
+  "token": "GRASS_3"
+ },
+ "GrassLightFloor4": {
+  "tint": "grassSummer",
+  "token": "GRASS_4"
+ },
+ "GrassLightRamp": {
+  "tint": "grassSummer",
+  "token": "GRASS_RAMP_OTHER"
+ },
+ "LavaBoulder": {
+  "tint": null,
+  "token": "BOULDER"
+ },
+ "LavaFloor1": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloor2": {
+  "overlay": "STONE_FLOOR_2",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloor3": {
+  "overlay": "STONE_FLOOR_3",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloor4": {
+  "overlay": "STONE_FLOOR_4",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorSmooth": {
+  "tint": null,
+  "token": "SMOOTH_FLOOR"
+ },
+ "LavaFloorTrackE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackN": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackNW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFloorTrackW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "LavaFortification": {
+  "tint": null,
+  "token": "FORTIFICATION"
+ },
+ "LavaPebbles1": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5"
+ },
+ "LavaPebbles2": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5B"
+ },
+ "LavaPebbles3": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5C"
+ },
+ "LavaPebbles4": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5D"
+ },
+ "LavaPillar": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaRamp": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackN": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackNW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaRampTrackW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "LavaStairD": {
+  "tint": null,
+  "token": "STONE_STAIR_DOWN"
+ },
+ "LavaStairU": {
+  "tint": null,
+  "token": "STONE_STAIR_UP"
+ },
+ "LavaStairUD": {
+  "tint": null,
+  "token": "STONE_STAIR_UPDOWN"
+ },
+ "LavaWall": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothL2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothL2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLR": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothLUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothR2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothR2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothRD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothRU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallSmoothUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallWorn1": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallWorn2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "LavaWallWorn3": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MagmaFlow": {
+  "tint": null,
+  "token": "MAGMA_1"
+ },
+ "MineralBoulder": {
+  "tint": null,
+  "token": "BOULDER"
+ },
+ "MineralFloor1": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloor2": {
+  "overlay": "STONE_FLOOR_2",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloor3": {
+  "overlay": "STONE_FLOOR_3",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloor4": {
+  "overlay": "STONE_FLOOR_4",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorSmooth": {
+  "tint": null,
+  "token": "SMOOTH_FLOOR"
+ },
+ "MineralFloorTrackE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackN": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackNW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFloorTrackW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "MineralFortification": {
+  "tint": null,
+  "token": "FORTIFICATION"
+ },
+ "MineralPebbles1": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5"
+ },
+ "MineralPebbles2": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5B"
+ },
+ "MineralPebbles3": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5C"
+ },
+ "MineralPebbles4": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5D"
+ },
+ "MineralPillar": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralRamp": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackN": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackNW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralRampTrackW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "MineralStairD": {
+  "tint": null,
+  "token": "STONE_STAIR_DOWN"
+ },
+ "MineralStairU": {
+  "tint": null,
+  "token": "STONE_STAIR_UP"
+ },
+ "MineralStairUD": {
+  "tint": null,
+  "token": "STONE_STAIR_UPDOWN"
+ },
+ "MineralWall": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothL2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothL2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLR": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothLUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothR2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothR2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothRD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothRU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallSmoothUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallWorn1": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallWorn2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MineralWallWorn3": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "MurkyPool": {
+  "tint": null,
+  "token": "RIVER_BED"
+ },
+ "MurkyPoolRamp": {
+  "tint": null,
+  "token": "RIVER_BED"
+ },
+ "RiverE": {
+  "tint": null,
+  "token": "RIVER_BED_E"
+ },
+ "RiverN": {
+  "tint": null,
+  "token": "RIVER_BED_N"
+ },
+ "RiverNE": {
+  "tint": null,
+  "token": "RIVER_BED_NE"
+ },
+ "RiverNW": {
+  "tint": null,
+  "token": "RIVER_BED_NW"
+ },
+ "RiverRampE": {
+  "tint": null,
+  "token": "RIVER_BED_E"
+ },
+ "RiverRampN": {
+  "tint": null,
+  "token": "RIVER_BED_N"
+ },
+ "RiverRampNE": {
+  "tint": null,
+  "token": "RIVER_BED_NE"
+ },
+ "RiverRampNW": {
+  "tint": null,
+  "token": "RIVER_BED_NW"
+ },
+ "RiverRampS": {
+  "tint": null,
+  "token": "RIVER_BED_S"
+ },
+ "RiverRampSE": {
+  "tint": null,
+  "token": "RIVER_BED_SE"
+ },
+ "RiverRampSW": {
+  "tint": null,
+  "token": "RIVER_BED_SW"
+ },
+ "RiverRampW": {
+  "tint": null,
+  "token": "RIVER_BED_W"
+ },
+ "RiverS": {
+  "tint": null,
+  "token": "RIVER_BED_S"
+ },
+ "RiverSE": {
+  "tint": null,
+  "token": "RIVER_BED_SE"
+ },
+ "RiverSW": {
+  "tint": null,
+  "token": "RIVER_BED_SW"
+ },
+ "RiverSource": {
+  "tint": null,
+  "token": "RIVER_BED_SOURCE"
+ },
+ "RiverW": {
+  "tint": null,
+  "token": "RIVER_BED_W"
+ },
+ "SemiMoltenRock": {
+  "tint": null,
+  "token": "MAGMA_WALL_N_S_W_E"
+ },
+ "ShoddyConstructedFloor1": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ShoddyConstructedFloor2": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ShoddyConstructedFloor3": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ShoddyConstructedFloor4": {
+  "tint": null,
+  "token": "FLOOR_STONE_BLOCK"
+ },
+ "ShoddyConstructedStairD": {
+  "tint": null,
+  "token": "STONE_STAIR_DOWN"
+ },
+ "ShoddyConstructedStairU": {
+  "tint": null,
+  "token": "STONE_STAIR_UP"
+ },
+ "ShoddyConstructedStairUD": {
+  "tint": null,
+  "token": "STONE_STAIR_UPDOWN"
+ },
+ "SoilFloor1": {
+  "overlay": "DIRT_FLOOR_1",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilFloor2": {
+  "overlay": "DIRT_FLOOR_2",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilFloor3": {
+  "overlay": "DIRT_FLOOR_3",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilFloor4": {
+  "overlay": "DIRT_FLOOR_4",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilRamp": {
+  "tint": null,
+  "token": "SOIL_RAMP_OTHER"
+ },
+ "SoilStairD": {
+  "tint": null,
+  "token": "DIRT_STAIR_DOWN"
+ },
+ "SoilStairU": {
+  "tint": null,
+  "token": "DIRT_STAIR_UP"
+ },
+ "SoilStairUD": {
+  "tint": null,
+  "token": "DIRT_STAIR_UPDOWN"
+ },
+ "SoilWall": {
+  "tint": null,
+  "token": "SOIL_WALL_N_S_W_E_1"
+ },
+ "SoilWetFloor1": {
+  "overlay": "DIRT_FLOOR_1",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilWetFloor2": {
+  "overlay": "DIRT_FLOOR_2",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilWetFloor3": {
+  "overlay": "DIRT_FLOOR_3",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "SoilWetFloor4": {
+  "overlay": "DIRT_FLOOR_4",
+  "tint": null,
+  "token": "DIRT_FLOOR_5"
+ },
+ "StoneBoulder": {
+  "tint": null,
+  "token": "BOULDER"
+ },
+ "StoneFloor1": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloor2": {
+  "overlay": "STONE_FLOOR_2",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloor3": {
+  "overlay": "STONE_FLOOR_3",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloor4": {
+  "overlay": "STONE_FLOOR_4",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorSmooth": {
+  "tint": null,
+  "token": "SMOOTH_FLOOR"
+ },
+ "StoneFloorTrackE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackN": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackNW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackS": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackSE": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackSEW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackSW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFloorTrackW": {
+  "overlay": "STONE_FLOOR_1",
+  "tint": null,
+  "token": "STONE_FLOOR_5"
+ },
+ "StoneFortification": {
+  "tint": null,
+  "token": "FORTIFICATION"
+ },
+ "StonePebbles1": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5"
+ },
+ "StonePebbles2": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5B"
+ },
+ "StonePebbles3": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5C"
+ },
+ "StonePebbles4": {
+  "tint": null,
+  "token": "PEBBLES_FLOOR_5D"
+ },
+ "StonePillar": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneRamp": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackN": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackNW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackS": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackSE": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackSEW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackSW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneRampTrackW": {
+  "tint": null,
+  "token": "STONE_RAMP_OTHER"
+ },
+ "StoneStairD": {
+  "tint": null,
+  "token": "STONE_STAIR_DOWN"
+ },
+ "StoneStairU": {
+  "tint": null,
+  "token": "STONE_STAIR_UP"
+ },
+ "StoneStairUD": {
+  "tint": null,
+  "token": "STONE_STAIR_UPDOWN"
+ },
+ "StoneWall": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothL2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothL2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLR": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothLUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothR2D": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothR2U": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothRD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothRD2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothRU": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothRU2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothRUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallSmoothUD": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallWorn1": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallWorn2": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "StoneWallWorn3": {
+  "tint": null,
+  "token": "STONE_WALL_N_S_W_E_1"
+ },
+ "Waterfall": {
+  "tint": null,
+  "token": "RIVER_BED"
+ }
+}

@@ -1,0 +1,1892 @@
+{
+ "_v": 1,
+ "palette": [
+  [
+   0,
+   0,
+   0
+  ],
+  [
+   32,
+   125,
+   241
+  ],
+  [
+   162,
+   220,
+   52
+  ],
+  [
+   113,
+   187,
+   176
+  ],
+  [
+   255,
+   17,
+   58
+  ],
+  [
+   167,
+   60,
+   213
+  ],
+  [
+   215,
+   155,
+   45
+  ],
+  [
+   192,
+   192,
+   192
+  ],
+  [
+   160,
+   160,
+   160
+  ],
+  [
+   140,
+   102,
+   255
+  ],
+  [
+   19,
+   253,
+   101
+  ],
+  [
+   18,
+   254,
+   207
+  ],
+  [
+   255,
+   113,
+   17
+  ],
+  [
+   232,
+   17,
+   255
+  ],
+  [
+   255,
+   225,
+   17
+  ],
+  [
+   255,
+   255,
+   255
+  ]
+ ],
+ "palette_source": "colors.txt",
+ "plants": {
+  "BABY TOES SUCCULENT": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "BAMBOO, ARROW": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "BAMBOO, GOLDEN": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "BAMBOO, HEDGE": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "BENTGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "BLUE SEDGE": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "BUBBLE BULBS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 3,
+     "rgb": [
+      18,
+      254,
+      207
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 3,
+     "rgb": [
+      113,
+      187,
+      176
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 3,
+     "rgb": [
+      113,
+      187,
+      176
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "CARPETGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "CATTAIL": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "CAVE MOSS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 3,
+     "rgb": [
+      18,
+      254,
+      207
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 3,
+     "rgb": [
+      113,
+      187,
+      176
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 3,
+     "rgb": [
+      113,
+      187,
+      176
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "CLOUDBERRY": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "COMMON REED": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "COTTONGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "DALLISGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "DOG'S TOOTH GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "DOWNY GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 7,
+     "rgb": [
+      255,
+      255,
+      255
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 7,
+     "rgb": [
+      192,
+      192,
+      192
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 7,
+     "rgb": [
+      192,
+      192,
+      192
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "DROPSEED GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "EYEBALL": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 7,
+     "rgb": [
+      255,
+      255,
+      255
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 7,
+     "rgb": [
+      192,
+      192,
+      192
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 7,
+     "rgb": [
+      192,
+      192,
+      192
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "FESCUE GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "FIELD SEDGE": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "FLOOR FUNGI": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 7,
+     "rgb": [
+      255,
+      255,
+      255
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 7,
+     "rgb": [
+      192,
+      192,
+      192
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "GRAMA": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "HAIR GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "KNOTGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "MARSH THISTLE": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "MEADOW-GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "MEADOWSWEET": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "MOUNTAIN AVENS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "NEEDLE GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "PEBBLE PLANTS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "PURPLE MOOR GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "REEDGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "RUSH": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "RYEGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "SATINTAIL": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "SAWGRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "UNDERLICHEN": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 5,
+     "rgb": [
+      232,
+      17,
+      255
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 5,
+     "rgb": [
+      167,
+      60,
+      213
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 5,
+     "rgb": [
+      167,
+      60,
+      213
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "VELVET GRASS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "WHITE MOUNTAIN HEATHER": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  },
+  "WORMY TENDRILS": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 5,
+     "rgb": [
+      232,
+      17,
+      255
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 5,
+     "rgb": [
+      232,
+      17,
+      255
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 5,
+     "rgb": [
+      167,
+      60,
+      213
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 0,
+     "rgb": [
+      160,
+      160,
+      160
+     ]
+    }
+   ]
+  },
+  "ZOYSIA": {
+   "tiers": [
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 2,
+     "rgb": [
+      19,
+      253,
+      101
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 2,
+     "rgb": [
+      162,
+      220,
+      52
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": true,
+     "fg": 6,
+     "rgb": [
+      255,
+      225,
+      17
+     ]
+    },
+    {
+     "bg": 0,
+     "bright": false,
+     "fg": 6,
+     "rgb": [
+      215,
+      155,
+      45
+     ]
+    }
+   ]
+  }
+ }
+}

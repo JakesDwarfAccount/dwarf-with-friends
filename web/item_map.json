@@ -1,0 +1,5782 @@
+{
+ "_corpse_fallback": {
+  "col": 0,
+  "row": 0,
+  "sheet": "bone_pile.png"
+ },
+ "_default": {
+  "col": 0,
+  "row": 1,
+  "sheet": "item_box.png"
+ },
+ "_missing": {
+  "col": 1,
+  "row": 0,
+  "sheet": "defaults.png"
+ },
+ "_v": 3,
+ "bar_bymat": {
+  "COAL:CHARCOAL": {
+   "col": 1,
+   "row": 4,
+   "sheet": "item_construction.png"
+  },
+  "COAL:COKE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_construction.png"
+  },
+  "PEARLASH": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_construction.png"
+  },
+  "POTASH": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_construction.png"
+  },
+  "SOAP": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_construction.png"
+  }
+ },
+ "boulder_bymat": {
+  "ALABASTER": {
+   "col": 0,
+   "row": 6,
+   "sheet": "boulders.png"
+  },
+  "BISMUTHINITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "CALCITE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "boulders.png"
+  },
+  "CASSITERITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "CHALK": {
+   "col": 0,
+   "row": 4,
+   "sheet": "boulders.png"
+  },
+  "CLAY": {
+   "col": 0,
+   "row": 7,
+   "sheet": "boulders.png"
+  },
+  "CLAY_LOAM": {
+   "col": 0,
+   "row": 7,
+   "sheet": "boulders.png"
+  },
+  "COAL_BITUMINOUS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "boulders.png"
+  },
+  "DOLOMITE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "boulders.png"
+  },
+  "FIRE_CLAY": {
+   "col": 0,
+   "row": 7,
+   "sheet": "boulders.png"
+  },
+  "GALENA": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "GARNIERITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "GYPSUM": {
+   "col": 0,
+   "row": 6,
+   "sheet": "boulders.png"
+  },
+  "HEMATITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "HORN_SILVER": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "KAOLINITE": {
+   "col": 0,
+   "row": 7,
+   "sheet": "boulders.png"
+  },
+  "LIGNITE": {
+   "col": 0,
+   "row": 3,
+   "sheet": "boulders.png"
+  },
+  "LIMESTONE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "boulders.png"
+  },
+  "LIMONITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "MAGNETITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "MALACHITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "MARBLE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "boulders.png"
+  },
+  "NATIVE_ALUMINUM": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "NATIVE_COPPER": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "NATIVE_GOLD": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "NATIVE_PLATINUM": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "NATIVE_SILVER": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "OBSIDIAN": {
+   "col": 1,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "RAW_ADAMANTINE": {
+   "col": 1,
+   "row": 12,
+   "sheet": "boulders.png"
+  },
+  "SANDY_CLAY": {
+   "col": 0,
+   "row": 7,
+   "sheet": "boulders.png"
+  },
+  "SATINSPAR": {
+   "col": 0,
+   "row": 6,
+   "sheet": "boulders.png"
+  },
+  "SELENITE": {
+   "col": 0,
+   "row": 6,
+   "sheet": "boulders.png"
+  },
+  "SILTY_CLAY": {
+   "col": 0,
+   "row": 7,
+   "sheet": "boulders.png"
+  },
+  "SPHALERITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  },
+  "TETRAHEDRITE": {
+   "col": 0,
+   "row": 13,
+   "sheet": "boulders.png"
+  }
+ },
+ "bytoken": {
+  "ITEM_AMMO": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_ammo.png"
+  },
+  "ITEM_AMMO_ARROWS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_ammo.png"
+  },
+  "ITEM_AMMO_BLOWDARTS": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_ammo.png"
+  },
+  "ITEM_AMMO_BOLTS": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_ammo.png"
+  },
+  "ITEM_AMULET_METAL": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_AMULET_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 1,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_AMULET_WOOD": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_AMULET_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 1,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_ANIMAL_TRAP_METAL": {
+   "col": 5,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "ITEM_ANIMAL_TRAP_METAL_OCCUPIED": {
+   "col": 5,
+   "row": 13,
+   "sheet": "containers.png"
+  },
+  "ITEM_ANIMAL_TRAP_WOOD": {
+   "col": 4,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "ITEM_ANIMAL_TRAP_WOOD_OCCUPIED": {
+   "col": 4,
+   "row": 13,
+   "sheet": "containers.png"
+  },
+  "ITEM_ANVIL": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_ARMOR_BREASTPLATE": {
+   "col": 4,
+   "row": 6,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_CAPE": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_CLOAK": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_COAT": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_DRESS": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_LEATHER": {
+   "col": 4,
+   "row": 8,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_MAIL_SHIRT": {
+   "col": 4,
+   "row": 7,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_ROBE": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_SHIRT": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_STAND_METAL_EMPTY": {
+   "col": 2,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_ARMOR_STAND_METAL_FULL": {
+   "col": 5,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_ARMOR_STAND_STONE_EMPTY": {
+   "col": 1,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_ARMOR_STAND_STONE_FULL": {
+   "col": 4,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_ARMOR_STAND_WOOD_EMPTY": {
+   "col": 0,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_ARMOR_STAND_WOOD_FULL": {
+   "col": 3,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_ARMOR_TOGA": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_TUNIC": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_ARMOR_VEST": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_BACKPACK": {
+   "col": 4,
+   "row": 24,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_BAG": {
+   "col": 0,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "ITEM_BAG_EMPTY": {
+   "col": 0,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "ITEM_BAG_IN_USE": {
+   "col": 1,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "ITEM_BALLISTA_ARROWHEAD": {
+   "col": 4,
+   "row": 8,
+   "sheet": "item_ammo.png"
+  },
+  "ITEM_BALLISTA_PARTS": {
+   "col": 1,
+   "row": 9,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_BARREL_METAL_EMPTY": {
+   "col": 1,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_METAL_ITEM": {
+   "col": 5,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_METAL_LIQUID": {
+   "col": 3,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_BAG": {
+   "col": 6,
+   "row": 8,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_CHEESE": {
+   "col": 0,
+   "row": 8,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_FISH": {
+   "col": 4,
+   "row": 8,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_MEAL": {
+   "col": 0,
+   "row": 8,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_MEAT": {
+   "col": 2,
+   "row": 8,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_PLANT": {
+   "col": 4,
+   "row": 9,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_TOP_PLANT_SUBTERRANEAN": {
+   "col": 0,
+   "row": 9,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_WOOD_EMPTY": {
+   "col": 0,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_WOOD_ITEM": {
+   "col": 4,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARREL_WOOD_LIQUID": {
+   "col": 2,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "ITEM_BARS": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_BARS_SOAP": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_BED": {
+   "col": 0,
+   "row": 0,
+   "sheet": "beds.png"
+  },
+  "ITEM_BED_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "beds.png"
+  },
+  "ITEM_BED_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "beds.png"
+  },
+  "ITEM_BED_PILLOW_VARIANT": {
+   "col": 8,
+   "row": 0,
+   "sheet": "beds.png"
+  },
+  "ITEM_BED_SHEET_VARIANT": {
+   "col": 7,
+   "row": 0,
+   "sheet": "beds.png"
+  },
+  "ITEM_BED_STONE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "beds.png"
+  },
+  "ITEM_BED_WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "beds.png"
+  },
+  "ITEM_BIN": {
+   "col": 1,
+   "row": 4,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_METAL_EMPTY": {
+   "col": 3,
+   "row": 4,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_METAL_IN_USE": {
+   "col": 4,
+   "row": 4,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_AMMO": {
+   "col": 5,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_ARMOR_LEATHER": {
+   "col": 2,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_ARMOR_METAL": {
+   "col": 3,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_BAGS": {
+   "col": 2,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_BARS": {
+   "col": 5,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_BLOCKS": {
+   "col": 4,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_BOOKS": {
+   "col": 3,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_CHAINS": {
+   "col": 3,
+   "row": 7,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_CLOTH": {
+   "col": 0,
+   "row": 7,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_CLOTHING": {
+   "col": 0,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_COAL": {
+   "col": 6,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_COINS": {
+   "col": 6,
+   "row": 7,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_CRAFTS": {
+   "col": 5,
+   "row": 7,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_GEMS": {
+   "col": 0,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_LEATHER": {
+   "col": 1,
+   "row": 7,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_MECHANISMS": {
+   "col": 1,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_POWDERS": {
+   "col": 7,
+   "row": 5,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_ROPES": {
+   "col": 4,
+   "row": 7,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_SHEETS": {
+   "col": 4,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_TRAP_COMPS": {
+   "col": 7,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_TOP_WEAPONS": {
+   "col": 6,
+   "row": 6,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_WOOD_EMPTY": {
+   "col": 0,
+   "row": 4,
+   "sheet": "containers.png"
+  },
+  "ITEM_BIN_WOOD_IN_USE": {
+   "col": 1,
+   "row": 4,
+   "sheet": "containers.png"
+  },
+  "ITEM_BLOCKS": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_BOLT_THROWER_PARTS": {
+   "col": 2,
+   "row": 9,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_BOOK_GLASS": {
+   "col": 3,
+   "row": 5,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_BOOK_METAL": {
+   "col": 2,
+   "row": 5,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_BOOK_STONE": {
+   "col": 1,
+   "row": 5,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_BOOK_WOOD": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_BOULDER": {
+   "col": 0,
+   "row": 1,
+   "sheet": "boulders.png"
+  },
+  "ITEM_BOX": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_BANDS": {
+   "col": 9,
+   "row": 3,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_BLOOD": {
+   "col": 10,
+   "row": 0,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_DAMAGE": {
+   "col": 9,
+   "row": 2,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_ENGRAVING": {
+   "col": 8,
+   "row": 3,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_MUD": {
+   "col": 10,
+   "row": 3,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_RINGS": {
+   "col": 8,
+   "row": 1,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_SPIKES": {
+   "col": 8,
+   "row": 0,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_STONE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_STUDS": {
+   "col": 8,
+   "row": 2,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_VARIANT": {
+   "col": 7,
+   "row": 0,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_VOMIT": {
+   "col": 10,
+   "row": 1,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_WATER": {
+   "col": 10,
+   "row": 2,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BOX_WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_box.png"
+  },
+  "ITEM_BRACELET_METAL": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_BRACELET_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 6,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_BRACELET_WOOD": {
+   "col": 1,
+   "row": 6,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_BRACELET_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 6,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_BRANCH": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_BUCKET": {
+   "col": 0,
+   "row": 1,
+   "sheet": "containers.png"
+  },
+  "ITEM_BUCKET_METAL": {
+   "col": 1,
+   "row": 1,
+   "sheet": "containers.png"
+  },
+  "ITEM_BUCKET_WOOD": {
+   "col": 0,
+   "row": 1,
+   "sheet": "containers.png"
+  },
+  "ITEM_CABINET": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_BANDS": {
+   "col": 9,
+   "row": 3,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_BLOOD": {
+   "col": 10,
+   "row": 0,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_DAMAGE": {
+   "col": 9,
+   "row": 2,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_ENGRAVING": {
+   "col": 8,
+   "row": 3,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_MUD": {
+   "col": 10,
+   "row": 3,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_RINGS": {
+   "col": 8,
+   "row": 1,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_SPIKES": {
+   "col": 8,
+   "row": 0,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_STONE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_STUDS": {
+   "col": 8,
+   "row": 2,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_VARIANT": {
+   "col": 7,
+   "row": 0,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_VOMIT": {
+   "col": 10,
+   "row": 1,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_WATER": {
+   "col": 10,
+   "row": 2,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CABINET_WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_cabinet.png"
+  },
+  "ITEM_CAGE_GLASS": {
+   "col": 2,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "ITEM_CAGE_GLASS_OCCUPIED": {
+   "col": 2,
+   "row": 13,
+   "sheet": "containers.png"
+  },
+  "ITEM_CAGE_METAL": {
+   "col": 1,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "ITEM_CAGE_METAL_OCCUPIED": {
+   "col": 1,
+   "row": 13,
+   "sheet": "containers.png"
+  },
+  "ITEM_CAGE_WOOD": {
+   "col": 0,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "ITEM_CAGE_WOOD_OCCUPIED": {
+   "col": 0,
+   "row": 13,
+   "sheet": "containers.png"
+  },
+  "ITEM_CATAPULT_PARTS": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_CHAIN_METAL": {
+   "col": 2,
+   "row": 5,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_CHAIN_ROPE": {
+   "col": 1,
+   "row": 5,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_CHAIR": {
+   "col": 1,
+   "row": 5,
+   "sheet": "building_icons.png"
+  },
+  "ITEM_CHAIR_BANDS": {
+   "col": 9,
+   "row": 3,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_BLOOD": {
+   "col": 10,
+   "row": 0,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_DAMAGE": {
+   "col": 9,
+   "row": 2,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_ENGRAVING": {
+   "col": 8,
+   "row": 3,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_chair_composite.png"
+  },
+  "ITEM_CHAIR_LEG_VARIANT": {
+   "col": 7,
+   "row": 0,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_chair_composite.png"
+  },
+  "ITEM_CHAIR_MUD": {
+   "col": 10,
+   "row": 3,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_RINGS": {
+   "col": 8,
+   "row": 1,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_SPIKES": {
+   "col": 8,
+   "row": 0,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_STONE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_chair_composite.png"
+  },
+  "ITEM_CHAIR_STUDS": {
+   "col": 8,
+   "row": 2,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_VOMIT": {
+   "col": 10,
+   "row": 1,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_WATER": {
+   "col": 10,
+   "row": 2,
+   "sheet": "item_chair.png"
+  },
+  "ITEM_CHAIR_WOOD": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_chair_composite.png"
+  },
+  "ITEM_CHEESE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_food.png"
+  },
+  "ITEM_CLOTH": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_COFFIN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_GLASS": {
+   "col": 0,
+   "row": 4,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_GLASS_UNUSED": {
+   "col": 1,
+   "row": 4,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_METAL_UNUSED": {
+   "col": 1,
+   "row": 2,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_STONE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_STONE_UNUSED": {
+   "col": 1,
+   "row": 1,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COFFIN_WOOD_UNUSED": {
+   "col": 1,
+   "row": 0,
+   "sheet": "coffins.png"
+  },
+  "ITEM_COINS_PILE_1": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_coins.png"
+  },
+  "ITEM_COINS_PILE_2": {
+   "col": 2,
+   "row": 0,
+   "sheet": "item_coins.png"
+  },
+  "ITEM_COINS_PILE_3": {
+   "col": 3,
+   "row": 0,
+   "sheet": "item_coins.png"
+  },
+  "ITEM_COINS_PILE_4": {
+   "col": 4,
+   "row": 0,
+   "sheet": "item_coins.png"
+  },
+  "ITEM_COINS_SINGLE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_coins.png"
+  },
+  "ITEM_CROWN_METAL": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_CROWN_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 3,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_CROWN_WOOD": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_CROWN_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 3,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_CRUTCH": {
+   "col": 0,
+   "row": 18,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_DOOR_FORBIDDEN": {
+   "col": 14,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_GLASS": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_GLASS_CLOSED": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_GLASS_CLOSED_DAMAGED": {
+   "col": 2,
+   "row": 3,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_GLASS_DEBRIS": {
+   "col": 11,
+   "row": 3,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_GLASS_OPEN": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_GLASS_OPEN_DAMAGED": {
+   "col": 5,
+   "row": 3,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_METAL": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_METAL_CLOSED": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_METAL_CLOSED_DAMAGED": {
+   "col": 2,
+   "row": 2,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_METAL_DEBRIS": {
+   "col": 11,
+   "row": 2,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_METAL_OPEN": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_METAL_OPEN_DAMAGED": {
+   "col": 5,
+   "row": 2,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_STONE": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_STONE_CLOSED": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_STONE_CLOSED_DAMAGED": {
+   "col": 2,
+   "row": 1,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_STONE_DEBRIS": {
+   "col": 11,
+   "row": 1,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_STONE_OPEN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_STONE_OPEN_DAMAGED": {
+   "col": 5,
+   "row": 1,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_VARIANT": {
+   "col": 8,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_VARIANT_DAMAGED": {
+   "col": 9,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_WOOD": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_WOOD_CLOSED": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_WOOD_CLOSED_DAMAGED": {
+   "col": 2,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_WOOD_DEBRIS": {
+   "col": 11,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_WOOD_OPEN": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_DOOR_WOOD_OPEN_DAMAGED": {
+   "col": 5,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "ITEM_EARRING_METAL": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_EARRING_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 5,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_EARRING_WOOD": {
+   "col": 1,
+   "row": 5,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_EARRING_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 5,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_EGG_SIZE1": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_EGG_SIZE2": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_EGG_SIZE3": {
+   "col": 2,
+   "row": 2,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_EGG_SIZE4": {
+   "col": 3,
+   "row": 2,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_FIGURINE_METAL": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_FIGURINE_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 0,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_FIGURINE_WOOD": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_FIGURINE_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 0,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_FLASK_GLASS": {
+   "col": 0,
+   "row": 25,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_FLASK_LEATHER": {
+   "col": 0,
+   "row": 23,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_FLASK_METAL": {
+   "col": 0,
+   "row": 24,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_FLOODGATE_BANDS": {
+   "col": 10,
+   "row": 3,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_BLOOD": {
+   "col": 11,
+   "row": 0,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_DAMAGE": {
+   "col": 10,
+   "row": 2,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_ENGRAVING": {
+   "col": 9,
+   "row": 3,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_GLASS": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_GLASS_CLOSED": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_GLASS_OPEN": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_METAL": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_METAL_CLOSED": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_METAL_OPEN": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_MUD": {
+   "col": 11,
+   "row": 3,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_RINGS": {
+   "col": 9,
+   "row": 1,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_SPIKES": {
+   "col": 9,
+   "row": 0,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_STONE": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_STONE_CLOSED": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_STONE_OPEN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_STUDS": {
+   "col": 9,
+   "row": 2,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_VOMIT": {
+   "col": 11,
+   "row": 1,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_WATER": {
+   "col": 11,
+   "row": 2,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_WOOD": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_WOOD_CLOSED": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FLOODGATE_WOOD_OPEN": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_floodgate.png"
+  },
+  "ITEM_FOOD_BISCUITS": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_food.png"
+  },
+  "ITEM_FOOD_ROAST": {
+   "col": 2,
+   "row": 0,
+   "sheet": "item_food.png"
+  },
+  "ITEM_FOOD_STEW": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_food.png"
+  },
+  "ITEM_GENERATED_TOOL": {
+   "col": 4,
+   "row": 0,
+   "sheet": "instruments.png"
+  },
+  "ITEM_GLOVES_GAUNTLETS": {
+   "col": 4,
+   "row": 13,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_GLOVES_GLOVES": {
+   "col": 4,
+   "row": 12,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_GLOVES_MITTENS": {
+   "col": 4,
+   "row": 11,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_GOBLET_METAL": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_GOBLET_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 8,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_GOBLET_STONE": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_GOBLET_STONE_ENCRUSTED": {
+   "col": 3,
+   "row": 7,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_GOBLET_WOOD": {
+   "col": 1,
+   "row": 7,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_GOBLET_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 7,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_GRATE_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_GLASS_FLOOR_CLOSED": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_GLASS_FLOOR_OPEN": {
+   "col": 1,
+   "row": 7,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_GLASS_WALL_CLOSED": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_GLASS_WALL_OPEN": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_METAL_FLOOR_CLOSED": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_METAL_FLOOR_OPEN": {
+   "col": 1,
+   "row": 6,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_METAL_WALL_CLOSED": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_METAL_WALL_OPEN": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_STONE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_STONE_FLOOR_CLOSED": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_STONE_FLOOR_OPEN": {
+   "col": 1,
+   "row": 5,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_STONE_WALL_CLOSED": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_STONE_WALL_OPEN": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_WOOD_FLOOR_CLOSED": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_WOOD_FLOOR_OPEN": {
+   "col": 1,
+   "row": 4,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_WOOD_WALL_CLOSED": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_GRATE_WOOD_WALL_OPEN": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_grate.png"
+  },
+  "ITEM_HATCH_COVER_BANDS": {
+   "col": 10,
+   "row": 3,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_BLOOD": {
+   "col": 11,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_DAMAGE": {
+   "col": 10,
+   "row": 2,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_ENGRAVING": {
+   "col": 9,
+   "row": 3,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_FORBIDDEN": {
+   "col": 12,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_GLASS": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_GLASS_CLOSED": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_GLASS_OPEN": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_METAL": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_METAL_CLOSED": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_METAL_OPEN": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_MUD": {
+   "col": 11,
+   "row": 3,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_RINGS": {
+   "col": 9,
+   "row": 1,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_SPIKES": {
+   "col": 9,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_STONE": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_STONE_CLOSED": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_STONE_OPEN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_STUDS": {
+   "col": 9,
+   "row": 2,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_VARIANT": {
+   "col": 8,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_VOMIT": {
+   "col": 11,
+   "row": 1,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_WATER": {
+   "col": 11,
+   "row": 2,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_WOOD": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_WOOD_CLOSED": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HATCH_COVER_WOOD_OPEN": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "ITEM_HELM_CAP": {
+   "col": 4,
+   "row": 22,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_HELM": {
+   "col": 4,
+   "row": 21,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_HOOD": {
+   "col": 0,
+   "row": 17,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_MASK": {
+   "col": 0,
+   "row": 22,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_SCARF_HEAD": {
+   "col": 0,
+   "row": 21,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_TURBAN": {
+   "col": 0,
+   "row": 18,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_VEIL_FACE": {
+   "col": 0,
+   "row": 20,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_HELM_VEIL_HEAD": {
+   "col": 0,
+   "row": 19,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_INSTRUMENT_KEYBOARD_BUILDING": {
+   "col": 0,
+   "row": 0,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_KEYBOARD_HANDHELD": {
+   "col": 0,
+   "row": 1,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_PERCUSSION_BUILDING": {
+   "col": 1,
+   "row": 0,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_PERCUSSION_HANDHELD": {
+   "col": 1,
+   "row": 1,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_STRINGED_BUILDING": {
+   "col": 2,
+   "row": 0,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_STRINGED_HANDHELD": {
+   "col": 2,
+   "row": 1,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_WIND_BUILDING": {
+   "col": 3,
+   "row": 0,
+   "sheet": "instruments.png"
+  },
+  "ITEM_INSTRUMENT_WIND_HANDHELD": {
+   "col": 3,
+   "row": 1,
+   "sheet": "instruments.png"
+  },
+  "ITEM_LIQUID": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_MECHANISMS": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_MILLSTONE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_mill.png"
+  },
+  "ITEM_MYTHICAL_REMNANT": {
+   "col": 1,
+   "row": 0,
+   "sheet": "remnants.png"
+  },
+  "ITEM_MYTHICAL_REMNANT_DEFAULT": {
+   "col": 0,
+   "row": 0,
+   "sheet": "remnants.png"
+  },
+  "ITEM_ORTHOPEDIC_CAST": {
+   "col": 1,
+   "row": 17,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_PANTS_BRAIES": {
+   "col": 0,
+   "row": 10,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_GREAVES": {
+   "col": 4,
+   "row": 9,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_LEGGINGS": {
+   "col": 4,
+   "row": 10,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_LOINCLOTH": {
+   "col": 0,
+   "row": 14,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_PANTS": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_SKIRT": {
+   "col": 0,
+   "row": 12,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_SKIRT_LONG": {
+   "col": 0,
+   "row": 13,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_SKIRT_SHORT": {
+   "col": 0,
+   "row": 11,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PANTS_THONG": {
+   "col": 0,
+   "row": 15,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_PIPE_SECTION": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_POWDER": {
+   "col": 2,
+   "row": 3,
+   "sheet": "item_construction.png"
+  },
+  "ITEM_PREPARED_MEAL": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_food.png"
+  },
+  "ITEM_QUERN": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_mill.png"
+  },
+  "ITEM_QUIVER": {
+   "col": 4,
+   "row": 23,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_REMAINS": {
+   "col": 2,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_RING_METAL": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_RING_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 4,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_RING_WOOD": {
+   "col": 1,
+   "row": 4,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_RING_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 4,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_ROCK": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "ITEM_ROUGH_GEM": {
+   "col": 0,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_10": {
+   "col": 1,
+   "row": 9,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_15": {
+   "col": 0,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_2": {
+   "col": 0,
+   "row": 9,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_20": {
+   "col": 0,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_25": {
+   "col": 1,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_3": {
+   "col": 0,
+   "row": 9,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_30": {
+   "col": 1,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_40": {
+   "col": 0,
+   "row": 11,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_5": {
+   "col": 1,
+   "row": 9,
+   "sheet": "boulders.png"
+  },
+  "ITEM_ROUGH_GEM_VALUE_60": {
+   "col": 1,
+   "row": 11,
+   "sheet": "boulders.png"
+  },
+  "ITEM_SCEPTER_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_SCEPTER_METAL_ENCRUSTED": {
+   "col": 3,
+   "row": 2,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_SCEPTER_WOOD": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_SCEPTER_WOOD_ENCRUSTED": {
+   "col": 3,
+   "row": 2,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_SHEET": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_SHIELD": {
+   "col": 4,
+   "row": 0,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHIELD_BUCKLER": {
+   "col": 4,
+   "row": 3,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHIELD_SHIELD": {
+   "col": 4,
+   "row": 0,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHOES_BOOTS": {
+   "col": 4,
+   "row": 17,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHOES_BOOTS_LOW": {
+   "col": 4,
+   "row": 16,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHOES_CHAUSSE": {
+   "col": 4,
+   "row": 20,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHOES_SANDAL": {
+   "col": 4,
+   "row": 14,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHOES_SHOES": {
+   "col": 4,
+   "row": 15,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SHOES_SOCKS": {
+   "col": 0,
+   "row": 16,
+   "sheet": "item_equipment.png"
+  },
+  "ITEM_SIEGEAMMO_BALLISTA": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_ammo.png"
+  },
+  "ITEM_SLAB_BLANK": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_IMPORTS_CLOTHING": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_IMPORTS_FOOD": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_IMPORTS_GENERAL": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_MEMORIAL": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SECRET": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_ARMORSMITH": {
+   "col": 0,
+   "row": 15,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_BLACKSMITH": {
+   "col": 0,
+   "row": 14,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_BONE_CARVER": {
+   "col": 0,
+   "row": 10,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_CLOTH": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_CLOTHING_CLOTH": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_CLOTHING_LEATHER": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_FURNITURE_METAL": {
+   "col": 0,
+   "row": 20,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_FURNITURE_STONE": {
+   "col": 0,
+   "row": 19,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_FURNITURE_WOOD": {
+   "col": 0,
+   "row": 18,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_GEM_CUTTER": {
+   "col": 0,
+   "row": 11,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_LEATHER_ACCESSORIES": {
+   "col": 0,
+   "row": 17,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_METAL_CRAFTER": {
+   "col": 0,
+   "row": 16,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_TANNING": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_WEAPONSMITH_METAL": {
+   "col": 0,
+   "row": 12,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_SHOP_WEAPONSMITH_WOOD": {
+   "col": 0,
+   "row": 13,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_TAVERN": {
+   "col": 0,
+   "row": 21,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SLAB_ENGRAVED_TRUE_NAME": {
+   "col": 0,
+   "row": 22,
+   "sheet": "item_slab.png"
+  },
+  "ITEM_SPLINT": {
+   "col": 0,
+   "row": 17,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_STATUE_ITEM": {
+   "col": 7,
+   "row": 0,
+   "sheet": "statues.png"
+  },
+  "ITEM_TABLE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_table_composite.png"
+  },
+  "ITEM_TABLE_BANDS": {
+   "col": 9,
+   "row": 3,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_BLOOD": {
+   "col": 10,
+   "row": 0,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_DAMAGE": {
+   "col": 9,
+   "row": 2,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_ENGRAVING": {
+   "col": 8,
+   "row": 3,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_table_composite.png"
+  },
+  "ITEM_TABLE_LEG_VARIANT": {
+   "col": 7,
+   "row": 0,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_METAL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_table_composite.png"
+  },
+  "ITEM_TABLE_MUD": {
+   "col": 10,
+   "row": 3,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_RINGS": {
+   "col": 8,
+   "row": 1,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_SPIKES": {
+   "col": 8,
+   "row": 0,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_STONE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_table_composite.png"
+  },
+  "ITEM_TABLE_STUDS": {
+   "col": 8,
+   "row": 2,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_VOMIT": {
+   "col": 10,
+   "row": 1,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_WATER": {
+   "col": 10,
+   "row": 2,
+   "sheet": "item_table.png"
+  },
+  "ITEM_TABLE_WOOD": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_table_composite.png"
+  },
+  "ITEM_TANNED_SKIN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_TANNED_SKIN_BICOLOR": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_TANNED_SKIN_MOTTLED": {
+   "col": 3,
+   "row": 1,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_TANNED_SKIN_SPOTS": {
+   "col": 4,
+   "row": 1,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_TANNED_SKIN_STRIPES": {
+   "col": 2,
+   "row": 1,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_THREAD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_cloth.png"
+  },
+  "ITEM_TOOL": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_ALTAR": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_display.png"
+  },
+  "ITEM_TOOL_BOOKCASE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_bookcase.png"
+  },
+  "ITEM_TOOL_BOOK_BINDING": {
+   "col": 3,
+   "row": 1,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_TOOL_BOWL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_CAULDRON": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_DIE": {
+   "col": 1,
+   "row": 21,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_DISPLAY_CASE": {
+   "col": 1,
+   "row": 1,
+   "sheet": "item_display.png"
+  },
+  "ITEM_TOOL_FORK_CARVING": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_HELVE": {
+   "col": 0,
+   "row": 19,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_HIVE": {
+   "col": 2,
+   "row": 11,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_HONEYCOMB": {
+   "col": 0,
+   "row": 12,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_JUG": {
+   "col": 1,
+   "row": 10,
+   "sheet": "containers.png"
+  },
+  "ITEM_TOOL_KNIFE_BONING": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_KNIFE_CARVING": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_KNIFE_MEAT_CLEAVER": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_KNIFE_SLICING": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_LADLE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_LARGE_POT": {
+   "col": 4,
+   "row": 3,
+   "sheet": "containers.png"
+  },
+  "ITEM_TOOL_MINECART": {
+   "col": 1,
+   "row": 14,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_MORTAR": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_NEST_BOX": {
+   "col": 0,
+   "row": 10,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_PEDESTAL": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_display.png"
+  },
+  "ITEM_TOOL_PESTLE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_POUCH": {
+   "col": 0,
+   "row": 13,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_QUIRE": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_TOOL_SCROLL": {
+   "col": 1,
+   "row": 4,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_TOOL_SCROLL_ROLLERS": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_scribe.png"
+  },
+  "ITEM_TOOL_STEPLADDER": {
+   "col": 1,
+   "row": 16,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_STONE_AXE": {
+   "col": 0,
+   "row": 20,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOOL_WHEELBARROW": {
+   "col": 1,
+   "row": 15,
+   "sheet": "item_tool.png"
+  },
+  "ITEM_TOTEM": {
+   "col": 0,
+   "row": 10,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_TOTEM_ENCRUSTED": {
+   "col": 3,
+   "row": 10,
+   "sheet": "item_crafts.png"
+  },
+  "ITEM_TOY": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_toy.png"
+  },
+  "ITEM_TOY_AXE": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_toy.png"
+  },
+  "ITEM_TOY_BOAT": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_toy.png"
+  },
+  "ITEM_TOY_HAMMER": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_toy.png"
+  },
+  "ITEM_TOY_MINIFORGE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_toy.png"
+  },
+  "ITEM_TOY_PUZZLEBOX": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_toy.png"
+  },
+  "ITEM_TRACTION_BENCH_GLASS_CHAIN": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_GLASS_ROPE": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_METAL_CHAIN": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_METAL_ROPE": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_STONE_CHAIN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_STONE_ROPE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_WOODEN_CHAIN": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRACTION_BENCH_WOODEN_ROPE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_traction_bench.png"
+  },
+  "ITEM_TRAPCOMP_ENORMOUSCORKSCREW": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_trapcomp.png"
+  },
+  "ITEM_TRAPCOMP_GIANTAXEBLADE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_trapcomp.png"
+  },
+  "ITEM_TRAPCOMP_LARGESERRATEDDISC": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_trapcomp.png"
+  },
+  "ITEM_TRAPCOMP_MENACINGSPIKE": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_trapcomp.png"
+  },
+  "ITEM_TRAPCOMP_SPIKEDBALL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_trapcomp.png"
+  },
+  "ITEM_TRAP_COMPONENT": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_trapcomp.png"
+  },
+  "ITEM_WEAPON_AXE_BATTLE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_AXE_GREAT": {
+   "col": 0,
+   "row": 15,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_AXE_TRAINING": {
+   "col": 2,
+   "row": 18,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_BLOWGUN": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_BOW": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_CROSSBOW": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_DAGGER_LARGE": {
+   "col": 0,
+   "row": 16,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_FLAIL": {
+   "col": 0,
+   "row": 18,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_HALBERD": {
+   "col": 0,
+   "row": 11,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_HAMMER_WAR": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_MACE": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_MAUL": {
+   "col": 0,
+   "row": 14,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_MORNINGSTAR": {
+   "col": 0,
+   "row": 19,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_PICK": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_PICK_GREAT": {
+   "col": 0,
+   "row": 21,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_PIKE": {
+   "col": 0,
+   "row": 10,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_RACK_METAL_EMPTY": {
+   "col": 2,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_WEAPON_RACK_METAL_FULL": {
+   "col": 5,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_WEAPON_RACK_STONE_EMPTY": {
+   "col": 1,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_WEAPON_RACK_STONE_FULL": {
+   "col": 4,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_WEAPON_RACK_WOOD_EMPTY": {
+   "col": 0,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_WEAPON_RACK_WOOD_FULL": {
+   "col": 3,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "ITEM_WEAPON_SCIMITAR": {
+   "col": 0,
+   "row": 20,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SCOURGE": {
+   "col": 0,
+   "row": 17,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SPEAR": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SPEAR_TRAINING": {
+   "col": 2,
+   "row": 20,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SWORD_2H": {
+   "col": 0,
+   "row": 12,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SWORD_LONG": {
+   "col": 0,
+   "row": 13,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SWORD_SHORT": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_SWORD_SHORT_TRAINING": {
+   "col": 2,
+   "row": 19,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEAPON_WHIP": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_weapons.png"
+  },
+  "ITEM_WEB_HARMLESS": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_webs.png"
+  },
+  "ITEM_WEB_THICK": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_webs.png"
+  },
+  "ITEM_WINDOW_GEM": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_display.png"
+  },
+  "ITEM_WINDOW_GLASS": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_display.png"
+  },
+  "ITEM_WOOD": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_construction.png"
+  },
+  "LEAVES_FOR_BAG": {
+   "col": 3,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "LIQUID_FOR_BARREL_METAL": {
+   "col": 7,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "LIQUID_FOR_BARREL_WOOD": {
+   "col": 6,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "LIQUID_FOR_BUCKET_METAL": {
+   "col": 3,
+   "row": 1,
+   "sheet": "containers.png"
+  },
+  "LIQUID_FOR_BUCKET_WOOD": {
+   "col": 2,
+   "row": 1,
+   "sheet": "containers.png"
+  },
+  "NATURAL_NEST": {
+   "col": 3,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "POWDER_FOR_BAG": {
+   "col": 2,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "SEEDS_FOR_BAG": {
+   "col": 4,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_1": {
+   "col": 0,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_10": {
+   "col": 9,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_2": {
+   "col": 1,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_3": {
+   "col": 2,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_4": {
+   "col": 3,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_5": {
+   "col": 4,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_6": {
+   "col": 5,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_7": {
+   "col": 6,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_8": {
+   "col": 7,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "UPRIGHT_WEAPON_RETRACTED_9": {
+   "col": 8,
+   "row": 0,
+   "sheet": "upright_weapons.png"
+  },
+  "VERMIN_LIGHT": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_nature.png"
+  },
+  "VERMIN_LIGHT_SWARM_LARGE": {
+   "col": 3,
+   "row": 3,
+   "sheet": "item_nature.png"
+  },
+  "VERMIN_LIGHT_SWARM_MEDIUM": {
+   "col": 2,
+   "row": 3,
+   "sheet": "item_nature.png"
+  },
+  "VERMIN_LIGHT_SWARM_SMALL": {
+   "col": 1,
+   "row": 3,
+   "sheet": "item_nature.png"
+  }
+ },
+ "bytype": {
+  "AMMO": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_ammo.png"
+  },
+  "AMULET": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_crafts.png"
+  },
+  "ANIMALTRAP": {
+   "col": 4,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "ANVIL": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_construction.png"
+  },
+  "ARMORSTAND": {
+   "col": 0,
+   "row": 0,
+   "sheet": "armor_weaponrack.png"
+  },
+  "BACKPACK": {
+   "col": 4,
+   "row": 24,
+   "sheet": "item_equipment.png"
+  },
+  "BAG": {
+   "col": 0,
+   "row": 0,
+   "sheet": "containers.png"
+  },
+  "BALLISTAARROWHEAD": {
+   "col": 4,
+   "row": 8,
+   "sheet": "item_ammo.png"
+  },
+  "BALLISTAPARTS": {
+   "col": 1,
+   "row": 9,
+   "sheet": "item_construction.png"
+  },
+  "BAR": {
+   "col": 1,
+   "row": 4,
+   "sheet": "item_construction.png"
+  },
+  "BARREL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "containers.png"
+  },
+  "BED": {
+   "col": 0,
+   "row": 0,
+   "sheet": "beds.png"
+  },
+  "BIN": {
+   "col": 1,
+   "row": 4,
+   "sheet": "containers.png"
+  },
+  "BLOCKS": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_construction.png"
+  },
+  "BOLT_THROWER_PARTS": {
+   "col": 2,
+   "row": 9,
+   "sheet": "item_construction.png"
+  },
+  "BOOK": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_scribe.png"
+  },
+  "BOULDER": {
+   "col": 0,
+   "row": 1,
+   "sheet": "boulders.png"
+  },
+  "BOX": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_box.png"
+  },
+  "BRACELET": {
+   "col": 0,
+   "row": 6,
+   "sheet": "item_crafts.png"
+  },
+  "BRANCH": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "BUCKET": {
+   "col": 0,
+   "row": 1,
+   "sheet": "containers.png"
+  },
+  "CABINET": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_cabinet.png"
+  },
+  "CAGE": {
+   "col": 0,
+   "row": 12,
+   "sheet": "containers.png"
+  },
+  "CATAPULTPARTS": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_construction.png"
+  },
+  "CHAIN": {
+   "col": 1,
+   "row": 5,
+   "sheet": "item_construction.png"
+  },
+  "CHAIR": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_chair_composite.png"
+  },
+  "CHEESE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_food.png"
+  },
+  "CLOTH": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_cloth.png"
+  },
+  "COFFIN": {
+   "col": 0,
+   "row": 1,
+   "sheet": "coffins.png"
+  },
+  "COIN": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_coins.png"
+  },
+  "CORPSEPIECE": {
+   "col": 2,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "CROWN": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_crafts.png"
+  },
+  "CRUTCH": {
+   "col": 0,
+   "row": 18,
+   "sheet": "item_tool.png"
+  },
+  "DOOR": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_door.png"
+  },
+  "DRINK": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_nature.png"
+  },
+  "EARRING": {
+   "col": 0,
+   "row": 5,
+   "sheet": "item_crafts.png"
+  },
+  "EGG": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_nature.png"
+  },
+  "FIGURINE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_crafts.png"
+  },
+  "FLASK": {
+   "col": 0,
+   "row": 23,
+   "sheet": "item_equipment.png"
+  },
+  "FLOODGATE": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_floodgate.png"
+  },
+  "FOOD": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_food.png"
+  },
+  "GEM": {
+   "col": 0,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "GLOB": {
+   "col": 0,
+   "row": 0,
+   "sheet": "bodyparts.png"
+  },
+  "GLOVES": {
+   "col": 4,
+   "row": 12,
+   "sheet": "item_equipment.png"
+  },
+  "GOBLET": {
+   "col": 1,
+   "row": 7,
+   "sheet": "item_crafts.png"
+  },
+  "GRATE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_grate.png"
+  },
+  "HATCH_COVER": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_hatch.png"
+  },
+  "HELM": {
+   "col": 4,
+   "row": 21,
+   "sheet": "item_equipment.png"
+  },
+  "INSTRUMENT": {
+   "col": 4,
+   "row": 0,
+   "sheet": "instruments.png"
+  },
+  "LIQUID_MISC": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_nature.png"
+  },
+  "MEAT": {
+   "col": 0,
+   "row": 16,
+   "sheet": "bodyparts.png"
+  },
+  "MILLSTONE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_mill.png"
+  },
+  "ORTHOPEDIC_CAST": {
+   "col": 1,
+   "row": 17,
+   "sheet": "item_tool.png"
+  },
+  "PANTS": {
+   "col": 0,
+   "row": 9,
+   "sheet": "item_equipment.png"
+  },
+  "PIPE_SECTION": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_construction.png"
+  },
+  "PLANT": {
+   "col": 1,
+   "row": 0,
+   "sheet": "plants.png"
+  },
+  "PLANT_GROWTH": {
+   "col": 1,
+   "row": 0,
+   "sheet": "plants.png"
+  },
+  "POWDER_MISC": {
+   "col": 2,
+   "row": 3,
+   "sheet": "item_construction.png"
+  },
+  "QUERN": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_mill.png"
+  },
+  "QUIVER": {
+   "col": 4,
+   "row": 23,
+   "sheet": "item_equipment.png"
+  },
+  "REMAINS": {
+   "col": 2,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "RING": {
+   "col": 0,
+   "row": 4,
+   "sheet": "item_crafts.png"
+  },
+  "ROCK": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_nature.png"
+  },
+  "ROUGH": {
+   "col": 0,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "SCEPTER": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_crafts.png"
+  },
+  "SHEET": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_scribe.png"
+  },
+  "SHIELD": {
+   "col": 4,
+   "row": 0,
+   "sheet": "item_equipment.png"
+  },
+  "SHOES": {
+   "col": 4,
+   "row": 15,
+   "sheet": "item_equipment.png"
+  },
+  "SIEGEAMMO": {
+   "col": 0,
+   "row": 8,
+   "sheet": "item_ammo.png"
+  },
+  "SKELETON": {
+   "col": 0,
+   "row": 0,
+   "sheet": "bone_pile.png"
+  },
+  "SKIN_TANNED": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_cloth.png"
+  },
+  "SLAB": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_slab.png"
+  },
+  "SMALLGEM": {
+   "col": 0,
+   "row": 10,
+   "sheet": "boulders.png"
+  },
+  "SPLINT": {
+   "col": 0,
+   "row": 17,
+   "sheet": "item_tool.png"
+  },
+  "STATUE": {
+   "col": 7,
+   "row": 0,
+   "sheet": "statues.png"
+  },
+  "TABLE": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_table_composite.png"
+  },
+  "THREAD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_cloth.png"
+  },
+  "TOOL": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_tool.png"
+  },
+  "TOTEM": {
+   "col": 0,
+   "row": 10,
+   "sheet": "item_crafts.png"
+  },
+  "TOY": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_toy.png"
+  },
+  "TRACTION_BENCH": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_traction_bench.png"
+  },
+  "TRAPCOMP": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_trapcomp.png"
+  },
+  "TRAPPARTS": {
+   "col": 0,
+   "row": 7,
+   "sheet": "item_construction.png"
+  },
+  "WEAPONRACK": {
+   "col": 0,
+   "row": 1,
+   "sheet": "armor_weaponrack.png"
+  },
+  "WINDOW": {
+   "col": 0,
+   "row": 3,
+   "sheet": "item_display.png"
+  },
+  "WOOD": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_construction.png"
+  },
+  "_ROTTEN_PLANT": {
+   "col": 1,
+   "row": 1,
+   "sheet": "plants.png"
+  },
+  "_default": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_box.png"
+  }
+ },
+ "creature_food": {
+  "by_creature": {
+   "AARDVARK": "p9",
+   "AARDVARK_MAN": "p9",
+   "ADDER": "p0",
+   "ADDER_MAN": "p0",
+   "ALBATROSS_MAN": "p7",
+   "ALLIGATOR": "p0",
+   "ALLIGATOR SNAPPING TURTLE": "p0",
+   "ALLIGATOR_MAN": "p0",
+   "ALPACA": "p9",
+   "AMPHIBIAN_MAN": "p7",
+   "ANACONDA": "p0",
+   "ANACONDA_MAN": "p0",
+   "ANOLE": "p0",
+   "ANOLE_MAN": "p0",
+   "ANT": "p11",
+   "ANT_MAN": "p11",
+   "ARMADILLO": "p9",
+   "ARMADILLO MAN": "p9",
+   "ARMADILLO, GIANT": "p9",
+   "AXOLOTL": "p7",
+   "AXOLOTL_MAN": "p7",
+   "AYE-AYE": "p9",
+   "AYE-AYE_MAN": "p9",
+   "BADGER": "p9",
+   "BADGER MAN": "p9",
+   "BADGER, GIANT": "p9",
+   "BARK_SCORPION": "p4",
+   "BARK_SCORPION_MAN": "p4",
+   "BARN_OWL_MAN": "p7",
+   "BAT": "p9",
+   "BAT_GIANT": "p9",
+   "BAT_MAN": "p9",
+   "BEAK_DOG": "p7",
+   "BEAR_BLACK": "p9",
+   "BEAR_BLACK_MAN": "p9",
+   "BEAR_GRIZZLY": "p9",
+   "BEAR_GRIZZLY_MAN": "p9",
+   "BEAR_POLAR": "p9",
+   "BEAR_POLAR_MAN": "p9",
+   "BEAR_SLOTH": "p9",
+   "BEAVER": "p9",
+   "BEAVER_MAN": "p9",
+   "BEETLE": "p4",
+   "BEETLE_MAN": "p4",
+   "BIRD_ALBATROSS": "p7",
+   "BIRD_BLUEJAY": "p7",
+   "BIRD_BUSHTIT": "p7",
+   "BIRD_BUZZARD": "p7",
+   "BIRD_CARDINAL": "p7",
+   "BIRD_CASSOWARY": "p7",
+   "BIRD_CHICKEN": "p7",
+   "BIRD_COCKATIEL": "p7",
+   "BIRD_CROW": "p7",
+   "BIRD_DUCK": "p7",
+   "BIRD_EAGLE": "p7",
+   "BIRD_EMU": "p7",
+   "BIRD_FALCON_PEREGRINE": "p7",
+   "BIRD_GOOSE": "p7",
+   "BIRD_GRACKLE": "p7",
+   "BIRD_GUINEAFOWL": "p7",
+   "BIRD_HORNBILL": "p7",
+   "BIRD_KAKAPO": "p7",
+   "BIRD_KEA": "p7",
+   "BIRD_KESTREL": "p7",
+   "BIRD_KIWI": "p7",
+   "BIRD_KIWI_GIANT": "p7",
+   "BIRD_LOON": "p7",
+   "BIRD_LORIKEET": "p7",
+   "BIRD_LOVEBIRD_MASKED": "p7",
+   "BIRD_LOVEBIRD_PEACH-FACED": "p7",
+   "BIRD_MAGPIE": "p7",
+   "BIRD_ORIOLE": "p7",
+   "BIRD_OSPREY": "p7",
+   "BIRD_OSTRICH": "p7",
+   "BIRD_OSTRICH_GIANT": "p7",
+   "BIRD_OWL_BARN": "p7",
+   "BIRD_OWL_GREAT_HORNED": "p7",
+   "BIRD_OWL_SNOWY": "p7",
+   "BIRD_PARAKEET": "p7",
+   "BIRD_PARROT_GREY": "p7",
+   "BIRD_PEAFOWL_BLUE": "p7",
+   "BIRD_PENGUIN": "p7",
+   "BIRD_PENGUIN_EMPEROR": "p7",
+   "BIRD_PENGUIN_GIANT": "p7",
+   "BIRD_PENGUIN_LITTLE": "p7",
+   "BIRD_PUFFIN": "p7",
+   "BIRD_RAVEN": "p7",
+   "BIRD_ROC": "p7",
+   "BIRD_RW_BLACKBIRD": "p7",
+   "BIRD_STORK_WHITE": "p7",
+   "BIRD_SWALLOW_CAVE": "p7",
+   "BIRD_SWALLOW_CAVE_GIANT": "p7",
+   "BIRD_SWAN": "p7",
+   "BIRD_TURKEY": "p7",
+   "BIRD_VULTURE": "p7",
+   "BIRD_WREN": "p7",
+   "BLACK_MAMBA": "p0",
+   "BLACK_MAMBA_MAN": "p0",
+   "BLENDEC_FOUL": "p9",
+   "BLIND_CAVE_BEAR": "p9",
+   "BLIND_CAVE_OGRE": "p9",
+   "BLIZZARD_MAN": "p9",
+   "BLUEJAY_MAN": "p7",
+   "BOBCAT": "p9",
+   "BOBCAT_MAN": "p9",
+   "BONOBO": "p9",
+   "BROWN_RECLUSE_SPIDER_MAN": "p4",
+   "BUGBAT": "p9",
+   "BUMBLEBEE": "p13",
+   "BUSHMASTER": "p0",
+   "BUSHMASTER_MAN": "p0",
+   "BUSHTIT_MAN": "p7",
+   "BUTTERFLY_MONARCH": "p4",
+   "BUTTERFLY_MONARCH_MAN": "p4",
+   "BUZZARD_MAN": "p7",
+   "CAMEL_1_HUMP": "p9",
+   "CAMEL_1_HUMP_MAN": "p9",
+   "CAMEL_2_HUMP": "p9",
+   "CAMEL_2_HUMP_MAN": "p9",
+   "CAPUCHIN": "p9",
+   "CAPUCHIN_MAN": "p9",
+   "CAPYBARA": "p9",
+   "CAPYBARA MAN": "p9",
+   "CAPYBARA, GIANT": "p9",
+   "CAP_HOPPER": "p7",
+   "CARDINAL_MAN": "p7",
+   "CASSOWARY_MAN": "p7",
+   "CAT": "p9",
+   "CAVE_DRAGON": "p0",
+   "CAVE_FISH_MAN": "p8",
+   "CAVE_SWALLOW_MAN": "p7",
+   "CAVY": "p9",
+   "CHAMELEON": "p0",
+   "CHAMELEON_MAN": "p0",
+   "CHEETAH": "p9",
+   "CHEETAH_MAN": "p9",
+   "CHIMPANZEE": "p9",
+   "CHINCHILLA": "p9",
+   "CHINCHILLA_MAN": "p9",
+   "CHIPMUNK": "p9",
+   "CHIPMUNK_MAN": "p9",
+   "COATI": "p9",
+   "COATI_MAN": "p9",
+   "COCKATIEL_MAN": "p7",
+   "COPPERHEAD_SNAKE": "p0",
+   "COPPERHEAD_SNAKE_MAN": "p0",
+   "COUGAR": "p9",
+   "COUGAR_MAN": "p9",
+   "COW": "p9",
+   "COYOTE": "p9",
+   "COYOTE_MAN": "p9",
+   "CRAB": "p4",
+   "CRAB_MAN": "p4",
+   "CREEPING_EYE": "p6",
+   "CREEPY_CRAWLER": "p7",
+   "CROCODILE_CAVE": "p0",
+   "CROCODILE_SALTWATER": "p0",
+   "CROCODILE_SALTWATER_MAN": "p0",
+   "CROW_MAN": "p7",
+   "CRUNDLE": "p0",
+   "CUTTLEFISH": "p5",
+   "CUTTLEFISH_MAN": "p5",
+   "CYCLOPS": "p9",
+   "DAMSELFLY": "p4",
+   "DAMSELFLY_MAN": "p4",
+   "DEER": "p9",
+   "DEER_MAN": "p9",
+   "DESERT TORTOISE": "p0",
+   "DESERT_TORTOISE_MAN": "p0",
+   "DINGO": "p9",
+   "DINGO_MAN": "p9",
+   "DOG": "p9",
+   "DONKEY": "p9",
+   "DRAGON": "p0",
+   "DRAGONFLY": "p4",
+   "DRAGONFLY_MAN": "p4",
+   "DRALTHA": "p9",
+   "DRUNIAN": "p9",
+   "DWARF": "p9",
+   "EAGLE_MAN": "p7",
+   "ECHIDNA": "p9",
+   "ECHIDNA_MAN": "p9",
+   "ELEPHANT": "p9",
+   "ELEPHANT_MAN": "p9",
+   "ELEPHANT_SEAL": "p9",
+   "ELEPHANT_SEAL_MAN": "p9",
+   "ELF": "p9",
+   "ELK": "p9",
+   "ELK_BIRD": "p7",
+   "ELK_MAN": "p9",
+   "EMU_MAN": "p7",
+   "ETTIN": "p9",
+   "FAIRY": "p9",
+   "FIREFLY": "p4",
+   "FIREFLY_MAN": "p4",
+   "FISH_ANCHOVY": "p0",
+   "FISH_BARRACUDA_GREAT": "p0",
+   "FISH_BLUEFISH": "p0",
+   "FISH_BULLHEAD_BLACK": "p0",
+   "FISH_BULLHEAD_BROWN": "p0",
+   "FISH_BULLHEAD_YELLOW": "p0",
+   "FISH_CARP": "p0",
+   "FISH_CAVE": "p8",
+   "FISH_CHAR": "p0",
+   "FISH_CLOWNFISH": "p0",
+   "FISH_COD": "p0",
+   "FISH_COELACANTH": "p0",
+   "FISH_CONGER_EEL": "p7",
+   "FISH_FLOUNDER": "p0",
+   "FISH_GAR_LONGNOSE": "p0",
+   "FISH_GLASSEYE": "p0",
+   "FISH_GROUPER_GIANT": "p0",
+   "FISH_GUPPY": "p0",
+   "FISH_HAGFISH": "p6",
+   "FISH_HAKE": "p0",
+   "FISH_HALIBUT": "p0",
+   "FISH_HERRING": "p0",
+   "FISH_KNIFEFISH_BANDED": "p0",
+   "FISH_LAMPREY_BROOK": "p6",
+   "FISH_LAMPREY_SEA": "p6",
+   "FISH_LOACH_CLOWN": "p0",
+   "FISH_LUNGFISH": "p0",
+   "FISH_MACKEREL": "p0",
+   "FISH_MARLIN": "p0",
+   "FISH_MILKFISH": "p0",
+   "FISH_MOLLY_SAILFIN": "p0",
+   "FISH_OPAH": "p0",
+   "FISH_PERCH": "p0",
+   "FISH_PIKE": "p0",
+   "FISH_PUFFER_WHITE_SPOTTED": "p7",
+   "FISH_RATFISH_SPOTTED": "p0",
+   "FISH_RAY_BAT": "p6",
+   "FISH_RAY_MANTA": "p6",
+   "FISH_RAY_THORNBACK": "p6",
+   "FISH_SALMON": "p0",
+   "FISH_SEAHORSE": "p7",
+   "FISH_SHAD": "p0",
+   "FISH_SKATE_COMMON": "p6",
+   "FISH_SOLE": "p0",
+   "FISH_STINGRAY": "p6",
+   "FISH_STURGEON": "p0",
+   "FISH_SUNFISH_OCEAN": "p0",
+   "FISH_SWORDFISH": "p0",
+   "FISH_TIGERFISH": "p0",
+   "FISH_TROUT_RAINBOW": "p0",
+   "FISH_TROUT_STEELHEAD": "p0",
+   "FISH_TUNA_BLUEFIN": "p0",
+   "FLESH_BALL": "p2",
+   "FLOATING_GUTS": "p6",
+   "FLY": "p4",
+   "FLYING_SQUIRREL_MAN": "p9",
+   "FLY_ACORN": "p4",
+   "FLY_MAN": "p4",
+   "FOX": "p9",
+   "FOXSQUIRREL": "p9",
+   "FOX_MAN": "p9",
+   "GAZELLE": "p9",
+   "GAZELLE_MAN": "p9",
+   "GECKO_LEOPARD": "p0",
+   "GIANT": "p9",
+   "GIANT PEREGRINE FALCON": "p7",
+   "GIANT TORTOISE": "p0",
+   "GIANT TORTOISE MAN": "p0",
+   "GIANT_AARDVARK": "p9",
+   "GIANT_ADDER": "p0",
+   "GIANT_ALBATROSS": "p7",
+   "GIANT_ALLIGATOR": "p0",
+   "GIANT_ANACONDA": "p0",
+   "GIANT_ANOLE": "p0",
+   "GIANT_AXOLOTL": "p7",
+   "GIANT_AYE-AYE": "p9",
+   "GIANT_BARK_SCORPION": "p4",
+   "GIANT_BARN_OWL": "p7",
+   "GIANT_BEAR_BLACK": "p9",
+   "GIANT_BEAR_GRIZZLY": "p9",
+   "GIANT_BEAR_POLAR": "p9",
+   "GIANT_BEAVER": "p9",
+   "GIANT_BEETLE": "p4",
+   "GIANT_BLACK_MAMBA": "p0",
+   "GIANT_BLUEJAY": "p7",
+   "GIANT_BOBCAT": "p9",
+   "GIANT_BROWN_RECLUSE_SPIDER": "p4",
+   "GIANT_BUSHMASTER": "p0",
+   "GIANT_BUSHTIT": "p7",
+   "GIANT_BUTTERFLY_MONARCH": "p4",
+   "GIANT_BUZZARD": "p7",
+   "GIANT_CAMEL_1_HUMP": "p9",
+   "GIANT_CAMEL_2_HUMP": "p9",
+   "GIANT_CAPUCHIN": "p9",
+   "GIANT_CARDINAL": "p7",
+   "GIANT_CASSOWARY": "p7",
+   "GIANT_CHAMELEON": "p0",
+   "GIANT_CHEETAH": "p9",
+   "GIANT_CHINCHILLA": "p9",
+   "GIANT_CHIPMUNK": "p9",
+   "GIANT_COATI": "p9",
+   "GIANT_COCKATIEL": "p7",
+   "GIANT_COPPERHEAD_SNAKE": "p0",
+   "GIANT_COUGAR": "p9",
+   "GIANT_COYOTE": "p9",
+   "GIANT_CRAB": "p4",
+   "GIANT_CROCODILE_SALTWATER": "p0",
+   "GIANT_CROW": "p7",
+   "GIANT_CUTTLEFISH": "p5",
+   "GIANT_DAMSELFLY": "p4",
+   "GIANT_DEER": "p9",
+   "GIANT_DESERT_TORTOISE": "p0",
+   "GIANT_DINGO": "p9",
+   "GIANT_DRAGONFLY": "p4",
+   "GIANT_EAGLE": "p7",
+   "GIANT_EARTHWORM": "p6",
+   "GIANT_ECHIDNA": "p9",
+   "GIANT_ELEPHANT": "p9",
+   "GIANT_ELEPHANT_SEAL": "p9",
+   "GIANT_ELK": "p9",
+   "GIANT_EMU": "p7",
+   "GIANT_FIREFLY": "p4",
+   "GIANT_FLY": "p4",
+   "GIANT_FLYING_SQUIRREL": "p9",
+   "GIANT_FOX": "p9",
+   "GIANT_GAZELLE": "p9",
+   "GIANT_GILA_MONSTER": "p0",
+   "GIANT_GIRAFFE": "p9",
+   "GIANT_GOAT_MOUNTAIN": "p9",
+   "GIANT_GRACKLE": "p7",
+   "GIANT_GRASSHOPPER": "p4",
+   "GIANT_GRAY_LANGUR": "p9",
+   "GIANT_GREAT_HORNED_OWL": "p7",
+   "GIANT_GREEN_TREE_FROG": "p7",
+   "GIANT_GREY_PARROT": "p7",
+   "GIANT_GROUNDHOG": "p9",
+   "GIANT_HAMSTER": "p9",
+   "GIANT_HARE": "p9",
+   "GIANT_HARP_SEAL": "p9",
+   "GIANT_HEDGEHOG": "p9",
+   "GIANT_HIPPO": "p9",
+   "GIANT_HORNBILL": "p7",
+   "GIANT_HORSESHOE_CRAB": "p4",
+   "GIANT_HYENA": "p9",
+   "GIANT_IBEX": "p9",
+   "GIANT_IGUANA": "p0",
+   "GIANT_IMPALA": "p9",
+   "GIANT_JACKAL": "p9",
+   "GIANT_JAGUAR": "p9",
+   "GIANT_JUMPING_SPIDER": "p4",
+   "GIANT_KAKAPO": "p7",
+   "GIANT_KANGAROO": "p9",
+   "GIANT_KEA": "p7",
+   "GIANT_KESTREL": "p7",
+   "GIANT_KINGSNAKE": "p0",
+   "GIANT_KING_COBRA": "p0",
+   "GIANT_KOALA": "p9",
+   "GIANT_LEECH": "p6",
+   "GIANT_LEOPARD": "p9",
+   "GIANT_LEOPARD_GECKO": "p0",
+   "GIANT_LEOPARD_SEAL": "p9",
+   "GIANT_LION": "p9",
+   "GIANT_LION_TAMARIN": "p9",
+   "GIANT_LIZARD": "p0",
+   "GIANT_LOON": "p7",
+   "GIANT_LORIKEET": "p7",
+   "GIANT_LOUSE": "p4",
+   "GIANT_LYNX": "p9",
+   "GIANT_MACAQUE_RHESUS": "p9",
+   "GIANT_MAGPIE": "p7",
+   "GIANT_MANDRILL": "p9",
+   "GIANT_MANTIS": "p4",
+   "GIANT_MARMOT_HOARY": "p9",
+   "GIANT_MASKED_LOVEBIRD": "p7",
+   "GIANT_MINK": "p9",
+   "GIANT_MONGOOSE": "p9",
+   "GIANT_MONITOR_LIZARD": "p0",
+   "GIANT_MOON_SNAIL": "p6",
+   "GIANT_MOSQUITO": "p4",
+   "GIANT_MOTH": "p4",
+   "GIANT_MUSKOX": "p9",
+   "GIANT_NAUTILUS": "p5",
+   "GIANT_OCELOT": "p9",
+   "GIANT_OCTOPUS": "p5",
+   "GIANT_OPOSSUM": "p9",
+   "GIANT_ORCA": "p7",
+   "GIANT_ORIOLE": "p7",
+   "GIANT_OSPREY": "p7",
+   "GIANT_OTTER": "p9",
+   "GIANT_PANGOLIN": "p1",
+   "GIANT_PARAKEET": "p7",
+   "GIANT_PEACH-FACED_LOVEBIRD": "p7",
+   "GIANT_POND_TURTLE": "p0",
+   "GIANT_PORCUPINE": "p9",
+   "GIANT_PUFFIN": "p7",
+   "GIANT_PYTHON": "p0",
+   "GIANT_RACCOON": "p9",
+   "GIANT_RATTLESNAKE": "p0",
+   "GIANT_RAVEN": "p7",
+   "GIANT_RHINOCEROS": "p9",
+   "GIANT_ROACH": "p4",
+   "GIANT_RW_BLACKBIRD": "p7",
+   "GIANT_SKINK": "p0",
+   "GIANT_SKUNK": "p9",
+   "GIANT_SLOTH": "p9",
+   "GIANT_SLOTH_BEAR": "p9",
+   "GIANT_SLUG": "p6",
+   "GIANT_SNAIL": "p6",
+   "GIANT_SNAPPING_TURTLE": "p0",
+   "GIANT_SNOWY_OWL": "p7",
+   "GIANT_SPARROW": "p7",
+   "GIANT_SPERM_WHALE": "p7",
+   "GIANT_SPIDER_MONKEY": "p9",
+   "GIANT_SQUIRREL_GRAY": "p9",
+   "GIANT_SQUIRREL_RED": "p9",
+   "GIANT_STOAT": "p9",
+   "GIANT_SWAN": "p7",
+   "GIANT_TAPIR": "p9",
+   "GIANT_THRIPS": "p4",
+   "GIANT_TICK": "p4",
+   "GIANT_TIGER": "p9",
+   "GIANT_TOAD": "p7",
+   "GIANT_VULTURE": "p7",
+   "GIANT_WALRUS": "p9",
+   "GIANT_WARTHOG": "p9",
+   "GIANT_WEASEL": "p9",
+   "GIANT_WHITE_STORK": "p7",
+   "GIANT_WILD_BOAR": "p9",
+   "GIANT_WOLF": "p9",
+   "GIANT_WOLVERINE": "p9",
+   "GIANT_WOMBAT": "p9",
+   "GIANT_WREN": "p7",
+   "GIBBON_BILOU": "p9",
+   "GIBBON_BLACK_CRESTED": "p9",
+   "GIBBON_BLACK_HANDED": "p9",
+   "GIBBON_GRAY": "p9",
+   "GIBBON_PILEATED": "p9",
+   "GIBBON_SIAMANG": "p9",
+   "GIBBON_SILVERY": "p9",
+   "GIBBON_WHITE_BROWED": "p9",
+   "GIBBON_WHITE_HANDED": "p9",
+   "GIGANTIC SQUID": "p5",
+   "GIGANTIC TORTOISE": "p0",
+   "GILA_MONSTER": "p0",
+   "GILA_MONSTER_MAN": "p0",
+   "GIRAFFE": "p9",
+   "GIRAFFE_MAN": "p9",
+   "GNAT_BLOOD": "p4",
+   "GNOME_DARK": "p9",
+   "GNOME_MOUNTAIN": "p9",
+   "GOAT": "p9",
+   "GOAT_MOUNTAIN": "p9",
+   "GOAT_MOUNTAIN_MAN": "p9",
+   "GOBLIN": "p9",
+   "GORILLA": "p9",
+   "GORLAK": "p9",
+   "GRACKLE_MAN": "p7",
+   "GRASSHOPPER": "p4",
+   "GRASSHOPPER_MAN": "p4",
+   "GRAY_LANGUR": "p9",
+   "GRAY_LANGUR_MAN": "p9",
+   "GREAT_HORNED_OWL_MAN": "p7",
+   "GREEN_DEVOURER": "p6",
+   "GREEN_TREE_FROG": "p7",
+   "GREEN_TREE_FROG_MAN": "p7",
+   "GREMLIN": "p9",
+   "GREY_PARROT_MAN": "p7",
+   "GRIMELING": "p9",
+   "GROUNDHOG": "p9",
+   "GROUNDHOG_MAN": "p9",
+   "HAMSTER": "p9",
+   "HAMSTER_MAN": "p9",
+   "HARE": "p9",
+   "HARE_MAN": "p9",
+   "HARPY": "p7",
+   "HARP_SEAL": "p9",
+   "HARP_SEAL_MAN": "p9",
+   "HEDGEHOG": "p9",
+   "HEDGEHOG_MAN": "p9",
+   "HELMET_SNAKE": "p0",
+   "HIPPO": "p9",
+   "HIPPO_MAN": "p9",
+   "HONEY BADGER": "p9",
+   "HONEY BADGER MAN": "p9",
+   "HONEY BADGER, GIANT": "p9",
+   "HONEY_BEE": "p13",
+   "HORNBILL_MAN": "p7",
+   "HORSE": "p9",
+   "HORSESHOE_CRAB": "p4",
+   "HORSESHOE_CRAB_MAN": "p4",
+   "HUMAN": "p9",
+   "HUNGRY_HEAD": "p9",
+   "HYDRA": "p0",
+   "HYENA": "p9",
+   "HYENA_MAN": "p9",
+   "IBEX": "p9",
+   "IBEX_MAN": "p9",
+   "IGUANA": "p0",
+   "IGUANA_MAN": "p0",
+   "IMPALA": "p9",
+   "IMPALA_MAN": "p9",
+   "IMP_FIRE": "p9",
+   "JABBERER": "p7",
+   "JACKAL": "p9",
+   "JACKAL_MAN": "p9",
+   "JAGUAR": "p9",
+   "JAGUAR_MAN": "p9",
+   "JELLYFISH_SEA_NETTLE": "p6",
+   "JUMPING_SPIDER_MAN": "p4",
+   "KAKAPO_MAN": "p7",
+   "KANGAROO": "p9",
+   "KANGAROO_MAN": "p9",
+   "KEA_MAN": "p7",
+   "KESTREL_MAN": "p7",
+   "KINGSNAKE": "p0",
+   "KINGSNAKE_MAN": "p0",
+   "KING_COBRA": "p0",
+   "KING_COBRA_MAN": "p0",
+   "KIWI MAN": "p7",
+   "KOALA": "p9",
+   "KOALA_MAN": "p9",
+   "KOBOLD": "p9",
+   "LEECH": "p6",
+   "LEECH_MAN": "p6",
+   "LEOPARD": "p9",
+   "LEOPARD_GECKO_MAN": "p0",
+   "LEOPARD_MAN": "p9",
+   "LEOPARD_SEAL": "p9",
+   "LEOPARD_SEAL_MAN": "p9",
+   "LION": "p9",
+   "LION_MAN": "p9",
+   "LION_TAMARIN": "p9",
+   "LION_TAMARIN_MAN": "p9",
+   "LIZARD": "p0",
+   "LIZARD_MAN": "p0",
+   "LIZARD_RHINO_TWO_LEGGED": "p0",
+   "LLAMA": "p9",
+   "LOBSTER_CAVE": "p4",
+   "LOON_MAN": "p7",
+   "LORIKEET_MAN": "p7",
+   "LOUSE": "p4",
+   "LOUSE_MAN": "p4",
+   "LYNX": "p9",
+   "LYNX_MAN": "p9",
+   "MACAQUE_RHESUS": "p9",
+   "MACAQUE_RHESUS_MAN": "p9",
+   "MAGGOT_PURRING": "p6",
+   "MAGMA_CRAB": "p4",
+   "MAGPIE_MAN": "p7",
+   "MANDRILL": "p9",
+   "MANDRILL_MAN": "p9",
+   "MANERA": "p7",
+   "MANTIS": "p4",
+   "MANTIS_MAN": "p4",
+   "MARMOT_HOARY": "p9",
+   "MARMOT_HOARY_MAN": "p9",
+   "MASKED_LOVEBIRD_MAN": "p7",
+   "MERPERSON": "p9",
+   "MINK": "p9",
+   "MINK_MAN": "p9",
+   "MINOTAUR": "p9",
+   "MOGHOPPER": "p7",
+   "MOLEMARIAN": "p9",
+   "MOLE_DOG_NAKED": "p9",
+   "MOLE_GIANT": "p9",
+   "MONGOOSE": "p9",
+   "MONGOOSE_MAN": "p9",
+   "MONITOR_LIZARD": "p0",
+   "MONITOR_LIZARD_MAN": "p0",
+   "MOON_SNAIL": "p6",
+   "MOON_SNAIL_MAN": "p6",
+   "MOOSE": "p9",
+   "MOOSE MAN": "p9",
+   "MOOSE, GIANT": "p9",
+   "MOSQUITO": "p4",
+   "MOSQUITO_MAN": "p4",
+   "MOTH": "p4",
+   "MOTH_MAN": "p4",
+   "MULE": "p9",
+   "MUSKOX": "p9",
+   "MUSKOX_MAN": "p9",
+   "MUSSEL": "p3",
+   "NARWHAL": "p7",
+   "NARWHAL MAN": "p7",
+   "NARWHAL, GIANT": "p7",
+   "NAUTILUS": "p5",
+   "NAUTILUS_MAN": "p5",
+   "NIGHTWING": "p9",
+   "OCELOT": "p9",
+   "OCELOT_MAN": "p9",
+   "OCTOPUS": "p5",
+   "OCTOPUS_MAN": "p5",
+   "OGRE": "p9",
+   "OLM": "p7",
+   "OLM_GIANT": "p7",
+   "OLM_MAN": "p7",
+   "OPOSSUM": "p9",
+   "OPOSSUM_MAN": "p9",
+   "ORANGUTAN": "p9",
+   "ORCA": "p7",
+   "ORCA_MAN": "p7",
+   "ORIOLE_MAN": "p7",
+   "OSPREY_MAN": "p7",
+   "OSTRICH MAN": "p7",
+   "OTTER_MAN": "p9",
+   "OYSTER": "p3",
+   "PANDA": "p9",
+   "PANDA MAN": "p9",
+   "PANDA, GIGANTIC": "p9",
+   "PANGOLIN": "p1",
+   "PANGOLIN_MAN": "p1",
+   "PARAKEET_MAN": "p7",
+   "PEACH-FACED_LOVEBIRD_MAN": "p7",
+   "PENGUIN MAN": "p7",
+   "PEREGRINE FALCON MAN": "p7",
+   "PIG": "p9",
+   "PIXIE": "p9",
+   "PLATYPUS": "p9",
+   "PLATYPUS MAN": "p9",
+   "PLATYPUS, GIANT": "p9",
+   "POND_GRABBER": "p7",
+   "POND_TURTLE": "p0",
+   "POND_TURTLE_MAN": "p0",
+   "PORCUPINE": "p9",
+   "PORCUPINE_MAN": "p9",
+   "PUFFIN_MAN": "p7",
+   "PYTHON": "p0",
+   "PYTHON_MAN": "p0",
+   "RABBIT": "p9",
+   "RACCOON": "p9",
+   "RACCOON_MAN": "p9",
+   "RAT": "p9",
+   "RATTLESNAKE": "p0",
+   "RATTLESNAKE_MAN": "p0",
+   "RAT_DEMON": "p9",
+   "RAT_GIANT": "p9",
+   "RAT_LARGE": "p9",
+   "RAT_MAN": "p9",
+   "RAVEN_MAN": "p7",
+   "REACHER": "p9",
+   "RED PANDA": "p9",
+   "RED PANDA MAN": "p9",
+   "RED PANDA, GIANT": "p9",
+   "REINDEER": "p9",
+   "REPTILE_MAN": "p0",
+   "RHINOCEROS": "p9",
+   "RHINOCEROS_MAN": "p9",
+   "RIVER OTTER": "p9",
+   "ROACH_LARGE": "p4",
+   "ROACH_MAN": "p4",
+   "RODENT MAN": "p9",
+   "RUTHERER": "p9",
+   "RW_BLACKBIRD_MAN": "p7",
+   "SASQUATCH": "p9",
+   "SATYR": "p9",
+   "SEA OTTER": "p9",
+   "SEA_MONSTER": "p0",
+   "SEA_SERPENT": "p0",
+   "SERPENT_MAN": "p0",
+   "SHARK_ANGEL": "p6",
+   "SHARK_BASKING": "p6",
+   "SHARK_BLUE": "p6",
+   "SHARK_BULL": "p6",
+   "SHARK_FRILL": "p6",
+   "SHARK_GREAT_WHITE": "p6",
+   "SHARK_HAMMERHEAD": "p6",
+   "SHARK_MAKO_LONGFIN": "p6",
+   "SHARK_MAKO_SHORTFIN": "p6",
+   "SHARK_NURSE": "p6",
+   "SHARK_REEF_BLACKTIP": "p6",
+   "SHARK_REEF_WHITETIP": "p6",
+   "SHARK_SPINY_DOGFISH": "p6",
+   "SHARK_TIGER": "p6",
+   "SHARK_WHALE": "p6",
+   "SHARK_WOBBEGONG_SPOTTED": "p6",
+   "SHEEP": "p9",
+   "SKINK": "p0",
+   "SKINK_MAN": "p0",
+   "SKUNK": "p9",
+   "SKUNK_MAN": "p9",
+   "SLOTH": "p9",
+   "SLOTH_BEAR_MAN": "p9",
+   "SLOTH_MAN": "p9",
+   "SLUG": "p6",
+   "SLUG_MAN": "p6",
+   "SNAIL": "p6",
+   "SNAIL_MAN": "p6",
+   "SNAPPING TURTLE": "p0",
+   "SNAPPING_TURTLE_MAN": "p0",
+   "SNOWY_OWL_MAN": "p7",
+   "SPARROW": "p7",
+   "SPARROW_MAN": "p7",
+   "SPERM_WHALE": "p7",
+   "SPERM_WHALE_MAN": "p7",
+   "SPIDER_BROWN_RECLUSE": "p4",
+   "SPIDER_CAVE": "p4",
+   "SPIDER_CAVE_GIANT": "p10",
+   "SPIDER_JUMPING": "p4",
+   "SPIDER_MONKEY": "p9",
+   "SPIDER_MONKEY_MAN": "p9",
+   "SPIDER_PHANTOM": "p4",
+   "SQUID": "p5",
+   "SQUID MAN": "p5",
+   "SQUIRREL_FLYING": "p9",
+   "SQUIRREL_GRAY": "p9",
+   "SQUIRREL_GRAY_MAN": "p9",
+   "SQUIRREL_RED": "p9",
+   "SQUIRREL_RED_MAN": "p9",
+   "STOAT": "p9",
+   "STOAT_MAN": "p9",
+   "STRANGLER": "p9",
+   "SWAN_MAN": "p7",
+   "TAPIR": "p9",
+   "TAPIR_MAN": "p9",
+   "TERMITE": "p11",
+   "THRIPS": "p4",
+   "THRIPS_MAN": "p4",
+   "TICK": "p4",
+   "TICK_MAN": "p4",
+   "TIGER": "p9",
+   "TIGER_MAN": "p9",
+   "TOAD": "p7",
+   "TOAD_GIANT_CAVE": "p7",
+   "TOAD_MAN": "p7",
+   "TROGLODYTE": "p9",
+   "TROLL": "p9",
+   "UNICORN": "p9",
+   "VORACIOUS_CAVE_CRAWLER": "p6",
+   "VULTURE_MAN": "p7",
+   "WALRUS": "p9",
+   "WALRUS_MAN": "p9",
+   "WAMBLER_FLUFFY": "p12",
+   "WARTHOG": "p9",
+   "WARTHOG_MAN": "p9",
+   "WATER_BUFFALO": "p9",
+   "WEASEL": "p9",
+   "WEASEL_MAN": "p9",
+   "WHITE_STORK_MAN": "p7",
+   "WILD_BOAR": "p9",
+   "WILD_BOAR_MAN": "p9",
+   "WOLF": "p9",
+   "WOLF_ICE": "p9",
+   "WOLF_MAN": "p9",
+   "WOLVERINE": "p9",
+   "WOLVERINE_MAN": "p9",
+   "WOMBAT": "p9",
+   "WOMBAT_MAN": "p9",
+   "WORM": "p6",
+   "WORM_KNUCKLE": "p6",
+   "WORM_MAN": "p6",
+   "WREN_MAN": "p7",
+   "YAK": "p9",
+   "YETI": "p9"
+  },
+  "cells": {
+   "GLOB:FAT": {
+    "col": 0,
+    "row": 0,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:BRAIN": {
+    "col": 0,
+    "row": 13,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:EYE": {
+    "col": 0,
+    "row": 1,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:GIZZARD": {
+    "col": 0,
+    "row": 28,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:HEART": {
+    "col": 0,
+    "row": 4,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:INTESTINES": {
+    "col": 0,
+    "row": 5,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:KIDNEY": {
+    "col": 0,
+    "row": 10,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:LIVER": {
+    "col": 0,
+    "row": 6,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:LUNG": {
+    "col": 0,
+    "row": 3,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:PANCREAS": {
+    "col": 0,
+    "row": 8,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:SPLEEN": {
+    "col": 0,
+    "row": 9,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:STANDARD": {
+    "col": 0,
+    "row": 16,
+    "sheet": "bodyparts.png"
+   },
+   "MEAT:STOMACH": {
+    "col": 0,
+    "row": 7,
+    "sheet": "bodyparts.png"
+   }
+  },
+  "profiles": {
+   "p0": {
+    "19": "GLOB:FAT",
+    "20": "MEAT:STANDARD",
+    "24": "MEAT:EYE",
+    "26": "MEAT:BRAIN",
+    "27": "MEAT:LUNG",
+    "28": "MEAT:HEART",
+    "29": "MEAT:LIVER",
+    "30": "MEAT:INTESTINES",
+    "31": "MEAT:STOMACH",
+    "32": "MEAT:GIZZARD",
+    "33": "MEAT:PANCREAS",
+    "34": "MEAT:SPLEEN",
+    "35": "MEAT:KIDNEY"
+   },
+   "p1": {
+    "19": "GLOB:FAT",
+    "20": "MEAT:STANDARD",
+    "25": "MEAT:EYE",
+    "27": "MEAT:BRAIN",
+    "28": "MEAT:LUNG",
+    "29": "MEAT:HEART",
+    "30": "MEAT:LIVER",
+    "31": "MEAT:INTESTINES",
+    "32": "MEAT:STOMACH",
+    "33": "MEAT:GIZZARD",
+    "34": "MEAT:PANCREAS",
+    "35": "MEAT:SPLEEN",
+    "36": "MEAT:KIDNEY"
+   },
+   "p10": {
+    "21": "GLOB:FAT",
+    "22": "MEAT:STANDARD",
+    "23": "MEAT:EYE",
+    "25": "MEAT:BRAIN",
+    "26": "MEAT:LUNG",
+    "27": "MEAT:HEART",
+    "28": "MEAT:LIVER",
+    "29": "MEAT:INTESTINES",
+    "30": "MEAT:STOMACH",
+    "31": "MEAT:GIZZARD",
+    "32": "MEAT:PANCREAS",
+    "33": "MEAT:SPLEEN",
+    "34": "MEAT:KIDNEY"
+   },
+   "p11": {
+    "23": "GLOB:FAT",
+    "24": "MEAT:STANDARD",
+    "25": "MEAT:EYE",
+    "27": "MEAT:BRAIN",
+    "28": "MEAT:LUNG",
+    "29": "MEAT:HEART",
+    "30": "MEAT:LIVER",
+    "31": "MEAT:INTESTINES",
+    "32": "MEAT:STOMACH",
+    "33": "MEAT:GIZZARD",
+    "34": "MEAT:PANCREAS",
+    "35": "MEAT:SPLEEN",
+    "36": "MEAT:KIDNEY"
+   },
+   "p12": {
+    "25": "GLOB:FAT",
+    "26": "MEAT:EYE"
+   },
+   "p13": {
+    "28": "GLOB:FAT",
+    "29": "MEAT:STANDARD",
+    "30": "MEAT:EYE",
+    "32": "MEAT:BRAIN",
+    "33": "MEAT:LUNG",
+    "34": "MEAT:HEART",
+    "35": "MEAT:LIVER",
+    "36": "MEAT:INTESTINES",
+    "37": "MEAT:STOMACH",
+    "38": "MEAT:GIZZARD",
+    "39": "MEAT:PANCREAS",
+    "40": "MEAT:SPLEEN",
+    "41": "MEAT:KIDNEY"
+   },
+   "p2": {
+    "19": "MEAT:STANDARD"
+   },
+   "p3": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD"
+   },
+   "p4": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD",
+    "22": "MEAT:EYE",
+    "24": "MEAT:BRAIN",
+    "25": "MEAT:LUNG",
+    "26": "MEAT:HEART",
+    "27": "MEAT:LIVER",
+    "28": "MEAT:INTESTINES",
+    "29": "MEAT:STOMACH",
+    "30": "MEAT:GIZZARD",
+    "31": "MEAT:PANCREAS",
+    "32": "MEAT:SPLEEN",
+    "33": "MEAT:KIDNEY"
+   },
+   "p5": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD",
+    "23": "MEAT:EYE",
+    "25": "MEAT:BRAIN",
+    "26": "MEAT:LUNG",
+    "27": "MEAT:HEART",
+    "28": "MEAT:LIVER",
+    "29": "MEAT:INTESTINES",
+    "30": "MEAT:STOMACH",
+    "31": "MEAT:GIZZARD",
+    "32": "MEAT:PANCREAS",
+    "33": "MEAT:SPLEEN",
+    "34": "MEAT:KIDNEY"
+   },
+   "p6": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD",
+    "24": "MEAT:EYE",
+    "26": "MEAT:BRAIN",
+    "27": "MEAT:LUNG",
+    "28": "MEAT:HEART",
+    "29": "MEAT:LIVER",
+    "30": "MEAT:INTESTINES",
+    "31": "MEAT:STOMACH",
+    "32": "MEAT:GIZZARD",
+    "33": "MEAT:PANCREAS",
+    "34": "MEAT:SPLEEN",
+    "35": "MEAT:KIDNEY"
+   },
+   "p7": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD",
+    "25": "MEAT:EYE",
+    "27": "MEAT:BRAIN",
+    "28": "MEAT:LUNG",
+    "29": "MEAT:HEART",
+    "30": "MEAT:LIVER",
+    "31": "MEAT:INTESTINES",
+    "32": "MEAT:STOMACH",
+    "33": "MEAT:GIZZARD",
+    "34": "MEAT:PANCREAS",
+    "35": "MEAT:SPLEEN",
+    "36": "MEAT:KIDNEY"
+   },
+   "p8": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD",
+    "26": "MEAT:BRAIN",
+    "27": "MEAT:LUNG",
+    "28": "MEAT:HEART",
+    "29": "MEAT:LIVER",
+    "30": "MEAT:INTESTINES",
+    "31": "MEAT:STOMACH",
+    "32": "MEAT:GIZZARD",
+    "33": "MEAT:PANCREAS",
+    "34": "MEAT:SPLEEN",
+    "35": "MEAT:KIDNEY"
+   },
+   "p9": {
+    "20": "GLOB:FAT",
+    "21": "MEAT:STANDARD",
+    "26": "MEAT:EYE",
+    "28": "MEAT:BRAIN",
+    "29": "MEAT:LUNG",
+    "30": "MEAT:HEART",
+    "31": "MEAT:LIVER",
+    "32": "MEAT:INTESTINES",
+    "33": "MEAT:STOMACH",
+    "34": "MEAT:GIZZARD",
+    "35": "MEAT:PANCREAS",
+    "36": "MEAT:SPLEEN",
+    "37": "MEAT:KIDNEY"
+   }
+  },
+  "queued_for_pick": [],
+  "unresolved_creatures": []
+ },
+ "gem_default": {
+  "col": 0,
+  "row": 0,
+  "sheet": "gems.png"
+ },
+ "gem_shapes": {
+  "BAGUETTE_CUT_GEM": {
+   "large": {
+    "col": 1,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 0,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "BRIOLETTE_CUT_GEM": {
+   "large": {
+    "col": 2,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 1,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "CUSHION_CABOCHON": {
+   "large": {
+    "col": 3,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 2,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "CUSHION_CUT_GEM": {
+   "large": {
+    "col": 4,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 3,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "EMERALD_CUT_GEM": {
+   "large": {
+    "col": 5,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 4,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "MARQUISE_CUT_GEM": {
+   "large": {
+    "col": 6,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 5,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "OCTAGON_CUT_GEM": {
+   "large": {
+    "col": 7,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 6,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "OVAL_CABOCHON": {
+   "large": {
+    "col": 8,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 7,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "OVAL_CUT_GEM": {
+   "large": {
+    "col": 9,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 8,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "PEAR_CUT_GEM": {
+   "large": {
+    "col": 10,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 9,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "POINT_CUT_GEM": {
+   "large": {
+    "col": 11,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 10,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "RADIANT_CUT_GEM": {
+   "large": {
+    "col": 12,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 11,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "RECTANGULAR_CABOCHON": {
+   "large": {
+    "col": 13,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 12,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "ROSE_CUT_GEM": {
+   "large": {
+    "col": 14,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 13,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "ROUND_BRILLIANT_CUT_GEM": {
+   "large": {
+    "col": 15,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 14,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "ROUND_CABOCHON": {
+   "large": {
+    "col": 16,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 15,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "SINGLE_CUT_GEM": {
+   "large": {
+    "col": 17,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 16,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "SQUARE_BRILLIANT_CUT_GEM": {
+   "large": {
+    "col": 18,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 17,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "SQUARE_CUT_GEM": {
+   "large": {
+    "col": 19,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 18,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "TABLE_CUT_GEM": {
+   "large": {
+    "col": 20,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 19,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "TAPERED_BAGUETTE_CUT_GEM": {
+   "large": {
+    "col": 21,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 20,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  },
+  "TRILLION_CUT_GEM": {
+   "large": {
+    "col": 22,
+    "row": 0,
+    "sheet": "gems.png"
+   },
+   "small": {
+    "col": 21,
+    "row": 0,
+    "sheet": "smallgems.png"
+   }
+  }
+ },
+ "hatch_cover_bymat": {
+  "ADAMANTINE": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "ALUMINUM": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "BILLON": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "BISMUTH": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "BISMUTH_BRONZE": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "BLACK_BRONZE": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "BRASS": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "BRONZE": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "COPPER": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_1": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_11": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_13": {
+   "col": 2,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_15": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_17": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_19": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_3": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_5": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_7": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "DIVINE_9": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "ELECTRUM": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "GOLD": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "LEAD": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "MARBLE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_hatch_composite.png"
+  },
+  "MICROCLINE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_hatch_composite.png"
+  },
+  "MYTHICAL_REMNANT_1": {
+   "col": 2,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "NICKEL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "NICKEL_SILVER": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "ORTHOCLASE": {
+   "col": 0,
+   "row": 1,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PEWTER_FINE": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PEWTER_LAY": {
+   "col": 2,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PEWTER_TRIFLE": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PIG_IRON": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PLANT_MAT:FEATHER:WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PLANT_MAT:MANGROVE:WOOD": {
+   "col": 1,
+   "row": 0,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PLANT_MAT:OAK:WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_hatch_composite.png"
+  },
+  "PLANT_MAT:WILLOW:WOOD": {
+   "col": 0,
+   "row": 0,
+   "sheet": "item_hatch_composite.png"
+  },
+  "ROSE_GOLD": {
+   "col": 1,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "SILVER": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "STEEL": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "STERLING_SILVER": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "TIN": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  },
+  "ZINC": {
+   "col": 0,
+   "row": 2,
+   "sheet": "item_hatch_composite.png"
+  }
+ },
+ "matvariants": {
+  "Bed": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "beds.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "beds.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 1,
+    "sheet": "beds.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "beds.png"
+   }
+  },
+  "Box": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_box.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_box.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_box.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_box.png"
+   }
+  },
+  "Cabinet": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_cabinet.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_cabinet.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_cabinet.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_cabinet.png"
+   }
+  },
+  "Chair": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_chair_composite.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_chair_composite.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_chair_composite.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_chair_composite.png"
+   }
+  },
+  "Door": {
+   "GLASS": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_door.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_door.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_door.png"
+   },
+   "WOOD": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_door.png"
+   }
+  },
+  "Grate": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_grate.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_grate.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_grate.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_grate.png"
+   }
+  },
+  "HatchCover": {
+   "GLASS": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_hatch.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_hatch.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_hatch.png"
+   },
+   "WOOD": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_hatch.png"
+   }
+  },
+  "Table": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_table_composite.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_table_composite.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_table_composite.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_table_composite.png"
+   }
+  }
+ },
+ "rough_gem_glass": {
+  "GLASS_CLEAR": {
+   "col": 0,
+   "row": 8,
+   "sheet": "boulders.png"
+  },
+  "GLASS_CRYSTAL": {
+   "col": 0,
+   "row": 8,
+   "sheet": "boulders.png"
+  },
+  "GLASS_GREEN": {
+   "col": 0,
+   "row": 8,
+   "sheet": "boulders.png"
+  }
+ },
+ "rough_gem_tiers": [
+  {
+   "cell": {
+    "col": 0,
+    "row": 9,
+    "sheet": "boulders.png"
+   },
+   "min_value": 2
+  },
+  {
+   "cell": {
+    "col": 0,
+    "row": 9,
+    "sheet": "boulders.png"
+   },
+   "min_value": 3
+  },
+  {
+   "cell": {
+    "col": 1,
+    "row": 9,
+    "sheet": "boulders.png"
+   },
+   "min_value": 5
+  },
+  {
+   "cell": {
+    "col": 1,
+    "row": 9,
+    "sheet": "boulders.png"
+   },
+   "min_value": 10
+  },
+  {
+   "cell": {
+    "col": 0,
+    "row": 10,
+    "sheet": "boulders.png"
+   },
+   "min_value": 15
+  },
+  {
+   "cell": {
+    "col": 0,
+    "row": 10,
+    "sheet": "boulders.png"
+   },
+   "min_value": 20
+  },
+  {
+   "cell": {
+    "col": 1,
+    "row": 10,
+    "sheet": "boulders.png"
+   },
+   "min_value": 25
+  },
+  {
+   "cell": {
+    "col": 1,
+    "row": 10,
+    "sheet": "boulders.png"
+   },
+   "min_value": 30
+  },
+  {
+   "cell": {
+    "col": 0,
+    "row": 11,
+    "sheet": "boulders.png"
+   },
+   "min_value": 40
+  },
+  {
+   "cell": {
+    "col": 1,
+    "row": 11,
+    "sheet": "boulders.png"
+   },
+   "min_value": 60
+  }
+ ],
+ "sheet_geometry": {
+  "ability_list_icons.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 288,
+   "page_w": 256
+  },
+  "activity_zones.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 512,
+   "page_w": 224
+  },
+  "adv_env_odor.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 72,
+   "page_w": 192
+  },
+  "adv_env_temperature.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 108,
+   "page_w": 128
+  },
+  "adv_env_weather.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 252,
+   "page_w": 288
+  },
+  "announcement_alerts.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 1184,
+   "page_w": 32
+  },
+  "beds.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 384
+  },
+  "boulders.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 512,
+   "page_w": 64
+  },
+  "building_icons.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 512,
+   "page_w": 256
+  },
+  "calendar.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 120
+  },
+  "cavern_grass.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 96,
+   "page_w": 640
+  },
+  "cloth_roll.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 64
+  },
+  "coffins.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 160,
+   "page_w": 64
+  },
+  "combat_animations_mining.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 256,
+   "page_w": 128
+  },
+  "combat_animations_ram.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 128
+  },
+  "combat_animations_sparks.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 1024,
+   "page_w": 128
+  },
+  "combat_animations_swish.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 1024,
+   "page_w": 128
+  },
+  "combat_icons.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 288,
+   "page_w": 256
+  },
+  "containers.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 448,
+   "page_w": 256
+  },
+  "cursors.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 768,
+   "page_w": 192
+  },
+  "custom_symbols.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 64,
+   "page_w": 384
+  },
+  "designation_item.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 192,
+   "page_w": 32
+  },
+  "designation_priority.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 224,
+   "page_w": 32
+  },
+  "designations.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 544,
+   "page_w": 64
+  },
+  "gems.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 736
+  },
+  "generated_list_icons.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 160,
+   "page_w": 32
+  },
+  "grass.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 128
+  },
+  "grass_flowers.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 352,
+   "page_w": 256
+  },
+  "grass_other.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 192,
+   "page_w": 384
+  },
+  "icons_unit_selector.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 160
+  },
+  "interface_bits.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 732,
+   "page_w": 512
+  },
+  "interface_bits_2.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 48
+  },
+  "interface_bits_adventure.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 168,
+   "page_w": 416
+  },
+  "interface_bits_adventure_chargen.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 96
+  },
+  "interface_bits_adventure_combat_prefs.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 72,
+   "page_w": 288
+  },
+  "interface_bits_adventure_inventory.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 108,
+   "page_w": 192
+  },
+  "interface_bits_adventure_log.png": {
+   "cell_h": 12,
+   "cell_w": 8
+  },
+  "interface_bits_adventure_travel.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 440
+  },
+  "interface_bits_announcements.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 128
+  },
+  "interface_bits_arena.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 144,
+   "page_w": 128
+  },
+  "interface_bits_building_placement.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 360,
+   "page_w": 224
+  },
+  "interface_bits_building_selection.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 72,
+   "page_w": 56
+  },
+  "interface_bits_building_sheet.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 32
+  },
+  "interface_bits_burrows.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 256
+  },
+  "interface_bits_display_toggles.png": {
+   "cell_h": 12,
+   "cell_w": 8
+  },
+  "interface_bits_embark.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 72,
+   "page_w": 64
+  },
+  "interface_bits_hauling.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 144,
+   "page_w": 256
+  },
+  "interface_bits_help.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 72,
+   "page_w": 112
+  },
+  "interface_bits_labor.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 144,
+   "page_w": 416
+  },
+  "interface_bits_legends.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 24,
+   "page_w": 64
+  },
+  "interface_bits_locations.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 108,
+   "page_w": 288
+  },
+  "interface_bits_nobles.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 144,
+   "page_w": 352
+  },
+  "interface_bits_recenter.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 128
+  },
+  "interface_bits_shared.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 372,
+   "page_w": 128
+  },
+  "interface_bits_squads.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 180,
+   "page_w": 352
+  },
+  "interface_bits_stockpiles.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 144,
+   "page_w": 320
+  },
+  "interface_bits_unit_selector.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 72,
+   "page_w": 64
+  },
+  "interface_bits_unit_sheet.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 36,
+   "page_w": 128
+  },
+  "interface_bits_work_orders.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 144,
+   "page_w": 224
+  },
+  "interface_bits_zones.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 252,
+   "page_w": 256
+  },
+  "item_bookcase.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 416
+  },
+  "item_box.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 352
+  },
+  "item_cabinet.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 352
+  },
+  "item_chair.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 352
+  },
+  "item_door.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 480
+  },
+  "item_floodgate.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 384
+  },
+  "item_grate.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 256,
+   "page_w": 64
+  },
+  "item_hatch.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 416
+  },
+  "item_table.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 128,
+   "page_w": 352
+  },
+  "item_weapons.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 704,
+   "page_w": 160
+  },
+  "mining_indicators.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 64
+  },
+  "moon_weather.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 320
+  },
+  "plant_crops.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 1088,
+   "page_w": 384
+  },
+  "plant_garden.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 1824,
+   "page_w": 288
+  },
+  "plant_standard.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 672,
+   "page_w": 416
+  },
+  "ramp_arrows.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 32,
+   "page_w": 64
+  },
+  "side_indicator.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 160,
+   "page_w": 32
+  },
+  "skill_progress_bar.png": {
+   "cell_h": 12,
+   "cell_w": 8,
+   "page_h": 12,
+   "page_w": 72
+  },
+  "smallgems.png": {
+   "cell_h": 16,
+   "cell_w": 16,
+   "page_h": 16,
+   "page_w": 352
+  },
+  "sound_indicators.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 288,
+   "page_w": 128
+  },
+  "stockpile_icons.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 640,
+   "page_w": 32
+  },
+  "stockpile_icons_signless.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 640,
+   "page_w": 32
+  },
+  "tracking_symbols.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 928,
+   "page_w": 512
+  },
+  "traps_weapon.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 160,
+   "page_w": 288
+  },
+  "tree_black_cap.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 224,
+   "page_w": 544
+  },
+  "tree_blood_thorn.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_cedar.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_feather.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_fungiwood.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 800,
+   "page_w": 384
+  },
+  "tree_ginkgo.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_ginkgo_leaves.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 192,
+   "page_w": 384
+  },
+  "tree_glumprong.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 832,
+   "page_w": 384
+  },
+  "tree_goblin_cap.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 224,
+   "page_w": 544
+  },
+  "tree_growths.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 2016,
+   "page_w": 160
+  },
+  "tree_kapok.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_larch_leaves.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 384,
+   "page_w": 160
+  },
+  "tree_macademia.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_maple.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_maple_leaves.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 640,
+   "page_w": 384
+  },
+  "tree_nether_cap.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 224,
+   "page_w": 544
+  },
+  "tree_papaya.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_pine.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_saguaro.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 800,
+   "page_w": 384
+  },
+  "tree_saplings.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 352,
+   "page_w": 256
+  },
+  "tree_spore_tree.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "tree_tower_cap.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 224,
+   "page_w": 544
+  },
+  "tree_tunnel_tube.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 800,
+   "page_w": 384
+  },
+  "tree_willow.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "trees.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 960,
+   "page_w": 384
+  },
+  "trees_flowers.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 768,
+   "page_w": 384
+  },
+  "trees_fruit.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 576,
+   "page_w": 384
+  },
+  "trees_leaves.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 640,
+   "page_w": 384
+  },
+  "unit_status.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 1312,
+   "page_w": 32
+  },
+  "upright_weapons.png": {
+   "cell_h": 32,
+   "cell_w": 32,
+   "page_h": 224,
+   "page_w": 320
+  }
+ },
+ "smallgem_default": {
+  "col": 0,
+  "row": 0,
+  "sheet": "smallgems.png"
+ },
+ "web": {
+  "harmless": [
+   {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_webs.png"
+   },
+   {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_webs.png"
+   },
+   {
+    "col": 2,
+    "row": 0,
+    "sheet": "item_webs.png"
+   },
+   {
+    "col": 3,
+    "row": 0,
+    "sheet": "item_webs.png"
+   }
+  ],
+  "thick": [
+   {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_webs.png"
+   },
+   {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_webs.png"
+   },
+   {
+    "col": 2,
+    "row": 1,
+    "sheet": "item_webs.png"
+   },
+   {
+    "col": 3,
+    "row": 1,
+    "sheet": "item_webs.png"
+   }
+  ]
+ }
+}

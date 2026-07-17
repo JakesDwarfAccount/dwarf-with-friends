@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.control.work_orders.condition.add_suggested",
+  "nativeId": "control.work_orders.condition.add_suggested",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woSuggestionRowsHtml",
+      "dfcuiComponent": "DFCUI.artBtnHtml",
+      "assets": ["WORK_ORDERS_ADD_SUGGESTED_CONDITION"],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woConditionDuplicate",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    }
+  ],
+  "disposition": "partial",
+  "audit": {
+    "classification": "local-repair",
+    "findings": ["The client now matches native scalar/string filter identity while ignoring operator, value, and contains, and it suppresses only the add control. The exact server-side opaque-token add route remains deferred until a lossless native suggestion snapshot exists."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

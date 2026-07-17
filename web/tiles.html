@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+  Copyright (C) 2026 Gabriel Rios
+  Copyright (C) 2026 Jake Taplin
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+  Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+  Full license: see LICENSE. Third-party credits: see NOTICE.
+
+  SPDX-License-Identifier: AGPL-3.0-only
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dwf - Tiles</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0e0e10;
+  }
+  #tilemap {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+  #hud {
+    position: fixed;
+    top: 6px;
+    left: 8px;
+    color: #ddd;
+    font: 12px/1.4 monospace;
+    text-shadow: 0 0 3px #000, 0 0 3px #000;
+    pointer-events: none;
+    white-space: pre;
+  }
+</style>
+</head>
+<body tabindex="0">
+<canvas id="tilemap"></canvas>
+<div id="hud">connecting...</div>
+<!-- WA-12: protocol v1 reference decoder -- see index.html for the full rationale (needed as
+     an ambient global by BOTH dwf-ws.js's main-thread header decode and
+     dwf-cache-worker.js's fallback/non-worker mode). -->
+<script src="/js/dwf-wire-v1.js?v=1.0.8-w10.r26.fx-n0715d"></script>
+<!-- WA-6 world cache: see index.html for the full rationale. -->
+<script src="/js/dwf-cache-worker.js?v=1.0.8-win25.r26.fx-n0715d"></script>
+<script src="/js/dwf-cache.js?v=1.3.0-b211-n0715d"></script>
+<!-- WS push transport must load BEFORE the tile renderer so window.DwfWS exists
+     when boot() wires it. If absent, the renderer silently falls back to HTTP polling. -->
+<script src="/js/dwf-ws.js?v=1.0.0-wa15.r26.fx-n0715d"></script>
+<!-- WB-6: shared 8-neighbor adjacency (wall-join upgrade + WB-7's shadow-decal tables). -->
+<script src="/js/dwf-adjacency.js?v=1.0.0-wb6.r26.fx-n0715d"></script>
+<script src="/js/dwf-farm-crops.js?v=1.0.0-tx4.r26.fx-n0715d"></script>
+<script src="/js/dwf-tiles.js?v=2.4.0-b211-b273r2-n0715d"></script>
+<!-- WB-8/WB-9 GL renderer (atlas packer + WebGL2 core), behind ?renderer=gl. -->
+<script src="/js/dwf-gl-atlas.js?v=1.0.5-spritefresh.r26.fx-n0715d"></script>
+<script src="/js/dwf-gl.js?v=2.6.0-b211-b273r2-n0715d"></script>
+<!-- Renderer seam (WB-1): registers canvas2d/gl + selection/fallback. Loads AFTER
+     dwf-tiles.js so window.DwfTiles already exists. -->
+<script src="/js/dwf-render.js?v=1.3.0-b211-n0715d"></script>
+</body>
+</html>

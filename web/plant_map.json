@@ -1,0 +1,4687 @@
+{
+  "ABACA": {
+    "PICKED": {
+      "col": 3,
+      "row": 0,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 0,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "ACACIA": {
+    "PICKED": {
+      "col": 3,
+      "row": 47,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 47,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "ALDER": {
+    "PICKED": {
+      "col": 3,
+      "row": 55,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 55,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "ALFALFA": {
+    "CROP": {
+      "col": 6,
+      "row": 8,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 8,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 8,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 8,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 8,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 8,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "ALMOND": {
+    "PICKED": {
+      "col": 3,
+      "row": 27,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 27,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "APPLE": {
+    "PICKED": {
+      "col": 2,
+      "row": 28,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 28,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "APRICOT": {
+    "PICKED": {
+      "col": 2,
+      "row": 29,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 29,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "ARTICHOKE": {
+    "CROP": {
+      "col": 6,
+      "row": 0,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 0,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 0,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 0,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 0,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 0,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "ASH": {
+    "PICKED": {
+      "col": 0,
+      "row": 57,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 57,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "ASPARAGUS": {
+    "CROP": {
+      "col": 6,
+      "row": 1,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 1,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 1,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 1,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 1,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 1,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "AVOCADO": {
+    "PICKED": {
+      "col": 2,
+      "row": 11,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 11,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "BAMBARA_GROUNDNUT": {
+    "CROP": {
+      "col": 6,
+      "row": 2,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 2,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 2,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 2,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 2,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 2,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BANANA": {
+    "PICKED": {
+      "col": 2,
+      "row": 1,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 1,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "BARLEY": {
+    "CROP": {
+      "col": 6,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 5,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "BAYBERRY": {
+    "PICKED": {
+      "col": 2,
+      "row": 30,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 30,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "BEET": {
+    "CROP": {
+      "col": 6,
+      "row": 5,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 5,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 5,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 5,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 5,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 5,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BERRIES_FISHER": {
+    "CROP": {
+      "col": 5,
+      "row": 13,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 13,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 13,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 13,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 13,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 13,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "BERRIES_PRICKLE": {
+    "CROP": {
+      "col": 5,
+      "row": 8,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 8,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 8,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 8,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 8,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 8,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "BERRIES_STRAW": {
+    "CROP": {
+      "col": 5,
+      "row": 9,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 9,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 9,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 9,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 9,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 9,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "BERRY_SUN": {
+    "CROP": {
+      "col": 5,
+      "row": 19,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 19,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 19,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 19,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 19,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 19,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "BILBERRY": {
+    "CROP": {
+      "col": 6,
+      "row": 52,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 52,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 52,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 52,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 52,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 52,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BIRCH": {
+    "PICKED": {
+      "col": 3,
+      "row": 55,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 1,
+      "row": 55,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "BITTER_MELON": {
+    "CROP": {
+      "col": 6,
+      "row": 6,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 6,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 6,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 6,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 6,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 6,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BITTER_ORANGE": {
+    "PICKED": {
+      "col": 2,
+      "row": 16,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 16,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "BITTER_VETCH": {
+    "CROP": {
+      "col": 6,
+      "row": 15,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 15,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 15,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 15,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 15,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 15,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "BLACKBERRY": {
+    "CROP": {
+      "col": 6,
+      "row": 54,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 54,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 54,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 54,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 54,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 54,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BLOOD_AMARANTH": {
+    "CROP": {
+      "col": 6,
+      "row": 17,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 17,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 17,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 17,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 17,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 17,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "BLUEBERRY": {
+    "CROP": {
+      "col": 6,
+      "row": 53,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 53,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 53,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 53,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 53,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 53,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BROAD_BEAN": {
+    "CROP": {
+      "col": 6,
+      "row": 4,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 4,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 4,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 4,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 4,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 4,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "BUCKWHEAT": {
+    "CROP": {
+      "col": 6,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 6,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "BULB_KOBOLD": {
+    "CROP": {
+      "col": 5,
+      "row": 7,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 7,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 7,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 7,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 7,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 7,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "BUSH_QUARRY": {
+    "CROP": {
+      "col": 5,
+      "row": 4,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 4,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 4,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 4,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 4,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 4,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "CABBAGE": {
+    "CROP": {
+      "col": 6,
+      "row": 7,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 7,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 7,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 7,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 7,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 7,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CACAO": {
+    "PICKED": {
+      "col": 2,
+      "row": 61,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 61,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CANDLENUT": {
+    "PICKED": {
+      "col": 3,
+      "row": 58,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 58,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CAPER": {
+    "CROP": {
+      "col": 6,
+      "row": 8,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 8,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 8,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 8,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 8,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 8,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CARAMBOLA": {
+    "PICKED": {
+      "col": 2,
+      "row": 2,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 2,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CASHEW": {
+    "PICKED": {
+      "col": 2,
+      "row": 3,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 3,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CASSAVA": {
+    "CROP": {
+      "col": 6,
+      "row": 10,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 10,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 10,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 10,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 10,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 10,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CEDAR": {
+    "PICKED": {
+      "col": 3,
+      "row": 44,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 44,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CELERY": {
+    "CROP": {
+      "col": 6,
+      "row": 11,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 11,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 11,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 11,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 11,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 11,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CHERRY": {
+    "PICKED": {
+      "col": 2,
+      "row": 31,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 31,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CHESTNUT": {
+    "PICKED": {
+      "col": 3,
+      "row": 54,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 54,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "CHICKPEA": {
+    "CROP": {
+      "col": 6,
+      "row": 12,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 12,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 12,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 12,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 12,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 12,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CHICORY": {
+    "CROP": {
+      "col": 6,
+      "row": 13,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 13,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 13,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 13,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 13,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 13,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CITRON": {
+    "PICKED": {
+      "col": 2,
+      "row": 14,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 14,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "COFFEE": {
+    "PICKED": {
+      "col": 2,
+      "row": 4,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 4,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "COTTON": {
+    "CROP": {
+      "col": 6,
+      "row": 30,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 30,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 30,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 30,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 30,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 30,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "COWPEA": {
+    "CROP": {
+      "col": 6,
+      "row": 14,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 14,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 14,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 14,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 14,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 14,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CRANBERRY": {
+    "CROP": {
+      "col": 6,
+      "row": 51,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 51,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 51,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 51,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 51,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 51,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CUCUMBER": {
+    "CROP": {
+      "col": 6,
+      "row": 15,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 15,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 15,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 15,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 15,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 15,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "CUSTARD-APPLE": {
+    "PICKED": {
+      "col": 2,
+      "row": 21,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 21,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "DATE_PALM": {
+    "PICKED": {
+      "col": 2,
+      "row": 22,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 22,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "DESERT_LIME": {
+    "PICKED": {
+      "col": 2,
+      "row": 19,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 19,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "DURIAN": {
+    "PICKED": {
+      "col": 2,
+      "row": 5,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 5,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "EGGPLANT": {
+    "CROP": {
+      "col": 6,
+      "row": 16,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 16,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 16,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 16,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 16,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 16,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "ELEPHANT-HEAD_AMARANTH": {
+    "CROP": {
+      "col": 6,
+      "row": 20,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 20,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 20,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 20,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 20,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 20,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "FEATHER": {
+    "PICKED": {
+      "col": 3,
+      "row": 51,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "FINGER_LIME": {
+    "PICKED": {
+      "col": 2,
+      "row": 17,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 17,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "FINGER_MILLET": {
+    "CROP": {
+      "col": 6,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 23,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "FLAX": {
+    "CROP": {
+      "col": 6,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 27,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "FONIO": {
+    "CROP": {
+      "col": 6,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 25,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "FOXTAIL_MILLET": {
+    "CROP": {
+      "col": 6,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 24,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "GARDEN_CRESS": {
+    "CROP": {
+      "col": 6,
+      "row": 17,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 17,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 17,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 17,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 17,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 17,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "GARLIC": {
+    "CROP": {
+      "col": 6,
+      "row": 18,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 18,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 18,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 18,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 18,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 18,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "GINKGO": {
+    "PICKED": {
+      "col": 3,
+      "row": 32,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 32,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "GRAPE": {
+    "CROP": {
+      "col": 6,
+      "row": 50,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 50,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 50,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 50,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 50,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 50,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "GRASS_LONGLAND": {
+    "CROP": {
+      "col": 5,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_L": {
+      "col": 6,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_M": {
+      "col": 7,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_R": {
+      "col": 8,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 10,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "GRASS_TAIL_PIG": {
+    "CROP": {
+      "col": 5,
+      "row": 1,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 1,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 1,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 1,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 1,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 1,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "GRASS_WHEAT_CAVE": {
+    "CROP": {
+      "col": 5,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_L": {
+      "col": 6,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_M": {
+      "col": 7,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_R": {
+      "col": 8,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 2,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "GUAVA": {
+    "PICKED": {
+      "col": 2,
+      "row": 6,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 6,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "HARD_WHEAT": {
+    "CROP": {
+      "col": 6,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 3,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "HAZEL": {
+    "PICKED": {
+      "col": 3,
+      "row": 33,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 33,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "HEMP": {
+    "CROP": {
+      "col": 6,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 29,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "HERB_VALLEY": {
+    "CROP": {
+      "col": 5,
+      "row": 11,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 11,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 11,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 11,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 11,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 11,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "HIGHWOOD": {
+    "PICKED": {
+      "col": 3,
+      "row": 52,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "HORNED_MELON": {
+    "CROP": {
+      "col": 6,
+      "row": 19,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 19,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 19,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 19,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 19,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 19,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "JUTE": {
+    "CROP": {
+      "col": 6,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 28,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "KANIWA": {
+    "CROP": {
+      "col": 6,
+      "row": 14,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 14,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 14,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 14,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 14,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 14,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "KAPOK": {
+    "PICKED": {
+      "col": 2,
+      "row": 48,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "KENAF": {
+    "CROP": {
+      "col": 6,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 32,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "KUMQUAT": {
+    "PICKED": {
+      "col": 2,
+      "row": 20,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 20,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "LARCH": {
+    "PICKED": {
+      "col": 3,
+      "row": 53,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 53,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "LEEK": {
+    "CROP": {
+      "col": 6,
+      "row": 20,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 20,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 20,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 20,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 20,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 20,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "LENTIL": {
+    "CROP": {
+      "col": 6,
+      "row": 21,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 21,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 21,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 21,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 21,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 21,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "LESSER_YAM": {
+    "CROP": {
+      "col": 6,
+      "row": 45,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 45,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 45,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 45,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 45,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 45,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "LETTUCE": {
+    "CROP": {
+      "col": 6,
+      "row": 22,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 22,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 22,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 22,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 22,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 22,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "LIME": {
+    "PICKED": {
+      "col": 2,
+      "row": 12,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 12,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "LONG_YAM": {
+    "CROP": {
+      "col": 6,
+      "row": 46,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 46,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 46,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 46,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 46,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 46,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "LYCHEE": {
+    "PICKED": {
+      "col": 2,
+      "row": 23,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 23,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "MACADAMIA": {
+    "PICKED": {
+      "col": 3,
+      "row": 24,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 24,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "MAHOGANY": {
+    "PICKED": {
+      "col": 2,
+      "row": 46,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "MAIZE": {
+    "CROP": {
+      "col": 6,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 12,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "MANGO": {
+    "PICKED": {
+      "col": 2,
+      "row": 59,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 59,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "MANGROVE": {
+    "PICKED": {
+      "col": 2,
+      "row": 41,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "MAPLE": {
+    "PICKED": {
+      "col": 0,
+      "row": 49,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 49,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "MUNG_BEAN": {
+    "CROP": {
+      "col": 6,
+      "row": 23,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 23,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 23,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 23,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 23,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 23,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "MUSHROOM_CUP_DIMPLE": {
+    "CROP": {
+      "col": 5,
+      "row": 15,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 15,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 15,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 15,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 15,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 15,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "MUSHROOM_HELMET_PLUMP": {
+    "CROP": {
+      "col": 5,
+      "row": 0,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 0,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 0,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 0,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 0,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 0,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "MUSKMELON": {
+    "CROP": {
+      "col": 6,
+      "row": 24,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 24,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 24,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 24,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 24,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 24,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "OAK": {
+    "PICKED": {
+      "col": 3,
+      "row": 45,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 45,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "OATS": {
+    "CROP": {
+      "col": 6,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 7,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "OLIVE": {
+    "PICKED": {
+      "col": 2,
+      "row": 25,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 25,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "ONION": {
+    "CROP": {
+      "col": 6,
+      "row": 25,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 25,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 25,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 25,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 25,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 25,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "ORANGE": {
+    "PICKED": {
+      "col": 2,
+      "row": 15,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 15,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PALM": {
+    "PICKED": {
+      "col": 2,
+      "row": 62,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PAPAYA": {
+    "PICKED": {
+      "col": 2,
+      "row": 7,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 7,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PAPYRUS_SEDGE": {
+    "CROP": {
+      "col": 6,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 33,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "PARADISE_NUT": {
+    "PICKED": {
+      "col": 2,
+      "row": 8,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 8,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PARSNIP": {
+    "CROP": {
+      "col": 6,
+      "row": 26,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 26,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 26,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 26,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 26,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 26,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PASSION_FRUIT": {
+    "CROP": {
+      "col": 6,
+      "row": 49,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 49,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 49,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 49,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 49,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 49,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PEA": {
+    "CROP": {
+      "col": 6,
+      "row": 27,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 27,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 27,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 27,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 27,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 27,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PEACH": {
+    "PICKED": {
+      "col": 2,
+      "row": 34,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 34,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PEANUT": {
+    "CROP": {
+      "col": 6,
+      "row": 28,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 28,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 28,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 28,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 28,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 28,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PEAR": {
+    "PICKED": {
+      "col": 2,
+      "row": 35,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 35,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PEARL_MILLET": {
+    "CROP": {
+      "col": 6,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 21,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "PECAN": {
+    "PICKED": {
+      "col": 3,
+      "row": 36,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 36,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PENDANT_AMARANTH": {
+    "CROP": {
+      "col": 6,
+      "row": 16,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 16,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 16,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 16,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 16,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 16,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "PEPPER": {
+    "CROP": {
+      "col": 6,
+      "row": 29,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 29,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 29,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 29,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 29,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 29,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PERSIMMON": {
+    "PICKED": {
+      "col": 2,
+      "row": 37,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 37,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PINE": {
+    "PICKED": {
+      "col": 3,
+      "row": 43,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 43,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "PINEAPPLE": {
+    "CROP": {
+      "col": 6,
+      "row": 56,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 56,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 56,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 56,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 56,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 56,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PLUM": {
+    "PICKED": {
+      "col": 2,
+      "row": 38,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 38,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "POD_SWEET": {
+    "CROP": {
+      "col": 5,
+      "row": 3,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 3,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 3,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 3,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 3,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 3,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "POMEGRANATE": {
+    "PICKED": {
+      "col": 2,
+      "row": 26,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 26,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "POMELO": {
+    "PICKED": {
+      "col": 2,
+      "row": 13,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 13,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "POTATO": {
+    "CROP": {
+      "col": 6,
+      "row": 30,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 30,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 30,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 30,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 30,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 30,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "PURPLE_AMARANTH": {
+    "CROP": {
+      "col": 6,
+      "row": 18,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 18,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 18,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 18,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 18,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 18,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "PURPLE_YAM": {
+    "CROP": {
+      "col": 6,
+      "row": 47,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 47,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 47,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 47,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 47,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 47,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "QUINOA": {
+    "CROP": {
+      "col": 6,
+      "row": 13,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 13,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 13,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 13,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 13,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 13,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "RADISH": {
+    "CROP": {
+      "col": 6,
+      "row": 31,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 31,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 31,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 31,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 31,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 31,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "RAMBUTAN": {
+    "PICKED": {
+      "col": 2,
+      "row": 9,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 9,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "RAMIE": {
+    "CROP": {
+      "col": 6,
+      "row": 31,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 31,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 31,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 31,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 31,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 31,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "RASPBERRY": {
+    "CROP": {
+      "col": 6,
+      "row": 55,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 55,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 55,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 55,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 55,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 55,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "RED_BEAN": {
+    "CROP": {
+      "col": 6,
+      "row": 32,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 32,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 32,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 32,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 32,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 32,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "RED_SPINACH": {
+    "CROP": {
+      "col": 6,
+      "row": 19,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 19,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 19,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 19,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 19,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 19,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "REED_ROPE": {
+    "CROP": {
+      "col": 5,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_L": {
+      "col": 6,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_M": {
+      "col": 7,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_R": {
+      "col": 8,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 14,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "RHUBARB": {
+    "CROP": {
+      "col": 6,
+      "row": 33,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 33,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 33,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 33,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 33,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 33,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "RICE": {
+    "CROP": {
+      "col": 6,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 11,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "ROOT_HIDE": {
+    "CROP": {
+      "col": 5,
+      "row": 17,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 17,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 17,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 17,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 17,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 17,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "ROOT_MUCK": {
+    "CROP": {
+      "col": 5,
+      "row": 5,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 5,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 5,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 5,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 5,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 5,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "ROUND_LIME": {
+    "PICKED": {
+      "col": 2,
+      "row": 18,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 18,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "RUBBER": {
+    "PICKED": {
+      "col": 3,
+      "row": 60,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "RYE": {
+    "CROP": {
+      "col": 6,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 9,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "SAGUARO": {
+    "PICKED": {
+      "col": 2,
+      "row": 42,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "SAND_PEAR": {
+    "PICKED": {
+      "col": 2,
+      "row": 39,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 39,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "SINGLE-GRAIN_WHEAT": {
+    "CROP": {
+      "col": 6,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 0,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "SLIVER_BARB": {
+    "CROP": {
+      "col": 5,
+      "row": 18,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 18,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 18,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 18,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 18,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 18,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "SOFT_WHEAT": {
+    "CROP": {
+      "col": 6,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 2,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "SORGHUM": {
+    "CROP": {
+      "col": 6,
+      "row": 10,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 10,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 10,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 10,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 10,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 10,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "SOYBEAN": {
+    "CROP": {
+      "col": 6,
+      "row": 34,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 34,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 34,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 34,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 34,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 34,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "SPELT": {
+    "CROP": {
+      "col": 6,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 4,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "SPINACH": {
+    "CROP": {
+      "col": 6,
+      "row": 35,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 35,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 35,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 35,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 35,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 35,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "SQUASH": {
+    "CROP": {
+      "col": 6,
+      "row": 36,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 36,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 36,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 36,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 36,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 36,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "STRING_BEAN": {
+    "CROP": {
+      "col": 6,
+      "row": 3,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 3,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 3,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 3,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 3,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 3,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "SWEET_POTATO": {
+    "CROP": {
+      "col": 6,
+      "row": 37,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 37,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 37,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 37,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 37,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 37,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "TARO": {
+    "CROP": {
+      "col": 6,
+      "row": 38,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 38,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 38,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 38,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 38,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 38,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "TEA": {
+    "PICKED": {
+      "col": 2,
+      "row": 10,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 10,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "TEFF": {
+    "CROP": {
+      "col": 6,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 26,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "TOMATILLO": {
+    "CROP": {
+      "col": 6,
+      "row": 40,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 40,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 40,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 40,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 40,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 40,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "TOMATO": {
+    "CROP": {
+      "col": 6,
+      "row": 39,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 39,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 39,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 39,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 39,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 39,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "TUBER_BLOATED": {
+    "CROP": {
+      "col": 5,
+      "row": 6,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 6,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 6,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 6,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 6,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 6,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "TURNIP": {
+    "CROP": {
+      "col": 6,
+      "row": 41,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 41,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 41,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 41,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 41,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 41,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "TWO-GRAIN_WHEAT": {
+    "CROP": {
+      "col": 6,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 1,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "URAD_BEAN": {
+    "CROP": {
+      "col": 6,
+      "row": 42,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 42,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 3,
+      "row": 42,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 42,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 42,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 42,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "VINE_WHIP": {
+    "CROP": {
+      "col": 5,
+      "row": 20,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 20,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 20,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 20,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 20,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 20,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "WALNUT": {
+    "PICKED": {
+      "col": 3,
+      "row": 40,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 0,
+      "row": 40,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "WATERMELON": {
+    "CROP": {
+      "col": 6,
+      "row": 43,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 43,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 43,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 43,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 43,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 43,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "WEED_BLADE": {
+    "CROP": {
+      "col": 5,
+      "row": 16,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 16,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 16,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 16,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 16,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 16,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "WEED_RAT": {
+    "CROP": {
+      "col": 5,
+      "row": 12,
+      "sheet": "plant_standard.png"
+    },
+    "CROP_SPROUT": {
+      "col": 9,
+      "row": 12,
+      "sheet": "plant_standard.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 12,
+      "sheet": "plant_standard.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 12,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 12,
+      "sheet": "plant_standard.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 12,
+      "row": 12,
+      "sheet": "plant_standard.png"
+    }
+  },
+  "WHITE_MILLET": {
+    "CROP": {
+      "col": 6,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_L": {
+      "col": 8,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_M": {
+      "col": 9,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_R": {
+      "col": 10,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 11,
+      "row": 22,
+      "sheet": "plant_crops.png"
+    }
+  },
+  "WHITE_YAM": {
+    "CROP": {
+      "col": 6,
+      "row": 48,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 48,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 48,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 48,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 48,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 48,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "WILD_CARROT": {
+    "CROP": {
+      "col": 6,
+      "row": 9,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 9,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 1,
+      "row": 9,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 9,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 9,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 9,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "WILLOW": {
+    "PICKED": {
+      "col": 2,
+      "row": 50,
+      "sheet": "tree_growths.png"
+    },
+    "SEED": {
+      "col": 1,
+      "row": 50,
+      "sheet": "tree_growths.png"
+    }
+  },
+  "WINTER_MELON": {
+    "CROP": {
+      "col": 6,
+      "row": 44,
+      "sheet": "plant_garden.png"
+    },
+    "CROP_SPROUT": {
+      "col": 7,
+      "row": 44,
+      "sheet": "plant_garden.png"
+    },
+    "PICKED": {
+      "col": 4,
+      "row": 44,
+      "sheet": "plant_garden.png"
+    },
+    "SEED": {
+      "col": 2,
+      "row": 44,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB": {
+      "col": 0,
+      "row": 44,
+      "sheet": "plant_garden.png"
+    },
+    "SHRUB_DEAD": {
+      "col": 8,
+      "row": 44,
+      "sheet": "plant_garden.png"
+    }
+  },
+  "_default_sapling": {
+    "col": 0,
+    "row": 1,
+    "sheet": "plants.png"
+  },
+  "_default_shrub": {
+    "col": 0,
+    "row": 0,
+    "sheet": "plants.png"
+  }
+}

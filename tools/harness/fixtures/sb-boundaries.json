@@ -1,0 +1,39 @@
+{
+  "_doc": "sb-boundaries.json -- criterion 6 native predicate BOUNDARY fixtures. Each case is RAW native unit fields; `expect.st`/`expect.st2` are the two status words the native predicate table (see sb_predicate_ref.mjs) says those fields MUST produce, and `expect.row`/`expect.token` are what the shipped 18-step resolver then draws (null = no overhead bubble). The suite asserts: nativePredicate(raw) == expect words (server table), and both renderers resolve(expect words) == expect row (client). st/st2 are hex strings.",
+  "cases": [
+    { "name": "stress_9999_below", "crit": "stress", "raw": { "stress": 9999 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "stress_10000_at", "crit": "stress", "raw": { "stress": 10000 }, "expect": { "st": "0x4", "st2": "0x0", "row": 6, "token": "UNIT_STATUS:STRESSED" } },
+    { "name": "stress_present_but_mood_gates_it", "crit": "stress", "raw": { "stress": 30000, "mood": 3 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "stress_present_but_soldier_mood_gates_it", "crit": "stress", "raw": { "stress": 30000, "soldier_mood": 2 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+
+    { "name": "focus_81_above_cut", "crit": "focus", "raw": { "focus_current": 81, "focus_undistracted": 100 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "focus_80_at_cut", "crit": "focus", "raw": { "focus_current": 80, "focus_undistracted": 100 }, "expect": { "st": "0x0", "st2": "0x8", "row": 7, "token": "UNIT_STATUS:DISTRACTED" } },
+    { "name": "focus_50_below_cut", "crit": "focus", "raw": { "focus_current": 50, "focus_undistracted": 100 }, "expect": { "st": "0x0", "st2": "0x8", "row": 7, "token": "UNIT_STATUS:DISTRACTED" } },
+    { "name": "focus_is_a_RATIO_not_raw_current", "crit": "focus", "raw": { "focus_current": 800, "focus_undistracted": 1000 }, "expect": { "st": "0x0", "st2": "0x8", "row": 7, "token": "UNIT_STATUS:DISTRACTED" } },
+    { "name": "focus_low_but_mood_gates_it", "crit": "focus", "raw": { "focus_current": 10, "focus_undistracted": 100, "mood": 4 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+
+    { "name": "paralysis_99_below", "crit": "paralysis", "raw": { "paralysis": 99 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "paralysis_100_at", "crit": "paralysis", "raw": { "paralysis": 100 }, "expect": { "st": "0x2000", "st2": "0x0", "row": 26, "token": "UNIT_STATUS:PARALYZED" } },
+
+    { "name": "sleeping_via_Sleep_job", "crit": "sleep_rest", "raw": { "unconscious": 500, "job": "Sleep" }, "expect": { "st": "0x1", "st2": "0x0", "row": 8, "token": "UNIT_STATUS:SLEEPING" } },
+    { "name": "sleeping_via_Rest_job", "crit": "sleep_rest", "raw": { "unconscious": 500, "job": "Rest" }, "expect": { "st": "0x1", "st2": "0x0", "row": 8, "token": "UNIT_STATUS:SLEEPING" } },
+    { "name": "unconscious_no_sleep_job_is_a_KO", "crit": "sleep_rest", "raw": { "unconscious": 500, "job": "Drink" }, "expect": { "st": "0x2", "st2": "0x0", "row": 30, "token": "UNIT_STATUS:UNCONSCIOUS" } },
+
+    { "name": "dizziness_only", "crit": "dizziness", "raw": { "dizziness": 5, "stunned": 0 }, "expect": { "st": "0x400", "st2": "0x0", "row": 27, "token": "UNIT_STATUS:STUNNED" } },
+    { "name": "stunned_only", "crit": "dizziness", "raw": { "stunned": 5, "dizziness": 0 }, "expect": { "st": "0x400", "st2": "0x0", "row": 27, "token": "UNIT_STATUS:STUNNED" } },
+    { "name": "neither_stunned_nor_dizzy", "crit": "dizziness", "raw": { "stunned": 0, "dizziness": 0 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+
+    { "name": "preacher_role_maps_to_story", "crit": "preacher", "raw": { "performance_role": "PREACHER" }, "expect": { "st": "0x0", "st2": "0x200", "row": 34, "token": "UNIT_STATUS:TELLING_A_STORY" } },
+    { "name": "performance_role_0_also_story", "crit": "preacher", "raw": { "performance_role": 0 }, "expect": { "st": "0x0", "st2": "0x200", "row": 34, "token": "UNIT_STATUS:TELLING_A_STORY" } },
+
+    { "name": "terror_overload_only", "crit": "terror", "raw": { "emotionally_overloaded": true }, "expect": { "st": "0x0", "st2": "0x10", "row": 22, "token": "UNIT_STATUS:TERRIFIED" } },
+    { "name": "no_overload_no_terror", "crit": "terror", "raw": { "emotionally_overloaded": false }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+
+    { "name": "thirst_24999_below", "crit": "needs", "raw": { "thirst_timer": 24999 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "thirst_25000_at", "crit": "needs", "raw": { "thirst_timer": 25000 }, "expect": { "st": "0x8000000", "st2": "0x0", "row": 4, "token": "UNIT_STATUS:THIRSTY" } },
+    { "name": "hunger_49999_below", "crit": "needs", "raw": { "hunger_timer": 49999 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "hunger_50000_at", "crit": "needs", "raw": { "hunger_timer": 50000 }, "expect": { "st": "0x4000000", "st2": "0x0", "row": 3, "token": "UNIT_STATUS:HUNGRY" } },
+    { "name": "drowsy_57599_below", "crit": "needs", "raw": { "sleepiness_timer": 57599 }, "expect": { "st": "0x0", "st2": "0x0", "row": null, "token": null } },
+    { "name": "drowsy_57600_at", "crit": "needs", "raw": { "sleepiness_timer": 57600 }, "expect": { "st": "0x10000000", "st2": "0x0", "row": 5, "token": "UNIT_STATUS:DROWSY" } }
+  ]
+}

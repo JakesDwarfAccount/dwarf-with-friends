@@ -1,0 +1,45 @@
+{
+  "provenance": {
+    "nativeOracle": "tools/spikes/ui-truth/18-info-nobles.png",
+    "oraclePopulation": 15,
+    "dfStructures": "<DFHACK_ROOT>/library/xml/df.entity.xml:1613-1624",
+    "vanillaRaw": "data/vanilla/vanilla_entities/objects/entity_default.txt:573-583"
+  },
+  "positionsOwn": [
+    { "id": 1, "code": "EXPEDITION_LEADER", "precedence": 110, "requiresPopulation": 0, "hasMetPopulationRequirement": true, "hasBeenReplaced": false },
+    { "id": 2, "code": "SHERIFF", "precedence": 130, "requiresPopulation": 0, "hasMetPopulationRequirement": true, "hasBeenReplaced": false },
+    { "id": 3, "code": "CAPTAIN_OF_THE_GUARD", "precedence": 105, "requiresPopulation": 50, "hasMetPopulationRequirement": false, "hasBeenReplaced": false },
+    { "id": 4, "code": "MESSENGER", "precedence": 250, "requiresPopulation": 0, "hasMetPopulationRequirement": true, "hasBeenReplaced": false }
+  ],
+  "assignments": [
+    { "id": 10, "positionId": 1, "histfig": 100, "squadId": -1 },
+    { "id": 11, "positionId": 2, "histfig": -1, "squadId": -1 },
+    { "id": 12, "positionId": 3, "histfig": 300, "squadId": -1 }
+  ],
+  "possibleAppointable": [
+    { "id": 11, "positionId": 2 },
+    { "id": 99, "positionId": 4 }
+  ],
+  "expectedVisibleCodes": [
+    "EXPEDITION_LEADER",
+    "SHERIFF",
+    "MESSENGER"
+  ],
+  "expectedHiddenCodes": [
+    "CAPTAIN_OF_THE_GUARD"
+  ],
+  "asNeededSquadCase": {
+    "positions": [
+      { "id": 4, "code": "MILITIA_COMMANDER", "squadSize": 10, "number": 1, "appointedBy": [8, 9], "requiresPopulation": 0, "hasMetPopulationRequirement": true, "requiresMarket": false, "hasMetMarketRequirement": false, "hasBeenReplaced": false },
+      { "id": 5, "code": "MILITIA_CAPTAIN", "squadSize": 10, "number": -1, "appointedBy": [4], "requiresPopulation": 0, "hasMetPopulationRequirement": true, "requiresMarket": false, "hasMetMarketRequirement": false, "hasBeenReplaced": false },
+      { "id": 7, "code": "CAPTAIN_OF_THE_GUARD", "squadSize": 10, "number": 1, "appointedBy": [8, 9], "requiresPopulation": 50, "hasMetPopulationRequirement": false, "requiresMarket": true, "hasMetMarketRequirement": false, "hasBeenReplaced": false }
+    ],
+    "assignments": [
+      { "id": 11, "positionId": 4, "histfig": 12014, "squadId": 89 },
+      { "id": 12, "positionId": 5, "histfig": -1, "squadId": -1 }
+    ],
+    "possibleAppointable": [],
+    "expectedFreeAssignmentIds": [12],
+    "expectedCreatablePositionIds": [5]
+  }
+}

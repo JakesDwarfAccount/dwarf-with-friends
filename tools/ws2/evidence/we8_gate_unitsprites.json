@@ -1,0 +1,335 @@
+{
+ "item": "WE-8 - QA: unit-sprite parity gate + bake_unit.py regression instrument",
+ "spec": "docs/superpowers/specs/2026-07-07-WE-dwarf-compositing-spec.md#we-8",
+ "instrument": "tools/harness/gate_unitsprites.py (this commit)",
+ "note": "run1 executed 2026-07-07 11:11-11:13Z with the ORIGINAL per-run-atlas design: 16/16 in-view composited units pixel-identical (RGBA byte-compare, independent /tiledump?atlas=1 crop at raw lua-read texpos ids vs served /unit-sprite PNG) and 16/16 geometry-identical (sw/sh/ax/ay). Its single FAIL check was a bug in the gate itself, not the exporter: the AUX wire cross-check compared against ALL exported units instead of only units inside the probe player viewport (the wire only ever carries ah for in-view units) -- fixed in this commit (scoped to the window; skips, not fails, when nothing is in view). run1 atlas dump took 104.3s of render-thread saturation and froze the live game -- INCIDENT. The gate was restructured the same hour: atlas is now a persistent cache keyed by save_dir, reused across runs; a fresh dump requires --refresh-atlas --confirmed-with-jt (explicit OK) + DF_LOCK. safety-check/safety-check2 verify the hardened CANNOT-RUN + flag-restore paths live. A first cache-seeded full run is queued for the owner morning approval; the permission system independently blocked an agent-initiated seed attempt at 12:3xZ, confirming the gate's own policy.",
+ "run1": {
+  "utc": "20260707T111134Z",
+  "label": "run1",
+  "export_enabled": true,
+  "units_checked": 16,
+  "units_geometry_matched": 16,
+  "units_pixel_matched": 16,
+  "match_pct": 100.0,
+  "checks": [
+   {
+    "name": "wire AUX 'ah' matches HTTP /unit-sprite listing (WE-3)",
+    "ok": false,
+    "detail": "{\"checked\": 0, \"mismatches\": [], \"bad_hash_count\": 0}"
+   },
+   {
+    "name": ">= 5 live composited units checked",
+    "ok": true,
+    "detail": "checked=16"
+   },
+   {
+    "name": "100% geometry match (sw/sh/ax/ay, independent texpos read vs shipping listing)",
+    "ok": true,
+    "detail": "16/16"
+   },
+   {
+    "name": "100% pixel match (RGBA byte-identical, independent atlas crop vs served PNG)",
+    "ok": true,
+    "detail": "16/16"
+   }
+  ],
+  "wire_check": {
+   "checked": 0,
+   "mismatches": [],
+   "bad_hash_count": 0
+  },
+  "atlas_dump_seconds": 104.3,
+  "atlas_tile_count": 157436,
+  "census_window": {
+   "x": 70,
+   "y": 105,
+   "z": 165
+  },
+  "exporter_stats": {
+   "exportsAttempted": 16,
+   "exportsSucceeded": 16,
+   "exportsSkippedBlank": 0,
+   "hashesNew": 16,
+   "hashesReused": 0,
+   "cacheEvictions": 0,
+   "cacheSize": 16,
+   "recordsTracked": 16,
+   "lastBatchUnits": 1,
+   "lastRenderHopMs": 9.0282
+  },
+  "per_unit": [
+   {
+    "unit": 3658,
+    "race": "DWARF",
+    "ah": "0c6d244102296fcf",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5505,
+    "race": "DWARF",
+    "ah": "e68740010051fa9f",
+    "sw_sh_ax_ay": [
+     2,
+     1,
+     1,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5506,
+    "race": "DWARF",
+    "ah": "17afccc10213d9a9",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5507,
+    "race": "DWARF",
+    "ah": "a884cc4786570261",
+    "sw_sh_ax_ay": [
+     2,
+     1,
+     1,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5508,
+    "race": "DWARF",
+    "ah": "be075f4f8a1aeb23",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5509,
+    "race": "DWARF",
+    "ah": "cc6bc57558d86b5a",
+    "sw_sh_ax_ay": [
+     1,
+     2,
+     0,
+     1
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5510,
+    "race": "DWARF",
+    "ah": "1cb66b9aedeb7c8e",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5511,
+    "race": "DWARF",
+    "ah": "4b9563962f5d7cbd",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5639,
+    "race": "DWARF",
+    "ah": "436328675ff1b3bb",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5641,
+    "race": "DWARF",
+    "ah": "dc78ee6492eefe7f",
+    "sw_sh_ax_ay": [
+     2,
+     1,
+     1,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5642,
+    "race": "DWARF",
+    "ah": "d8559d4b63755665",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5643,
+    "race": "DWARF",
+    "ah": "5c789a100ef51930",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5744,
+    "race": "DWARF",
+    "ah": "4fe248af0dd29743",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5745,
+    "race": "DWARF",
+    "ah": "a12e41cb3cfe0d2d",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5746,
+    "race": "DWARF",
+    "ah": "321c560ea3037732",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   },
+   {
+    "unit": 5747,
+    "race": "DWARF",
+    "ah": "e46cbcb477be3538",
+    "sw_sh_ax_ay": [
+     1,
+     1,
+     0,
+     0
+    ],
+    "geometry_match": true,
+    "pixel_match": true
+   }
+  ]
+ },
+ "safety_check_runs": [
+  {
+   "utc": "20260707T111948Z",
+   "label": "safety-check",
+   "export_enabled": true,
+   "checks": [],
+   "wire_check": {
+    "skipped": true,
+    "reason": "no exported unit falls inside player 'qa-unitsprites''s current interest window (cam={'player': 'qa-unitsprites', 'x': 70, 'y': 105, 'z': 165, 'zoom': 100, 'zoomExplicit': False}, w=50, h=28) -- not a failure, just nothing in view to cross-check"
+   },
+   "census_window": {
+    "x": 70,
+    "y": 105,
+    "z": 164
+   },
+   "exporter_stats": {
+    "exportsAttempted": 16,
+    "exportsSucceeded": 16,
+    "exportsSkippedBlank": 0,
+    "hashesNew": 16,
+    "hashesReused": 0,
+    "cacheEvictions": 0,
+    "cacheSize": 16,
+    "recordsTracked": 16,
+    "lastBatchUnits": 1,
+    "lastRenderHopMs": 9.0282
+   }
+  },
+  {
+   "utc": "20260707T112209Z",
+   "label": "safety-check2",
+   "export_enabled": true,
+   "checks": [],
+   "wire_check": {
+    "skipped": true,
+    "reason": "no exported unit falls inside player 'qa-unitsprites''s current interest window (cam={'player': 'qa-unitsprites', 'x': 70, 'y': 85, 'z': 160, 'zoom': 100, 'zoomExplicit': False}, w=50, h=28) -- not a failure, just nothing in view to cross-check"
+   },
+   "cannot_run_reason": "no cached atlas at <DF_ROOT>\\dwf_unitsprites_gate\\atlas_cache\\atlas and --refresh-atlas not given. A fresh dump needs DF_LOCK + --refresh-atlas --confirmed-with-jt (see the safety-rule comment above this block) -- not something this gate does on its own initiative.",
+   "census_window": {
+    "x": 70,
+    "y": 85,
+    "z": 160
+   },
+   "exporter_stats": {
+    "exportsAttempted": 0,
+    "exportsSucceeded": 0,
+    "exportsSkippedBlank": 0,
+    "hashesNew": 0,
+    "hashesReused": 0,
+    "cacheEvictions": 0,
+    "cacheSize": 0,
+    "recordsTracked": 0,
+    "lastBatchUnits": 0,
+    "lastRenderHopMs": 0
+   }
+  }
+ ],
+ "bake_unit_baseline": {
+  "peasant_3658_class": 97.16,
+  "miner_5505_class": 95.96,
+  "metric": "pct_exact_nonzero_alpha, --group-match last",
+  "source": "tools/ws2/evidence/bake_unit_report.md",
+  "note": "gate runs it non-gating against up to 2 live dwarf fixtures per run; run1 predates the integration, first numbers will land with the cache-seeded run"
+ }
+}

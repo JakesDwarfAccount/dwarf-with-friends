@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "asset.work_orders.add_suggested_condition",
+  "kind": "asset",
+  "title": "Work-order add-suggested-condition asset",
+  "definition": "The native interface texture identity used by the per-row control that adds a generated work-order condition.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "interface-token",
+      "statement": "The native renderer associates the interface token WORK_ORDERS_ADD_SUGGESTED_CONDITION with the add-suggested-condition control.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0002-work-order-suggestions-683c721d",
+        "selectors": ["0x14038c3c0"]
+      }]
+    },
+    {
+      "id": "resting-control-cell",
+      "statement": "In the pinned recorder-v2 frame, the two addable suggestions share the same 4-by-3 lower-plane control texture while the matching existing-condition row has no corresponding control cells.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.corpus.rule-0002-add-control-v2-683c721d",
+        "selectors": ["record-0-frame-0"]
+      }]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "interactive-variants",
+      "statement": "The resting control and its absent state are captured, but hover, pressed, and any independently disabled texture variants have not yet been recorded."
+    }
+  ],
+  "relationships": {
+    "parents": ["control.work_orders.condition.add_suggested"],
+    "children": [],
+    "dependencies": [],
+    "rules": [],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["The control-present state resolves to the native add-suggested-condition interface token."],
+    "boundary": ["Normal, hovered, pressed, disabled, or absent variants are distinguished only when their native identities are independently captured."],
+    "counterexamples": ["A generic text, emoji, or unrelated plus asset must not substitute for this known native interface token."]
+  },
+  "absenceGuards": ["Do not invent unobserved hover, pressed, or disabled asset variants."],
+  "recorderRequirements": {
+    "stateSlice": ["lower interface texture plane", "anchored interface texture plane", "cursor or interaction state", "suggestion already-present result"],
+    "requiredFrames": ["Add control at rest", "Any independently observed interactive variants", "Matching suggestion with the control absent"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "corpus-confirmed",
+    "productMapping": "mapped-implemented",
+    "verification": "live-verified",
+    "release": "not-shippable"
+  }
+}

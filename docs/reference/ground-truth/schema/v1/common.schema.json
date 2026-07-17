@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dwarf-with-friends.local/ground-truth/schema/v1/common.schema.json",
+  "$defs": {
+    "schemaVersion": { "const": 1 },
+    "sha256": { "type": "string", "pattern": "^[A-F0-9]{64}$" },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "dateTime": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+    "buildId": { "type": "string", "pattern": "^build\\.df\\.[a-z0-9][a-z0-9.-]*$" },
+    "evidenceId": { "type": "string", "pattern": "^evidence\\.(binary|corpus|catalog|human-review|negative-finding)\\.[a-z0-9][a-z0-9.-]*$" },
+    "entityId": { "type": "string", "pattern": "^(surface|control|state|flow|rule|asset|catalog|absence)\\.[a-z0-9][a-z0-9._-]*$" },
+    "mappingId": { "type": "string", "pattern": "^mapping\\.[a-z0-9][a-z0-9._-]*$" },
+    "decisionId": { "type": "string", "pattern": "^decision\\.[a-z0-9][a-z0-9._-]*$" },
+    "taskId": { "type": "string", "pattern": "^task\\.[a-z0-9][a-z0-9._-]*$" },
+    "completionId": { "type": "string", "pattern": "^completion\\.[a-z0-9][a-z0-9._-]*$" },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "relativePath": { "type": "string", "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$)).+$" },
+    "applicability": {
+      "type": "object",
+      "required": ["buildIds"],
+      "additionalProperties": false,
+      "properties": {
+        "buildIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/buildId" }
+        }
+      }
+    },
+    "evidenceRef": {
+      "type": "object",
+      "required": ["evidenceId"],
+      "additionalProperties": false,
+      "properties": {
+        "evidenceId": { "$ref": "#/$defs/evidenceId" },
+        "selectors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        }
+      }
+    },
+    "relationships": {
+      "type": "object",
+      "required": ["parents", "children", "dependencies", "rules", "flows", "controls", "assets"],
+      "additionalProperties": false,
+      "properties": {
+        "parents": { "$ref": "#/$defs/entityIdList" },
+        "children": { "$ref": "#/$defs/entityIdList" },
+        "dependencies": { "$ref": "#/$defs/entityIdList" },
+        "rules": { "$ref": "#/$defs/entityIdList" },
+        "flows": { "$ref": "#/$defs/entityIdList" },
+        "controls": { "$ref": "#/$defs/entityIdList" },
+        "assets": { "$ref": "#/$defs/entityIdList" }
+      }
+    },
+    "entityIdList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/entityId" }
+    },
+    "fact": {
+      "type": "object",
+      "required": ["id", "statement", "status", "evidenceRefs"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "statement": { "$ref": "#/$defs/nonEmptyString" },
+        "status": { "enum": ["accepted", "disputed"] },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/evidenceRef" }
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "required": ["id", "statement"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "statement": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/evidenceRef" }
+        }
+      }
+    },
+    "requiredCases": {
+      "type": "object",
+      "required": ["positive", "boundary", "counterexamples"],
+      "additionalProperties": false,
+      "properties": {
+        "positive": { "$ref": "#/$defs/nonEmptyStringList" },
+        "boundary": { "$ref": "#/$defs/nonEmptyStringList" },
+        "counterexamples": { "$ref": "#/$defs/nonEmptyStringList" }
+      }
+    },
+    "nonEmptyStringList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "recorderRequirements": {
+      "type": "object",
+      "required": ["stateSlice", "requiredFrames"],
+      "additionalProperties": false,
+      "properties": {
+        "stateSlice": { "$ref": "#/$defs/nonEmptyStringList" },
+        "requiredFrames": { "$ref": "#/$defs/nonEmptyStringList" }
+      }
+    },
+    "computedStatus": {
+      "type": "object",
+      "required": ["discovery", "binaryEvidence", "corpusEvidence", "productMapping", "verification", "release"],
+      "additionalProperties": false,
+      "properties": {
+        "discovery": { "enum": ["unknown", "cataloged", "scoped"] },
+        "binaryEvidence": { "enum": ["not-read", "binary-read", "binary-disputed"] },
+        "corpusEvidence": { "enum": ["not-captured", "captured", "corpus-confirmed", "corpus-disputed"] },
+        "productMapping": { "enum": ["unmapped", "mapped-absent", "mapped-partial", "mapped-implemented", "mapped-conflicting"] },
+        "verification": { "enum": ["untested", "fixture-verified", "live-verified", "human-approved", "regressed"] },
+        "release": { "enum": ["not-shippable", "shippable", "shipped", "needs-revalidation"] }
+      }
+    }
+  }
+}

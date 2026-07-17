@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.flow.work_orders.add_suggested_condition",
+  "nativeId": "flow.work_orders.add_suggested_condition",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "renderWorkOrders",
+      "dfcuiComponent": "woSuggestionRowsHtml",
+      "assets": ["WORK_ORDERS_ADD_SUGGESTED_CONDITION"],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "route",
+      "file": "src/work_orders.cpp",
+      "symbol": "register_work_order_routes",
+      "route": "POST /order-condition-item-add",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "server",
+      "file": "dwf.lua",
+      "symbol": "add_item_condition",
+      "wireField": "id, item, compare, value, adjective, material",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    }
+  ],
+  "disposition": "conflicting",
+  "audit": {
+    "classification": "local-repair",
+    "findings": ["The mutation route works, but its availability and duplicate semantics use the conflicting identity test instead of Rule 0002."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

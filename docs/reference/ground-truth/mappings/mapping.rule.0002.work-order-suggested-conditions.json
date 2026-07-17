@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.rule.0002.work-order-suggested-conditions",
+  "nativeId": "rule.0002.work-order-suggested-conditions",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "server",
+      "file": "dwf.lua",
+      "symbol": "suggested_conditions",
+      "wireField": "suggestions[]",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs", "tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woConditionDuplicate",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs", "tools/harness/rules_ledger_predicates_test.mjs"]
+    },
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woSuggestionRowsHtml",
+      "dfcuiComponent": "DFCUI.rowHtml and DFCUI.artBtnHtml",
+      "assets": ["WORK_ORDERS_ADD_SUGGESTED_CONDITION"],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs", "tools/harness/rules_ledger_predicates_test.mjs"]
+    }
+  ],
+  "disposition": "partial",
+  "audit": {
+    "classification": "local-repair",
+    "findings": ["The hardcoded barrel suggestion was removed and duplicate/add-control identity now matches the native full-filter and ignored-operator/value/contains semantics. General product/input generation and server-side deep-copy remain deferred because DFHack exposes no lossless offscreen provider." ]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

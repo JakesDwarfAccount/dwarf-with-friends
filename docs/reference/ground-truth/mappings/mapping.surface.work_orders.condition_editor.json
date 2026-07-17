@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.surface.work_orders.condition_editor",
+  "nativeId": "surface.work_orders.condition_editor",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woRenderConditionsScreen",
+      "dfcuiComponent": "DFCUI row, action-button, segmented, scroll, and bitmap-text builders",
+      "assets": ["WORK_ORDERS_ADD_ITEM_CONDITION", "WORK_ORDERS_ADD_ORDER_CONDITION", "WORK_ORDERS_REMOVE"],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs", "tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "route",
+      "file": "src/work_orders.cpp",
+      "symbol": "register_work_order_routes",
+      "route": "GET /orders",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs", "tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "route",
+      "file": "src/work_orders.cpp",
+      "symbol": "register_work_order_routes",
+      "route": "GET /order-suggested-conditions",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "server",
+      "file": "dwf.lua",
+      "symbol": "conditions_json",
+      "wireField": "orders[].itemConditions and orders[].orderConditions",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    }
+  ],
+  "disposition": "conflicting",
+  "audit": {
+    "classification": "local-repair",
+    "findings": ["The editor omits the native unsatisfied annotation and applies satisfied-state styling to the condition description as well as the status annotation."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

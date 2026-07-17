@@ -1,0 +1,418 @@
+<!doctype html>
+<!--
+  dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+  Copyright (C) 2026 Gabriel Rios
+  Copyright (C) 2026 Jake Taplin
+  SPDX-License-Identifier: AGPL-3.0-only
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Texture Pipeline Lab · dwf</title>
+  <link rel="stylesheet" href="css/texture-lab.css">
+</head>
+<body>
+<div id="texture-lab">
+  <header class="lab-header">
+    <div>
+      <p class="kicker">dwf field guide</p>
+      <h1>Texture Pipeline Lab</h1>
+      <p class="lede">Follow one tile, item, creature, or building from Dwarf Fortress memory to the exact browser pixels—and see where “plausible but wrong” art enters the chain.</p>
+    </div>
+    <div class="connection-card" aria-live="polite">
+      <span class="status-dot" id="connection-dot"></span>
+      <div>
+        <strong id="connection-title">Loading project maps…</strong>
+        <span id="connection-detail">Static catalogs work from any web server. Raw token sheets appear when this page is served by dwf.</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="lab-tabs" aria-label="Texture lab sections">
+    <button type="button" class="tab-button is-active" data-tab="guided" aria-selected="true">1. Start here</button>
+    <button type="button" class="tab-button" data-tab="pipeline" aria-selected="false">2. Deep pipeline</button>
+    <button type="button" class="tab-button" data-tab="trace" aria-selected="false">3. Trace examples</button>
+    <button type="button" class="tab-button" data-tab="atlas" aria-selected="false">4. Browse textures</button>
+    <button type="button" class="tab-button" data-tab="failures" aria-selected="false">5. Break it</button>
+    <button type="button" class="tab-button" data-tab="repair" aria-selected="false">6. Fix it safely</button>
+  </nav>
+
+  <main>
+    <section class="lab-panel is-active" id="panel-guided" data-panel="guided">
+      <div class="guided-heading">
+        <div>
+          <p class="eyebrow">Guided course · about 6 minutes</p>
+          <h2>Follow one thing from the game to your screen</h2>
+          <p>We will show the simple idea first, then put the real technical name beside it. Nothing is assumed.</p>
+        </div>
+        <div class="guided-picks">
+          <label for="guided-scenario">Choose what to follow
+            <select id="guided-scenario"></select>
+          </label>
+          <button type="button" id="guided-autoplay" aria-pressed="false">▶ Play the tour</button>
+        </div>
+      </div>
+
+      <div class="guided-progress" aria-label="Guided course progress">
+        <div class="guided-progress-bar"><span id="guided-progress-fill"></span></div>
+        <span id="guided-progress-label">Step 1 of 7</span>
+      </div>
+
+      <div class="guided-step-tabs" id="guided-step-tabs" aria-label="Course steps"></div>
+
+      <div class="guided-theater">
+        <div class="guided-theater-top">
+          <div>
+            <p class="eyebrow" id="guided-step-kicker"></p>
+            <h3 id="guided-step-title"></h3>
+          </div>
+          <span class="guided-scenario-name" id="guided-scenario-name"></span>
+        </div>
+        <div class="guided-visual" id="guided-visual" role="img" aria-live="polite"></div>
+        <div class="guided-language">
+          <article class="plain-language">
+            <span>In simple English</span>
+            <p id="guided-plain"></p>
+          </article>
+          <article class="technical-language">
+            <span>Technical version</span>
+            <p id="guided-technical"></p>
+            <code id="guided-source"></code>
+          </article>
+        </div>
+      </div>
+
+      <div class="guided-practice">
+        <div>
+          <p class="eyebrow">Your turn</p>
+          <h3 id="guided-question"></h3>
+          <p id="guided-hint"></p>
+        </div>
+        <div class="guided-answers" id="guided-answers"></div>
+        <p class="guided-feedback" id="guided-feedback" aria-live="polite"></p>
+      </div>
+
+      <div class="guided-nav">
+        <button type="button" id="guided-prev">← Back</button>
+        <button type="button" id="guided-replay">↻ Replay animation</button>
+        <button type="button" id="guided-next">Next step →</button>
+      </div>
+
+      <div class="term-strip">
+        <div><span class="eyebrow">Tap a technical term</span><strong id="term-title">tiletype</strong><p id="term-definition">DF’s numeric category for what a map tile physically is.</p></div>
+        <div class="term-buttons" id="term-buttons"></div>
+      </div>
+    </section>
+
+    <section class="lab-panel" id="panel-pipeline" data-panel="pipeline" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">The real architecture</p>
+          <h2>Eight handoffs, eight different failure modes</h2>
+        </div>
+        <p>Select a stage. The important boundary is between <em>identity</em>—what a thing is—and <em>art selection</em>—which authored cell should represent it.</p>
+      </div>
+
+      <div class="pipeline-flow" id="pipeline-flow" aria-label="Texture pipeline stages"></div>
+
+      <div class="stage-workbench">
+        <div class="stage-main">
+          <p class="stage-number" id="stage-number">Stage 1</p>
+          <h3 id="stage-title"></h3>
+          <p class="stage-summary" id="stage-summary"></p>
+          <div class="plain-translation"><span>Simple English</span><p id="stage-plain"></p></div>
+          <div class="handoff-visual" aria-label="Selected pipeline handoff">
+            <div>
+              <span>Receives</span>
+              <code id="stage-input"></code>
+            </div>
+            <span class="handoff-arrow" aria-hidden="true">→</span>
+            <div>
+              <span>Hands off</span>
+              <code id="stage-output"></code>
+            </div>
+          </div>
+        </div>
+        <aside class="stage-aside">
+          <div>
+            <span class="aside-label">This stage knows</span>
+            <p id="stage-knows"></p>
+          </div>
+          <div>
+            <span class="aside-label">It does not know</span>
+            <p id="stage-unknown"></p>
+          </div>
+          <div class="danger-note">
+            <span class="aside-label">Typical defect</span>
+            <p id="stage-danger"></p>
+          </div>
+        </aside>
+      </div>
+
+      <div class="source-strip">
+        <span>Grounding source</span>
+        <code id="stage-source"></code>
+      </div>
+
+      <div class="truth-grid">
+        <article>
+          <span class="truth-mark truth-yes">AVAILABLE</span>
+          <h3>Stable world identity</h3>
+          <p>DFHack exposes tiletype, shape/material metadata, construction material, item type/subtype/material, plant and creature identity, designations, fluids, buildings, units, and more through stable structures and modules.</p>
+        </article>
+        <article>
+          <span class="truth-mark truth-no">NOT UNIVERSAL</span>
+          <h3>A ready-made sprite ID for every camera</h3>
+          <p>The premium tiletype→graphics choice is partly hardcoded in DF. Passive viewport texpos arrays describe only the one native camera, so they cannot supply independent offscreen player cameras.</p>
+        </article>
+        <article>
+          <span class="truth-mark truth-mixed">RECONSTRUCTED</span>
+          <h3>Browser art selection</h3>
+          <p>dwf combines streamed identity with generated JSON maps, DF’s own graphics raws, adjacency, palette swaps, and measured screen-space effects. That reconstruction is where most texture bugs live.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="lab-panel" id="panel-trace" data-panel="trace" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">One specimen, fully traced</p>
+          <h2>Watch the representation change at each handoff</h2>
+        </div>
+        <label class="select-label" for="trace-scenario">Specimen
+          <select id="trace-scenario"></select>
+        </label>
+      </div>
+
+      <div class="trace-layout">
+        <ol class="trace-steps" id="trace-steps"></ol>
+        <div class="trace-inspector">
+          <div class="trace-inspector-heading">
+            <div>
+              <p class="eyebrow" id="trace-stage-label"></p>
+              <h3 id="trace-step-title"></h3>
+            </div>
+            <span class="trace-status" id="trace-status"></span>
+          </div>
+          <div class="trace-visual" id="trace-visual" role="img" aria-live="polite"></div>
+          <div class="plain-translation trace-plain"><span>Simple English</span><p id="trace-plain"></p></div>
+          <p id="trace-explanation"></p>
+          <pre><code id="trace-data"></code></pre>
+          <div class="trace-source">
+            <span>Implementation</span>
+            <code id="trace-source"></code>
+          </div>
+          <div class="trace-nav">
+            <button type="button" id="trace-prev">← Previous</button>
+            <span id="trace-position"></span>
+            <button type="button" id="trace-next">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer-stack-section">
+        <div>
+          <p class="eyebrow">Painter’s order</p>
+          <h3 id="layer-stack-title">What is actually composited</h3>
+        </div>
+        <div class="layer-stack" id="layer-stack"></div>
+        <p class="layer-result" id="layer-result"></p>
+      </div>
+    </section>
+
+    <section class="lab-panel" id="panel-atlas" data-panel="atlas" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">The project’s actual lookup tables</p>
+          <h2>Browse every mapping database and inspect its source cell</h2>
+        </div>
+        <p>These are not sample tables. The explorer reads the JSON files currently in <code>web/</code>; the raw graphics-token catalog comes live from <code>/sprites/map.json</code>.</p>
+      </div>
+
+      <div class="atlas-controls">
+        <label for="atlas-catalog">Catalog
+          <select id="atlas-catalog"></select>
+        </label>
+        <label for="atlas-search">Search keys and values
+          <input id="atlas-search" type="search" placeholder="e.g. StoneFloor1, PICK, OAK, DWARF">
+        </label>
+      </div>
+
+      <div class="catalog-context">
+        <div>
+          <strong id="catalog-title"></strong>
+          <p id="catalog-description"></p>
+        </div>
+        <div class="catalog-count" id="catalog-count">—</div>
+      </div>
+
+      <div class="atlas-layout">
+        <div class="entry-list-wrap">
+          <div class="entry-list" id="entry-list" role="listbox" aria-label="Mapping entries"></div>
+          <p class="entry-limit" id="entry-limit"></p>
+        </div>
+        <div class="entry-detail">
+          <div class="sprite-preview-grid">
+            <figure>
+              <canvas id="sprite-preview" width="144" height="144" aria-label="Selected sprite cell preview"></canvas>
+              <figcaption id="sprite-caption">Select an entry with a sprite cell.</figcaption>
+            </figure>
+            <figure class="sheet-figure">
+              <canvas id="sheet-preview" width="432" height="240" aria-label="Source sheet with selected cell highlighted"></canvas>
+              <figcaption id="sheet-caption">The source sheet will appear here.</figcaption>
+            </figure>
+          </div>
+          <div class="cell-nav" id="cell-nav" hidden>
+            <button type="button" id="cell-prev">← Cell</button>
+            <span id="cell-position"></span>
+            <button type="button" id="cell-next">Cell →</button>
+          </div>
+          <h3 id="entry-key">No entry selected</h3>
+          <pre><code id="entry-json">Choose a row to inspect the exact mapping value.</code></pre>
+          <dl class="provenance-list">
+            <div><dt>Generated by</dt><dd><code id="entry-generator">—</code></dd></div>
+            <div><dt>Consumed by</dt><dd><code id="entry-consumer">—</code></dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="lab-panel" id="panel-failures" data-panel="failures" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Break the chain on purpose</p>
+          <h2>Why “a sprite appeared” does not mean “the sprite is correct”</h2>
+        </div>
+        <label class="select-label" for="failure-preset">Load a known defect class
+          <select id="failure-preset"></select>
+        </label>
+      </div>
+
+      <div class="failure-controls" id="failure-controls">
+        <label><input type="checkbox" data-failure="identity" checked> Exact identity reached the client</label>
+        <label><input type="checkbox" data-failure="mapping" checked> Generator emitted the right kind of key</label>
+        <label><input type="checkbox" data-failure="correct" checked> Key points at the native-correct cell</label>
+        <label><input type="checkbox" data-failure="sheet" checked> Sheet loaded and atlas accepted it</label>
+        <label><input type="checkbox" data-failure="shared" checked> Canvas2D and WebGL agree</label>
+        <label><input type="checkbox" data-failure="fresh" checked> Browser is running current code</label>
+        <label for="fallback-policy">On a miss, use
+          <select id="fallback-policy">
+            <option value="safe">kind-safe fallback</option>
+            <option value="cross">any plausible sprite</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="failure-chain" id="failure-chain" aria-label="Simulated failure chain"></div>
+
+      <div class="failure-result">
+        <div class="outcome-tile" id="outcome-tile" aria-hidden="true"><span>?</span></div>
+        <div>
+          <p class="eyebrow">Observed result</p>
+          <h3 id="outcome-title"></h3>
+          <p id="outcome-explanation"></p>
+        </div>
+      </div>
+
+      <div class="diagnosis-grid">
+        <article>
+          <span>Repair layer</span>
+          <strong id="repair-layer"></strong>
+          <p id="repair-action"></p>
+        </article>
+        <article>
+          <span>Proof required</span>
+          <strong id="proof-title"></strong>
+          <p id="proof-action"></p>
+        </article>
+        <article class="warning-card">
+          <span>Tempting wrong move</span>
+          <strong>Swap until it looks plausible</strong>
+          <p>A valid sheet cell can still be semantically wrong. Repo-only inspection cannot certify a visual choice; compare against a native or Steam reference and pin the adjudicated result.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="lab-panel" id="panel-repair" data-panel="repair" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Evidence before edits</p>
+          <h2>Choose the repair layer from the symptom</h2>
+        </div>
+        <label class="select-label" for="repair-kind">What is wrong?
+          <select id="repair-kind"></select>
+        </label>
+      </div>
+
+      <div class="repair-router">
+        <div class="router-target">
+          <p class="eyebrow">Start here</p>
+          <h3 id="router-title"></h3>
+          <p id="router-summary"></p>
+          <dl>
+            <div><dt>Identity source</dt><dd><code id="router-identity"></code></dd></div>
+            <div><dt>Generated map</dt><dd><code id="router-map"></code></dd></div>
+            <div><dt>Client resolver</dt><dd><code id="router-client"></code></dd></div>
+            <div><dt>Best focused check</dt><dd><code id="router-check"></code></dd></div>
+          </dl>
+        </div>
+        <div class="router-rule">
+          <span class="rule-icon">!</span>
+          <div>
+            <strong id="router-rule-title"></strong>
+            <p id="router-rule-copy"></p>
+          </div>
+        </div>
+      </div>
+
+      <ol class="repair-steps">
+        <li>
+          <span>01</span>
+          <div><h3>Bank the mismatch</h3><p>Capture the browser and the native/Steam reference for the same subject, state, material, camera, and renderer. Record the exact identity—not just “that red thing.”</p></div>
+        </li>
+        <li>
+          <span>02</span>
+          <div><h3>Trace, do not guess</h3><p>Use this lab to find the wire field, map key, fallback branch, source sheet, and current cell. Decide whether the information was lost, never generated, resolved incorrectly, or drawn incorrectly.</p></div>
+        </li>
+        <li>
+          <span>03</span>
+          <div><h3>Generate an adjudication picker</h3><pre><code>python tools/spritepick/gen_picker.py --token "&lt;exact subject&gt;"</code></pre><p>The picker shows current pixels beside banked references and candidates. A human choice is the authority for ambiguous art.</p></div>
+        </li>
+        <li>
+          <span>04</span>
+          <div><h3>Patch the authoritative source</h3><pre><code>python tools/spritepick/apply_choices.py &lt;choices.json&gt;</code></pre><p>Prefer the generator or resolver rule that owns the class. Record deliberate exceptions in <code>tools/spritepick/pins.json</code> so regeneration cannot silently revert them.</p></div>
+        </li>
+        <li>
+          <span>05</span>
+          <div><h3>Test both absence and wrong-art</h3><pre><code>python tools/spritepick/verify_pins.py
+python tools/harness/texture_coverage_audit.py --selftest</code></pre><p>A “non-empty sprite” check is insufficient. The audit’s seeded-bad cases must prove it can reject an existing-but-wrong cell.</p></div>
+        </li>
+        <li>
+          <span>06</span>
+          <div><h3>Re-run the independent oracle</h3><p>Verify the actual subject again in both renderers when both paths implement the class. After a web copy, hard-refresh; an already-open tab can keep old JavaScript through server restarts.</p></div>
+        </li>
+      </ol>
+
+      <div class="non-negotiables">
+        <h3>Four invariants worth memorizing</h3>
+        <ul>
+          <li><strong>Missing and wrong are different test classes.</strong> A fallback can turn missing data into confident wrong art.</li>
+          <li><strong>Maps are derived artifacts.</strong> Fix their generator or pin an adjudicated exception; do not rely on a hand edit that regeneration erases.</li>
+          <li><strong>Material and silhouette are separate decisions.</strong> The right pick shape with the wrong palette row is still wrong; the right color on an item box is still wrong.</li>
+          <li><strong>The native window is the visual oracle.</strong> <code>/frame.jpg</code> and <code>/tiledump</code> miss downstream see-down fog, and passive viewport texpos is native-camera-only.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="lab-footer">
+    <span>Grounded in the current <code>rework/main</code> pipeline and DFHack 53.15-r1 structures.</span>
+    <span>No game state is read or changed by this page.</span>
+  </footer>
+</div>
+
+<script src="js/dwf-texture-lab.js"></script>
+</body>
+</html>

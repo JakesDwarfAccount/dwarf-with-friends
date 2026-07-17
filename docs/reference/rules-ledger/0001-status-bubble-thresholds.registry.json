@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "recordType": "entity",
+  "id": "rule.0001.status-bubble-thresholds",
+  "kind": "rule",
+  "title": "Status bubble thresholds and blink cadence",
+  "definition": "Native DF's Hungry, Thirsty, and Drowsy chooser uses fixed unit-timer thresholds; how its GetTickCount windows publish into persistent overhead texture cells is corpus-disputed.",
+  "applicability": {
+    "buildIds": ["build.df.0.53.15-win64-steam-683c721d"]
+  },
+  "facts": [
+    {
+      "id": "hungry.threshold",
+      "statement": "Hungry is eligible when counters2.hunger_timer is at least 50000.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0001-status-bubbles-683c721d",
+        "selectors": ["0x140e89460", "unit+0x988"]
+      }]
+    },
+    {
+      "id": "drowsy.threshold",
+      "statement": "Drowsy is eligible when counters2.sleepiness_timer is at least 57600.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0001-status-bubbles-683c721d",
+        "selectors": ["0x140e89460", "unit+0x990"]
+      }]
+    },
+    {
+      "id": "thirsty.threshold",
+      "statement": "Thirsty is eligible when counters2.thirst_timer is at least 25000.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0001-status-bubbles-683c721d",
+        "selectors": ["0x140e89460", "unit+0x98c"]
+      }]
+    },
+    {
+      "id": "chooser-clock-windows",
+      "statement": "The native chooser compares map_renderer.cur_tick_count modulo 1000 against [0,200) for Hungry, [300,500) for Drowsy, and [500,700) for Thirsty; ordinary fortress callers supply Windows GetTickCount milliseconds.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0001-status-bubbles-683c721d",
+        "selectors": ["0x140e89460"]
+      }]
+    },
+    {
+      "id": "visible-cell-cadence",
+      "statement": "The current hypothesis that a need-bubble texture cell is visible only when the same recorded cur_tick_count phase is inside its chooser window is contradicted by retained Hungry and Thirsty cells across many out-of-window phases.",
+      "status": "disputed",
+      "evidenceRefs": [
+        {
+          "evidenceId": "evidence.binary.rule-0001-status-bubbles-683c721d",
+          "selectors": ["0x140e89460"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0001-status-bubbles-683c721d",
+          "selectors": ["record-0-frame-0", "record-5-frame-0", "record-22-frame-0", "record-24-frame-0", "record-27-frame-0"]
+        },
+        {
+          "evidenceId": "evidence.corpus.rule-0001-status-bubbles-v2-683c721d",
+          "selectors": ["record-0-frame-0", "record-21-frame-0", "record-35-frame-0", "record-52-frame-0", "record-70-frame-0"]
+        }
+      ]
+    },
+    {
+      "id": "shared-priority-gates",
+      "statement": "All three checks share a per-unit visibility gate and a no-higher-priority-indicator gate; the chooser is one if/else-if ladder, so the bubbles cannot draw simultaneously for one unit.",
+      "status": "accepted",
+      "evidenceRefs": [{
+        "evidenceId": "evidence.binary.rule-0001-status-bubbles-683c721d",
+        "selectors": ["0x140e89460"]
+      }]
+    }
+  ],
+  "uncertainties": [
+    {
+      "id": "stress-field-identity",
+      "statement": "The same function appears to use a soul field at offset 0x368 above 9999 for a stress-type bubble, but the field identity is not verified."
+    },
+    {
+      "id": "focus-field-identity",
+      "statement": "The same function appears to compare a focus computation involving soul offset 0x248 against 80 for a distraction-type indicator, but the field identity is not verified."
+    },
+    {
+      "id": "other-indicator-identities",
+      "statement": "Several other indicators appear to use a 500-tick cycle with a [0, 100) window, but their identities are not verified."
+    },
+    {
+      "id": "viewport-publication-cadence",
+      "statement": "Hungry and Thirsty designation-layer cells persisted for roughly two seconds. A retained or deferred viewport overlay is the strongest explanation, but the exact publish/clear event still needs instrumentation."
+    }
+  ],
+  "relationships": {
+    "parents": [],
+    "children": [],
+    "dependencies": [],
+    "rules": [],
+    "flows": [],
+    "controls": [],
+    "assets": []
+  },
+  "requiredStates": [],
+  "requiredCases": {
+    "positive": ["Each timer at its exact threshold, plus direct chooser instrumentation at each GetTickCount window."],
+    "boundary": ["Each timer one below and exactly at threshold; each chooser-window start, final included millisecond, and excluded end millisecond."],
+    "counterexamples": ["Retained designation-layer cells outside the same-frame chooser window must remain distinct from a fresh chooser decision."]
+  },
+  "absenceGuards": ["Do not model the three chooser branches as simultaneously selectable for one unit.", "Do not phase-suppress an already-published viewport bubble from cur_tick_count alone."],
+  "recorderRequirements": {
+    "stateSlice": ["unit id", "hunger_timer", "thirst_timer", "sleepiness_timer", "map_renderer.cur_tick_count", "visibility gate", "chosen higher-priority indicator", "chooser invocation and viewport publish/clear event"],
+    "requiredFrames": ["Threshold and one-below-threshold samples", "Direct chooser-window boundary samples", "Viewport cell publication and clearing across retained phases"]
+  },
+  "predicate": {
+    "file": "docs/reference/rules-ledger/predicates/0001-status-thresholds.mjs",
+    "tests": ["tools/harness/rules_ledger_predicates_test.mjs"]
+  },
+  "computedStatus": {
+    "discovery": "scoped",
+    "binaryEvidence": "binary-read",
+    "corpusEvidence": "corpus-disputed",
+    "productMapping": "unmapped",
+    "verification": "fixture-verified",
+    "release": "not-shippable"
+  }
+}

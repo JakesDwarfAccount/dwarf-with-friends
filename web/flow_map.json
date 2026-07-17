@@ -1,0 +1,37 @@
+{
+ "_v": 1,
+ "flow_type_name": {
+  "0": "Miasma",
+  "1": "Steam",
+  "10": "MaterialVapor",
+  "11": "OceanWave",
+  "12": "SeaFoam",
+  "13": "ItemCloud",
+  "2": "Mist",
+  "3": "MaterialDust",
+  "4": "MagmaMist",
+  "5": "Smoke",
+  "6": "Dragonfire",
+  "7": "Fire",
+  "8": "Web",
+  "9": "MaterialGas"
+ },
+ "flow_type_token": {
+  "0": "FLOW_MIASMA",
+  "1": "FLOW_BOILING",
+  "10": "FLOW_VAPOR",
+  "11": null,
+  "12": null,
+  "13": "FLOW_ITEM",
+  "2": "FLOW_WATER_MIST",
+  "3": "FLOW_DUST",
+  "4": "FLOW_LAVA_MIST",
+  "5": "FLOW_SMOKE",
+  "6": "FLOW_DRAGONFIRE",
+  "7": "FLOW_FIRE",
+  "8": null,
+  "9": "FLOW_BOILING"
+ },
+ "frames_per_token": 4,
+ "sheet": "event_flows.png"
+}

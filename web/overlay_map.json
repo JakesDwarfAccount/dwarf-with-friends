@@ -1,0 +1,746 @@
+{
+ "_v": 1,
+ "designation_item": {
+  "DESIGNATION_ITEM_DUMP": {
+   "col": 0,
+   "row": 1,
+   "sheet": "designation_item.png"
+  },
+  "DESIGNATION_ITEM_FORBIDDEN": {
+   "col": 0,
+   "row": 2,
+   "sheet": "designation_item.png"
+  },
+  "DESIGNATION_ITEM_FORBIDDEN_DUMP": {
+   "col": 0,
+   "row": 5,
+   "sheet": "designation_item.png"
+  },
+  "DESIGNATION_ITEM_FORBIDDEN_MELT": {
+   "col": 0,
+   "row": 4,
+   "sheet": "designation_item.png"
+  },
+  "DESIGNATION_ITEM_HIDDEN": {
+   "col": 0,
+   "row": 3,
+   "sheet": "designation_item.png"
+  },
+  "DESIGNATION_ITEM_MELT": {
+   "col": 0,
+   "row": 0,
+   "sheet": "designation_item.png"
+  }
+ },
+ "designation_priority": {
+  "1": {
+   "col": 0,
+   "row": 0,
+   "sheet": "designation_priority.png"
+  },
+  "2": {
+   "col": 0,
+   "row": 1,
+   "sheet": "designation_priority.png"
+  },
+  "3": {
+   "col": 0,
+   "row": 2,
+   "sheet": "designation_priority.png"
+  },
+  "4": {
+   "col": 0,
+   "row": 3,
+   "sheet": "designation_priority.png"
+  },
+  "5": {
+   "col": 0,
+   "row": 4,
+   "sheet": "designation_priority.png"
+  },
+  "6": {
+   "col": 0,
+   "row": 5,
+   "sheet": "designation_priority.png"
+  },
+  "7": {
+   "col": 0,
+   "row": 6,
+   "sheet": "designation_priority.png"
+  }
+ },
+ "stockpile": {
+  "STOCKPILE_AMMO": {
+   "col": 1,
+   "row": 1,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_ANIMALS": {
+   "col": 1,
+   "row": 2,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_ARMOR": {
+   "col": 1,
+   "row": 3,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_BARS": {
+   "col": 1,
+   "row": 4,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_BLANK": {
+   "col": 1,
+   "row": 0,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_CLOTH": {
+   "col": 1,
+   "row": 5,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_COINS": {
+   "col": 1,
+   "row": 6,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_CORPSES": {
+   "col": 1,
+   "row": 7,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_CUSTOM": {
+   "col": 1,
+   "row": 18,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_E": {
+   "col": 0,
+   "row": 8,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_E_UP": {
+   "col": 0,
+   "row": 7,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_FINISHED_GOODS": {
+   "col": 1,
+   "row": 8,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_FLOOR": {
+   "col": 0,
+   "row": 1,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_FOOD": {
+   "col": 1,
+   "row": 9,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_FURNITURE": {
+   "col": 1,
+   "row": 10,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_GEMS": {
+   "col": 1,
+   "row": 11,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_LEATHER": {
+   "col": 1,
+   "row": 12,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_N": {
+   "col": 0,
+   "row": 3,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_N_UP": {
+   "col": 0,
+   "row": 2,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_REFUSE": {
+   "col": 1,
+   "row": 13,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_S": {
+   "col": 0,
+   "row": 4,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_SHEETS": {
+   "col": 1,
+   "row": 14,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_STONE": {
+   "col": 1,
+   "row": 15,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_W": {
+   "col": 0,
+   "row": 6,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_WEAPONS": {
+   "col": 1,
+   "row": 16,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_WOOD": {
+   "col": 1,
+   "row": 17,
+   "sheet": "stockpile.png"
+  },
+  "STOCKPILE_W_UP": {
+   "col": 0,
+   "row": 5,
+   "sheet": "stockpile.png"
+  }
+ },
+ "zone": {
+  "ZONE_ACTIVE": {
+   "col": 2,
+   "row": 15,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_E": {
+   "col": 2,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N": {
+   "col": 2,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_E": {
+   "col": 2,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_S": {
+   "col": 2,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_S_E": {
+   "col": 2,
+   "row": 14,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_S_W": {
+   "col": 2,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_S_W_E": {
+   "col": 2,
+   "row": 0,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_W": {
+   "col": 2,
+   "row": 1,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_N_W_E": {
+   "col": 2,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_S": {
+   "col": 2,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_S_E": {
+   "col": 2,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_S_W": {
+   "col": 2,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_S_W_E": {
+   "col": 2,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_W": {
+   "col": 2,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ACTIVE_W_E": {
+   "col": 2,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ANIMAL_TRAINING": {
+   "col": 5,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_ARCHERY_RANGE": {
+   "col": 6,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_BARRACKS": {
+   "col": 6,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_BEDROOM": {
+   "col": 6,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_CLAY": {
+   "col": 5,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_DINING_HALL": {
+   "col": 6,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_DORMITORY": {
+   "col": 6,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_DUMP": {
+   "col": 5,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_DUNGEON": {
+   "col": 6,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_FISHING": {
+   "col": 5,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GATHER": {
+   "col": 5,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL": {
+   "col": 4,
+   "row": 15,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_E": {
+   "col": 4,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N": {
+   "col": 4,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_E": {
+   "col": 4,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_S": {
+   "col": 4,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_S_E": {
+   "col": 4,
+   "row": 14,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_S_W": {
+   "col": 4,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_S_W_E": {
+   "col": 4,
+   "row": 0,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_W": {
+   "col": 4,
+   "row": 1,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_N_W_E": {
+   "col": 4,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_S": {
+   "col": 4,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_S_E": {
+   "col": 4,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_S_W": {
+   "col": 4,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_S_W_E": {
+   "col": 4,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_W": {
+   "col": 4,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GENERAL_W_E": {
+   "col": 4,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GRAND_GUILDHALL": {
+   "col": 6,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_GUILDHALL": {
+   "col": 6,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_HOSPITAL": {
+   "col": 5,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE": {
+   "col": 0,
+   "row": 15,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_E": {
+   "col": 0,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N": {
+   "col": 0,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_E": {
+   "col": 0,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_S": {
+   "col": 0,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_S_E": {
+   "col": 0,
+   "row": 14,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_S_W": {
+   "col": 0,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_S_W_E": {
+   "col": 0,
+   "row": 0,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_W": {
+   "col": 0,
+   "row": 1,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_N_W_E": {
+   "col": 0,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_S": {
+   "col": 0,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED": {
+   "col": 1,
+   "row": 15,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_E": {
+   "col": 1,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N": {
+   "col": 1,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_E": {
+   "col": 1,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_S": {
+   "col": 1,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_S_E": {
+   "col": 1,
+   "row": 14,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_S_W": {
+   "col": 1,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_S_W_E": {
+   "col": 1,
+   "row": 0,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_W": {
+   "col": 1,
+   "row": 1,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_N_W_E": {
+   "col": 1,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_S": {
+   "col": 1,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_S_E": {
+   "col": 1,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_S_W": {
+   "col": 1,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_S_W_E": {
+   "col": 1,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_W": {
+   "col": 1,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_SELECTED_W_E": {
+   "col": 1,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_S_E": {
+   "col": 0,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_S_W": {
+   "col": 0,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_S_W_E": {
+   "col": 0,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_W": {
+   "col": 0,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_INACTIVE_W_E": {
+   "col": 0,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_LIBRARY": {
+   "col": 6,
+   "row": 1,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_MEETING": {
+   "col": 5,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_MULTI": {
+   "col": 5,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_OFFICE": {
+   "col": 6,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_PEN": {
+   "col": 5,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_PIT": {
+   "col": 5,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SAND": {
+   "col": 5,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED": {
+   "col": 3,
+   "row": 15,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_E": {
+   "col": 3,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N": {
+   "col": 3,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_E": {
+   "col": 3,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_S": {
+   "col": 3,
+   "row": 9,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_S_E": {
+   "col": 3,
+   "row": 14,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_S_W": {
+   "col": 3,
+   "row": 13,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_S_W_E": {
+   "col": 3,
+   "row": 0,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_W": {
+   "col": 3,
+   "row": 1,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_N_W_E": {
+   "col": 3,
+   "row": 11,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_S": {
+   "col": 3,
+   "row": 8,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_S_E": {
+   "col": 3,
+   "row": 3,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_S_W": {
+   "col": 3,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_S_W_E": {
+   "col": 3,
+   "row": 12,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_W": {
+   "col": 3,
+   "row": 7,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SELECTED_W_E": {
+   "col": 3,
+   "row": 10,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_SHRINE": {
+   "col": 6,
+   "row": 4,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_TAVERN": {
+   "col": 6,
+   "row": 0,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_TEMPLE": {
+   "col": 6,
+   "row": 5,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_TEMPLE_COMPLEX": {
+   "col": 6,
+   "row": 6,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_TOMB": {
+   "col": 6,
+   "row": 14,
+   "sheet": "activity_zones.png"
+  },
+  "ZONE_WATER_SOURCE": {
+   "col": 5,
+   "row": 2,
+   "sheet": "activity_zones.png"
+  }
+ }
+}

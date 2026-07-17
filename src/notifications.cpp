@@ -1,0 +1,595 @@
+﻿// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+#include "notifications.h"
+
+#include "json_util.h"
+#include "MiscUtils.h"
+#include "modules/DFSDL.h"
+#include "modules/Translation.h"
+#include "modules/Units.h"
+
+#include "df/announcement_alert_type.h"
+#include "df/announcement_alertst.h"
+#include "df/announcement_handlerst.h"
+#include "df/announcement_type.h"
+#include "df/global_objects.h"
+#include "df/historical_figure.h"
+#include "df/report.h"
+#include "df/report_zoom_type.h"
+#include "df/unit.h"
+#include "df/unit_report_type.h"
+#include "df/world.h"
+
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <future>
+#include <limits>
+#include <memory>
+#include <mutex>
+#include <sstream>
+#include <unordered_map>
+
+namespace dwf {
+namespace {
+
+using namespace DFHack;
+
+std::recursive_mutex g_notifications_mutex;
+std::mutex g_dismissed_mutex;
+std::unordered_map<std::string, std::unordered_set<std::string>> g_dismissed_alert_keys;
+
+
+std::string resolve_histfig_references(std::string text) {
+    const std::string marker = "HF ";
+    size_t pos = 0;
+    while ((pos = text.find(marker, pos)) != std::string::npos) {
+        const size_t digits_start = pos + marker.size();
+        size_t end = digits_start;
+        while (end < text.size() && std::isdigit(static_cast<unsigned char>(text[end])))
+            ++end;
+        if (end == digits_start) {
+            pos = end;
+            continue;
+        }
+        char* parse_end = nullptr;
+        const long id = std::strtol(text.c_str() + digits_start, &parse_end, 10);
+        if (parse_end != text.c_str() + end || id < 0 ||
+            id > std::numeric_limits<int32_t>::max()) {
+            pos = end;
+            continue;
+        }
+        auto hf = df::historical_figure::find(static_cast<int32_t>(id));
+        const std::string name = hf ? DFHack::Translation::translateName(&hf->name, true) : "";
+        if (name.empty()) {
+            pos = end;
+            continue;
+        }
+        text.replace(pos, end - pos, name);
+        pos += name.size();
+    }
+    return text;
+}
+
+bool valid_pos(df::world* world, const df::coord& pos) {
+    return world && pos.x >= 0 && pos.y >= 0 && pos.z >= 0 &&
+        pos.x < world->map.x_count &&
+        pos.y < world->map.y_count &&
+        pos.z < world->map.z_count;
+}
+
+bool valid_pos(const df::coord& pos) {
+    return valid_pos(df::global::world, pos);
+}
+
+std::string report_dismiss_key(int32_t report_id) {
+    return "r:" + std::to_string(report_id);
+}
+
+std::string unit_report_dismiss_key(int32_t unit_id, int category) {
+    return "u:" + std::to_string(unit_id) + ":" + std::to_string(category);
+}
+
+int alert_type_for_report(df::report* report) {
+    if (!report)
+        return static_cast<int>(df::announcement_alert_type::GENERAL);
+    int type = static_cast<int>(report->type);
+    if (!df::enum_traits<df::announcement_type>::is_valid(type))
+        return static_cast<int>(df::announcement_alert_type::GENERAL);
+    return static_cast<int>(df::enum_traits<df::announcement_type>::attrs(report->type).alert_type);
+}
+
+NotificationReport copy_report(df::world* world, df::report* report) {
+    NotificationReport out;
+    if (!report)
+        return out;
+
+    out.id = report->id;
+    out.type = static_cast<int>(report->type);
+    out.alert_type = alert_type_for_report(report);
+    out.type_key = DFHack::enum_item_key(report->type);
+    out.text = resolve_histfig_references(report->text);
+    out.color = report->color;
+    out.bright = report->bright;
+    out.duration = report->duration;
+    out.repeat_count = report->repeat_count;
+    out.continuation = report->flags.bits.continuation;
+    out.announcement = report->flags.bits.announcement;
+    out.year = report->year;
+    out.time = report->time;
+    out.zoom_type = static_cast<int>(report->zoom_type);
+    out.has_pos = report->zoom_type != df::report_zoom_type::NONE && valid_pos(world, report->pos);
+    if (out.has_pos)
+        out.pos = Camera{report->pos.x, report->pos.y, report->pos.z};
+    out.zoom_type2 = static_cast<int>(report->zoom_type2);
+    out.has_pos2 = report->zoom_type2 != df::report_zoom_type::NONE && valid_pos(world, report->pos2);
+    if (out.has_pos2)
+        out.pos2 = Camera{report->pos2.x, report->pos2.y, report->pos2.z};
+    out.activity_id = report->activity_id;
+    out.activity_event_id = report->activity_event_id;
+    out.speaker_id = report->speaker_id;
+    return out;
+}
+
+NotificationAlert& ensure_alert(std::vector<NotificationAlert>& alerts, int type) {
+    auto it = std::find_if(alerts.begin(), alerts.end(),
+        [type](const NotificationAlert& alert) { return alert.type == type; });
+    if (it != alerts.end())
+        return *it;
+
+    NotificationAlert alert;
+    alert.type = type;
+    if (type < 0 || type > df::enum_traits<df::announcement_alert_type>::last_item_value)
+        type = static_cast<int>(df::announcement_alert_type::GENERAL);
+    alert.type = type;
+    alert.type_key = DFHack::enum_item_key(static_cast<df::announcement_alert_type>(type));
+    alert.dismiss_key = "a:" + std::to_string(type);
+    alerts.push_back(alert);
+    return alerts.back();
+}
+
+void add_report_to_alert(NotificationAlert& alert, const NotificationReport& report) {
+    if (report.id >= 0) {
+        if (std::find(alert.report_ids.begin(), alert.report_ids.end(), report.id) == alert.report_ids.end())
+            alert.report_ids.push_back(report.id);
+        std::string dismiss_key = report_dismiss_key(report.id);
+        if (std::find(alert.dismiss_keys.begin(), alert.dismiss_keys.end(), dismiss_key) == alert.dismiss_keys.end())
+            alert.dismiss_keys.push_back(dismiss_key);
+    }
+    if (report.id >= 0) {
+        auto exists = std::find_if(alert.reports.begin(), alert.reports.end(),
+            [&](const NotificationReport& row) { return row.id == report.id; });
+        if (exists != alert.reports.end())
+            return;
+    }
+
+    alert.reports.push_back(report);
+    if (report.id > alert.latest_report_id)
+        alert.latest_report_id = report.id;
+    if (report.has_pos && (!alert.has_target || report.id >= alert.latest_report_id)) {
+        alert.has_target = true;
+        alert.target = report.pos;
+    }
+}
+
+bool all_alert_keys_dismissed(const NotificationAlert& alert,
+                              const std::unordered_set<std::string>& dismissed) {
+    // B197 (c): a contentless alert -- DF put it in announcement_alert with a type but it carries
+    // no announcement_id and no unit refs, so it has no r:/u: dismiss keys -- could never be
+    // cleared and stuck as an unremovable bare badge. The client's whole-alert dismiss falls back
+    // to the alert-level "a:<type>" key (alert.dismiss_key) exactly for this case, so honor that
+    // key as the escape hatch. Alerts that carry real keys are unaffected (that fallback never
+    // fires for them, so their a: key is never in the dismissed set).
+    if (alert.dismiss_keys.empty())
+        return !alert.dismiss_key.empty() &&
+               dismissed.find(alert.dismiss_key) != dismissed.end();
+    for (const auto& key : alert.dismiss_keys) {
+        if (dismissed.find(key) == dismissed.end())
+            return false;
+    }
+    return true;
+}
+
+// Dismissal is per report/unit-category, not per alert type. DF keeps the full announcement
+// history attached to an active alert, so remove already-dismissed rows before serializing: an
+// alert that receives one new combat report must show that report, not the prior session's log.
+bool report_is_dismissed(const NotificationReport& report,
+                         const std::unordered_set<std::string>& dismissed) {
+    return report.id >= 0 && dismissed.find(report_dismiss_key(report.id)) != dismissed.end();
+}
+
+void prune_dismissed_alert_content(NotificationAlert& alert,
+                                   const std::unordered_set<std::string>& dismissed) {
+    auto keep_report = [&](const NotificationReport& report) {
+        return !report_is_dismissed(report, dismissed);
+    };
+    alert.reports.erase(std::remove_if(alert.reports.begin(), alert.reports.end(),
+        [&](const NotificationReport& report) { return !keep_report(report); }),
+        alert.reports.end());
+    for (auto& ref : alert.unit_refs) {
+        ref.reports.erase(std::remove_if(ref.reports.begin(), ref.reports.end(),
+            [&](const NotificationReport& report) { return !keep_report(report); }),
+            ref.reports.end());
+    }
+    // A dismissed unit-category with no new reports must not leave behind a stale unit row
+    // when another source keeps the enclosing alert type active.
+    alert.unit_refs.erase(std::remove_if(alert.unit_refs.begin(), alert.unit_refs.end(),
+        [&](const NotificationUnitRef& ref) {
+            return ref.reports.empty() &&
+                dismissed.find(ref.dismiss_key) != dismissed.end();
+        }), alert.unit_refs.end());
+}
+
+bool build_notifications(const std::unordered_set<std::string>& dismissed,
+                         NotificationState& state,
+                         std::string* err) {
+    auto world = df::global::world;
+    if (!world) {
+        if (err) *err = "world unavailable";
+        return false;
+    }
+
+    state = NotificationState{};
+    state.next_report_id = world->status.next_report_id;
+    state.report_count = static_cast<int32_t>(world->status.reports.size());
+
+    std::unordered_map<int32_t, df::report*> reports_by_id;
+    reports_by_id.reserve(world->status.reports.size());
+    for (auto report : world->status.reports) {
+        if (report)
+            reports_by_id[report->id] = report;
+    }
+
+    for (auto report_id : world->status.alert_button_announcement_id) {
+        auto it = reports_by_id.find(report_id);
+        if (it == reports_by_id.end())
+            continue;
+        auto copied = copy_report(world, it->second);
+        auto& alert = ensure_alert(state.alerts, copied.alert_type);
+        add_report_to_alert(alert, copied);
+    }
+
+    for (auto alert_ptr : world->status.announcement_alert) {
+        if (!alert_ptr || alert_ptr->type == df::announcement_alert_type::NONE)
+            continue;
+        auto& alert = ensure_alert(state.alerts, static_cast<int>(alert_ptr->type));
+        for (auto report_id : alert_ptr->announcement_id) {
+            auto it = reports_by_id.find(report_id);
+            if (it != reports_by_id.end()) {
+                add_report_to_alert(alert, copy_report(world, it->second));
+            } else {
+                if (std::find(alert.report_ids.begin(), alert.report_ids.end(), report_id) == alert.report_ids.end())
+                    alert.report_ids.push_back(report_id);
+                std::string dismiss_key = report_dismiss_key(report_id);
+                if (std::find(alert.dismiss_keys.begin(), alert.dismiss_keys.end(), dismiss_key) == alert.dismiss_keys.end())
+                    alert.dismiss_keys.push_back(dismiss_key);
+            }
+        }
+
+        const size_t n = std::min(alert_ptr->report_unid.size(),
+                                  alert_ptr->report_unit_announcement_category.size());
+        for (size_t i = 0; i < n; ++i) {
+            int32_t unit_id = alert_ptr->report_unid[i];
+            int category = static_cast<int>(alert_ptr->report_unit_announcement_category[i]);
+            std::string dismiss_key = unit_report_dismiss_key(unit_id, category);
+            if (std::find(alert.dismiss_keys.begin(), alert.dismiss_keys.end(), dismiss_key) == alert.dismiss_keys.end())
+                alert.dismiss_keys.push_back(dismiss_key);
+            if (std::find_if(alert.unit_refs.begin(), alert.unit_refs.end(),
+                    [&](const NotificationUnitRef& ref) { return ref.dismiss_key == dismiss_key; }) != alert.unit_refs.end())
+                continue;
+
+            NotificationUnitRef ref;
+            ref.unit_id = unit_id;
+            ref.category = category;
+            ref.category_key = DFHack::enum_item_key(alert_ptr->report_unit_announcement_category[i]);
+            ref.dismiss_key = dismiss_key;
+            if (auto unit = df::unit::find(unit_id)) {
+                ref.unit_name = Units::getReadableName(unit);
+                auto pos = Units::getPosition(unit);
+                ref.has_pos = valid_pos(pos);
+                if (ref.has_pos)
+                    ref.pos = Camera{pos.x, pos.y, pos.z};
+                if (category >= 0 && category <= df::enum_traits<df::unit_report_type>::last_item_value) {
+                    auto& log = unit->reports.log[category];
+                    size_t start = log.size() > 12 ? log.size() - 12 : 0;
+                    for (size_t j = start; j < log.size(); ++j) {
+                        auto it = reports_by_id.find(log[j]);
+                        if (it == reports_by_id.end())
+                            continue;
+                        add_report_to_alert(alert, copy_report(world, it->second));
+                        ref.reports.push_back(copy_report(world, it->second));
+                    }
+                }
+            }
+            alert.unit_refs.push_back(std::move(ref));
+        }
+    }
+
+    std::sort(state.alerts.begin(), state.alerts.end(),
+        [](const NotificationAlert& a, const NotificationAlert& b) {
+            return a.latest_report_id > b.latest_report_id;
+        });
+    if (state.alerts.size() > 12)
+        state.alerts.resize(12);
+    for (auto& alert : state.alerts)
+        prune_dismissed_alert_content(alert, dismissed);
+    state.alerts.erase(std::remove_if(state.alerts.begin(), state.alerts.end(),
+        [&](const NotificationAlert& alert) { return all_alert_keys_dismissed(alert, dismissed); }),
+        state.alerts.end());
+
+    const size_t recent_limit = 250;
+    size_t start = world->status.reports.size() > recent_limit
+        ? world->status.reports.size() - recent_limit
+        : 0;
+    for (size_t i = world->status.reports.size(); i-- > start;) {
+        if (auto report = world->status.reports[i])
+            state.recent.push_back(copy_report(world, report));
+    }
+    return true;
+}
+
+void append_camera_or_null(std::ostringstream& body, bool has_pos, const Camera& pos) {
+    if (!has_pos) {
+        body << "null";
+        return;
+    }
+    body << "{\"x\":" << pos.x << ",\"y\":" << pos.y << ",\"z\":" << pos.z << "}";
+}
+
+void append_report_json(std::ostringstream& body, const NotificationReport& report) {
+    body << "{\"id\":" << report.id
+         << ",\"type\":" << report.type
+         << ",\"alertType\":" << report.alert_type
+         << ",\"typeKey\":" << json_string(report.type_key)
+         << ",\"text\":" << json_string(report.text)
+         << ",\"color\":" << report.color
+         << ",\"bright\":" << (report.bright ? "true" : "false")
+         << ",\"duration\":" << report.duration
+         << ",\"repeatCount\":" << report.repeat_count
+         << ",\"continuation\":" << (report.continuation ? "true" : "false")
+         << ",\"announcement\":" << (report.announcement ? "true" : "false")
+         << ",\"year\":" << report.year
+         << ",\"time\":" << report.time
+         << ",\"zoomType\":" << report.zoom_type
+         << ",\"hasPos\":" << (report.has_pos ? "true" : "false")
+         << ",\"pos\":";
+    append_camera_or_null(body, report.has_pos, report.pos);
+    body << ",\"zoomType2\":" << report.zoom_type2
+         << ",\"hasPos2\":" << (report.has_pos2 ? "true" : "false")
+         << ",\"pos2\":";
+    append_camera_or_null(body, report.has_pos2, report.pos2);
+    body << ",\"activityId\":" << report.activity_id
+         << ",\"activityEventId\":" << report.activity_event_id
+         << ",\"speakerId\":" << report.speaker_id;
+    body << "}";
+}
+
+struct RenderThreadNotificationsRequest {
+    std::unordered_set<std::string> dismissed;
+    NotificationState state;
+    std::string err;
+    std::promise<bool> done;
+};
+
+} // namespace
+
+bool notifications_on_render_thread(const std::unordered_set<std::string>& dismissed,
+                                    NotificationState& state,
+                                    std::string* err) {
+    std::lock_guard<std::recursive_mutex> lock(g_notifications_mutex);
+
+    auto request = std::make_shared<RenderThreadNotificationsRequest>();
+    request->dismissed = dismissed;
+    auto future = request->done.get_future();
+
+    DFHack::runOnRenderThread([request]() {
+        request->done.set_value(build_notifications(request->dismissed,
+                                                    request->state,
+                                                    &request->err));
+    });
+
+    bool ok = future.get();
+    if (!ok) {
+        if (err) *err = request->err;
+        return false;
+    }
+    state = std::move(request->state);
+    return true;
+}
+
+bool notifications_on_render_thread(NotificationState& state, std::string* err) {
+    static const std::unordered_set<std::string> dismissed;
+    return notifications_on_render_thread(dismissed, state, err);
+}
+
+std::string notifications_json(const std::string& player, const NotificationState& state) {
+    std::ostringstream body;
+    body << "{\"player\":" << json_string(player)
+         << ",\"nextReportId\":" << state.next_report_id
+         << ",\"reportCount\":" << state.report_count
+         << ",\"alerts\":[";
+    for (size_t i = 0; i < state.alerts.size(); ++i) {
+        if (i) body << ",";
+        const auto& alert = state.alerts[i];
+        body << "{\"type\":" << alert.type
+             << ",\"typeKey\":" << json_string(alert.type_key)
+             << ",\"iconIndex\":" << alert.type
+             << ",\"dismissKey\":" << json_string(alert.dismiss_key)
+             << ",\"latestReportId\":" << alert.latest_report_id
+             << ",\"target\":";
+        append_camera_or_null(body, alert.has_target, alert.target);
+        body << ",\"dismissKeys\":[";
+        for (size_t j = 0; j < alert.dismiss_keys.size(); ++j) {
+            if (j) body << ",";
+            body << json_string(alert.dismiss_keys[j]);
+        }
+        body << "],\"reportIds\":[";
+        for (size_t j = 0; j < alert.report_ids.size(); ++j) {
+            if (j) body << ",";
+            body << alert.report_ids[j];
+        }
+        body << "],\"reports\":[";
+        for (size_t j = 0; j < alert.reports.size(); ++j) {
+            if (j) body << ",";
+            append_report_json(body, alert.reports[j]);
+        }
+        body << "],\"unitReports\":[";
+        for (size_t u = 0; u < alert.unit_refs.size(); ++u) {
+            if (u) body << ",";
+            const auto& ref = alert.unit_refs[u];
+            body << "{\"unitId\":" << ref.unit_id
+                 << ",\"category\":" << ref.category
+                 << ",\"categoryKey\":" << json_string(ref.category_key)
+                 << ",\"unitName\":" << json_string(ref.unit_name)
+                 << ",\"dismissKey\":" << json_string(ref.dismiss_key)
+                 << ",\"pos\":";
+            append_camera_or_null(body, ref.has_pos, ref.pos);
+            body << ",\"reports\":[";
+            for (size_t r = 0; r < ref.reports.size(); ++r) {
+                if (r) body << ",";
+                append_report_json(body, ref.reports[r]);
+            }
+            body << "]}";
+        }
+        body << "]}";
+    }
+    body << "],\"recent\":[";
+    for (size_t i = 0; i < state.recent.size(); ++i) {
+        if (i) body << ",";
+        append_report_json(body, state.recent[i]);
+    }
+    body << "]}\n";
+    return body.str();
+}
+
+// B197 (b): the per-player dismissed set is process-global and never cleared, so on a long-lived
+// server it grows without bound -- only r:<id> keys accumulate freely (one per dismissed report);
+// u:/a: keys are naturally bounded by live units and alert types. Cap the r: keys, keeping the
+// NEWEST (highest id). Any dropped key references a report id far below the live report window,
+// which has long since aged out of world.status.reports and can never re-list, so eviction is
+// correctness-preserving. Non-r: keys are always retained. Dismissals still survive reconnect
+// (same player name -> same set); this only bounds a pathological long session.
+static void prune_report_dismiss_keys(std::unordered_set<std::string>& dismissed) {
+    constexpr size_t kMaxReportDismissKeys = 8192;
+    size_t report_keys = 0;
+    for (const auto& key : dismissed)
+        if (key.rfind("r:", 0) == 0)
+            ++report_keys;
+    if (report_keys <= kMaxReportDismissKeys)
+        return;
+    std::vector<long> ids;
+    ids.reserve(report_keys);
+    for (const auto& key : dismissed) {
+        if (key.rfind("r:", 0) != 0)
+            continue;
+        char* end = nullptr;
+        const long id = std::strtol(key.c_str() + 2, &end, 10);
+        if (end != key.c_str() + 2)
+            ids.push_back(id);
+    }
+    if (ids.size() <= kMaxReportDismissKeys)
+        return;
+    std::nth_element(ids.begin(), ids.end() - kMaxReportDismissKeys, ids.end());
+    const long threshold = ids[ids.size() - kMaxReportDismissKeys];
+    for (auto it = dismissed.begin(); it != dismissed.end();) {
+        if (it->rfind("r:", 0) == 0) {
+            char* end = nullptr;
+            const long id = std::strtol(it->c_str() + 2, &end, 10);
+            if (end != it->c_str() + 2 && id < threshold) {
+                it = dismissed.erase(it);
+                continue;
+            }
+        }
+        ++it;
+    }
+}
+
+void remember_dismissed_alert_keys(const std::string& player, const std::string& raw_keys) {
+    std::lock_guard<std::mutex> lock(g_dismissed_mutex);
+    auto& dismissed = g_dismissed_alert_keys[player];
+    size_t start = 0;
+    while (start <= raw_keys.size()) {
+        size_t comma = raw_keys.find(',', start);
+        std::string key = raw_keys.substr(start, comma == std::string::npos
+            ? std::string::npos
+            : comma - start);
+        if (!key.empty() && key.size() <= 64)
+            dismissed.insert(key);
+        if (comma == std::string::npos)
+            break;
+        start = comma + 1;
+    }
+    prune_report_dismiss_keys(dismissed);
+}
+
+std::unordered_set<std::string> dismissed_alert_keys_for_player(const std::string& player) {
+    std::lock_guard<std::mutex> lock(g_dismissed_mutex);
+    auto it = g_dismissed_alert_keys.find(player);
+    if (it == g_dismissed_alert_keys.end())
+        return {};
+    return it->second;
+}
+
+// ---------------------------------------------------------------------------------------------
+// HTTP routes, extracted from http_server.cpp's register_routes():
+// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
+// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
+// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+void register_notification_routes(httplib::Server& server) {
+    server.Get("/notifications", [](const httplib::Request& req, httplib::Response& res) {
+        std::string player = query_player(req);
+        NotificationState state;
+        std::string err;
+        auto dismissed = dismissed_alert_keys_for_player(player);
+        if (!notifications_on_render_thread(dismissed, state, &err)) {
+            res.status = 503;
+            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+
+        res.set_header("Cache-Control", "no-store");
+        res.set_content(notifications_json(player, state), "application/json; charset=utf-8");
+    });
+
+    auto notification_action_handler = [](const httplib::Request& req, httplib::Response& res) {
+        std::string player = query_player(req);
+        std::string action = req.has_param("action") ? req.get_param_value("action") : "";
+        if (action == "dismiss") {
+            if (!req.has_param("keys")) {
+                res.status = 400;
+                res.set_content("missing keys\n", "text/plain; charset=utf-8");
+                return;
+            }
+            remember_dismissed_alert_keys(player, req.get_param_value("keys"));
+            res.set_header("Cache-Control", "no-store");
+            res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
+            return;
+        }
+        res.status = 400;
+        res.set_content("bad notification action\n", "text/plain; charset=utf-8");
+    };
+    server.Get("/notification-action", notification_action_handler);
+    server.Post("/notification-action", notification_action_handler);
+}
+
+} // namespace dwf

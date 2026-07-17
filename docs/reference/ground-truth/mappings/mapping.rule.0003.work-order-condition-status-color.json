@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.rule.0003.work-order-condition-status-color",
+  "nativeId": "rule.0003.work-order-condition-status-color",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "server",
+      "file": "dwf.lua",
+      "symbol": "condition_satisfaction_vectors",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    },
+    {
+      "kind": "server",
+      "file": "dwf.lua",
+      "symbol": "conditions_json",
+      "wireField": "orders[].itemConditions[].satisfied and satisfactionSource",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    },
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woConditionRowHtml",
+      "dfcuiComponent": "DFCUI.rowHtml",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs", "tools/harness/b285_workorder_condition_editor_test.mjs", "tools/harness/rules_ledger_predicates_test.mjs"]
+    },
+    {
+      "kind": "component",
+      "file": "web/css/dwf.css",
+      "symbol": ".wo-condition-row.is-satisfied",
+      "assets": ["--dfui-text-good"],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    }
+  ],
+  "disposition": "conflicting",
+  "audit": {
+    "classification": "local-repair",
+    "findings": ["The false state annotation is absent, and the true-state color styling extends beyond the native status annotation scope."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

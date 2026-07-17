@@ -1,0 +1,50 @@
+# dwf — line-ending + diff normalization
+#
+# Why (2026-07-11): the repo had no .gitattributes, so line endings were inconsistent between the
+# working tree (LF) and the index (CRLF). Every `git add` printed dozens of "LF will be replaced by
+# CRLF" warnings, and — worse — a plain `diff` between the repo and the DFHack build tree reported
+# EVERY line of EVERY file as changed. That nearly produced a false conclusion that a stale build
+# copy contained hundreds of lines of unique work. It contained none; the noise was line endings.
+#
+# Text files are normalized to LF in the repository. Git checks them out natively on each platform.
+
+* text=auto eol=lf
+
+# --- explicit source types (belt and braces) ---
+*.c      text eol=lf
+*.cpp    text eol=lf
+*.h      text eol=lf
+*.js     text eol=lf
+*.mjs    text eol=lf
+*.py     text eol=lf
+*.json   text eol=lf
+*.css    text eol=lf
+*.html   text eol=lf
+*.md     text eol=lf
+*.lua    text eol=lf
+*.txt    text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+
+# --- Windows scripts MUST keep CRLF or cmd.exe mis-parses them ---
+*.cmd    text eol=crlf
+*.bat    text eol=crlf
+*.ps1    text eol=crlf
+
+# --- binary: never touch, never diff as text ---
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.gif    binary
+*.ico    binary
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+*.dll    binary
+*.exe    binary
+*.zip    binary
+*.wav    binary
+*.mp3    binary
+*.ogg    binary

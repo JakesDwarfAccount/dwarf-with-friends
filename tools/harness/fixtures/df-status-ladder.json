@@ -1,0 +1,441 @@
+{
+ "_source": "decoded from Dwarf Fortress.exe by tools/harness/df_status_ladder.py",
+ "_warning": "DO NOT HAND-EDIT. Regenerate with --write. This file is DF's opinion, not ours.",
+ "adventure": [
+  {
+   "field": "counters2.hunger_timer",
+   "min": 2592000,
+   "unit_off": 2440,
+   "word": "Starving"
+  },
+  {
+   "field": "counters2.hunger_timer",
+   "min": 1209600,
+   "unit_off": 2440,
+   "word": "Very hungry"
+  },
+  {
+   "field": "counters2.hunger_timer",
+   "min": 172800,
+   "unit_off": 2440,
+   "word": "Hungry"
+  },
+  {
+   "field": "counters2.hunger_timer",
+   "min": 57600,
+   "unit_off": 2440,
+   "word": "Hungry"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 864000,
+   "unit_off": 2448,
+   "word": "Slumberous"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 345600,
+   "unit_off": 2448,
+   "word": "Very drowsy"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 259200,
+   "unit_off": 2448,
+   "word": "Drowsy"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 172800,
+   "unit_off": 2448,
+   "word": "Drowsy"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 115200,
+   "unit_off": 2448,
+   "word": "Drowsy"
+  },
+  {
+   "field": "counters2.thirst_timer",
+   "min": 345600,
+   "unit_off": 2444,
+   "word": "Dehydrated"
+  },
+  {
+   "field": "counters2.thirst_timer",
+   "min": 172800,
+   "unit_off": 2444,
+   "word": "Very thirsty"
+  },
+  {
+   "field": "counters2.thirst_timer",
+   "min": 115200,
+   "unit_off": 2444,
+   "word": "Thirsty"
+  },
+  {
+   "field": "counters2.thirst_timer",
+   "min": 57600,
+   "unit_off": 2444,
+   "word": "Thirsty"
+  }
+ ],
+ "exe": "<DF_ROOT>\\Dwarf Fortress.exe",
+ "fortress": [
+  {
+   "field": "counters.dizziness",
+   "min": 0,
+   "unit_off": 2080,
+   "word": "Dizzy"
+  },
+  {
+   "field": "counters.nausea",
+   "min": 0,
+   "unit_off": 2076,
+   "word": "Nauseous"
+  },
+  {
+   "field": "counters.pain",
+   "min": 100,
+   "unit_off": 2072,
+   "word": "Extreme pain"
+  },
+  {
+   "field": "counters.pain",
+   "min": 50,
+   "unit_off": 2072,
+   "word": "Pain"
+  },
+  {
+   "field": "counters.pain",
+   "min": 50,
+   "unit_off": 2072,
+   "word": "Pain"
+  },
+  {
+   "field": "counters.stunned",
+   "min": 0,
+   "unit_off": 2046,
+   "word": "Stunned"
+  },
+  {
+   "field": "counters.unconscious",
+   "min": 0,
+   "unit_off": 2048,
+   "word": "Unconscious"
+  },
+  {
+   "field": "counters.webbed",
+   "min": 0,
+   "unit_off": 2052,
+   "word": "Webbed"
+  },
+  {
+   "field": "counters.webbed",
+   "min": 0,
+   "unit_off": 2052,
+   "word": "Partially webbed"
+  },
+  {
+   "field": "counters2.exhaustion",
+   "min": 6000,
+   "unit_off": 2436,
+   "word": "Exhausted"
+  },
+  {
+   "field": "counters2.exhaustion",
+   "min": 4000,
+   "unit_off": 2436,
+   "word": "Over-exerted"
+  },
+  {
+   "field": "counters2.exhaustion",
+   "min": 2000,
+   "unit_off": 2436,
+   "word": "Tired"
+  },
+  {
+   "field": "counters2.fever",
+   "min": 0,
+   "unit_off": 2432,
+   "word": "Fever"
+  },
+  {
+   "field": "counters2.hunger_timer",
+   "min": 75000,
+   "unit_off": 2440,
+   "word": "Starving"
+  },
+  {
+   "field": "counters2.hunger_timer",
+   "min": 50000,
+   "unit_off": 2440,
+   "word": "Hungry"
+  },
+  {
+   "field": "counters2.numbness",
+   "min": 0,
+   "unit_off": 2428,
+   "word": "Numb"
+  },
+  {
+   "field": "counters2.paralysis",
+   "min": 100,
+   "unit_off": 2424,
+   "word": "Paralyzed"
+  },
+  {
+   "field": "counters2.paralysis",
+   "min": 50,
+   "unit_off": 2424,
+   "word": "Partially paralyzed"
+  },
+  {
+   "field": "counters2.paralysis",
+   "min": 0,
+   "unit_off": 2424,
+   "word": "Sluggish"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 150000,
+   "unit_off": 2448,
+   "word": "Very drowsy"
+  },
+  {
+   "field": "counters2.sleepiness_timer",
+   "min": 57600,
+   "unit_off": 2448,
+   "word": "Drowsy"
+  },
+  {
+   "field": "counters2.thirst_timer",
+   "min": 50000,
+   "unit_off": 2444,
+   "word": "Dehydrated"
+  },
+  {
+   "field": "counters2.thirst_timer",
+   "min": 25000,
+   "unit_off": 2444,
+   "word": "Thirsty"
+  },
+  {
+   "field": "soul.personality.longterm_stress",
+   "min": 100000,
+   "unit_off": "soul.personality.longterm_stress",
+   "word": "Harrowed"
+  },
+  {
+   "field": "soul.personality.longterm_stress",
+   "min": 50000,
+   "unit_off": "soul.personality.longterm_stress",
+   "word": "Haggard"
+  },
+  {
+   "field": "soul.personality.longterm_stress",
+   "min": 20000,
+   "unit_off": "soul.personality.longterm_stress",
+   "word": "Stressed"
+  }
+ ],
+ "layout": {
+  "counters.dizziness": 2080,
+  "counters.nausea": 2076,
+  "counters.pain": 2072,
+  "counters.stunned": 2046,
+  "counters.suffocation": 2050,
+  "counters.unconscious": 2048,
+  "counters.webbed": 2052,
+  "counters.winded": 2044,
+  "counters2.exhaustion": 2436,
+  "counters2.fever": 2432,
+  "counters2.hunger_timer": 2440,
+  "counters2.numbness": 2428,
+  "counters2.paralysis": 2424,
+  "counters2.sleepiness_timer": 2448,
+  "counters2.thirst_timer": 2444,
+  "soul.personality.longterm_stress": "soul.personality.longterm_stress"
+ },
+ "onset": {
+  "counters.dizziness": {
+   "min": 0,
+   "word": "Dizzy"
+  },
+  "counters.nausea": {
+   "min": 0,
+   "word": "Nauseous"
+  },
+  "counters.pain": {
+   "min": 50,
+   "word": "Pain"
+  },
+  "counters.stunned": {
+   "min": 0,
+   "word": "Stunned"
+  },
+  "counters.unconscious": {
+   "min": 0,
+   "word": "Unconscious"
+  },
+  "counters.webbed": {
+   "min": 0,
+   "word": "Webbed"
+  },
+  "counters2.exhaustion": {
+   "min": 2000,
+   "word": "Tired"
+  },
+  "counters2.fever": {
+   "min": 0,
+   "word": "Fever"
+  },
+  "counters2.hunger_timer": {
+   "min": 50000,
+   "word": "Hungry"
+  },
+  "counters2.numbness": {
+   "min": 0,
+   "word": "Numb"
+  },
+  "counters2.paralysis": {
+   "min": 0,
+   "word": "Sluggish"
+  },
+  "counters2.sleepiness_timer": {
+   "min": 57600,
+   "word": "Drowsy"
+  },
+  "counters2.thirst_timer": {
+   "min": 25000,
+   "word": "Thirsty"
+  },
+  "soul.personality.longterm_stress": {
+   "min": 20000,
+   "word": "Stressed"
+  }
+ },
+ "ungated": [
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Bleeding"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Drowning"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Exhausted"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Exhausted"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Extreme pain"
+  },
+  {
+   "field": null,
+   "min": 0,
+   "unit_off": 1736,
+   "word": "Faint"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Healthy"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Heavy bleeding"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Injured"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Pale"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Paralyzed"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Paralyzed"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Seriously injured"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Sluggish"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Thirsty"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Thirsty"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Thirsty!"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Unconscious"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Webbed"
+  },
+  {
+   "field": null,
+   "min": null,
+   "unit_off": null,
+   "word": "Winded"
+  }
+ ]
+}

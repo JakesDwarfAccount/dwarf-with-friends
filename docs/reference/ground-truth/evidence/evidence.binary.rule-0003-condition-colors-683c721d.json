@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "recordType": "evidence",
+  "id": "evidence.binary.rule-0003-condition-colors-683c721d",
+  "kind": "binary",
+  "buildId": "build.df.0.53.15-win64-steam-683c721d",
+  "source": {
+    "contentSha256": "683C721D1261E77FF862A2E01DFE3FF93D107AB7B1C92B5A3B6F313CCC8FC284",
+    "privateLocator": "oracle://build/683C721D1261E77FF862A2E01DFE3FF93D107AB7B1C92B5A3B6F313CCC8FC284/executable"
+  },
+  "selectors": {
+    "functionAddresses": ["0x14038c3c0"],
+    "instructionAddresses": ["0x140390a03", "0x140390a57"]
+  },
+  "producer": {
+    "tool": "Ghidra OracleRefs, decompiler, and bounded disassembly read",
+    "version": "Ghidra 12.1.2; Oracle scripts snapshot 2026-07-15"
+  },
+  "createdAt": "2026-07-15T17:51:41Z",
+  "structuralValidation": {
+    "passed": true,
+    "method": "Executable hash and PE timestamp matched the DFHack symbol table; color fields were corroborated against matching DFHack definitions."
+  }
+}

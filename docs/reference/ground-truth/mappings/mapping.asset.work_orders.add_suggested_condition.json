@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.asset.work_orders.add_suggested_condition",
+  "nativeId": "asset.work_orders.add_suggested_condition",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "component",
+      "file": "web/interface_map.json",
+      "symbol": "WORK_ORDERS_ADD_SUGGESTED_CONDITION",
+      "assets": ["WORK_ORDERS_ADD_SUGGESTED_CONDITION", "interface_bits_shared.png"],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    },
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "woSuggestionRowsHtml",
+      "dfcuiComponent": "DFCUI.artBtnHtml",
+      "assets": ["WORK_ORDERS_ADD_SUGGESTED_CONDITION"],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    }
+  ],
+  "disposition": "implemented",
+  "audit": {
+    "classification": "exact-candidate",
+    "findings": ["The exact native add-suggested-condition asset token is mapped and used through the shared DFCUI asset path; verification remains separate from this implementation match."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}

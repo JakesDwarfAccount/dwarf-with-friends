@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "recordType": "evidence",
+  "id": "evidence.corpus.rule-0001-status-bubbles-683c721d",
+  "kind": "corpus",
+  "buildId": "build.df.0.53.15-win64-steam-683c721d",
+  "source": {
+    "contentSha256": "689D6357C7C6480168F9FCB4DD470658FF082D40707CF8DCFD5591FB6458B7DA",
+    "privateLocator": "recorder://qualification/2026-07-15T18-19-54-117Z-status/session"
+  },
+  "selectors": {
+    "frameIds": ["record-0-frame-0", "record-5-frame-0", "record-22-frame-0", "record-24-frame-0", "record-27-frame-0"]
+  },
+  "producer": {
+    "tool": "tools/ground_truth/reduce_status_bubbles.mjs",
+    "version": "schema 1; plugin 69e066c1; DLL 2CDC5DCA0BCAC1EFA840D9E4626B6B3102ECD7DFA3E2068E755854D63E8EC63F; UNIT_STATUS raw DE78337D972E1471E10B286C3C3D27A23E374EFF1CAE58C059611D1CCC0F628B"
+  },
+  "captureContext": {
+    "pluginBuild": "0x73105d34-69e066c1",
+    "recorderSchemaVersion": 1
+  },
+  "createdAt": "2026-07-15T18:20:06Z",
+  "structuralValidation": {
+    "passed": true,
+    "method": "Pinned-identity reducer decoded 78 rich graphics-mode records and conservatively associated 25 Hungry and 20 Thirsty cells with above-threshold unit timer slices. Hits across both inside and outside the separate text-mode windows are expected under the confirmed graphics selector and are retained as a mode-diagnostic observation, not a cadence contradiction."
+  }
+}

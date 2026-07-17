@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "recordType": "mapping",
+  "id": "mapping.flow.work_orders.open_condition_editor",
+  "nativeId": "flow.work_orders.open_condition_editor",
+  "applicability": { "buildIds": ["build.df.0.53.15-win64-steam-683c721d"] },
+  "implementations": [
+    {
+      "kind": "client",
+      "file": "web/js/dwf-labor-work-orders.js",
+      "symbol": "renderWorkOrders",
+      "dfcuiComponent": "workOrdersMarkup",
+      "assets": ["WORK_ORDERS_CONDITIONS"],
+      "tests": ["tools/harness/cim_workorders_test.mjs", "tools/harness/b285_workorder_conditions_read_test.mjs"]
+    },
+    {
+      "kind": "route",
+      "file": "src/work_orders.cpp",
+      "symbol": "register_work_order_routes",
+      "route": "GET /orders",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_conditions_read_test.mjs"]
+    },
+    {
+      "kind": "route",
+      "file": "src/work_orders.cpp",
+      "symbol": "register_work_order_routes",
+      "route": "GET /order-suggested-conditions",
+      "assets": [],
+      "tests": ["tools/harness/b285_workorder_condition_editor_test.mjs"]
+    }
+  ],
+  "disposition": "partial",
+  "audit": {
+    "classification": "insufficient-evidence",
+    "findings": ["The source flow exists, but current tests prove markup and token presence rather than exercising the click-to-load editor transition."]
+  },
+  "decisionRefs": [],
+  "knownDeviations": [],
+  "lastVerified": {
+    "buildId": "build.df.0.53.15-win64-steam-683c721d",
+    "codeVersion": "b4cf3f66a1adda05e7eba4e10450b9dd41b8c770"
+  }
+}
