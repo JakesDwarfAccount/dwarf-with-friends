@@ -77,4 +77,4 @@ tools/demo/takes/
 
 # headless-Chrome scratch dirs from the screen-truth rig
 .screen-truth-chrome-*/
-release/
+/release/
