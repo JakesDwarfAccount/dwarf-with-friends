@@ -41,59 +41,43 @@ For the full design, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); for the f
 
 ## Features
 
-**Seeing each other — the headline**
+**Seeing each other**
 - Everyone's cursor glides across the map in their own color with their name on it, smoothly
   interpolated and fading across z-levels
-- Watch a friend's dig or designation box grow *live* as they drag it out
+- Watch a friend's dig or designation box grow live as they drag it out
 - Their camera viewport shows on your minimap; z-scrollbar markers show what depth everyone's on
-- Ping any tile MOBA-style — everyone sees the expanding ring in your color
+- Ping any tile MOBA-style, everyone sees the expanding ring in your color and jump to the position or unit from the chat.
 - Click a player and follow their camera live, until you move
-- Rename yourself from the players list at any time
-
-**Chat**
-- Player colors, join/leave notices, unread badges, and history that survives a reload
-- Clickable "come look at this" location links that jump the reader's camera to a tile or a unit
+- Built in chat with layer colors, join/leave notices, unread badges, and history that survives a reload
 
 ![Pinging a tile and jumping there from a chat link](media/chat-ping.gif)
 
 **Actually playing — ~130 real actions against the live fort**
 - Designate digs, chops, plants, and traffic; place buildings, stockpiles, zones, and burrows
-- **Freehand zones and stockpiles — any shape, holes included** — the game gets your exact tiles,
-  not a bounding box
-- Squads (schedules, uniforms, positions including the commander), work orders (with per-workshop
-  task trees generated from the raws), labors, nobles, justice, locations, hauling, stocks,
+- Squads (schedules, uniforms, positions,), work orders, labors, nobles, justice, locations, hauling, stocks,
   kitchen, standing orders, and nicknames
-- Delete and rebuild freely — this is small-group co-op on a private link, so there are no
-  anti-griefing locks; friends can remove zones, disband squads, delete routes
-- An optional attribution marker shows who ordered what
+- A attribution marker shows which players ordered certain workorders or items.
 
 **Feels like real Dwarf Fortress**
 - ~97 interactive screens rebuilt in HTML/CSS to match the Steam UI, screen by screen — except the
-  windows are movable, resizable, and remember where you put them, which native DF can't do
-- Status bubbles over dwarves use the game's real per-unit blink cadence, implemented from its
-  decompiled selection logic
+  windows are movable, resizable, and remember where you put them
 - In most cases behavior is verified against reverse engineering of the actual game
 
 **Sound & visuals**
 - The host's own game music, ambience, and announcement stingers stream to every browser
   (basic but working; opt-out — see [docs/CONFIG.md](docs/CONFIG.md))
-- Instanced WebGL renderer running at vsync, with a canvas2d fallback for old GPUs
+- High frame rate, adding additional players costs negligible preformance for the host. 
 - A toggleable, orbitable 3D voxel view of the fort, built live from the same tile data
-- Optional rain/snow weather particles; sprite art is read from the host's own game and never
-  redistributed
+- Optional rain/snow weather particles (disable in settings menu)
 
 **Built to hold up**
 - The map streams as delta-compressed 16×16 blocks over a custom binary WebSocket protocol that
   scales with player count instead of linearly with it (see [How it works](#how-it-works))
 - Reconnects are cheap: the client acknowledges what it has and can request a fresh keyframe, so
-  nothing desyncs silently; a stale-tab guard forces a refresh when the host updates mid-session
+  nothing desyncs silently.
 - Anyone can pause or unpause; the fort auto-pauses if someone disconnects; unpausing can be
   restricted to the host; host-side saving is guarded against collisions
-- No join password by default — friends use just the unguessable tunnel link; set one anytime from
-  the host panel, live, no restart
-- Runs on basically anything with a browser — technically even a phone, but good luck with that
-- ~300 offline parity tests back all of the above
-
+- Runs on basically anything with a browser (technically even a phone, but good luck with that)
 
 Sprite art is never redistributed: the plugin reads the host's own Dwarf Fortress installation and
 each browser uploads only the cells it needs. A host running DF Classic (no premium art) still
@@ -119,14 +103,14 @@ and good reports get fixed fast.
 
 ## Honest limitations
 
-The everyday flows are solid — that's what my friends and I actually play on. But occasionally
+The everyday flows are solid, that's what my friends and I actually play on. But occasionally
 the host will need to tab back to the Steam client for things that aren't in yet: trading, some
 niche corners of the justice and hospital systems, missions and diplomacy, and petition
 decisions. Rebuilding the entire DF interface in a browser is hard, so there are UI quirks I
-know about, with a parity wave planned for the next beta. Windows host only for now.
+know about, and I'm planning a larger update fixing the jank for the next beta release. Windows host only.
 
 This project was built almost entirely with AI coding tools (Claude Code and Codex) by someone
-who is not a software engineer — but not as a one-shot prompt: it's been weeks of obsessive
+who is not a software engineer, but not as a one-shot prompt: it's been weeks of obsessive
 iteration, testing against the native game, and cleanup to make this repo genuinely accessible
 to poke around in. If you're smarter than me (likely), I'd love your corrections and PRs.
 
