@@ -1,5 +1,9 @@
 # Dwarf With Friends
 
+### [⬇ Download v1.0.0-beta.1](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.1/DwarfWithFriends-v1.0.0-beta.1.zip) — unzip, run `DWF Setup.cmd`, play
+
+*(That link is the ready-to-play release zip. The green "Code → Download ZIP" button is the source code — that's for developers, not for playing.)*
+
 Play one Dwarf Fortress fortress with your friends, at the same time, each from your own browser.
 One person hosts the running game; everyone else clicks a link and they're in, no account or no
 setup on their end. (Everyone playing should own a copy of Dwarf Fortress, grab it on Steam and
