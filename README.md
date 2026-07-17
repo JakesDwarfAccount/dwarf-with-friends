@@ -1,12 +1,12 @@
 # Dwarf With Friends
 
 Play one Dwarf Fortress fortress with your friends, at the same time, each from your own browser.
-One person hosts the running game; everyone else clicks a link and they're in — no account, no
-setup on their end. (Everyone playing should own a copy of Dwarf Fortress — grab it on Steam and
+One person hosts the running game; everyone else clicks a link and they're in, no account or no
+setup on their end. (Everyone playing should own a copy of Dwarf Fortress, grab it on Steam and
 support Bay 12. This is about playing the game together, not around it.)
 
 A lot of prior DF multiplayer projects were really cool but felt more like tech demos than a fun
-way to actually play with friends. This one is built to close that gap: it's not a screen share —
+way to actually play with friends. This one is built to close that gap: it's not a screen share,
 every player gets their own camera, their own cursor, real controls, native-style panels, a WebGL
 renderer, and the game's own art and audio, live in the browser. You can see everyone's cursor
 moving around the fort with their name on it. When someone drags out a mining designation, you
