@@ -15,7 +15,7 @@
 //
 //   node tools/harness/parity_wave1_work_orders_test.mjs      (exit 0 PASS / 1 FAIL)
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
@@ -26,6 +26,14 @@ import process from "node:process";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 const require = createRequire(import.meta.url);
+
+// The parity request/packet corpus under build/ and the ground-truth evaluator are private dev
+// artifacts not in the public repo.
+if (!existsSync(join(root, "build", "ground-truth", "parity", "requests")) ||
+    !existsSync(join(root, "tools", "ground_truth"))) {
+  console.log("SKIP parity_wave1_work_orders_test.mjs: private parity corpus / tools/ground_truth is absent (kept in the private archive, not the public repo).");
+  process.exit(0);
+}
 
 const FAMILY_ID = "family.e5de6b83232065c3b7a7632046cc68332e2a361d9eab28efa035804d3c1a6571";
 const FAMILY_KEY = "dwarfmode/Info/WORK_ORDERS";

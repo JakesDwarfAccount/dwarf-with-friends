@@ -334,6 +334,12 @@ function toCounts(violations) {
 // `DWFUI.Name` the §3 table names must be a real export. Utility exports (esc etc.) are allowed to
 // appear either as their own row or folded into a combined row, so we check by name-substring.
 function crossSync() {
+  // The architecture spec is an internal design doc (see docs/NAMING.md) not in the public repo;
+  // without it only this spec-sync check is skipped -- the code-side drift pins above still ran.
+  if (!existsSync(join(root, SPEC_FILE))) {
+    console.log("  ok - spec cross-sync skipped (internal spec absent from this distribution)");
+    return;
+  }
   const specSrc = readFileSync(join(root, SPEC_FILE), "utf8");
   const s3 = sliceSection(specSrc, "## 3.", "## 4.");
   const mod = readFileSync(join(root, COMPONENT_FILE), "utf8");
@@ -472,7 +478,7 @@ if (prunable.length) {
 }
 
 // spec / code cross-sync gate ---------------------------------------------------------------------
-const cross = crossSync();
+const cross = crossSync() || { exports: [], missingFromSpec: [], missingFromCode: [] };
 if (cross.missingFromSpec.length) {
   failed += cross.missingFromSpec.length;
   console.error("\nSPEC DRIFT -- exported but NOT in the spec's §3 component table:");

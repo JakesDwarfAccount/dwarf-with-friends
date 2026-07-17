@@ -17,6 +17,10 @@ import { dfRootOrSkip } from "../lib/dfroot.mjs";
 import { loadGL, loadTiles } from "./groundart_fixture_support.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+if (!fs.existsSync(path.join(ROOT, "evidence", "oracles", "tinting", "TINT-fort2-NATIVE.png"))) {
+  console.log("SKIP b273_material_tint_test.mjs: private native-capture oracle corpus is absent (kept in the private archive, not the public repo).");
+  process.exit(0);
+}
 const DF_ROOT = dfRootOrSkip("b273_material_tint_test.mjs");
 const VANILLA = path.join(DF_ROOT, "data", "vanilla");
 const ENV_IMAGES = path.join(VANILLA, "vanilla_environment", "graphics", "images");

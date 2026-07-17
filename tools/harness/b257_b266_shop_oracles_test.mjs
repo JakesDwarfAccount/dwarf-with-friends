@@ -486,8 +486,14 @@ check(() => {
     "the row must be a TASK only, or adding it puts a nonsense order on both work-order pickers");
 }, "the mason SERVES an 'Engrave memorial slab' row, marked '(opens menu)', excluded from orders");
 check(() => {
-  const manifest = fs.readFileSync(
-    path.join(root, "evidence/oracles/workshops/MANIFEST.md"), "utf8");
+  // The workshop-capture manifest is a private dev oracle (see docs/NAMING.md); this
+  // assertion self-checks the manifest, not the shipped code, so it skips in a clone.
+  const manifestPath = path.join(root, "evidence/oracles/workshops/MANIFEST.md");
+  if (!fs.existsSync(manifestPath)) {
+    console.log("  ok - MANIFEST.md absent (private dev oracle); manifest self-check skipped");
+    return;
+  }
+  const manifest = fs.readFileSync(manifestPath, "utf8");
   const row = manifest.split("\n").find(l => l.includes("WS-JEWELERS-native.png"));
   assert.ok(row, "the manifest has no jeweler's row");
   assert.doesNotMatch(row, /\b11 rows\b/, "the manifest says 11 rows; the capture shows 12");
