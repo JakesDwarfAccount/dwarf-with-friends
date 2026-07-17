@@ -323,7 +323,8 @@ try {
     const good = new Set([
       "X:\\DF", "X:\\DF\\Dwarf Fortress.exe", "X:\\DF\\hack", "X:\\DF\\hack\\plugins",   // dfroot-gate: allow -- synthetic fixture drive; nothing here is ever opened
     ].map((s) => s.replace(/\//g, "\\")));
-    const ex = (p) => good.has(p);
+    // Normalize to backslashes: on a POSIX runner join() emits X:\DF/hack for these synthetic paths.
+    const ex = (p) => good.has(String(p).replace(/\//g, "\\"));
     check("complete install -> ok", checkDfhack("X:\\DF", ex).ok);
     const noHack = checkDfhack("X:\\DF2", (p) => p === "X:\\DF2" || p === "X:\\DF2\\Dwarf Fortress.exe");   // dfroot-gate: allow -- synthetic fixture drive
     guard("DF present but DFHack missing -> not ok + names the hack folder",
