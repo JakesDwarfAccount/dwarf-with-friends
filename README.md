@@ -169,8 +169,7 @@ repository.
 
 It runs on **DFHack** (Zlib), grew out of
 **[SourceAirbender's multi-dwarf / dfcapture](https://github.com/SourceAirbender/multi-dwarf)**
-(AGPL-3.0-only) — if you enjoy this project, consider
-[supporting SourceAirbender on Ko-fi](https://ko-fi.com/airbending_gabrielr) too — and continues
-the multiplayer approach of **DFPlex** (Zlib), which itself builds on **webfort** (ISC). It embeds
-**cpp-httplib** (MIT). Full attributions and third-party licence texts are in [NOTICE](NOTICE).
+(AGPL-3.0-only), and continues the multiplayer approach of **DFPlex** (Zlib), which itself builds
+on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and third-party licence
+texts are in [NOTICE](NOTICE).
 
