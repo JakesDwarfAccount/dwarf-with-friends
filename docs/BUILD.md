@@ -2,12 +2,12 @@
 
 > **Pre-release:** the build integration and output paths may change before the first stable release.
 
-This plugin builds as an external plugin inside a DFHack 53.15-r1 source tree. The
+This plugin builds as an external plugin inside a DFHack 53.15-r2 source tree. The
 repository's target is named `dfcapture_public`, with output name `dwf`.
 
 ## Requirements
 
-- A DFHack 53.15-r1 source checkout, including its normal build prerequisites.
+- A DFHack 53.15-r2 source checkout, including its normal build prerequisites.
 - Windows and an MSVC C++ toolchain. The target links Windows libraries `gdiplus`, `ole32`
   and `ws2_32`, and streaming is compiled only on Windows.
 - CMake configured for the DFHack tree.

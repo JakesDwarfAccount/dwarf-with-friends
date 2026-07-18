@@ -16,12 +16,12 @@ Throughout, `<DF>` means your Dwarf Fortress folder (the one holding `Dwarf Fort
 Dwarf With Friends is a DFHack plugin, so DFHack must be installed first, and the version must match
 exactly.
 
-- **Required version: DFHack `53.15-r1`** — https://github.com/DFHack/dfhack/releases/tag/53.15-r1
-- Download `dfhack-53.15-r1-Windows-64bit.zip` and extract it **into `<DF>`** so that a `hack\`
+- **Required version: DFHack `53.15-r2`** — https://github.com/DFHack/dfhack/releases/tag/53.15-r2
+- Download `dfhack-53.15-r2-Windows-64bit.zip` and extract it **into `<DF>`** so that a `hack\`
   folder appears next to `Dwarf Fortress.exe`.
 - Launch Dwarf Fortress once and confirm the DFHack terminal/overlay appears, then close it.
 
-(If you use the Steam version of DFHack, make sure it is the `53.15-r1` build — a mismatched DFHack
+(If you use the Steam version of DFHack, make sure it is the `53.15-r2` build — a mismatched DFHack
 is the #1 cause of the plugin not loading.)
 
 ## 2. Install the plugin files
@@ -132,7 +132,7 @@ present. DFHack itself is untouched.
 ## Troubleshooting
 
 - **Plugin doesn't load / `/view` won't open:** almost always a DFHack version mismatch. Confirm
-  `53.15-r1`.
+  `53.15-r2`.
 - **Two plugins loading / port already in use:** an old `dfcapture.plug.dll` is still in
   `hack\plugins\`. Delete it.
 - **Friends can't connect over cloudflared:** the tunnel isn't running, or you shared the local

@@ -209,7 +209,7 @@ function main() {
   const dfhackVersion = inspectDfhackVersion(dfRoot);
   const warnings = [];
   if (dfhackVersion.detected && !dfhackVersion.compatible) {
-    warnings.push(`DFHack ${dfhackVersion.version} is installed; this plugin requires exactly 53.15-r1.`);
+    warnings.push(`DFHack ${dfhackVersion.version} is installed; this plugin requires exactly 53.15-r2.`);
     push(`  WARNING: ${warnings[0]}`);
   } else if (dfhackVersion.compatible) {
     push(`  DFHack version: ${dfhackVersion.version} (compatible)`);

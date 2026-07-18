@@ -32,7 +32,7 @@ import {
   readPanelConfig, writePanelConfig, validServerPort,
   parseCloudflaredUrl, parseCloudflaredTarget,
   pickPort, makeReceipt, readReceipt, writeReceipt,
-  generatePassword, tunnelWaitVerdict, LINK_WAIT_TIMEOUT_MS,
+  generatePassword, tunnelWaitVerdict, LINK_WAIT_TIMEOUT_MS, explainStreamStartFailure,
   tunnelWrapperCommand, JOB_LIMIT_KILL_ON_JOB_CLOSE,
   PASSWORD_FILE, HOST_FLAGS_FILE, SOUND_CONFIG_FILE, RECEIPT_FILE,
 } from "../../host/hostlib.mjs";
@@ -101,6 +101,27 @@ try {
       wrong.steps.dfhack.installed && wrong.steps.dfhack.wrongVersion && !wrong.steps.dfhack.ok &&
       wrong.steps.dfhack.version.version === "52.04-r3");
 
+    // Issue #1: an install whose DFHack version cannot be READ must not pass as green -- the
+    // reporter's r2 was undetected (official zips carry no docs marker), compatible stayed null,
+    // and setup waved a never-loadable plugin through.
+    const unreadRoot = tmp("wizard-unreadable-dfhack");
+    writeFileSync(join(unreadRoot, "Dwarf Fortress.exe"), "MZ");
+    mkdirSync(join(unreadRoot, "hack", "plugins"), { recursive: true });
+    const unread = setupSnapshot({ dfRoot: unreadRoot });
+    guard("UNDETECTED DFHack version blocks (unverified), it does not silently pass",
+      unread.steps.dfhack.installed && unread.steps.dfhack.unverified && !unread.steps.dfhack.ok &&
+      !unread.steps.dfhack.wrongVersion);
+
+    // Official 53.15 zips ship no docs pages; hack/news.rst ("DFHack <ver>" on line 1) is the
+    // marker a stock manual install actually has.
+    const newsRoot = tmp("wizard-news-rst");
+    writeFileSync(join(newsRoot, "Dwarf Fortress.exe"), "MZ");
+    mkdirSync(join(newsRoot, "hack", "plugins"), { recursive: true });
+    writeFileSync(join(newsRoot, "hack", "news.rst"), `DFHack ${DFHACK_VERSION}\n===============\n`);
+    guard("version inspector reads hack/news.rst from a stock official zip layout",
+      inspectDfhackVersion(newsRoot).compatible === true &&
+      inspectDfhackVersion(newsRoot).source.endsWith("news.rst"));
+
     const steamDfRoot = join(tmp("wizard-steam"), "steamapps", "common", "Dwarf Fortress");
     mkdirSync(join(steamDfRoot, "hack", "plugins"), { recursive: true });
     writeFileSync(join(steamDfRoot, "Dwarf Fortress.exe"), "MZ");
@@ -152,8 +173,8 @@ try {
       ["INFO.dfhack", "INFO.install", "INFO.sprites", "INFO.cloudflared", "INFO.finish"]
         .every((k) => setupJs.includes(`info(${k})`)));
     // Each blurb states the facts we verified against the code (so drift here trips the pin).
-    check("DFHack blurb: modding engine, pinned 53.15-r1, hash-verified from official GitHub releases",
-      /modding engine/i.test(INFO_dfhack()) && INFO_dfhack().includes("53.15-r1") &&
+    check("DFHack blurb: modding engine, pinned 53.15-r2, hash-verified from official GitHub releases",
+      /modding engine/i.test(INFO_dfhack()) && INFO_dfhack().includes("53.15-r2") &&
       /hash-verified/i.test(INFO_dfhack()) && /official GitHub releases/i.test(INFO_dfhack()));
     check("Install blurb: names the receipt, hack/plugins + web UI, quarantine-not-destroy",
       INFO_install().includes("dwf_install_receipt.json") && /plugins/.test(INFO_install()) &&
@@ -192,7 +213,7 @@ try {
       dfhack: {
         version: DFHACK_VERSION,
         url: "https://github.invalid/dfhack.zip",
-        manualUrl: "https://github.com/DFHack/dfhack/releases/tag/53.15-r1",
+        manualUrl: "https://github.com/DFHack/dfhack/releases/tag/53.15-r2",
         sha256,
       },
       cloudflared: {
@@ -272,7 +293,7 @@ try {
     const wrong = await fetchDfhack({ dfRoot: wrongRoot, manifest,
       download: async () => { wrongDownloaded = true; } });
     guard("existing wrong-version DFHack is detected, warned, and never overwritten",
-      !wrong.ok && wrong.wrongVersion && /requires exactly 53\.15-r1/i.test(wrong.error) && !wrongDownloaded);
+      !wrong.ok && wrong.wrongVersion && /requires exactly 53\.15-r2/i.test(wrong.error) && !wrongDownloaded);
     check("version inspector distinguishes the pinned version",
       inspectDfhackVersion(dfr).compatible === true && inspectDfhackVersion(wrongRoot).compatible === false);
 
@@ -448,6 +469,26 @@ try {
       tunnelWaitVerdict({ url: null, running: true, logExists: false, startedByPanel: true, waitedMs: 0, timeoutMs: 30000 }) === "wait");
     guard("default timeout constant is 30s (env override is host_panel's job, not the policy's)",
       LINK_WAIT_TIMEOUT_MS === 30000);
+
+    // --- Issue #1: explainStreamStartFailure, the plugin-never-loaded DIAGNOSIS ---
+    // "not a recognized command" from dfhack-run means dwf.plug.dll never loaded. The three known
+    // states, most specific first: wrong version detected, DLL missing, neither known.
+    check("stream-start failure names the mismatched DFHack version and the required one",
+      (() => { const m = explainStreamStartFailure({ output: "capture-stream-start is not a recognized command",
+        dllDeployed: true, version: { detected: true, version: "53.15-r3", compatible: false } });
+        return /53\.15-r3/.test(m) && m.includes(DFHACK_VERSION); })());
+    check("stream-start failure with no deployed DLL says the mod is not installed",
+      /dwf\.plug\.dll.*not installed/i.test(explainStreamStartFailure({
+        output: "capture-stream-start is not a recognized command", dllDeployed: false,
+        version: { detected: false, version: null, compatible: null } })));
+    check("stream-start failure with DLL present but unreadable version points at DFHack version + logs",
+      (() => { const m = explainStreamStartFailure({ output: "capture-stream-start is not a recognized command",
+        dllDeployed: true, version: { detected: false, version: null, compatible: null } });
+        return m.includes(DFHACK_VERSION) && /stderr\.log|console/i.test(m); })());
+    // GUARD (test-the-test): any OTHER failure output is NOT this diagnosis -- caller keeps its raw error.
+    guard("non-'recognized command' output returns null (no false diagnosis)",
+      explainStreamStartFailure({ output: "some other stream error", dllDeployed: true,
+        version: { detected: true, version: "53.15-r2", compatible: true } }) === null);
 
     // --- Finding 6: generatePassword shape + variation (feeds the Generate button + "generate" policy) ---
     check("generatePassword shape is word-word-NN", /^[a-z]+-[a-z]+-\d{2}$/.test(generatePassword()));

@@ -161,7 +161,7 @@ export async function fetchDfhack({
   dfRoot, manifest = loadDownloadManifest(), download = downloadHttps, extract = extractZipWindows,
 } = {}) {
   const item = manifest.dfhack || {};
-  const manualUrl = item.manualUrl || item.url || "https://github.com/DFHack/dfhack/releases/tag/53.15-r1";
+  const manualUrl = item.manualUrl || item.url || "https://github.com/DFHack/dfhack/releases/tag/53.15-r2";
   if (item.version !== DFHACK_VERSION) {
     return friendlyFailure(`download manifest names DFHack ${item.version || "without a version"}; expected ${DFHACK_VERSION}`,
       manualUrl, dfRoot || "your Dwarf Fortress folder");

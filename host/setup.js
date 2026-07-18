@@ -29,7 +29,7 @@ function info(html) {
 // hash-verified downloads; install.mjs copy targets + receipt + quarantine; bake_sprites; the game
 // server binds 127.0.0.1 only, so cloudflared is genuinely required -- no honest LAN-skip to offer).
 const INFO = {
-  dfhack: `DFHack is the community modding engine that Dwarf Fortress mods run on, and Dwarf With Friends is built as a DFHack plugin — so the game needs it before the mod can load. Setup downloads DFHack straight from its official GitHub releases, pinned to the exact version 53.15-r1 and hash-verified before it is accepted. It installs into your Dwarf Fortress folder exactly the way a manual DFHack install would; nothing goes anywhere else.`,
+  dfhack: `DFHack is the community modding engine that Dwarf Fortress mods run on, and Dwarf With Friends is built as a DFHack plugin — so the game needs it before the mod can load. Setup downloads DFHack straight from its official GitHub releases, pinned to the exact version 53.15-r2 and hash-verified before it is accepted. It installs into your Dwarf Fortress folder exactly the way a manual DFHack install would; nothing goes anywhere else.`,
   install: `This copies the mod into your Dwarf Fortress folder: a plugin <code>.dll</code> into <code>hack\\plugins</code> plus its interface (Lua) files and the browser UI. It also writes a small receipt, <code>dwf_install_receipt.json</code>, so re-running this setup can verify and repair the install later. Uninstalling is simply deleting those files. If an older Dwarf With Friends version is found it is moved aside into a backup (quarantined), never destroyed.`,
   sprites: `The browser view uses Dwarf Fortress's own artwork. Rather than ship the game's copyrighted art, setup bakes just the sprites it needs from YOUR installed copy of the game, right here on your machine — nothing is uploaded or redistributed. If you have DF Classic with no premium art, friends simply see placeholder shapes instead.`,
   cloudflared: `For friends to join over the internet, your PC needs a way to accept their connections. Normally that means router port-forwarding — fiddly, and different for every router. cloudflared is the one-click alternative: it opens a secure tunnel from your PC out to Cloudflare, and your friends connect through the link it hands you. Nothing to configure. It downloads directly from Cloudflare's official GitHub releases, is SHA-256 hash-verified before we accept it, and lives inside this Dwarf With Friends folder only — no system install, so deleting the folder removes it completely.`,
@@ -55,12 +55,15 @@ function render(s) {
 
   let hackBody = "Install Dwarf Fortress first."; let hackAction = "";
   if (x.df.ok && x.dfhack.missing) {
-    hackBody = `DFHack is not installed in this Dwarf Fortress folder. DWF requires exactly DFHack ${esc(x.dfhack.version?.required || "53.15-r1")}.`;
+    hackBody = `DFHack is not installed in this Dwarf Fortress folder. DWF requires exactly DFHack ${esc(x.dfhack.version?.required || "53.15-r2")}.`;
     hackAction = button("install-dfhack", "Install DFHack for me");
   } else if (x.dfhack.wrongVersion) {
-    hackBody = `<strong>Version warning:</strong> DFHack ${esc(x.dfhack.version.version)} is installed, but this mod was built for exactly 53.15-r1. Proceeding may fail to load or crash.`;
-    hackAction = x.dfhack.ok ? "" : button("proceed-wrong-dfhack", "Proceed anyway");
-  } else if (x.dfhack.ok) hackBody = x.dfhack.version.compatible ? `DFHack ${esc(x.dfhack.version.version)} is ready.` : "DFHack is installed. Its exact version could not be read, so setup will verify the mod after installation.";
+    hackBody = `<strong>Version mismatch:</strong> DFHack ${esc(x.dfhack.version.version)} is installed, but this mod was built for exactly 53.15-r2 and will NOT load on any other build. Replace this DFHack with <a href="https://github.com/DFHack/dfhack/releases/tag/53.15-r2" target="_blank" rel="noopener">53.15-r2</a> (delete the old <code>hack</code> folder first), then run setup again.`;
+    hackAction = x.dfhack.ok ? "" : button("proceed-wrong-dfhack", "Proceed anyway (mod will likely not load)");
+  } else if (x.dfhack.unverified && !x.dfhack.ok) {
+    hackBody = `DFHack is installed, but its version could not be read. DWF only works with exactly DFHack 53.15-r2 — on any other build the mod does not load. Install the known-good version, or proceed if you are sure this is 53.15-r2.`;
+    hackAction = button("install-dfhack", "Install DFHack 53.15-r2 for me") + button("proceed-wrong-dfhack", "Proceed with this DFHack");
+  } else if (x.dfhack.ok) hackBody = x.dfhack.version.compatible ? `DFHack ${esc(x.dfhack.version.version)} is ready.` : "DFHack is installed. Setup could not read its version, and you chose to proceed with it.";
   if (x.dfhack.steam.detected) hackBody += `<div class="warning"><strong>Steam DFHack detected.</strong> Avoid maintaining a second manual DFHack install at the same time; the two can conflict. Use one DFHack installation for this Dwarf Fortress folder.</div>`;
   rows.push(step(2, "DFHack", x.dfhack, hackBody + info(INFO.dfhack), hackAction));
 

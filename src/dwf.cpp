@@ -294,6 +294,12 @@ command_result cmd_start(color_ostream& out, std::vector<std::string>& args) {
     }
 
     dwf::bake_sweep_arm_auto();
+    // WE-1/WE-2 (issue #1 "naked dwarves"): the per-unit clothed composites shipped with BOTH
+    // feature flags default-OFF and no production path ever enabled them, so every fort fell
+    // back to the static base creature art. The copy path is SEH-guarded with fault caps now;
+    // enable with the stream. capture-unit-census / capture-unit-sprites stay as kill switches.
+    dwf::set_unit_census_enabled(true);
+    dwf::set_unit_sprite_export_enabled(true);
     dwf::diagnostics_log("server started " +
                                       dwf::server_url(bind_address, port));
     print_line(out, "dwf: stream server at " +

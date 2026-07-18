@@ -70,7 +70,7 @@ try {
   put(host, "nested/kept.txt", "host nested file");
   const manifest = {
     schema: 1,
-    dfhack: { version: "53.15-r1", url: "https://example.invalid/dfhack.zip", manualUrl: "https://example.invalid/dfhack", sha256: "BAKE_DFHACK_SHA256_AT_PACKAGING_TIME" },
+    dfhack: { version: "53.15-r2", url: "https://example.invalid/dfhack.zip", manualUrl: "https://example.invalid/dfhack", sha256: "BAKE_DFHACK_SHA256_AT_PACKAGING_TIME" },
     cloudflared: { version: "fixture", url: "https://example.invalid/cloudflared.exe", manualUrl: "https://example.invalid/cloudflared", sha256: "1".repeat(64) },
   };
   put(host, "download-manifest.json", JSON.stringify(manifest));

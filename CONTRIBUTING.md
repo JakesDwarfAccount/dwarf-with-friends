@@ -6,7 +6,7 @@ verify.
 ## Set up and build
 
 Read `AGENTS.md` before changing code; its DF safety rules are mandatory. Build the plugin against
-DFHack 53.15-r1 by following [`docs/BUILD.md`](docs/BUILD.md). The browser client is plain JavaScript
+DFHack 53.15-r2 by following [`docs/BUILD.md`](docs/BUILD.md). The browser client is plain JavaScript
 with no npm install or bundling step.
 
 ## Test your change

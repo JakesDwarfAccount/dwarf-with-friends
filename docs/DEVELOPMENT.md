@@ -8,7 +8,7 @@ specific file see [MAP.md](MAP.md).
 
 ## Prerequisites
 
-- **Plugin:** Windows and an MSVC C++ toolchain, plus a DFHack 53.15-r1 source checkout with its
+- **Plugin:** Windows and an MSVC C++ toolchain, plus a DFHack 53.15-r2 source checkout with its
   normal build prerequisites. `cpp-httplib` is vendored under `third_party/`; there are no other
   third-party checkouts. The target links `gdiplus`, `ole32`, and `ws2_32`, and streaming is
   compiled only on Windows.

@@ -96,8 +96,13 @@ export function setupSnapshot({ dfRoot, exists = existsSync, installOk = null,
     steps: {
       df: { ok: df.ok, error: df.ok ? null : (df.error || "Dwarf Fortress was not found."), dfRoot: root },
       dfhack: {
-        ok: hack.ok && (version.compatible !== false || allowWrongVersion), installed: hack.ok,
+        // An UNDETECTED version must not pass silently: issue #1's host had DFHack r2, the
+        // detector found no marker, `compatible` stayed null, and setup waved the install
+        // through to a plugin that could never load. Green requires a POSITIVE version match
+        // (or the host explicitly proceeding).
+        ok: hack.ok && (version.compatible === true || allowWrongVersion), installed: hack.ok,
         missing: df.ok && !hack.ok, wrongVersion: hack.ok && version.compatible === false,
+        unverified: hack.ok && !version.detected,
         version, steam, problems: hack.problems || [],
       },
       install: { ok: installComplete, receipt: rec || null },
@@ -172,7 +177,7 @@ async function action(body) {
   if (name === "install-mod") {
     const hack = checkDfhack(selectedDfRoot);
     const version = inspectDfhackVersion(selectedDfRoot);
-    if (!hack.ok || (version.compatible === false && !allowWrongVersion)) {
+    if (!hack.ok || (version.compatible !== true && !allowWrongVersion)) {
       return { ok: false, error: "Finish the DFHack step before installing Dwarf With Friends." };
     }
     const result = await run(process.execPath, [path.join(HERE, "install.mjs"), "--df-root", selectedDfRoot,

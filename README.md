@@ -1,6 +1,6 @@
 # Dwarf With Friends
 
-### [⬇ Download v1.0.0-beta.1](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.1/DwarfWithFriends-v1.0.0-beta.1.zip) — unzip, run `DWF Setup.cmd`, play
+### [⬇ Download v1.0.0-beta.2](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.2/DwarfWithFriends-v1.0.0-beta.2.zip) — unzip, run `DWF Setup.cmd`, play
 
 *(That link is the ready-to-play release zip. The green "Code → Download ZIP" button is the source code — that's for developers, not for playing.)*
 
@@ -17,7 +17,7 @@ moving around the fort with their name on it. When someone drags out a mining de
 watch the box grow. It's the difference between watching someone play and *playing together*.
 
 Dwarf With Friends is a [DFHack](https://github.com/DFHack/dfhack) plugin for Steam-era Dwarf
-Fortress (v0.53.15, DFHack 53.15-r1). It's a **beta**: the everyday 90%+ of fortress play is built
+Fortress (v0.53.15, DFHack 53.15-r2). It's a **beta**: the everyday 90%+ of fortress play is built
 and tested; the rare corners fall back to "ask the host" instead of pretending to work.
 
 ![Two players building a fort together, each with their own labeled cursor](media/two-players.gif)
@@ -94,9 +94,10 @@ repairs an existing install, so re-running it is always safe.
 
 1. Download the `DwarfWithFriends` zip from the project's releases page (not a source archive).
 2. Unzip it anywhere on a Windows PC and double-click **DWF Setup.cmd**.
-3. Follow the setup page that opens in your browser, then open **Dwarf With Friends**, click
-   **Start hosting**, load a fortress, and share the friend link (and a join password, if you set
-   one — optional).
+3. Follow the setup page that opens in your browser, then open **Dwarf With Friends** (the desktop
+   shortcut setup creates, or `Dwarf With Friends.cmd` in the unzipped folder — same thing). The
+   host panel opens in your browser; click **Start hosting**, load a fortress, and share the friend
+   link (and a join password, if you set one — optional).
 
 Friends join from their browser with the link. Full walkthrough: [docs/INSTALL.md](docs/INSTALL.md),
 or [docs/MANUAL-INSTALL.md](docs/MANUAL-INSTALL.md) if you'd rather do it by hand (including a
@@ -121,12 +122,12 @@ to poke around in. If you're smarter than me (likely), I'd love your corrections
 ## Quickstart for developers
 
 This repository is a source checkout for development; supported downloads come from the releases
-page. The plugin builds as an external plugin inside a DFHack 53.15-r1 source tree (CMake target
+page. The plugin builds as an external plugin inside a DFHack 53.15-r2 source tree (CMake target
 `dfcapture_public`, output `dwf.plug.dll`); the browser client is plain JavaScript with no install
 or bundling step.
 
 ```powershell
-# Build the plugin (inside a configured DFHack 53.15-r1 tree; see BUILD.md for setup)
+# Build the plugin (inside a configured DFHack 53.15-r2 tree; see BUILD.md for setup)
 cmake --build <dfhack>/build-msvc --config Release --target dfcapture_public
 
 # Run the full offline test battery from the repository root (no DF install needed)

@@ -97,6 +97,24 @@ For Windows Security:
 For another antivirus product, restore `dwf.plug.dll` from its quarantine and allowlist both the
 release copy and the copy in Dwarf Fortress's `hack\plugins` folder before running setup again.
 
+## "capture-stream-start is not a recognized command"
+
+This error while hosting means DFHack never loaded the Dwarf With Friends plugin. In practice it
+has one cause: **your DFHack version does not exactly match the one this build was made for**
+(DFHack **53.15-r2** for this release). DFHack refuses to load plugins built for any other
+version — even one bugfix release apart — so the plugin's commands simply don't exist.
+
+1. Check your DFHack version: it's on the DFHack title screen, or at the top of `hack\news.rst`
+   in your Dwarf Fortress folder.
+2. If it isn't exactly **53.15-r2**, install that version from the
+   [DFHack releases page](https://github.com/DFHack/dfhack/releases/tag/53.15-r2): close
+   Dwarf Fortress, delete the old `hack` folder, extract the 53.15-r2 zip into your Dwarf
+   Fortress folder, then run **DWF Setup.cmd** again to re-install the mod.
+3. If your DFHack came from Steam, note Steam may auto-update it past the supported version;
+   the manual install above avoids that.
+4. Confirmation lives in `stderr.log` in your Dwarf Fortress folder — a line saying the `dwf`
+   plugin was built for a different version of DFHack.
+
 ## Port 8765 is already in use
 
 Dwarf With Friends uses port 8765 by default. Another copy of Dwarf With Friends, an old plugin,

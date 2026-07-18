@@ -9,6 +9,6 @@ Read first:
   native-write engine driven by `src/lua_bridge.cpp`.
 - `../docs/BUILD.md` — exact install destinations.
 
-Keep Lua compatible with DFHack 53.15-r1. Do not copy scripts into a running install unless the task
+Keep Lua compatible with DFHack 53.15-r2. Do not copy scripts into a running install unless the task
 explicitly authorises deployment. Never use a script to bypass the `DF_LOCK` rules in
 [../AGENTS.md](../AGENTS.md) and [../tools/harness/README.md](../tools/harness/README.md).

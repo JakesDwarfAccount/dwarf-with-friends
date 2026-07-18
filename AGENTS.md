@@ -9,7 +9,7 @@ kept that honest. Follow them.
 
 - `README.md` — what the project is; `docs/MAP.md` — where everything lives.
 - `docs/ARCHITECTURE.md` — plugin ↔ server ↔ client data flow.
-- `docs/BUILD.md` — building the plugin DLL (CMake, DFHack 53.15-r1 source tree required).
+- `docs/BUILD.md` — building the plugin DLL (CMake, DFHack 53.15-r2 source tree required).
 - `docs/DEVELOPMENT.md` — dev workflow, test harness, and the DWFUI component rules.
 - `docs/NAMING.md` — why some runtime identifiers still say `dfcapture`. Do not "fix" them.
 

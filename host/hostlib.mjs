@@ -54,7 +54,7 @@ export const RECEIPT_FILE = "dwf_install_receipt.json";
 // The game server the plugin serves.
 export const SERVER_PORT = 8765;
 export const AUTH_COOKIE = "dfcap_auth";   // src/http_server.cpp:451,499 cookie_value(..., "dfcap_auth")
-export const DFHACK_VERSION = "53.15-r1";
+export const DFHACK_VERSION = "53.15-r2";
 
 // ---------------------------------------------------------------- manifest resolution
 // Release layout (what a packaged dwf release contains, post-W9 rename):
@@ -139,6 +139,10 @@ export function inspectDfhackVersion(dfRoot, exists = existsSync, read = readFil
     path.join(dfRoot, ".dwf-dfhack-version"),
     path.join(dfRoot, "dfhack-version.txt"),
     path.join(dfRoot, "hack", "dfhack-version.txt"),
+    // Official 53.15 zips ship NO docs pages at all, but hack/news.rst always opens with
+    // "DFHack <version>" -- without this marker a stock manual install is undetectable, and an
+    // undetected wrong version sailed straight through setup (issue #1).
+    path.join(dfRoot, "hack", "news.rst"),
     path.join(dfRoot, "hack", "docs", "docs", "index.html"),
     path.join(dfRoot, "hack", "docs", "docs", "about", "Changelog.html"),
   ];
@@ -402,6 +406,27 @@ export function tunnelWaitVerdict({ url, running, logExists, startedByPanel, wai
   if (!logExists && !startedByPanel) return "unreadable";
   if (waitedMs >= timeoutMs) return "timeout";
   return "wait";
+}
+
+// When `capture-stream-start` fails, DFHack's raw output ("capture-stream-start is not a
+// recognized command" -- issue #1) tells the host nothing actionable. That output means the dwf
+// plugin never loaded; the two known causes are a DFHack version the DLL was not built for and a
+// missing/never-installed DLL. PURE -- caller supplies the facts; returns null when the raw
+// output is not a recognized-command failure (caller keeps its own message).
+export function explainStreamStartFailure({ output, dllDeployed, version }) {
+  if (!/not a recognized command/i.test(String(output || ""))) return null;
+  if (version?.detected && version.compatible === false) {
+    return `The Dwarf With Friends plugin did not load: DFHack ${version.version} is installed, but this ` +
+      `build needs exactly DFHack ${DFHACK_VERSION}. Run DWF Setup to install DFHack ${DFHACK_VERSION}, ` +
+      `then restart Dwarf Fortress and try again.`;
+  }
+  if (dllDeployed === false) {
+    return "The Dwarf With Friends plugin (dwf.plug.dll) is not installed in DFHack. " +
+      "Run DWF Setup to install the mod, then restart Dwarf Fortress and try again.";
+  }
+  return `DFHack did not load the Dwarf With Friends plugin. This usually means the installed DFHack ` +
+    `is not the version this build needs (exactly ${DFHACK_VERSION}). Look for a plugin version error in ` +
+    `the DFHack console or stderr.log, or run DWF Setup to repair the install.`;
 }
 
 // From a running cloudflared command line, recover the tunnel TARGET (`--url http://localhost:8765`),

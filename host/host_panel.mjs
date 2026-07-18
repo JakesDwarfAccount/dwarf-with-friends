@@ -41,6 +41,7 @@ import {
   readAudioRemote, writeSoundConfig,
   readPanelConfig, writePanelConfig, validServerPort,
   parseCloudflaredUrl, tunnelWaitVerdict, LINK_WAIT_TIMEOUT_MS,
+  inspectDfhackVersion, explainStreamStartFailure,
   tunnelWrapperCommand,
 } from "./hostlib.mjs";
 import { fetchCloudflared } from "./fetchers.mjs";
@@ -458,8 +459,16 @@ async function hostingTick() {
       setHosting("starting-stream", "Fortress loaded. Starting the browser stream…");
       const started = await run(dfhackRun, ["capture-stream-start", String(GAME_PORT), "127.0.0.1"], { timeout: 10000 });
       if (!started.ok) {
-        throw new Error((started.stderr || started.stdout ||
-          `Could not start the stream. In the DFHack console, run: capture-stream-start ${GAME_PORT} 127.0.0.1`).trim());
+        const raw = (started.stderr || started.stdout || "").trim();
+        // "not a recognized command" = the plugin never loaded (wrong DFHack version or missing
+        // DLL, issue #1). Diagnose and say what to actually do instead of echoing DFHack.
+        const explained = explainStreamStartFailure({
+          output: raw,
+          dllDeployed: existsSync(path.join(DF_ROOT, "hack", "plugins", "dwf.plug.dll")),
+          version: inspectDfhackVersion(DF_ROOT),
+        });
+        throw new Error(explained || raw ||
+          `Could not start the stream. In the DFHack console, run: capture-stream-start ${GAME_PORT} 127.0.0.1`);
       }
       return scheduleHosting(1000);
     }

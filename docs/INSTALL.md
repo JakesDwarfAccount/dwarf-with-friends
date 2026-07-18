@@ -10,7 +10,7 @@ verifies and repairs an existing install too, so re-running it is always safe.
 ## What you need
 
 - **Host:** Windows and Dwarf Fortress. Setup installs everything else it needs —
-  DFHack 53.15-r1 and cloudflared are downloaded automatically if they are missing, and a
+  DFHack 53.15-r2 and cloudflared are downloaded automatically if they are missing, and a
   portable Node runtime is bundled in the zip. Nothing to build.
 - **Friends:** a desktop browser and the link you share.
 
@@ -25,7 +25,7 @@ verifies and repairs an existing install too, so re-running it is always safe.
    you click:
    - point it at your Dwarf Fortress folder (the one with `Dwarf Fortress.exe`); it
      auto-detects common Steam locations;
-   - install or verify **DFHack 53.15-r1** (downloaded automatically if missing; the
+   - install or verify **DFHack 53.15-r2** (downloaded automatically if missing; the
      plugin loads only in exactly this DFHack version);
    - install the mod into the correct plugin paths (upgrade-safe: it backs up anything it
      overwrites);
@@ -34,7 +34,9 @@ verifies and repairs an existing install too, so re-running it is always safe.
    - fetch **cloudflared** for internet play;
    - create a **Dwarf With Friends** desktop shortcut.
 5. **Host.** Open **Dwarf With Friends** (the desktop shortcut, or `Dwarf With Friends.cmd`
-   in the unzipped folder). In the host panel:
+   in the unzipped folder — they are the same thing). The **host panel** opens in your
+   browser automatically; if it doesn't, the address is printed in the console window
+   (something like `http://127.0.0.1:8812`). In the host panel:
    - optionally set a **join password** on the Access tab. There is none by default — the
      random tunnel link is unguessable, so treat the link itself like a secret. Anyone who
      has the link (and the password, if you set one) can join;

@@ -53,7 +53,8 @@ body:
     attributes:
       label: F3 diagnostics
       description: >-
-        Press F3 in the game to open the diagnostics overlay, then paste the Transport line
+        In the browser tab where the game runs, press F3 to open the diagnostics overlay
+        (skip this if you never got in game), then paste the Transport line
         (WS delta / HTTP), the Renderer line (gl / canvas2d), and any FPS or latency numbers.
         Optional, but ideal for lag reports.
       placeholder: |
@@ -73,10 +74,11 @@ body:
   - type: textarea
     id: dfhack-log
     attributes:
-      label: DFHack log tail (host only)
+      label: DFHack log tail — stderr.log (host only)
       description: >-
-        If the game itself crashed and you are the host, paste the last ~30 lines of
-        stderr.log from your Dwarf Fortress folder.
+        Host only: paste the last ~30 lines of **stderr.log** (that exact file, not
+        stdout.log) from your Dwarf Fortress folder. If the mod would not load or
+        hosting failed, this is the most useful thing you can attach.
       render: text
     validations:
       required: false

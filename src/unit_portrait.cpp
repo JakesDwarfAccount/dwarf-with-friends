@@ -499,7 +499,12 @@ bool portrait_error_is_native_fault(const std::string& err) {
 }
 
 bool portrait_view_sheet_allowed_for_unit(int32_t unit_id) {
-    if (g_portrait_view_sheet_fault_count.load() >= 8)
+    // FIRST STRIKE disables the generator for the whole session (was 8). A caught native fault
+    // inside DF's view-sheet code means DF was interrupted mid-mutation and the process heap is
+    // suspect from that moment on -- the 2026-07-18 host crash was ntdll heap corruption in the
+    // same second as fault #1. Re-entering the faulting machinery seven more times only multiplies
+    // that risk; portraits fall back to widget/readback + existing textures.
+    if (g_portrait_view_sheet_fault_count.load() >= 1)
         return false;
     std::lock_guard<std::mutex> lock(g_portrait_view_sheet_disabled_mutex);
     return g_portrait_view_sheet_disabled_units.find(unit_id) ==
@@ -928,9 +933,9 @@ bool unit_portrait_on_render_thread(int32_t unit_id,
                     diagnostics_log("DIAG portrait view-sheet generation disabled for unit " +
                                     std::to_string(request->unit_id) +
                                     " after explicit native fault (" +
-                                    std::to_string(faults) + "/8): " + last_err);
-                    if (faults >= 8 && !g_warned_portrait_view_sheet_disabled.exchange(true))
-                        diagnostics_log("DIAG portrait view-sheet generation disabled globally after repeated native faults; "
+                                    std::to_string(faults) + "/1): " + last_err);
+                    if (faults >= 1 && !g_warned_portrait_view_sheet_disabled.exchange(true))
+                        diagnostics_log("DIAG portrait view-sheet generation disabled globally for this session after a native fault; "
                                         "using widget/readback and existing texture fallbacks only.");
                 }
             } else if (!g_warned_portrait_view_sheet_disabled.exchange(true)) {

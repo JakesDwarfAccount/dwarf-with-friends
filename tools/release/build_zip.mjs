@@ -90,8 +90,8 @@ function readme(version) {
     "DFHack (the modding engine Dwarf With Friends runs on) is installed automatically by setup if it is missing.",
     "",
     "Something not working? See TROUBLESHOOTING.md in this folder.",
-    "Installing by hand, or want Tailscale instead of the default tunnel? See docs\\MANUAL-INSTALL.md.",
-    "Found a bug? See docs\\REPORTING-BUGS.md for how to report it well.",
+    "Installing by hand, or want Tailscale instead of the default tunnel? See MANUAL-INSTALL.md.",
+    "Found a bug? See REPORTING-BUGS.md for how to report it well.",
     "Full docs and updates: https://github.com/JakesDwarfAccount/dwarf-with-friends",
     "",
   ].join("\r\n"), "utf8");
@@ -201,10 +201,17 @@ export function buildReleaseZip(options) {
   entries.set(`${ZIP_ROOT}/Dwarf With Friends.cmd`, launcher("host_panel.mjs"));
   entries.set(`${ZIP_ROOT}/README.txt`, readme(version));
   // Most players only ever open this zip, never the git repo -- so the player-facing docs must
-  // ship here too, not just in source control. Layout mirrors the repo (TROUBLESHOOTING.md at
-  // root, docs/* one level in) so their existing relative links between each other still resolve.
+  // ship here too, not just in source control. ALL of them land at the zip ROOT (owner call,
+  // beta.2): a player browsing the unzipped folder should see TROUBLESHOOTING next to the
+  // launchers, not tucked in docs/. The repo keeps its docs/ layout, so the inter-doc relative
+  // links ("docs/X.md" from root, "../TROUBLESHOOTING.md" from docs/) are rewritten to flat
+  // siblings in the bundled copies only.
+  const flattenDocLinks = (text) => String(text)
+    .replaceAll("](docs/", "](")
+    .replaceAll("](../", "](");
   for (const rel of ["TROUBLESHOOTING.md", "docs/MANUAL-INSTALL.md", "docs/REPORTING-BUGS.md", "docs/CONFIG.md"]) {
-    entries.set(`${ZIP_ROOT}/${rel}`, readFileSync(path.join(ROOT, rel)));
+    const base = rel.split("/").pop();
+    entries.set(`${ZIP_ROOT}/${base}`, Buffer.from(flattenDocLinks(readFileSync(path.join(ROOT, rel), "utf8")), "utf8"));
   }
 
   const output = path.join(outputDir, `DwarfWithFriends-v${version}.zip`);

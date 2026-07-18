@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "dfhack": {
-    "version": "53.15-r1",
-    "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r1/dfhack-53.15-r1-Windows-64bit.zip",
-    "manualUrl": "https://github.com/DFHack/dfhack/releases/tag/53.15-r1",
+    "version": "53.15-r2",
+    "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r2/dfhack-53.15-r2-Windows-64bit.zip",
+    "manualUrl": "https://github.com/DFHack/dfhack/releases/tag/53.15-r2",
     "sha256": "BAKE_DFHACK_SHA256_AT_PACKAGING_TIME"
   },
   "cloudflared": {
