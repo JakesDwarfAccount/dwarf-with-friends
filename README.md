@@ -167,8 +167,10 @@ Dwarf With Friends is licensed under **AGPL-3.0-only**; see [LICENSE](LICENSE). 
 players over a network, the AGPL entitles anyone you host for to the source — which is this
 repository.
 
-It runs on **DFHack** (Zlib), grew out of **SourceAirbender's multi-dwarf / dfcapture**
-(AGPL-3.0-only), and continues the multiplayer approach of **DFPlex** (Zlib), which itself builds
-on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and third-party licence
-texts are in [NOTICE](NOTICE).
+It runs on **DFHack** (Zlib), grew out of
+**[SourceAirbender's multi-dwarf / dfcapture](https://github.com/SourceAirbender/multi-dwarf)**
+(AGPL-3.0-only) — if you enjoy this project, consider
+[supporting SourceAirbender on Ko-fi](https://ko-fi.com/airbending_gabrielr) too — and continues
+the multiplayer approach of **DFPlex** (Zlib), which itself builds on **webfort** (ISC). It embeds
+**cpp-httplib** (MIT). Full attributions and third-party licence texts are in [NOTICE](NOTICE).
 
