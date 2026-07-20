@@ -243,7 +243,7 @@ command_result cmd_mapdump(color_ostream& out, std::vector<std::string>& args) {
 }
 
 command_result cmd_start(color_ostream& out, std::vector<std::string>& args) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
     int port = dwf::DEFAULT_STREAM_PORT;
     std::string bind_address = dwf::DEFAULT_BIND_ADDRESS;
 
@@ -314,7 +314,7 @@ command_result cmd_start(color_ostream& out, std::vector<std::string>& args) {
 }
 
 command_result cmd_stop(color_ostream& out, std::vector<std::string>&) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
     dwf::stop_server();
     dwf::restore_overlay_after_stream(&out);
     dwf::diagnostics_log("server stopped");
@@ -485,7 +485,7 @@ command_result cmd_itemdef_dump(color_ostream& out, std::vector<std::string>&) {
 }
 
 command_result cmd_status(color_ostream& out, std::vector<std::string>&) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
     if (dwf::server_running())
         print_line(out, "dwf: stream server running at " +
                         dwf::server_url() + "\n");
@@ -578,7 +578,7 @@ DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginC
 }
 
 DFhackCExport command_result plugin_shutdown(color_ostream&) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
     dwf::diagnostics_log("plugin shutdown");
     dwf::stop_server();
     dwf::restore_overlay_after_stream();
