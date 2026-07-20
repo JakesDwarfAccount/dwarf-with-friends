@@ -27,6 +27,7 @@
 //                            offscreen view sheet on a lazy-chunk miss. Any final failure stays empty.
 
 #include "art_desc.h"
+#include "render_thread_wait.h"
 
 #include "camera.h"
 #include "json_util.h"
@@ -737,7 +738,7 @@ bool bank_or_compose(const ArtBankKey& key, int32_t item_id, ArtBankEntry& entry
                 }
                 request->done.set_value(ok);
             });
-            composed = future.get();
+            composed = render_future_ready(future) && future.get();
         } catch (...) {
             composed = false;
         }

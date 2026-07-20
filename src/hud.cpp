@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "hud.h"
+#include "render_thread_wait.h"
 
 #include "Core.h"
 #include "TileTypes.h"
@@ -351,6 +352,10 @@ bool hud_on_render_thread(const Camera& camera, HudState& hud, std::string* err)
         effective_viewport_dims(request->viewport_w, request->viewport_h);
         request->done.set_value(true);
     });
+    if (!render_future_ready(future)) {
+        if (err) *err = "timed out waiting for the render thread";
+        return false;
+    }
     future.get();
 
     DFHack::CoreSuspender suspend;
