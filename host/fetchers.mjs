@@ -7,8 +7,8 @@
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import {
-  copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync,
-  writeFileSync,
+  chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync,
+  statSync, writeFileSync,
 } from "node:fs";
 import { get as httpsGet } from "node:https";
 import path from "node:path";
@@ -17,6 +17,7 @@ import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   DFHACK_VERSION, checkDfhack, dfhackMarkers, inspectDfhackVersion,
+  IS_WIN, DF_EXE_NAME, CLOUDFLARED_BIN,
 } from "./hostlib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -24,6 +25,13 @@ export const DOWNLOAD_MANIFEST_PATH = path.join(HERE, "download-manifest.json");
 
 export function loadDownloadManifest(file = DOWNLOAD_MANIFEST_PATH) {
   return JSON.parse(readFileSync(file, "utf8"));
+}
+
+// Manifest schema 2 nests per-platform {url, sha256} under "windows"/"linux"; schema 1 kept them
+// flat (Windows-only). Resolve either shape to a flat {version, manualUrl, url, sha256}.
+export function platformManifestItem(item = {}) {
+  const plat = IS_WIN ? item.windows : item.linux;
+  return plat ? { ...item, ...plat } : item;
 }
 
 function validSha256(value) {
@@ -121,6 +129,16 @@ function runFile(command, args) {
   });
 }
 
+export async function extractArchive(archive, destination, run = runFile) {
+  if (!IS_WIN) {
+    // GNU tar handles the Linux DFHack .tar.bz2 natively.
+    mkdirSync(destination, { recursive: true });
+    await run("tar", ["-xf", archive, "-C", destination]);
+    return { tool: "tar" };
+  }
+  return extractZipWindows(archive, destination, run);
+}
+
 export async function extractZipWindows(archive, destination, run = runFile) {
   mkdirSync(destination, { recursive: true });
   try {
@@ -158,9 +176,9 @@ function extractedRoot(stage) {
 }
 
 export async function fetchDfhack({
-  dfRoot, manifest = loadDownloadManifest(), download = downloadHttps, extract = extractZipWindows,
+  dfRoot, manifest = loadDownloadManifest(), download = downloadHttps, extract = extractArchive,
 } = {}) {
-  const item = manifest.dfhack || {};
+  const item = platformManifestItem(manifest.dfhack || {});
   const manualUrl = item.manualUrl || item.url || "https://github.com/DFHack/dfhack/releases/tag/53.15-r2";
   if (item.version !== DFHACK_VERSION) {
     return friendlyFailure(`download manifest names DFHack ${item.version || "without a version"}; expected ${DFHACK_VERSION}`,
@@ -168,7 +186,7 @@ export async function fetchDfhack({
   }
   const markers = dfhackMarkers(dfRoot || "");
   if (!dfRoot || !existsSync(dfRoot) || !existsSync(markers.dfExe)) {
-    return { ok: false, error: `Choose the Dwarf Fortress folder that contains "Dwarf Fortress.exe" before installing DFHack.`,
+    return { ok: false, error: `Choose the Dwarf Fortress folder that contains "${DF_EXE_NAME}" before installing DFHack.`,
       manual: { url: manualUrl, destination: dfRoot || "your Dwarf Fortress folder" } };
   }
   const current = checkDfhack(dfRoot);
@@ -189,9 +207,11 @@ export async function fetchDfhack({
       error: got.error.replace(`put it in ${archive}`, `extract it into ${dfRoot}`) };
     await extract(archive, stage);
     const root = extractedRoot(stage);
-    if (!root || !existsSync(path.join(root, "hack", "plugins")) ||
-        (!existsSync(path.join(root, "dfhack.exe")) && !existsSync(path.join(root, "dfhack.dll")))) {
-      throw new Error("the archive did not contain a complete Windows DFHack install");
+    const launcherPresent = root && (IS_WIN
+      ? (existsSync(path.join(root, "dfhack.exe")) || existsSync(path.join(root, "dfhack.dll")))
+      : existsSync(path.join(root, "dfhack")));
+    if (!root || !existsSync(path.join(root, "hack", "plugins")) || !launcherPresent) {
+      throw new Error(`the archive did not contain a complete ${IS_WIN ? "Windows" : "Linux"} DFHack install`);
     }
     copyTreeMerge(root, dfRoot);
     writeFileSync(path.join(dfRoot, ".dwf-dfhack-version"), DFHACK_VERSION + "\n");
@@ -207,11 +227,14 @@ export async function fetchDfhack({
 export async function fetchCloudflared({
   dwfRoot = HERE, manifest = loadDownloadManifest(), download = downloadHttps,
 } = {}) {
-  const item = manifest.cloudflared || {};
-  const destination = path.join(dwfRoot, "cloudflared.exe");
+  const item = platformManifestItem(manifest.cloudflared || {});
+  const destination = path.join(dwfRoot, CLOUDFLARED_BIN);
   if (existsSync(destination) && validSha256(item.sha256) &&
       sha256File(destination).toLowerCase() === item.sha256.toLowerCase()) {
     return { ok: true, alreadyInstalled: true, destination, sha256: item.sha256.toLowerCase() };
   }
-  return downloadVerified({ url: item.url, sha256: item.sha256, destination, download });
+  const result = await downloadVerified({ url: item.url, sha256: item.sha256, destination, download });
+  // The Linux asset is a raw binary; a fresh download has no exec bit.
+  if (result.ok && !IS_WIN) chmodSync(destination, 0o755);
+  return result;
 }

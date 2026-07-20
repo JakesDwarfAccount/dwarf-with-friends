@@ -34,7 +34,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile, execFileSync, spawn } from "node:child_process";
 import {
-  SERVER_PORT, AUTH_COOKIE,
+  SERVER_PORT, AUTH_COOKIE, PLUGIN_BINARY, CLOUDFLARED_BIN, DF_EXE_NAME,
   checkDfhack, autodetectDfRoot, dfhackMarkers,
   readPassword, writePassword, passwordFilePath, generatePassword,
   readHostFlags, writeHostFlags,
@@ -123,6 +123,22 @@ function gameGet(pathname, { withAuth = true, timeoutMs = 1500 } = {}) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Linux dfhack-run colorizes its output (ESC[0m...); strip ANSI SGR codes before any text
+// matching -- "\btrue\b" can never match "[0mtrue" because m|t has no word boundary.
+const stripAnsi = (s) => String(s ?? "").replace(/\x1b\[[0-9;]*m/g, "");
+
+// Run DFHack's remote-control tool. On Linux, dfhack-run SEGFAULTS without a TTY (DFHack
+// 53.15-r2: Console::add_text fprintf()s a console FILE* that never initialized on a pipe),
+// so give it a pseudo-terminal via util-linux `script -qec` -- -e propagates the child's
+// exit code, /dev/null discards the typescript file. The RPC itself would even execute
+// server-side before the crash, but the panel must read the reply, so a pty it is.
+function runDfhackRun(dfhackRun, args, opts = {}) {
+  if (IS_WIN) return run(dfhackRun, args, opts);
+  const shq = (a) => `'${String(a).replace(/'/g, `'\\''`)}'`;
+  const inner = [dfhackRun, ...args].map(shq).join(" ");
+  return run("script", ["-qec", inner, "/dev/null"], opts);
+}
+
 // POST a form to the game server (the plugin's own host-only routes, e.g. /join-password).
 // `cookiePw` must be the password the server CURRENTLY has in memory -- i.e. the OLD one when
 // changing passwords -- or the pre-routing auth gate rejects us.
@@ -151,16 +167,30 @@ function gamePostForm(pathname, form, { cookiePw = "", timeoutMs = 2500 } = {}) 
   });
 }
 
-// tasklist-based process presence (Windows). Returns true/false; false on non-Windows.
+// Process presence by image/command name. Windows: tasklist. Linux: pgrep -x against the comm
+// name (kernel-truncated to 15 chars, so match what /proc reports).
 async function processRunning(imageName) {
-  if (!IS_WIN) return false;
+  if (!IS_WIN) {
+    const r = await run("pgrep", ["-x", imageName.slice(0, 15)]);
+    return r.ok && r.stdout.trim() !== "";
+  }
   const r = await run("tasklist", ["/FI", `IMAGENAME eq ${imageName}`, "/NH", "/FO", "CSV"]);
   return r.stdout.toLowerCase().includes(imageName.toLowerCase());
 }
 
-// The command line of a running process (Windows, via wmic/CIM). Best-effort; "" if unavailable.
+// Both processes that mean "the game is up": DF itself and the DFHack launcher.
+const DF_PROCESSES = IS_WIN ? ["Dwarf Fortress.exe", "dfhack.exe"] : ["dwarfort"];
+async function dfProcessRunning() {
+  for (const name of DF_PROCESSES) if (await processRunning(name)) return true;
+  return false;
+}
+
+// The command line of a running process. Best-effort; "" if unavailable.
 async function processCmdline(imageName) {
-  if (!IS_WIN) return "";
+  if (!IS_WIN) {
+    const r = await run("ps", ["-C", imageName.slice(0, 15), "-o", "args="]);
+    return r.ok ? r.stdout.trim().split("\n")[0] || "" : "";
+  }
   // PowerShell CIM query is more reliable than deprecated wmic on modern Windows.
   const ps = `Get-CimInstance Win32_Process -Filter "Name='${imageName}'" | Select-Object -ExpandProperty CommandLine`;
   const r = await run("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps]);
@@ -202,7 +232,7 @@ function cloudflaredLogTail(maxBytes = 64 * 1024, maxLines = 120) {
   }
 }
 async function cloudflaredOnPath() {
-  const bundled = path.join(HERE, "cloudflared.exe");
+  const bundled = path.join(HERE, CLOUDFLARED_BIN);
   if (existsSync(bundled)) return bundled;
   const r = await run(IS_WIN ? "where" : "which", ["cloudflared"]);
   return r.ok && r.stdout.trim() ? r.stdout.trim().split(/\r?\n/)[0] : null;
@@ -210,7 +240,7 @@ async function cloudflaredOnPath() {
 
 // ---------------------------------------------------------------- API handlers
 async function apiStatus() {
-  const dfRunning = (await processRunning("Dwarf Fortress.exe")) || (await processRunning("dfhack.exe"));
+  const dfRunning = await dfProcessRunning();
   const version = await gameGet("/version", { withAuth: false });
   const server = {
     answering: version.ok,
@@ -230,8 +260,23 @@ async function apiStatus() {
   return { dfRoot: DF_ROOT, dfOk: DF_OK, dfRunning, port: GAME_PORT, server, world, players };
 }
 
+const CF_PROCESS = IS_WIN ? "cloudflared.exe" : "cloudflared";
+
+
+// Kill our wrapper tree: Windows taskkill /T takes the wrapper + its cloudflared; on Linux a
+// SIGTERM to the sh wrapper fires its trap, which kills the cloudflared it started.
+async function killTunnelTree(pid, { timeout = 3000 } = {}) {
+  if (IS_WIN) return run("taskkill", ["/PID", String(pid), "/T", "/F"], { timeout });
+  try { process.kill(pid, "SIGTERM"); return { ok: true }; }
+  catch { return { ok: false }; }
+}
+async function killTunnelByImage({ timeout = 3000 } = {}) {
+  return IS_WIN ? run("taskkill", ["/IM", CF_PROCESS, "/F"], { timeout })
+                : run("pkill", ["-x", CF_PROCESS.slice(0, 15)], { timeout });
+}
+
 async function apiLinks() {
-  const running = await processRunning("cloudflared.exe");
+  const running = await processRunning(CF_PROCESS);
   const url = cloudflaredUrlFromLog();
   const installed = await cloudflaredOnPath();
   return {
@@ -322,14 +367,30 @@ function setConfig(body) {
 
 async function launchDwarf() {
   if (!DF_OK) return { ok: false, error: "Dwarf Fortress or DFHack was not found. Run DWF Setup to verify and repair it." };
-  if ((await processRunning("Dwarf Fortress.exe")) || (await processRunning("dfhack.exe"))) {
+  if (await dfProcessRunning()) {
     return { ok: true, note: "Dwarf Fortress is already running." };
   }
   const markers = dfhackMarkers(DF_ROOT);
   const exe = existsSync(markers.dfhackExe) ? markers.dfhackExe : markers.dfExe;
   if (!existsSync(exe)) return { ok: false, error: `Dwarf Fortress launcher not found: ${exe}` };
   try {
-    const child = spawn(exe, [], { cwd: DF_ROOT, detached: true, stdio: "ignore", windowsHide: false });
+    // Linux: launch THROUGH Steam when it is running. A raw ./dfhack spawn skips Steam's
+    // per-game environment (GPU/PRIME offload, Steam API), which black-screens DF on
+    // multi-GPU boxes. Steam applies the game's launch options, so hosting with DFHack
+    // needs the user to have set them once:  sh -c 'exec "./dfhack"' %command%
+    if (!IS_WIN && (await processRunning("steam"))) {
+      const child = spawn("xdg-open", ["steam://rungameid/975370"],
+                          { detached: true, stdio: "ignore" });
+      child.unref();
+      return { ok: true, note: "Asked Steam to launch Dwarf Fortress. If DFHack does not come up " +
+        "with it, set the game's Steam launch options to:  sh -c 'exec \"./dfhack\"' %command%" };
+    }
+    // Fallback (Windows, or Steam not running): direct launch. The `dfhack` launcher on Linux
+    // is a shell script (LD_PRELOAD libdfhooks + exec ./dwarfort); run it through sh so a
+    // missing exec bit can never break the launch.
+    const child = IS_WIN
+      ? spawn(exe, [], { cwd: DF_ROOT, detached: true, stdio: "ignore", windowsHide: false })
+      : spawn("/bin/sh", [exe], { cwd: DF_ROOT, detached: true, stdio: "ignore" });
     child.unref();
     return { ok: true, note: `Launched ${path.basename(exe)}.` };
   } catch (error) { return { ok: false, error: String(error.message || error) }; }
@@ -340,7 +401,6 @@ async function serverAction(body) {
   const confirm = body.confirm === true;
   const destructive = action === "stop-df" || action === "stop-cf" || action === "start-df";
   if (destructive && !confirm) return { ok: false, error: "confirmation required" };
-  if (!IS_WIN) return { ok: false, error: "process controls are Windows-only on this build" };
 
   if (action === "start-df") {
     const result = await launchDwarf();
@@ -349,9 +409,12 @@ async function serverAction(body) {
   }
 
   if (action === "stop-df") {
-    const r1 = await run("taskkill", ["/IM", "Dwarf Fortress.exe", "/F"]);
-    const r2 = await run("taskkill", ["/IM", "dfhack.exe", "/F"]);
-    const killed = r1.ok || r2.ok;
+    let killed = false;
+    for (const name of DF_PROCESSES) {
+      const r = IS_WIN ? await run("taskkill", ["/IM", name, "/F"])
+                       : await run("pkill", ["-x", name.slice(0, 15)]);
+      killed = killed || r.ok;
+    }
     return { ok: true, note: killed ? "Stop signal sent to Dwarf Fortress." : "No running Dwarf Fortress process was found." };
   }
 
@@ -393,6 +456,7 @@ async function serverAction(body) {
 
   if (action === "stop-cf") return stopCloudflaredConfirmed();
 
+
   return { ok: false, error: `unknown action: ${action}` };
 }
 
@@ -401,16 +465,16 @@ async function serverAction(body) {
 // is dead" only on stopped:true, never on internal bookkeeping. (~5s worst case, then honest
 // failure.) Also collapses the hosting flow so a stale friend URL can't linger on screen.
 async function stopCloudflaredConfirmed() {
-  const wasRunning = await processRunning("cloudflared.exe");
-  // Pid-targeted first: kill OUR wrapper tree (powershell + its cloudflared). The /IM sweep stays
-  // as the fallback for a link the panel presents without a pid (foreign/adopted cloudflared) --
-  // the same fair-game set this button has always killed.
-  if (TUNNEL.pid) await run("taskkill", ["/PID", String(TUNNEL.pid), "/T", "/F"]);
-  await run("taskkill", ["/IM", "cloudflared.exe", "/F"]);
-  let gone = !(await processRunning("cloudflared.exe"));
+  const wasRunning = await processRunning(CF_PROCESS);
+  // Pid-targeted first: kill OUR wrapper tree (wrapper + its cloudflared). The image-name sweep
+  // stays as the fallback for a link the panel presents without a pid (foreign/adopted
+  // cloudflared) -- the same fair-game set this button has always killed.
+  if (TUNNEL.pid) await killTunnelTree(TUNNEL.pid);
+  await killTunnelByImage();
+  let gone = !(await processRunning(CF_PROCESS));
   for (let i = 0; !gone && i < 15; i++) {
     await sleep(300);
-    gone = !(await processRunning("cloudflared.exe"));
+    gone = !(await processRunning(CF_PROCESS));
   }
   if (gone) {
     setHosting("stopped", "Tunnel stopped — the friend link is dead.", { friendUrl: null });
@@ -423,7 +487,7 @@ async function stopCloudflaredConfirmed() {
   }
   return { ok: false, stopped: false,
     error: "cloudflared is STILL RUNNING — the stop did not take. The friend link may still work. " +
-           "Try again, or end cloudflared.exe in Task Manager." };
+           `Try again, or end ${CF_PROCESS} yourself.` };
 }
 
 // ---------------------------------------------------------------- one-button hosting flow
@@ -449,22 +513,23 @@ async function hostingTick() {
   try {
     const version = await gameGet("/version", { withAuth: false, timeoutMs: 900 });
     if (!version.ok && (HOSTING.phase === "waiting-world" || HOSTING.phase === "starting-stream")) {
-      const dfhackRun = path.join(DF_ROOT, "hack", "dfhack-run.exe");
+      const dfhackRun = IS_WIN ? path.join(DF_ROOT, "hack", "dfhack-run.exe")
+                               : path.join(DF_ROOT, "dfhack-run");
       if (!existsSync(dfhackRun)) throw new Error(`DFHack control tool is missing: ${dfhackRun}. Run DWF Setup to repair DFHack.`);
-      const world = await run(dfhackRun, ["lua", "print(dfhack.world.isFortressMode())"], { timeout: 4000 });
-      if (!world.ok || !/\btrue\b/i.test(world.stdout)) {
+      const world = await runDfhackRun(dfhackRun, ["lua", "print(dfhack.world.isFortressMode())"], { timeout: 4000, cwd: DF_ROOT });
+      if (!world.ok || !/\btrue\b/i.test(stripAnsi(world.stdout))) {
         setHosting("waiting-world", "Now load your fortress — I’ll wait.");
         return scheduleHosting();
       }
       setHosting("starting-stream", "Fortress loaded. Starting the browser stream…");
-      const started = await run(dfhackRun, ["capture-stream-start", String(GAME_PORT), "127.0.0.1"], { timeout: 10000 });
+      const started = await runDfhackRun(dfhackRun, ["capture-stream-start", String(GAME_PORT), "127.0.0.1"], { timeout: 10000, cwd: DF_ROOT });
       if (!started.ok) {
-        const raw = (started.stderr || started.stdout || "").trim();
+        const raw = stripAnsi(started.stderr || started.stdout || "").trim();
         // "not a recognized command" = the plugin never loaded (wrong DFHack version or missing
         // DLL, issue #1). Diagnose and say what to actually do instead of echoing DFHack.
         const explained = explainStreamStartFailure({
           output: raw,
-          dllDeployed: existsSync(path.join(DF_ROOT, "hack", "plugins", "dwf.plug.dll")),
+          dllDeployed: existsSync(path.join(DF_ROOT, "hack", "plugins", PLUGIN_BINARY)),
           version: inspectDfhackVersion(DF_ROOT),
         });
         throw new Error(explained || raw ||
@@ -651,17 +716,16 @@ async function listen() {
 // with the Stop button: a confirmed stop clears TUNNEL.pid, so a later Ctrl+C just exits.
 let SHUTTING_DOWN = false;
 export async function stopTunnelOnExit() {
-  if (!IS_WIN) return true;
   if (TUNNEL.pid) {
-    await run("taskkill", ["/PID", String(TUNNEL.pid), "/T", "/F"], { timeout: 3000 });
+    await killTunnelTree(TUNNEL.pid);
   } else if (TUNNEL.startedByPanel || HOSTING.friendUrl) {
-    await run("taskkill", ["/IM", "cloudflared.exe", "/F"], { timeout: 3000 });
+    await killTunnelByImage();
   } else {
     return true;   // no tunnel of ours -- nothing to do
   }
   // Short capped confirm poll -- best effort on the exit path, never the Stop button's full 5s.
-  let gone = !(await processRunning("cloudflared.exe"));
-  for (let i = 0; !gone && i < 4; i++) { await sleep(250); gone = !(await processRunning("cloudflared.exe")); }
+  let gone = !(await processRunning(CF_PROCESS));
+  for (let i = 0; !gone && i < 4; i++) { await sleep(250); gone = !(await processRunning(CF_PROCESS)); }
   // Keep TUNNEL.pid until the kill is CONFIRMED so the synchronous 'exit' fallback can retry it.
   if (gone) { TUNNEL.pid = 0; TUNNEL.startedByPanel = false; }
   return gone;
@@ -673,11 +737,11 @@ function shutdown(signal) {
   hardStop.unref?.();
   (async () => {
     try {
-      if (IS_WIN && (TUNNEL.pid || TUNNEL.startedByPanel || HOSTING.friendUrl)) {
+      if (TUNNEL.pid || TUNNEL.startedByPanel || HOSTING.friendUrl) {
         console.log(`\n  ${signal}: stopping the tunnel so the friend link dies with the panel…`);
         const gone = await stopTunnelOnExit();
         console.log(gone ? "  Tunnel stopped — the friend link is dead."
-                         : "  cloudflared may still be running — check Task Manager for cloudflared.exe.");
+                         : `  cloudflared may still be running — check for a ${CF_PROCESS} process.`);
       }
     } catch { /* best effort -- exit anyway */ }
     process.exit(0);
@@ -689,9 +753,12 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]) {
 // Last-resort fallback: an exit no signal handler saw (process.exit elsewhere, fatal error) must
 // still not orphan a tunnel we spawned. 'exit' handlers must be synchronous; pid-only, best-effort.
 process.on("exit", () => {
-  if (IS_WIN && TUNNEL.pid) {
+  if (!TUNNEL.pid) return;
+  if (IS_WIN) {
     try { execFileSync("taskkill", ["/PID", String(TUNNEL.pid), "/T", "/F"], { stdio: "ignore", timeout: 3000 }); }
     catch { /* best effort */ }
+  } else {
+    try { process.kill(TUNNEL.pid, "SIGTERM"); } catch { /* best effort */ }
   }
 });
 
@@ -700,4 +767,7 @@ const uiUrl = `http://127.0.0.1:${port}/`;
 console.log(`\n  dwf host panel  ->  ${uiUrl}`);
 console.log(`  Dwarf Fortress:       ${DF_ROOT ? DF_ROOT + (DF_OK ? "" : "  (DFHack not detected)") : "NOT FOUND -- pass --df-root <path>"}`);
 console.log(`  (localhost only; Ctrl+C to stop)\n`);
-if (ARGS.open && IS_WIN) run("cmd", ["/c", "start", "", uiUrl]);
+if (ARGS.open) {
+  if (IS_WIN) run("cmd", ["/c", "start", "", uiUrl]);
+  else run("xdg-open", [uiUrl]);
+}

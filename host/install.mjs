@@ -31,6 +31,7 @@ import { fileURLToPath } from "node:url";
 import {
   resolveManifest, checkDfhack, autodetectDfRoot, copyTree,
   inspectDfhackVersion, makeReceipt, readReceipt, writeReceipt, tsStamp, receiptPath,
+  PLUGIN_BINARY, DF_EXE_NAME,
 } from "./hostlib.mjs";
 import { bakeSprites, spriteBakeState } from "./bake_sprites.mjs";
 
@@ -50,10 +51,17 @@ const DF_RUNNING_MSG =
 // setup.mjs shells out to powershell -- Windows-simple, absolute-tool, best-effort. On any failure
 // (non-Windows, tasklist missing) we return false: never block an install we could not prove is
 // unsafe. DWF_ASSUME_DF_RUNNING forces the answer in tests (1/true = running, 0/false = not).
-export function isDfRunning(exe = "Dwarf Fortress.exe") {
+export function isDfRunning(exe = DF_EXE_NAME) {
   const forced = process.env.DWF_ASSUME_DF_RUNNING;
   if (forced != null && forced !== "") return forced === "1" || forced.toLowerCase() === "true";
-  if (process.platform !== "win32") return false;
+  if (process.platform !== "win32") {
+    // pgrep -x matches the exact process name (dwarfort). Best-effort like tasklist below:
+    // exit 1 = no match, anything else unknowable -> never block an unprovable install.
+    try {
+      execFileSync("pgrep", ["-x", exe.slice(0, 15)], { timeout: 10000 });
+      return true;
+    } catch { return false; }
+  }
   try {
     const out = execFileSync("tasklist", ["/FI", `IMAGENAME eq ${exe}`, "/NH"],
       { windowsHide: true, timeout: 10000 }).toString();
@@ -102,7 +110,7 @@ Options:
 function checkRelease(releaseDir) {
   const problems = [];
   const need = [
-    ["dwf.plug.dll", "file"],
+    [PLUGIN_BINARY, "file"],
     ["dwf.lua", "file"],
     [path.join("gui", "dwf.lua"), "file"],
     ["web", "dir"],
@@ -126,7 +134,7 @@ function releaseVersions(releaseDir) {
   const v = {};
   const vf = path.join(releaseDir, "VERSION.txt");
   if (existsSync(vf)) v.release = readFileSync(vf, "utf8").trim();
-  const dll = path.join(releaseDir, "dwf.plug.dll");
+  const dll = path.join(releaseDir, PLUGIN_BINARY);
   if (existsSync(dll)) v.dllBytes = statSync(dll).size;
   return v;
 }
@@ -200,7 +208,7 @@ function main() {
   if (!df.ok) {
     push("\nCannot proceed:");
     for (const p of df.problems) push("  - " + p);
-    if (autodetected || !args.dfRoot) push("\nTip: pass your folder explicitly with  --df-root \"C:\\...\\Dwarf Fortress\"  (or set DWF_DF_ROOT)");
+    if (autodetected || !args.dfRoot) push(`\nTip: pass your folder explicitly with  --df-root "${process.platform === "win32" ? "C:\\...\\Dwarf Fortress" : "/path/to/steamapps/common/Dwarf Fortress"}"  (or set DWF_DF_ROOT)`);
     out(args.json, lines.join("\n"),
       { ok: false, stage: "verify-df", dfRoot, autodetected, problems: df.problems });
     process.exit(3);
