@@ -35,6 +35,7 @@ import {
   generatePassword, tunnelWaitVerdict, LINK_WAIT_TIMEOUT_MS, explainStreamStartFailure,
   tunnelWrapperCommand, JOB_LIMIT_KILL_ON_JOB_CLOSE,
   PASSWORD_FILE, HOST_FLAGS_FILE, SOUND_CONFIG_FILE, RECEIPT_FILE,
+  DF_EXE_NAME, DFHACK_LAUNCHER, PLUGIN_BINARY, IS_WIN,
 } from "../../host/hostlib.mjs";
 import {
   downloadVerified, extractZipWindows, fetchCloudflared, fetchDfhack,
@@ -51,9 +52,9 @@ const INSTALL = join(here, "..", "..", "host", "install.mjs");
 // the unmerged base (still dfcapture.*) and green after the sibling lanes land (dwf.*). The HARD
 // name-drift pin lives in pkg_install_roundtrip_test.mjs + release_zip_fixture_test.mjs. The web
 // root name (hack/dfcapture-web) is UNCHANGED this wave, so it is never parameterized.
-const HOST_ON_DWF = resolveManifest("D:\\DF", "R:\\rel")
-  .find((e) => e.role === "dll").src.endsWith("dwf.plug.dll");
-const DLL = HOST_ON_DWF ? "dwf.plug.dll" : "dfcapture.plug.dll";
+const HOST_ON_DWF = /dwf\.plug\.(dll|so)$/.test(resolveManifest("D:\\DF", "R:\\rel")
+  .find((e) => e.role === "dll").src);
+const DLL = HOST_ON_DWF ? PLUGIN_BINARY : "dfcapture.plug.dll";
 const LUA = HOST_ON_DWF ? "dwf.lua" : "dfcapture.lua";
 console.log(`# installer name contract: ${HOST_ON_DWF ? "dwf.* (merged)" : "dfcapture.* (unmerged base)"}  [dll=${DLL} lua=${LUA} web=dfcapture-web]`);
 
@@ -87,13 +88,13 @@ try {
       !absent.steps.df.ok && !absent.steps.dfhack.ok && !absent.steps.install.ok && /does not exist|Dwarf Fortress/i.test(absent.steps.df.error));
 
     const noHackRoot = tmp("wizard-no-dfhack");
-    writeFileSync(join(noHackRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(noHackRoot, DF_EXE_NAME), "MZ");
     const noHack = setupSnapshot({ dfRoot: noHackRoot });
     guard("DF without DFHack offers the missing-DFHack state",
       noHack.steps.df.ok && noHack.steps.dfhack.missing && !noHack.steps.dfhack.ok);
 
     const wrongRoot = tmp("wizard-wrong-dfhack");
-    writeFileSync(join(wrongRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(wrongRoot, DF_EXE_NAME), "MZ");
     mkdirSync(join(wrongRoot, "hack", "plugins"), { recursive: true });
     writeFileSync(join(wrongRoot, "dfhack-version.txt"), "DFHack 52.04-r3\n");
     const wrong = setupSnapshot({ dfRoot: wrongRoot });
@@ -105,7 +106,7 @@ try {
     // reporter's r2 was undetected (official zips carry no docs marker), compatible stayed null,
     // and setup waved a never-loadable plugin through.
     const unreadRoot = tmp("wizard-unreadable-dfhack");
-    writeFileSync(join(unreadRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(unreadRoot, DF_EXE_NAME), "MZ");
     mkdirSync(join(unreadRoot, "hack", "plugins"), { recursive: true });
     const unread = setupSnapshot({ dfRoot: unreadRoot });
     guard("UNDETECTED DFHack version blocks (unverified), it does not silently pass",
@@ -115,7 +116,7 @@ try {
     // Official 53.15 zips ship no docs pages; hack/news.rst ("DFHack <ver>" on line 1) is the
     // marker a stock manual install actually has.
     const newsRoot = tmp("wizard-news-rst");
-    writeFileSync(join(newsRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(newsRoot, DF_EXE_NAME), "MZ");
     mkdirSync(join(newsRoot, "hack", "plugins"), { recursive: true });
     writeFileSync(join(newsRoot, "hack", "news.rst"), `DFHack ${DFHACK_VERSION}\n===============\n`);
     guard("version inspector reads hack/news.rst from a stock official zip layout",
@@ -124,7 +125,7 @@ try {
 
     const steamDfRoot = join(tmp("wizard-steam"), "steamapps", "common", "Dwarf Fortress");
     mkdirSync(join(steamDfRoot, "hack", "plugins"), { recursive: true });
-    writeFileSync(join(steamDfRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(steamDfRoot, DF_EXE_NAME), "MZ");
     writeFileSync(join(steamDfRoot, ".dwf-dfhack-version"), DFHACK_VERSION + "\n");
     mkdirSync(join(dirname(steamDfRoot), "DFHack"), { recursive: true });
     const steam = setupSnapshot({ dfRoot: steamDfRoot });
@@ -133,7 +134,7 @@ try {
       detectSteamDfhack(steamDfRoot).markers.some((p) => p.endsWith(join("common", "DFHack"))));
 
     const healthyRoot = tmp("wizard-healthy");
-    writeFileSync(join(healthyRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(healthyRoot, DF_EXE_NAME), "MZ");
     mkdirSync(join(healthyRoot, "hack", "plugins"), { recursive: true });
     writeFileSync(join(healthyRoot, ".dwf-dfhack-version"), DFHACK_VERSION + "\n");
     const healthy = setupSnapshot({
@@ -145,7 +146,7 @@ try {
       Object.values(healthy.steps).every((item) => item.ok));
 
     const receiptRoot = tmp("wizard-prior-receipt");
-    writeFileSync(join(receiptRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(receiptRoot, DF_EXE_NAME), "MZ");
     mkdirSync(join(receiptRoot, "hack", "plugins"), { recursive: true });
     writeFileSync(join(receiptRoot, ".dwf-dfhack-version"), DFHACK_VERSION + "\n");
     const priorReceipt = makeReceipt({ dfRoot: receiptRoot, releaseDir: "fixture-release", entries: [] });
@@ -259,7 +260,7 @@ try {
     const cfRoot = tmp("fetch-cloudflared");
     const cf = await fetchCloudflared({ dwfRoot: cfRoot, manifest, download: goodDownload });
     check("cloudflared fetch installs the verified single executable in the DWF folder",
-      cf.ok && cf.destination === join(cfRoot, "cloudflared.exe") && readFileSync(cf.destination).equals(payload));
+      cf.ok && cf.destination === join(cfRoot, IS_WIN ? "cloudflared.exe" : "cloudflared") && readFileSync(cf.destination).equals(payload));
     let repeatedDownload = false;
     const cfAgain = await fetchCloudflared({ dwfRoot: cfRoot, manifest,
       download: async () => { repeatedDownload = true; } });
@@ -267,18 +268,18 @@ try {
       cfAgain.ok && cfAgain.alreadyInstalled && !repeatedDownload);
 
     const dfr = tmp("fetch-dfhack");
-    writeFileSync(join(dfr, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(dfr, DF_EXE_NAME), "MZ");
     const df = await fetchDfhack({ dfRoot: dfr, manifest, download: goodDownload,
       extract: async (_archive, stage) => {
         mkdirSync(join(stage, "hack", "plugins"), { recursive: true });
-        writeFileSync(join(stage, "dfhack.exe"), "fixture");
+        writeFileSync(join(stage, DFHACK_LAUNCHER), "fixture");
       } });
     check("DFHack fetch downloads, verifies, extracts, and records the pinned version",
       df.ok && existsSync(join(dfr, "hack", "plugins")) &&
       readFileSync(join(dfr, ".dwf-dfhack-version"), "utf8").trim() === DFHACK_VERSION);
 
     const dfOfflineRoot = tmp("fetch-dfhack-offline");
-    writeFileSync(join(dfOfflineRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(dfOfflineRoot, DF_EXE_NAME), "MZ");
     const dfOffline = await fetchDfhack({ dfRoot: dfOfflineRoot, manifest,
       download: async () => { throw new Error("GitHub is unreachable"); } });
     guard("DFHack offline dead-end gives its release page and exact extraction folder",
@@ -286,7 +287,7 @@ try {
       dfOffline.manual.destination === dfOfflineRoot && dfOffline.error.includes(dfOfflineRoot));
 
     const wrongRoot = tmp("fetch-wrong-version");
-    writeFileSync(join(wrongRoot, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(wrongRoot, DF_EXE_NAME), "MZ");
     mkdirSync(join(wrongRoot, "hack", "plugins"), { recursive: true });
     writeFileSync(join(wrongRoot, "dfhack-version.txt"), "DFHack 52.04-r3\n");
     let wrongDownloaded = false;
@@ -342,7 +343,7 @@ try {
   console.log("\n# checkDfhack");
   {
     const good = new Set([
-      "X:\\DF", "X:\\DF\\Dwarf Fortress.exe", "X:\\DF\\hack", "X:\\DF\\hack\\plugins",   // dfroot-gate: allow -- synthetic fixture drive; nothing here is ever opened
+      "X:\\DF", `X:\\DF\\${DF_EXE_NAME}`, "X:\\DF\\hack", "X:\\DF\\hack\\plugins",   // dfroot-gate: allow -- synthetic fixture drive; nothing here is ever opened
     ].map((s) => s.replace(/\//g, "\\")));
     // Normalize to backslashes: on a POSIX runner join() emits X:\DF/hack for these synthetic paths.
     const ex = (p) => good.has(String(p).replace(/\//g, "\\"));
@@ -358,8 +359,10 @@ try {
   console.log("\n# autodetectDfRoot");
   {
     const cands = steamDfCandidates(["F"]);
-    check("F: drive candidate list includes the real SteamLibrary path",
-      cands.some((c) => /F:\\SteamLibrary\\steamapps\\common\\Dwarf Fortress/.test(c)));   // dfroot-gate: allow -- asserts the resolver EMITS this candidate; it is output, not configuration
+    check(IS_WIN ? "F: drive candidate list includes the real SteamLibrary path"
+                 : "candidate list includes the ~/.local/share Steam path",
+      IS_WIN ? cands.some((c) => /F:\\SteamLibrary\\steamapps\\common\\Dwarf Fortress/.test(c))   // dfroot-gate: allow -- asserts the resolver EMITS this candidate; it is output, not configuration
+             : cands.some((c) => c.includes(".local/share/Steam/steamapps/common/Dwarf Fortress")));
     const target = cands[0];
     const present = new Set([target, target + "\\Dwarf Fortress.exe", target + "\\hack", target + "\\hack\\plugins"]);
     check("picks the first candidate that is a complete DFHack install",
@@ -478,7 +481,7 @@ try {
         dllDeployed: true, version: { detected: true, version: "53.15-r3", compatible: false } });
         return /53\.15-r3/.test(m) && m.includes(DFHACK_VERSION); })());
     check("stream-start failure with no deployed DLL says the mod is not installed",
-      /dwf\.plug\.dll.*not installed/i.test(explainStreamStartFailure({
+      new RegExp(PLUGIN_BINARY.replace(/\./g, "\\.") + ".*not installed", "i").test(explainStreamStartFailure({
         output: "capture-stream-start is not a recognized command", dllDeployed: false,
         version: { detected: false, version: null, compatible: null } })));
     check("stream-start failure with DLL present but unreadable version points at DFHack version + logs",
@@ -532,10 +535,12 @@ try {
     check("finding 6: DEFAULT_PASSWORD_POLICY is the ratified \"open\", applied only on a fresh install",
       /DEFAULT_PASSWORD_POLICY\s*=\s*"open"/.test(panelServer) &&
       /existsSync\(passwordFilePath\(DF_ROOT\)\)/.test(panelServer));
-    check("finding 4: stop path taskkills THEN polls processRunning before claiming stopped",
+    check("finding 4: stop path kills THEN polls processRunning before claiming stopped",
       (() => {
-        const kill = panelServer.indexOf('taskkill", ["/IM", "cloudflared.exe"');
-        const poll = panelServer.indexOf('processRunning("cloudflared.exe")', kill);
+        // Platform-neutral: the image-name kill helper runs, the process table is polled
+        // (CF_PROCESS), and only then may stopped:true be claimed.
+        const kill = panelServer.indexOf("await killTunnelByImage()");
+        const poll = panelServer.indexOf("processRunning(CF_PROCESS)", kill);
         const gate = panelServer.indexOf("stopped: true", kill);
         return kill > -1 && poll > kill && gate > poll;   // kill -> confirm-gone -> only then stopped:true
       })());
@@ -595,19 +600,34 @@ try {
     // (1) The wrapper builder itself: powershell, encoded script with KILL_ON_JOB_CLOSE + panel-pid
     //     watch, all variable data in env (no quoting surface).
     const wrap = tunnelWrapperCommand({ exe: "C:\\x y\\cloudflared.exe", args: ["tunnel", "--url", "http://localhost:8765"], panelPid: 4242 });
-    const wrapScript = Buffer.from(wrap.args[wrap.args.indexOf("-EncodedCommand") + 1], "base64").toString("utf16le");
-    check("job wrapper: powershell -EncodedCommand carrying the job-object script",
-      wrap.file === "powershell.exe" && wrap.args.includes("-EncodedCommand") && wrap.args.includes("-NonInteractive"));
-    check("job wrapper: script creates a KILL_ON_JOB_CLOSE job and assigns cloudflared to it",
-      wrapScript.includes("0x2000") && wrapScript.includes("AssignProcessToJobObject") &&
-      wrapScript.includes("CreateJobObject") && JOB_LIMIT_KILL_ON_JOB_CLOSE === 0x2000);
-    check("job wrapper: script watches the panel pid and exits when the panel dies (job handle closes -> kernel kills cloudflared)",
-      wrapScript.includes("DWF_PANEL_PID") && wrapScript.includes("HasExited") &&
-      /if \(-not \$cf\.HasExited\) \{ try \{ \$cf\.Kill\(\) \} catch \{\} \}/.test(wrapScript));
-    check("job wrapper: exe/args/pid ride in env vars, args pre-quoted (paths with spaces survive)",
-      wrap.env.DWF_TUNNEL_EXE === "C:\\x y\\cloudflared.exe" && wrap.env.DWF_PANEL_PID === "4242" &&
-      wrap.env.DWF_TUNNEL_ARGS === "tunnel --url http://localhost:8765" &&
-      tunnelWrapperCommand({ exe: "x", args: ['a b'], panelPid: 1 }).env.DWF_TUNNEL_ARGS === '"a b"');
+    if (IS_WIN) {
+      const wrapScript = Buffer.from(wrap.args[wrap.args.indexOf("-EncodedCommand") + 1], "base64").toString("utf16le");
+      check("job wrapper: powershell -EncodedCommand carrying the job-object script",
+        wrap.file === "powershell.exe" && wrap.args.includes("-EncodedCommand") && wrap.args.includes("-NonInteractive"));
+      check("job wrapper: script creates a KILL_ON_JOB_CLOSE job and assigns cloudflared to it",
+        wrapScript.includes("0x2000") && wrapScript.includes("AssignProcessToJobObject") &&
+        wrapScript.includes("CreateJobObject") && JOB_LIMIT_KILL_ON_JOB_CLOSE === 0x2000);
+      check("job wrapper: script watches the panel pid and exits when the panel dies (job handle closes -> kernel kills cloudflared)",
+        wrapScript.includes("DWF_PANEL_PID") && wrapScript.includes("HasExited") &&
+        /if \(-not \$cf\.HasExited\) \{ try \{ \$cf\.Kill\(\) \} catch \{\} \}/.test(wrapScript));
+      check("job wrapper: exe/args/pid ride in env vars, args pre-quoted (paths with spaces survive)",
+        wrap.env.DWF_TUNNEL_EXE === "C:\\x y\\cloudflared.exe" && wrap.env.DWF_PANEL_PID === "4242" &&
+        wrap.env.DWF_TUNNEL_ARGS === "tunnel --url http://localhost:8765" &&
+        tunnelWrapperCommand({ exe: "x", args: ['a b'], panelPid: 1 }).env.DWF_TUNNEL_ARGS === '"a b"');
+    } else {
+      // POSIX twin: a plain sh loop -- start cloudflared, poll the panel pid with kill -0, kill
+      // the tunnel when the panel dies; TERM/INT/HUP trap covers a killed wrapper.
+      const wrapScript = wrap.args[wrap.args.indexOf("-c") + 1];
+      check("sh wrapper: /bin/sh -c carrying the poll-loop script",
+        wrap.file === "/bin/sh" && wrap.args.includes("-c"));
+      check("sh wrapper: starts the tunnel exe from env and traps signals to kill it",
+        wrapScript.includes('"$DWF_TUNNEL_EXE"') && /trap 'kill "\$cf"/.test(wrapScript));
+      check("sh wrapper: watches the panel pid and kills cloudflared when the panel dies",
+        wrapScript.includes('kill -0 "$DWF_PANEL_PID"') && wrapScript.includes('kill "$cf"'));
+      check("sh wrapper: exe/pid ride in env vars, args ride as argv (paths with spaces survive)",
+        wrap.env.DWF_TUNNEL_EXE === "C:\\x y\\cloudflared.exe" && wrap.env.DWF_PANEL_PID === "4242" &&
+        wrap.args.slice(wrap.args.indexOf("-c") + 3).join(" ") === "tunnel --url http://localhost:8765");
+    }
     // (2) The panel's start-cf spawn goes THROUGH the wrapper and is NOT detached. A detached
     //     direct spawn -- the exact pre-fix shape -- must fail this pin.
     const jobSpawnPinned = (src) => {
@@ -671,7 +691,7 @@ try {
   {
     // Build a fake DF-root that looks like a DFHack install.
     const dfr = tmp("e2e-df");
-    writeFileSync(join(dfr, "Dwarf Fortress.exe"), "MZ");           // pretend exe
+    writeFileSync(join(dfr, DF_EXE_NAME), "MZ");           // pretend exe
     mkdirSync(join(dfr, "hack", "plugins"), { recursive: true });
     mkdirSync(join(dfr, "hack", "lua", "plugins"), { recursive: true });
     mkdirSync(join(dfr, "hack", "scripts"), { recursive: true });
@@ -758,7 +778,7 @@ try {
 
     // error path: DF root without DFHack -> exit 3, clear problem.
     const bad = tmp("e2e-nohack");
-    writeFileSync(join(bad, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(bad, DF_EXE_NAME), "MZ");
     let err;
     try { execFileSync(process.execPath, [INSTALL, "--df-root", bad, "--release", rel, "--json", "--yes"], { env: { ...process.env, DWF_BACKUP_ROOT: backupRoot }, stdio: "pipe" }); err = { ok: true }; }
     catch (e) { err = JSON.parse(e.stdout.toString()); }
@@ -776,7 +796,7 @@ try {
     // Runtime: DWF_ASSUME_DF_RUNNING=1 forces the pre-flight to trip. It must refuse with the
     // friendly message and NEVER reach the copy (fresh root -> dll must not be deployed).
     const runDf = tmp("e2e-df-running");
-    writeFileSync(join(runDf, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(runDf, DF_EXE_NAME), "MZ");
     mkdirSync(join(runDf, "hack", "plugins"), { recursive: true });
     writeFileSync(join(runDf, ".dwf-dfhack-version"), DFHACK_VERSION + "\n");
     let dfRun;
@@ -791,7 +811,7 @@ try {
     // Belt-and-braces: DF launched AFTER the pre-flight -> a copy hits a locked dest. Simulate with a
     // read-only deployed dll (EPERM on overwrite) and assert the SAME friendly message, not a stack.
     const lockDf = tmp("e2e-locked");
-    writeFileSync(join(lockDf, "Dwarf Fortress.exe"), "MZ");
+    writeFileSync(join(lockDf, DF_EXE_NAME), "MZ");
     mkdirSync(join(lockDf, "hack", "plugins"), { recursive: true });
     mkdirSync(join(lockDf, "hack", "lua", "plugins"), { recursive: true });
     mkdirSync(join(lockDf, "hack", "scripts"), { recursive: true });

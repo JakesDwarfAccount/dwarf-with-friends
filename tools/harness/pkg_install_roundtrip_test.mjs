@@ -73,11 +73,14 @@ function skipPM(name, why) {
 const TMP = mkdtempSync(path.join(os.tmpdir(), "dwf-roundtrip-"));
 function tmp(sub) { const p = path.join(TMP, sub); mkdirSync(p, { recursive: true }); return p; }
 const j = path.join;
+// Platform names from the shipped hostlib (the exact contract the installer deploys):
+// dwf.plug.dll on Windows, dwf.plug.so on Linux; the DF marker exe differs the same way.
+const { PLUGIN_BINARY, DF_EXE_NAME } = await import(pathToFileURL(j(REAL_HOST, "hostlib.mjs")).href);
 
 // -------------------------------------------------------------------- contract
 // Deploy destinations under <dfRoot> the merged installer MUST produce (relative).
 const EXPECT_DESTS = [
-  j("hack", "plugins", "dwf.plug.dll"),
+  j("hack", "plugins", PLUGIN_BINARY),
   j("hack", "lua", "plugins", "dwf.lua"),
   j("hack", "scripts", "dwf.lua"),
   j("hack", "scripts", "gui", "dwf.lua"),
@@ -99,7 +102,7 @@ const STALE_RELS = [
 // A fake DFHack install. withOld => pre-seed the OLD dfcapture.* artifacts that a prior
 // install left behind, plus .bak clutter and a dfcapture-web.old/ directory.
 function seedDfRoot(dir, { withOld }) {
-  writeFileSync(j(dir, "Dwarf Fortress.exe"), "MZ");
+  writeFileSync(j(dir, DF_EXE_NAME), "MZ");
   mkdirSync(j(dir, "hack", "plugins"), { recursive: true });
   mkdirSync(j(dir, "hack", "lua", "plugins"), { recursive: true });
   mkdirSync(j(dir, "hack", "scripts", "gui"), { recursive: true });
@@ -120,7 +123,7 @@ function seedDfRoot(dir, { withOld }) {
 
 // A well-formed dwf.* release (the fixed contract).
 function makeDwfRelease(dir) {
-  writeFileSync(j(dir, "dwf.plug.dll"), "NEW-DLL-v1");
+  writeFileSync(j(dir, PLUGIN_BINARY), "NEW-DLL-v1");
   writeFileSync(j(dir, "dwf.lua"), "-- dwf lua v1\n");
   mkdirSync(j(dir, "gui"), { recursive: true });
   writeFileSync(j(dir, "gui", "dwf.lua"), "-- dwf gui lua v1\n");
@@ -362,8 +365,8 @@ async function battery(hostDir, tag) {
       res.ok === false && res.stage === "df-running" &&
       /Dwarf Fortress is running/i.test(res.error) && !/copyfile|copyTree|EBUSY/i.test(res.error),
       JSON.stringify(res.stage || res.error));
-    guard(L("(f) the refusal fired BEFORE any copy -- dwf.plug.dll not deployed"),
-      !existsSync(j(df, "hack", "plugins", "dwf.plug.dll")));
+    guard(L(`(f) the refusal fired BEFORE any copy -- ${PLUGIN_BINARY} not deployed`),
+      !existsSync(j(df, "hack", "plugins", PLUGIN_BINARY)));
   }
 }
 
@@ -380,7 +383,7 @@ try {
   const realResolve = await hostResolveManifest(REAL_HOST);
   const realManifest = realResolve("D:\\DF", "R:\\rel");
   const realDll = realManifest.find((e) => e.role === "dll");
-  const realOnDwf = !!realDll && /dwf\.plug\.dll$/.test(realDll.src);
+  const realOnDwf = !!realDll && /dwf\.plug\.(dll|so)$/.test(realDll.src);
   console.log(`  real host/hostlib.mjs resolveManifest dll src basename: ${path.basename(realDll.src)}`);
   check("real host resolveManifest is importable and returns a dll entry", !!realDll);
 
