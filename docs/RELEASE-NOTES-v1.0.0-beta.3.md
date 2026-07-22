@@ -51,7 +51,7 @@ Beta 3 includes two pull requests from William Wilkins, also known as `catagris`
 
 The public repository also gains Windows native-build CI, platform-aware test coverage, and new
 documentation for the browser dependencies, Dwarf Fortress memory access rules, network protocol,
-security model, maintainers, and project lineage.
+maintainers, and project lineage.
 
 ## Downloads
 
