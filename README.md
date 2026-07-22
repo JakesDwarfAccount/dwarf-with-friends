@@ -7,11 +7,6 @@
 Unzip the package for your platform, run its setup launcher, and play. See the
 [Beta 3 release notes](docs/RELEASE-NOTES-v1.0.0-beta.3.md) for what changed.
 
-> **Stabilization period:** new panels, actions, and cosmetic parity work are temporarily frozen.
-> Until the stabilization roadmap is complete, changes are limited to supported-version fixes,
-> crashes/data loss, security and release correctness, tests, documentation, and work explicitly
-> listed in the [stabilization specification](docs/superpowers/specs/2026-07-18-dwf-stabilization-maintainability-spec.md).
-
 *(Those links are the ready-to-play release zips. The green "Code → Download ZIP" button is the source code — that's for developers, not for playing.)*
 
 Play one Dwarf Fortress fortress with your friends, at the same time, each from your own browser.
