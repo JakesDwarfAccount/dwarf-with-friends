@@ -7,11 +7,6 @@
 Unzip the package for your platform, run its setup launcher, and play. See the
 [Beta 3 release notes](docs/RELEASE-NOTES-v1.0.0-beta.3.md) for what changed.
 
-> **Stabilization period:** new panels, actions, and cosmetic parity work are temporarily frozen.
-> Until the stabilization roadmap is complete, changes are limited to supported-version fixes,
-> crashes/data loss, security and release correctness, tests, documentation, and work explicitly
-> listed in the [stabilization specification](docs/superpowers/specs/2026-07-18-dwf-stabilization-maintainability-spec.md).
-
 *(Those links are the ready-to-play release zips. The green "Code → Download ZIP" button is the source code — that's for developers, not for playing.)*
 
 Play one Dwarf Fortress fortress with your friends, at the same time, each from your own browser.
@@ -29,12 +24,6 @@ watch the box grow. It's the difference between watching someone play and *playi
 Dwarf With Friends is a [DFHack](https://github.com/DFHack/dfhack) plugin for Steam-era Dwarf
 Fortress (v0.53.15, DFHack 53.15-r2). It's a **beta**: the everyday 90%+ of fortress play is built
 and tested; the rare corners fall back to "ask the host" instead of pretending to work.
-
-The project grew directly from Gabriel Rios's
-[SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that
-project's copyright and AGPL license. [UPSTREAM.md](UPSTREAM.md) records what was inherited and what
-Dwarf With Friends subsequently added; [SECURITY.md](SECURITY.md) explains the trusted-friends
-threat model and why this is not intended as a public server.
 
 ![Two players building a fort together, each with their own labeled cursor](media/two-players.gif)
 
@@ -190,8 +179,11 @@ Dwarf With Friends is licensed under **AGPL-3.0-only**; see [LICENSE](LICENSE). 
 players over a network, the AGPL entitles anyone you host for to the source — which is this
 repository.
 
-It runs on **DFHack** (Zlib), grew out of
-**[SourceAirbender's multi-dwarf / dfcapture](https://github.com/SourceAirbender/multi-dwarf)**
-(AGPL-3.0-only), and continues the multiplayer approach of **DFPlex** (Zlib), which itself builds
-on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and third-party licence
-texts are in [NOTICE](NOTICE).
+The project grew directly from Gabriel Rios's
+[SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that
+project's copyright and AGPL license. [UPSTREAM.md](UPSTREAM.md) records what was inherited and what
+Dwarf With Friends subsequently added.
+
+It runs on **DFHack** (Zlib) and continues the multiplayer approach of **DFPlex** (Zlib), which
+itself builds on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and
+third-party licence texts are in [NOTICE](NOTICE).

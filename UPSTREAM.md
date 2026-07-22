@@ -16,10 +16,3 @@ art and audio, and extensive fixture/parity infrastructure.
 
 Those additions are substantial, but they do not erase ancestry. The project also continues ideas
 from DFPlex and webfort; their licenses and credits are reproduced in `NOTICE`.
-
-Public history should not be rewritten merely to manufacture a GitHub fork badge. If an older local
-checkout with intact ancestry is recovered, add it as an archival remote and update this document
-with the verified base commit without replacing published Dwarf With Friends history.
-
-Wording about Gabriel's preferred public credit and funding link remains subject to direct review
-with him; this factual record does not claim that conversation has happened.
