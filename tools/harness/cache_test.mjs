@@ -78,7 +78,8 @@ function expectedRecord(t) {
   let desig1 = 0, desig2 = 0;
   if (t.desig) {
     const digVal = DIG_NAMES.indexOf(t.desig.dig); const dv = digVal < 0 ? 0 : digVal;
-    desig1 = (dv & 0xF) | (((t.desig.smooth | 0) & 3) << 4) | (((t.desig.marker ? 1 : 0) & 1) << 6);
+    desig1 = (dv & 0xF) | (((t.desig.smooth | 0) & 3) << 4) |
+      (((t.desig.marker ? 1 : 0) & 1) << 6) | (((t.desig.automine ? 1 : 0) & 1) << 7);
     desig2 = ((t.desig.traffic | 0) & 3) | (((t.desig.track | 0) & 0xF) << 2);
   }
   let flags2 = 0, spatterAmt = 0;
@@ -251,7 +252,7 @@ console.log("TEST 5 (WA-7): windowView() matches the legacy serial-applied buffe
     };
     if (t.desig) {
       const active = t.desig.dig !== "No" || (t.desig.smooth | 0) > 0 || (t.desig.traffic | 0) !== 0 || (t.desig.track | 0) !== 0;
-      if (active) out.desig = { dig: t.desig.dig, smooth: t.desig.smooth | 0, traffic: t.desig.traffic | 0, track: t.desig.track | 0, marker: t.desig.marker ? 1 : 0 };
+      if (active) out.desig = { dig: t.desig.dig, smooth: t.desig.smooth | 0, traffic: t.desig.traffic | 0, track: t.desig.track | 0, marker: t.desig.marker ? 1 : 0, automine: t.desig.automine ? 1 : 0 };
     }
     if (t.item) out.item = t.item;
     if (t.plant) out.plant = t.plant;

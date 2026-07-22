@@ -26,14 +26,9 @@
 #include <cstdint>
 #include <string>
 
-namespace dwf {
+namespace df { struct unit; }
 
-// PORTRAITS-ROOT (B128): native view-sheet portrait generation is a shared, contended
-// resource -- it must be SKIPPED (not failed) while the host interface has a real view
-// sheet open or another generation is in flight. These exact literals are the busy
-// signals; the sweep re-queues busy units without burning a retry attempt.
-extern const char* const kPortraitBusyHostSheetOpen;
-extern const char* const kPortraitBusyGeneratorRunning;
+namespace dwf {
 
 // Run the current native viewscreen's logic and render passes against the portrait module's
 // isolated SDL target. Must be called from a runOnRenderThread callback while the caller owns
@@ -43,11 +38,32 @@ bool native_viewscreen_logic_render_isolated(std::string* err = nullptr);
 
 bool unit_portrait_on_render_thread(int32_t unit_id,
                                     bool allow_icon_fallbacks,
-                                    bool allow_view_sheet_generation,
+                                    bool generation_requested,
                                     CapturedFrame& frame,
                                     int32_t& texpos,
                                     std::string& source,
-                                    std::string* err = nullptr,
-                                    bool* busy_skip = nullptr);
+                                    std::string* err = nullptr);
+
+// Native portrait generation by calling DF's own one-argument lazy generator directly
+// (the routine every native portrait display site calls when portrait_texpos is 0). The
+// call is pinned to the exact game binary by prologue byte signatures and wrapped in SEH;
+// any fault permanently disables generation for the session.
+enum class NativePortraitOutcome {
+    Generated,      // DF composed a fresh portrait; unit->portrait_texpos is now set
+    AlreadyExists,  // unit->portrait_texpos was already set; nothing was called
+    NoPortraitArt,  // generator ran cleanly but DF has no portrait art for this creature
+    Blocked,        // temporarily unsafe (save in progress, busy, unit missing); retry later
+    Unavailable,    // generator not resolved (unsupported binary); permanent this session
+    Faulted,        // a native fault occurred; generation is now latched off this session
+};
+
+// True when the pinned generator resolved against the running binary. `why` explains a false.
+bool unit_portrait_native_generator_available(std::string* why = nullptr);
+
+// True once any native generation attempt faulted (generation is latched off).
+bool unit_portrait_native_generator_faulted();
+
+// MUST be called from the render thread. Performs the gate-checked, SEH-wrapped native call.
+NativePortraitOutcome unit_portrait_generate_native_on_render(df::unit* unit, std::string* err = nullptr);
 
 } // namespace dwf

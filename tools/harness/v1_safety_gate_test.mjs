@@ -262,10 +262,9 @@ console.log("\n# 5. wiring: guards surface, host toggle, no live-looking buttons
   check("all liberated flags are fully removed from the guard registry",
     !/zone_remove/.test(wgCode) && !/hauling_route_delete/.test(wgCode) &&
     !/squad_disband/.test(wgCode) && !/squad_pos0/.test(wgCode) && !/kSquadPos0Flag/.test(wgCode));
-  // The console toggle is HOST-ONLY (tunnel-aware -- the same request_is_local_host recipe the
-  // sound/music host gates use). A remote friend must NOT be able to enable the console.
-  check("/console-config exists and is host-gated (request_is_local_host)",
-    /\/console-config/.test(wgCode) && /request_is_local_host/.test(wgCode));
+  // The console toggle is HOST-ONLY through the shared HTTP/WS origin classifier.
+  check("/console-config exists and is host-gated (shared request origin)",
+    /\/console-config/.test(wgCode) && /request_has_host_authority/.test(wgCode));
   // The squad_pos0 exception route is GONE: with the probe guard lifted there is no writable-flag
   // HTTP route but /console-config. No generic arbitrary-flag mutation route may exist.
   check("the squad_pos0 /write-guard-config toggle route is removed",

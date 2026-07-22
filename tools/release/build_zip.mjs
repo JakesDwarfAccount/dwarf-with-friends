@@ -7,6 +7,7 @@
 // This script never downloads.
 
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import {
   closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeSync,
 } from "node:fs";
@@ -62,6 +63,12 @@ function normalizedVersion(value, label) {
   return version;
 }
 function sha256(data) { return createHash("sha256").update(data).digest("hex"); }
+function sourceCommit(explicit) {
+  if (explicit) return String(explicit);
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  try { return execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim(); }
+  catch { fail("source commit is unavailable; pass --source-commit"); }
+}
 
 function walkFiles(root, relative = "") {
   const result = [];
@@ -229,8 +236,14 @@ export function buildReleaseZip(options) {
   const hostDir = path.resolve(options.hostDir || path.join(ROOT, "host"));
   const releaseDir = path.resolve(options.releaseDir || path.join(ROOT, "release"));
   const nodeExe = path.resolve(options.nodeExe || "");
+  const nodeLicense = path.resolve(options.nodeLicense || path.join(path.dirname(nodeExe), "LICENSE"));
   const outputDir = path.resolve(options.outputDir || ROOT);
   if (!existsSync(nodeExe) || !statSync(nodeExe).isFile()) fail(`Node binary not found: ${nodeExe}`);
+  if (!existsSync(nodeLicense) || !statSync(nodeLicense).isFile()) {
+    fail(`Node license not found: ${nodeLicense} (keep LICENSE beside node.exe or pass --node-license)`);
+  }
+  const nodeLicenseBytes = readFileSync(nodeLicense);
+  if (nodeLicenseBytes.length === 0) fail(`Node license is empty: ${nodeLicense}`);
   if (!validSha(options.nodeSha256)) fail("--node-sha256 must be a baked 64-digit SHA-256");
   const actualNodeSha = sha256(readFileSync(nodeExe));
   if (actualNodeSha !== options.nodeSha256.toLowerCase()) fail(`Node SHA-256 mismatch: expected ${options.nodeSha256}, got ${actualNodeSha}`);
@@ -256,6 +269,9 @@ export function buildReleaseZip(options) {
   entries.set(`${ZIP_ROOT}/host/download-manifest.json`, Buffer.from(manifestText));
   entries.set(`${ZIP_ROOT}/release/VERSION.txt`, Buffer.from(`v${version}\n`));
   entries.set(`${ZIP_ROOT}/${plat.nodeEntry}`, readFileSync(nodeExe));
+  entries.set(`${ZIP_ROOT}/NODE-LICENSE.txt`, nodeLicenseBytes);
+  entries.set(`${ZIP_ROOT}/LICENSE`, readFileSync(path.join(ROOT, "LICENSE")));
+  entries.set(`${ZIP_ROOT}/NOTICE`, readFileSync(path.join(ROOT, "NOTICE")));
   const executables = new Set([`${ZIP_ROOT}/${plat.nodeEntry}`]);
   for (const [name, script] of plat.launchers) {
     entries.set(`${ZIP_ROOT}/${name}`, launcher(script, platform));
@@ -276,18 +292,42 @@ export function buildReleaseZip(options) {
     entries.set(`${ZIP_ROOT}/${base}`, Buffer.from(flattenDocLinks(readFileSync(path.join(ROOT, rel), "utf8")), "utf8"));
   }
 
+  // Immutable inventory of the candidate payload. The manifest deliberately excludes itself (a
+  // file cannot contain its own hash); the independently returned packageSha256 closes the outer
+  // zip. Install/release checks can therefore prove every DLL, Lua, web, host, legal, and Node byte.
+  const releaseManifest = {
+    schemaVersion: 1,
+    sourceCommit: sourceCommit(options.sourceCommit),
+    releaseVersion: version,
+    platform,
+    dfhackVersion: manifest.dfhack.version,
+    node: { version: nodeVersion, sha256: actualNodeSha },
+    manifestSelfExcluded: true,
+    files: [...entries].sort(([a], [b]) => a.localeCompare(b)).map(([name, bytes]) => ({
+      path: name.slice(`${ZIP_ROOT}/`.length), bytes: bytes.length, sha256: sha256(bytes),
+    })),
+  };
+  entries.set(`${ZIP_ROOT}/RELEASE-MANIFEST.json`,
+              Buffer.from(`${JSON.stringify(releaseManifest, null, 2)}\n`, "utf8"));
+
   const output = path.join(outputDir, `DwarfWithFriends-v${version}${plat.suffix}.zip`);
   writeZip(output, entries, executables);
-  return { output, version, nodeVersion, nodeSha256: actualNodeSha, platform, files: [...entries.keys()].sort() };
+  return { output, version, nodeVersion, nodeSha256: actualNodeSha,
+           platform,
+           packageSha256: sha256(readFileSync(output)), releaseManifest,
+           files: [...entries.keys()].sort() };
 }
 
 function parseArgs(argv) {
   const out = {};
   const names = new Map([
     ["--version", "version"], ["--node-version", "nodeVersion"], ["--node-exe", "nodeExe"],
+    ["--node-license", "nodeLicense"],
     ["--node-sha256", "nodeSha256"], ["--dfhack-sha256", "dfhackSha256"],
     ["--cloudflared-sha256", "cloudflaredSha256"], ["--host", "hostDir"],
-    ["--release", "releaseDir"], ["--output-dir", "outputDir"], ["--platform", "platform"],
+    ["--release", "releaseDir"], ["--output-dir", "outputDir"],
+    ["--source-commit", "sourceCommit"],
+    ["--platform", "platform"],
   ]);
   for (let i = 0; i < argv.length; i++) {
     const key = names.get(argv[i]);
@@ -304,6 +344,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const result = buildReleaseZip(parseArgs(process.argv.slice(2)));
     console.log(`built ${result.output}`);
     console.log(`Node v${result.nodeVersion} SHA-256 ${result.nodeSha256}`);
+    console.log(`Package SHA-256 ${result.packageSha256}`);
   } catch (error) {
     console.error(`build_zip: ${error.message}`);
     process.exitCode = 1;

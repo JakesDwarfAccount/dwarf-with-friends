@@ -142,10 +142,7 @@ bool write_allowed_flag(const char* flag, bool on) {
 // loopback-ish Host header. cloudflared terminates on the host and dials 127.0.0.1, so a bare
 // loopback test would wave every TUNNELED remote friend through as "the host".
 bool request_is_host_tab(const httplib::Request& req) {
-    const bool forwarded = req.has_header("X-Forwarded-For") || req.has_header("CF-Connecting-IP") ||
-                           req.has_header("Forwarded") || req.has_header("X-Real-IP");
-    return sound::request_is_local_host(peer_ip_is_loopback(req.remote_addr), forwarded,
-                                        req.get_header_value("Host"));
+    return request_has_host_authority(req);
 }
 
 bool hostwrite_enabled(const std::string& flag) {

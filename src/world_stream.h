@@ -52,6 +52,11 @@ namespace dwf {
 void world_stream_tick(std::recursive_mutex& capture_mu,
                        const std::function<std::string(const std::string&)>& presence_fn);
 
+// DFHack lifecycle handoff. Closing the gate on SC_WORLD_UNLOADED prevents the push worker from
+// taking capture/CoreSuspender locks while DF is tearing the world down. Each edge also requests
+// a push-thread-owned cache reset; SC_WORLD_LOADED reopens the gate for the new world.
+void world_stream_set_world_loaded(bool loaded);
+
 // hello_ack (§0.5) map info: current map size (tiles w/h, z levels) + the live world_seq.
 // Reads Maps under `capture_mu` + CoreSuspender (size cached after first read). Registered
 // with set_v1_map_info() so the transport can fill hello_ack off the sim thread.

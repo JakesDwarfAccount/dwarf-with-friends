@@ -236,10 +236,12 @@ bool depot_accessible_by_wagons(df::building_tradedepotst* depot) {
     DFHack::Maps::getTileSize(count_x, count_y, count_z);
     if (!count_x || !count_y)
         return false;
+    const int32_t edge_x = static_cast<int32_t>(count_x - 1);
+    const int32_t edge_y = static_cast<int32_t>(count_y - 1);
     auto& edge = df::global::plotinfo->map_edge;
     for (size_t i = 0; i < edge.surface_x.size(); ++i) {
         df::coord pos(edge.surface_x[i], edge.surface_y[i], edge.surface_z[i]);
-        if ((pos.x == 0 || pos.y == 0 || pos.x == count_x - 1 || pos.y == count_y - 1) &&
+        if ((pos.x == 0 || pos.y == 0 || pos.x == edge_x || pos.y == edge_y) &&
             DFHack::Maps::getWalkableGroup(pos) == walk_group)
             entry_tiles.emplace(pos);
     }

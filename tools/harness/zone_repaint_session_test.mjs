@@ -40,6 +40,11 @@ assert.match(disarm, /zoneMode === "repaint"[\s\S]*zoneMode = "menu"/,
 assert.doesNotMatch(disarm, /currentZones\s*=\s*\[\]|zoneOverlayEnabled\s*=\s*false/,
   "Cancel/Escape cannot make the zone disappear");
 
+const newPreset = body(controls, "function setZonePreset(key)");
+assert.match(newPreset,
+  /if \(key\) \{[\s\S]*closeSelection\(\)[\s\S]*zoneMode === "repaint"[\s\S]*disarmZoneRepaint\(\)[\s\S]*zonePreset = key/,
+  "choosing a new zone closes the old detail and explicitly leaves stale repaint state first");
+
 const toolsStart = controls.indexOf('<div class="zone-repaint-tools"');
 const toolsEnd = controls.indexOf('<div class="stock-palette-status"', toolsStart);
 const toolsMarkup = controls.slice(toolsStart, toolsEnd);

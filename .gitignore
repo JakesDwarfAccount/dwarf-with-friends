@@ -75,6 +75,11 @@ HANDOFF-*.md
 /dist/
 tools/demo/takes/
 
+# Downloaded/vendor executables and generated release receipts are local artifacts.
+/host/cloudflared.exe
+/launch-manifest.json
+/docs/stabilization/build-receipt-current.json
+
 # headless-Chrome scratch dirs from the screen-truth rig
 .screen-truth-chrome-*/
 /release/

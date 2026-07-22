@@ -29,11 +29,35 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <atomic>
+#include <chrono>
+#include <cctype>
+#include <filesystem>
 #include <sstream>
 #include <string>
 #include <vector>
 
 namespace dwf {
+
+namespace {
+std::atomic<bool> g_tiledump_active{false};
+
+bool safe_dump_name(const std::string& name) {
+    if (name.empty() || name.size() > 64) return false;
+    for (unsigned char ch : name)
+        if (!(std::isalnum(ch) || ch == '-' || ch == '_')) return false;
+    return true;
+}
+
+uintmax_t directory_bytes(const std::filesystem::path& root) {
+    uintmax_t total = 0;
+    std::error_code ec;
+    for (std::filesystem::recursive_directory_iterator it(root, ec), end; !ec && it != end;
+         it.increment(ec))
+        if (it->is_regular_file(ec)) total += it->file_size(ec);
+    return ec ? UINTMAX_MAX : total;
+}
+} // namespace
 
 // ---------------------------------------------------------------------------------------------
 // HTTP routes, extracted from http_server.cpp's register_routes():
@@ -119,22 +143,56 @@ void register_oracle_routes(httplib::Server& server) {
             opt.y = std::atoi(req.get_param_value("y").c_str());
             opt.z = std::atoi(req.get_param_value("z").c_str());
         }
-        opt.with_atlas = req.get_param_value("atlas") == "1";
+        // The full atlas is roughly 129k files / 500 MiB and remains a maintainer command, not an
+        // HTTP operation. A local browser dump is deliberately one viewport only.
+        if (req.get_param_value("atlas") == "1") {
+            res.status = 400;
+            res.set_content("{\"ok\":false,\"err\":\"atlas export is not available over HTTP\"}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+        opt.with_atlas = false;
         opt.with_ground_truth = req.get_param_value("gt") != "0";
-        std::string dir = req.has_param("dir") ? req.get_param_value("dir")
-                                               : std::string("dwf_tiledump");
+        const std::string name = req.has_param("dir") ? req.get_param_value("dir") : "latest";
         res.set_header("Cache-Control", "no-store");
-        if (dir.empty() || dir.find("..") != std::string::npos) {
+        if (!safe_dump_name(name)) {
             res.status = 400;
             res.set_content("{\"ok\":false,\"err\":\"bad dir\"}\n", "application/json");
             return;
         }
+        bool expected = false;
+        if (!g_tiledump_active.compare_exchange_strong(expected, true)) {
+            res.status = 409;
+            res.set_content("{\"ok\":false,\"err\":\"a tiledump is already running\"}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+        struct ActiveGuard { ~ActiveGuard() { g_tiledump_active.store(false); } } active_guard;
+        const std::filesystem::path root =
+            std::filesystem::path("dfhack-config") / "dwf-diagnostics" / "tiledumps";
+        const std::filesystem::path output = root / name;
+        std::error_code cleanup_error;
+        std::filesystem::remove_all(output, cleanup_error);
+        const std::string dir = output.generic_string();
         std::string err;
+        const auto started = std::chrono::steady_clock::now();
         bool ok = dump_tile_frame_ex(dir, opt, &err);
+        const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - started);
+        constexpr uintmax_t kMaxDumpBytes = 64u * 1024u * 1024u;
+        if (ok && directory_bytes(output) > kMaxDumpBytes) {
+            ok = false;
+            err = "dump exceeded 64 MiB output cap";
+        }
+        if (ok && elapsed > std::chrono::seconds(30)) {
+            ok = false;
+            err = "dump exceeded 30 second wall-time cap";
+        }
+        if (!ok) std::filesystem::remove_all(output, cleanup_error);
         std::ostringstream body;
         body << "{\"ok\":" << (ok ? "true" : "false");
-        if (!ok) body << ",\"err\":\"" << err << "\"";
-        body << ",\"dir\":\"" << dir << "\"}\n";
+        if (!ok) body << ",\"err\":" << json_string(err);
+        body << ",\"dir\":" << json_string(dir) << "}\n";
         res.status = ok ? 200 : 503;
         res.set_content(body.str(), "application/json; charset=utf-8");
     });

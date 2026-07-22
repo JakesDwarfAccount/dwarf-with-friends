@@ -572,8 +572,8 @@ bool apply_tile_designations_at(RenderDesignationRequest& req, MapExtras::MapCac
 // Old-name wrapper: single-z callers (none currently outside apply_designation, but kept so any
 // future/external call site compiles unchanged) get the pre-multi-z behavior of designating
 // exactly req.dig at wz.
-bool apply_tile_designations(RenderDesignationRequest& req, MapExtras::MapCache& map,
-                             int tx1, int ty1, int tx2, int ty2, int wz) {
+[[maybe_unused]] bool apply_tile_designations(RenderDesignationRequest& req, MapExtras::MapCache& map,
+                                              int tx1, int ty1, int tx2, int ty2, int wz) {
     return apply_tile_designations_at(req, map, tx1, ty1, tx2, ty2, wz, req.dig);
 }
 

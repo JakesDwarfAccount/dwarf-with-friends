@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "output": "dwf.lua",
+  "parts": [
+    "lua/parts/00-core.lua",
+    "lua/parts/10-placement-and-management.lua",
+    "lua/parts/20-burial.lua",
+    "lua/parts/30-workshops-and-orders.lua",
+    "lua/parts/40-console.lua",
+    "lua/parts/50-hostwrites.lua"
+  ]
+}

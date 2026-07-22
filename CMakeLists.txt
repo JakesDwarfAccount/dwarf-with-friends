@@ -73,6 +73,7 @@ dfhack_plugin(dfcapture_public
     src/interaction.cpp
     src/image_encoder.cpp
     src/json_util.cpp
+    src/json_mini.cpp
     src/kitchen_panel.cpp
     src/labor.cpp
     src/lever_link.cpp
@@ -86,6 +87,8 @@ dfhack_plugin(dfcapture_public
     src/pause_arbiter.cpp
     src/placement.cpp
     src/portrait_sweep.cpp
+    src/request_origin.cpp
+    src/save_barrier.cpp
     src/sdl_capture.cpp
     src/session_routes.cpp
     src/sound_route.cpp

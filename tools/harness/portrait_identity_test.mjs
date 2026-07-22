@@ -48,10 +48,16 @@ const HUD_RULES = [
     /portraitMissingAttr\("unresolved"\)[\s\S]{0,80}?portrait-glyph|portraitMissingAttr\("unresolved"\)/.test(s)],
 
   ["blank-decode glyph is flagged", (s) =>
-    /naturalWidth[\s\S]{0,400}?data-df-identity-missing["'\s,]+.{0,20}portrait:blank-decode/.test(s)],
+    /naturalWidth[\s\S]{0,700}?data-df-identity-missing[\s\S]{0,100}?portrait:blank-decode/.test(s)],
+
+  ["32px pseudo-portrait is rejected and flagged", (s) =>
+    /falseNativeSprite[\s\S]{0,500}?portrait:not-native/.test(s)],
 
   ["no-source give-up is flagged", (s) =>
     /if \(!base\)[\s\S]{0,200}?portrait:no-source/.test(s)],
+
+  ["retry exhaustion is flagged", (s) =>
+    /next > PORTRAIT_RETRY_LIMIT[\s\S]{0,300}?portrait:retry-exhausted/.test(s)],
 
   ["authored-portrait failure is flagged", (s) =>
     /dfcAuthoredPortraitError[\s\S]{0,600}?portrait:authored-missing/.test(s)],
@@ -201,7 +207,7 @@ if (process.argv.includes("--selftest")) {
     .replace(/ ?data-df-identity-missing="portrait:[a-z-]+"/g, "")
     .replace(/portraitMissingAttr\("[a-z-]+"\)/g, '""')
     .replace(/\.removeAttribute\("data-df-identity-missing"\);/g, "")
-    .replace(/\.setAttribute\("data-df-identity-missing",\s*"portrait:[a-z-]+"\);/g, "");
+    .replace(/\.setAttribute\("data-df-identity-missing",[\s\S]*?\);/g, "");
   const brokenZone = zone.replace(/ ?data-df-identity-missing="portrait:[a-z-]+"/g, "");
 
   const survivors = [];

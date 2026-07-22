@@ -30,15 +30,19 @@
 #include "diagnostics.h"
 #include "http_server.h"
 #include "image_encoder.h"
+#include "json_mini.h"
+#include "lua_bridge.h"
 #include "overlay_control.h"
 #include "pause_arbiter.h"
 #include "portrait_sweep.h"
+#include "save_barrier.h"
 #include "sdl_capture.h"
 #include "tile_dump.h"
 #include "tile_map_dump.h"
 #include "unit_sprites.h"
 #include "web_assets.h"
 #include "wire_v1.h"
+#include "world_stream.h"
 
 #include "df/global_objects.h"
 
@@ -360,11 +364,29 @@ command_result cmd_portrait_sweep(color_ostream& out, std::vector<std::string>& 
         out.print("capture-portrait-sweep: rearmed; next stream tick re-offers all units without portraits.\n");
         return CR_OK;
     }
+    if (!args.empty() && (args[0] == "on" || args[0] == "off")) {
+        dwf::portrait_sweep_set_enabled(args[0] == "on");
+        // NOTE: this DFHack's color_ostream::print is fmt-based ("{}"), not printf ("%s").
+        out.print("capture-portrait-sweep: background generation {}.\n", args[0]);
+        return CR_OK;
+    }
+    if (args.size() >= 2 && args[0] == "limit") {
+        int limit = -1;
+        try { limit = std::stoi(args[1]); } catch (...) { limit = -1; }
+        if (limit < 0) {
+            out.printerr("capture-portrait-sweep limit N: N must be a non-negative integer (0 = unlimited)\n");
+            return CR_WRONG_USAGE;
+        }
+        dwf::portrait_sweep_set_limit(limit);
+        out.print("capture-portrait-sweep: session attempt limit set to {}.\n",
+                  limit > 0 ? args[1] : std::string("unlimited"));
+        return CR_OK;
+    }
     if (!args.empty() && args[0] != "status") {
-        out.printerr("usage: capture-portrait-sweep [status|rearm]\n");
+        out.printerr("usage: capture-portrait-sweep [status|on|off|limit N|rearm]\n");
         return CR_WRONG_USAGE;
     }
-    out.print("%s\n", dwf::portrait_sweep_status().c_str());
+    out.print("{}\n", dwf::portrait_sweep_status());
     return CR_OK;
 }
 
@@ -501,6 +523,10 @@ command_result cmd_status(color_ostream& out, std::vector<std::string>&) {
 } // namespace
 
 DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginCommand>& commands) {
+    if (!dwf::json_mini::selftest()) {
+        out.printerr("dwf: internal JSON parser self-test failed; plugin not loaded\n");
+        return CR_FAILURE;
+    }
     commands.push_back(PluginCommand(
         "capture",
         "Path-2 test: render the current view offscreen and save dwf_test.bmp",
@@ -539,7 +565,7 @@ DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginC
         cmd_bake_sweep));
     commands.push_back(PluginCommand(
         "capture-portrait-sweep",
-        "B128: paced native unit-portrait generation for every streamed unit (auto-armed at world load; new arrivals join automatically); usage: capture-portrait-sweep [status|rearm]",
+        "B128: paced native unit-portrait generation for every streamed unit (auto-armed at world load; new arrivals join automatically); usage: capture-portrait-sweep [status|on|off|limit N|rearm]",
         cmd_portrait_sweep));
     commands.push_back(PluginCommand(
         "capture-unit-census",
@@ -573,12 +599,14 @@ DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginC
         "requires a loaded save",
         cmd_itemdef_dump));
 
+    dwf::world_stream_set_world_loaded(Core::getInstance().isWorldLoaded());
     out.print("dwf: loaded. Start browser streaming after a fort is loaded with: capture-stream-start\n");
     return CR_OK;
 }
 
 DFhackCExport command_result plugin_shutdown(color_ostream&) {
 #if defined(_WIN32) || defined(__linux__)
+    dwf::portrait_sweep_abort_active();
     dwf::diagnostics_log("plugin shutdown");
     dwf::stop_server();
     dwf::restore_overlay_after_stream();
@@ -593,5 +621,47 @@ DFhackCExport command_result plugin_shutdown(color_ostream&) {
     dwf::diagnostics_log("SHUTDOWN-CLEAN dwf unloaded (DF exiting or plugin "
                                "unloaded) -- a log that does NOT end here ended in a crash/kill");
 #endif
+    return CR_OK;
+}
+
+DFhackCExport command_result plugin_onstatechange(color_ostream&, state_change_event event) {
+    if (event == SC_WORLD_UNLOADED) {
+        // Close the stream gate first: reset/save cleanup must never reopen a window where the
+        // push worker can enter CoreSuspender while DF is dismantling world state.
+        dwf::world_stream_set_world_loaded(false);
+        dwf::portrait_sweep_abort_active();
+    }
+    if (event == SC_WORLD_LOADED || event == SC_WORLD_UNLOADED)
+        dwf::save_barrier_reset();
+    if (event == SC_WORLD_LOADED) {
+        // Old saves can carry stockpiles whose enabled categories have under-sized material
+        // lists (pre-hardening piles, including friends' saves); DF dereferences those lists
+        // blind, so heal all three settings holders before play resumes. Runs on the core
+        // thread, after the save barrier reset above so it cannot be skipped as mid-save.
+        int holders = 0, categories = 0;
+        std::string repair_err;
+        if (dwf::repair_stockpile_settings_via_lua(holders, categories, &repair_err)) {
+            dwf::diagnostics_log("stockpile-repair-on-load: healed " +
+                std::to_string(holders) + " holder(s), " +
+                std::to_string(categories) + " category list(s)");
+        } else {
+            dwf::diagnostics_log("stockpile-repair-on-load FAILED: " + repair_err);
+        }
+        dwf::world_stream_set_world_loaded(true);
+    }
+    return CR_OK;
+}
+
+DFhackCExport command_result plugin_save_site_data(color_ostream&) {
+    // DFHack calls this on the rising edge of both manual and automatic saves, before DF starts
+    // serializing world memory. It is the earliest authoritative lifecycle signal available.
+    dwf::portrait_sweep_abort_active();
+    dwf::save_barrier_begin();
+    return CR_OK;
+}
+
+DFhackCExport command_result plugin_onupdate(color_ostream&) {
+    dwf::save_barrier_update();
+    dwf::portrait_sweep_tick();
     return CR_OK;
 }

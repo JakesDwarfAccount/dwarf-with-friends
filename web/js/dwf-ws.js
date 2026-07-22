@@ -398,6 +398,10 @@
       try { if (window.DwfChat) window.DwfChat.onChat(msg); } catch (_) {}
       return;
     }
+    if (msg.type === "chat_rejected") {
+      try { if (window.DwfChat && typeof DwfChat.onRejected === "function") DwfChat.onRejected(msg); } catch (_) {}
+      return;
+    }
     // WT14 fortress vote: {"type":"vote",seq,active,lastResult,detection} state pushes (vote
     // open / cast / close + late-join sync). Routed to the self-contained dwf-vote.js
     // consumer; inert if that module isn't loaded. An old server never emits this type, so the

@@ -638,9 +638,12 @@ static int emit_buildings(std::ostringstream& js, df::world* world,
                         int rr = (int)(col->red * 255.0f + 0.5f);
                         int gg = (int)(col->green * 255.0f + 0.5f);
                         int bb = (int)(col->blue * 255.0f + 0.5f);
-                        if (rr < 0) rr = 0; if (rr > 255) rr = 255;
-                        if (gg < 0) gg = 0; if (gg > 255) gg = 255;
-                        if (bb < 0) bb = 0; if (bb > 255) bb = 255;
+                        if (rr < 0) rr = 0;
+                        if (rr > 255) rr = 255;
+                        if (gg < 0) gg = 0;
+                        if (gg > 255) gg = 255;
+                        if (bb < 0) bb = 0;
+                        if (bb > 255) bb = 255;
                         js << ",\"rgb\":[" << rr << "," << gg << "," << bb << "]";
                     }
                 }

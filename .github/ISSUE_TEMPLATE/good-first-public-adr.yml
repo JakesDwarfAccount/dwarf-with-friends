@@ -1,0 +1,19 @@
+name: "Good first issue: public architecture note"
+description: Write a short decision record explaining one surprising but intentional design choice.
+title: "[Good first issue] Architecture note: "
+labels: ["good-first-issue", "documentation"]
+body:
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision to explain
+      description: Name the choice, its context, alternatives, and consequences in plain English.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source evidence
+      description: Link the exact source and tests that make the note accurate.
+    validations:
+      required: true

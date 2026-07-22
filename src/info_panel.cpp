@@ -333,7 +333,7 @@ void fill_held_item(df::unit* unit, InfoRow& row) {
 //
 //   * unit.flags4.only_do_assigned_jobs -- df.unit.xml:1469 (UNITFLAG4_ONLY_DO_ASSIGNED_JOBS). This
 //     is the flag the green/red padlocked hammer flips, and it is the SAME bit /labor-specialist has
-//     always written (labor.cpp labor_specialist_impl). Nothing new is written here -- this is the
+//     always written (labor.cpp set_labor_specialist). Nothing new is written here -- this is the
 //     READ that the Creatures panel never had, which is why its toggle could not exist.
 //
 //   * plotinfo.labor_info.work_details -- df.plotinfo.xml:609. Each work_detail has assigned_units
@@ -1960,7 +1960,7 @@ std::string written_page_label(df::written_content* content) {
     return "";
 }
 
-void build_written_content_panel(InfoPanel& panel) {
+[[maybe_unused]] void build_written_content_panel(InfoPanel& panel) {
     auto world = df::global::world;
     if (!world)
         return;

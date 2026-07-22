@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "categories": [
+    "ordinary-suspended",
+    "render-thread",
+    "conditional-sampling",
+    "no-df-access",
+    "direct-or-delegated-review"
+  ],
+  "files": [
+    {
+      "file": "src/announcements.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/art_desc.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/attribution.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/auth.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/bake_sweep.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/building_zone.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/burrows_panel.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/chat.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/client_state.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/console_routes.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/curses_palette.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/diagnostics.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/diplo.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/dwf.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/flight_recorder.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/flight_recorder_v3.cpp",
+      "category": "conditional-sampling",
+      "rule": "diagnostic sampling may read stable DF state without suspension and must never mutate it"
+    },
+    {
+      "file": "src/fort_admin.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/hauling.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/hospital.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/http_server.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/hud.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/image_encoder.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/info_panel.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/interaction.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/json_mini.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/json_util.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/kitchen_panel.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/labor.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/lever_link.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/lua_bridge.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/menu_oracle.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/missions.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/music_sync.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/native_popup.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/notifications.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/oracle_routes.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/overlay_control.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/pause_arbiter.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/placement.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/portrait_sweep.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/request_origin.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/save_barrier.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/sdl_capture.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/session_routes.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/sound_route.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/sprite_map.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/squads.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/standing_orders.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/status_harvest.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/status_truth.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/stockpile_panel.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/stone_use.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/tile_dump.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/tile_map_dump.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/trade_depot.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/ui_cache_purge.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/unit_activity.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/unit_portrait.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/unit_sheet.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/unit_sprites.cpp",
+      "category": "render-thread",
+      "rule": "render state is accessed only through the documented render-thread hop/guard"
+    },
+    {
+      "file": "src/vote.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/web_assets.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    },
+    {
+      "file": "src/websocket.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/wire_v1.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/work_orders.cpp",
+      "category": "direct-or-delegated-review",
+      "rule": "review delegated helpers and direct DF references before changing this file"
+    },
+    {
+      "file": "src/world_stream.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/worldmap_panel.cpp",
+      "category": "ordinary-suspended",
+      "rule": "DF reads/writes occur under a visible CoreSuspender or owned locked helper"
+    },
+    {
+      "file": "src/write_guards.cpp",
+      "category": "no-df-access",
+      "rule": "must remain independent of DF globals and render state"
+    }
+  ]
+}

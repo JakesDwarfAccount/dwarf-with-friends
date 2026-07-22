@@ -36,6 +36,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <ctime>
 #include <fstream>
 #include <future>
@@ -49,6 +50,23 @@ namespace {
 
 std::mutex g_diag_mutex;
 CaptureDiagnostics g_diag;
+constexpr std::streamoff kDiagnosticsLogMaxBytes = 4 * 1024 * 1024;
+constexpr const char* kDiagnosticsLogPath = "dwf.log";
+constexpr const char* kDiagnosticsLogPreviousPath = "dwf.log.1";
+
+bool rotate_diagnostics_log_if_needed() {
+    std::ifstream current(kDiagnosticsLogPath, std::ios::binary | std::ios::ate);
+    if (!current || current.tellg() < kDiagnosticsLogMaxBytes) return false;
+    current.close();
+
+    std::remove(kDiagnosticsLogPreviousPath);
+    if (std::rename(kDiagnosticsLogPath, kDiagnosticsLogPreviousPath) == 0) return false;
+
+    // A locked/stale backup must not make the active log grow forever. Truncate the active file
+    // as the bounded fallback; the caller writes a visible marker before the requested line.
+    std::ofstream truncated(kDiagnosticsLogPath, std::ios::trunc);
+    return static_cast<bool>(truncated);
+}
 
 std::string utc_now() {
     auto now = std::chrono::system_clock::now();
@@ -163,9 +181,13 @@ struct ViewportProbeRequest {
 
 void diagnostics_log(const std::string& line) {
     std::lock_guard<std::mutex> lock(g_diag_mutex);
-    std::ofstream out("dwf.log", std::ios::app);
-    if (out)
+    bool truncated_fallback = rotate_diagnostics_log_if_needed();
+    std::ofstream out(kDiagnosticsLogPath, std::ios::app);
+    if (out) {
+        if (truncated_fallback)
+            out << utc_now() << " diagnostics log truncated because rotation failed\n";
         out << utc_now() << " " << line << "\n";
+    }
 }
 
 // Verbose transport tracing gate. Relaxed atomics: this is a debug toggle, not a

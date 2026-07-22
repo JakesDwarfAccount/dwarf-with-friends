@@ -21,6 +21,7 @@
 
 #include "labor.h"
 
+#include "api_response.h"
 #include "http_server.h"
 
 #include "Core.h"
@@ -301,12 +302,14 @@ std::string clean_work_detail_name(std::string name) {
 
 } // namespace
 
-bool build_labor_state(int selected, LaborState& out, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<LaborState> build_labor_state(int selected) {
+    LaborState out;
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         auto world = df::global::world;
         if (!plotinfo || !world) {
-            if (err) *err = "plotinfo/world unavailable";
+            failure = {503, "world_unavailable", "plotinfo/world unavailable"};
             return false;
         }
 
@@ -394,6 +397,9 @@ bool build_labor_state(int selected, LaborState& out, std::string* err) {
         });
         return true;
     });
+    if (!ok) return ApiResult<LaborState>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<LaborState>::success(std::move(out));
 }
 
 std::string labor_json(const LaborState& state) {
@@ -485,21 +491,22 @@ std::string labor_list_json() {
     return body.str();
 }
 
-bool labor_toggle_impl(int detail, int unit_id, bool on, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<bool> set_labor_assignment(int detail, int unit_id, bool on) {
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) {
-            if (err) *err = "no plotinfo";
+            failure = {503, "plotinfo_unavailable", "no plotinfo"};
             return false;
         }
         auto& details = plotinfo->labor_info.work_details;
         if (detail < 0 || detail >= static_cast<int>(details.size()) || !details[detail]) {
-            if (err) *err = "bad detail index";
+            failure = {404, "labor_detail_not_found", "bad detail index"};
             return false;
         }
         auto unit = df::unit::find(unit_id);
         if (!is_assignable_citizen(unit)) {
-            if (err) *err = "unit is not an assignable living citizen";
+            failure = {400, "unit_not_assignable", "unit is not an assignable living citizen"};
             return false;
         }
         auto& units = details[detail]->assigned_units;
@@ -512,54 +519,67 @@ bool labor_toggle_impl(int detail, int unit_id, bool on, std::string* err) {
         Units::setAutomaticProfessions(unit);
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
-bool labor_mode_impl(int detail, int mode, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<bool> set_labor_mode(int detail, int mode) {
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         auto world = df::global::world;
         if (!plotinfo || !world) {
-            if (err) *err = "plotinfo/world unavailable";
+            failure = {503, "world_unavailable", "plotinfo/world unavailable"};
             return false;
         }
         auto& details = plotinfo->labor_info.work_details;
         if (detail < 0 || detail >= static_cast<int>(details.size()) || !details[detail]) {
-            if (err) *err = "bad detail index";
+            failure = {404, "labor_detail_not_found", "bad detail index"};
             return false;
         }
         if (mode < 0 || mode > 3) {
-            if (err) *err = "bad mode";
+            failure = {400, "invalid_labor_mode", "bad mode"};
             return false;
         }
         details[detail]->flags.bits.mode = static_cast<df::work_detail_mode>(mode);
         recompute_all_citizen_professions();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
-bool labor_specialist_impl(int unit_id, bool on, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<bool> set_labor_specialist(int unit_id, bool on) {
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto unit = df::unit::find(unit_id);
         if (!is_assignable_citizen(unit)) {
-            if (err) *err = "unit is not an assignable living citizen";
+            failure = {400, "unit_not_assignable", "unit is not an assignable living citizen"};
             return false;
         }
         unit->flags4.bits.only_do_assigned_jobs = on;
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
-bool labor_create_impl(const std::string& requested_name, int* out_index, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<int> create_labor_detail(const std::string& requested_name) {
+    ApiError failure;
+    int index = -1;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) {
-            if (err) *err = "no plotinfo";
+            failure = {503, "plotinfo_unavailable", "no plotinfo"};
             return false;
         }
         auto& details = plotinfo->labor_info.work_details;
         auto detail = new df::work_detail();
         if (!detail) {
-            if (err) *err = "could not allocate work detail";
+            failure = {500, "labor_detail_allocation_failed", "could not allocate work detail"};
             return false;
         }
 
@@ -574,49 +594,56 @@ bool labor_create_impl(const std::string& requested_name, int* out_index, std::s
             detail->allowed_labors[i] = false;
 
         details.push_back(detail);
-        if (out_index)
-            *out_index = static_cast<int>(details.size()) - 1;
+        index = static_cast<int>(details.size()) - 1;
         recompute_all_citizen_professions();
         return true;
     });
+    if (!ok) return ApiResult<int>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<int>::success(index);
 }
 
-bool labor_rename_impl(int detail, const std::string& requested_name, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<bool> rename_labor_detail(int detail, const std::string& requested_name) {
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) {
-            if (err) *err = "no plotinfo";
+            failure = {503, "plotinfo_unavailable", "no plotinfo"};
             return false;
         }
         auto& details = plotinfo->labor_info.work_details;
         if (detail < 0 || detail >= static_cast<int>(details.size()) || !details[detail]) {
-            if (err) *err = "bad detail index";
+            failure = {404, "labor_detail_not_found", "bad detail index"};
             return false;
         }
         std::string name = clean_work_detail_name(requested_name);
         if (name.empty()) {
-            if (err) *err = "name cannot be empty";
+            failure = {400, "empty_labor_name", "name cannot be empty"};
             return false;
         }
         details[detail]->name = name;
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
-bool labor_delete_impl(int detail, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<bool> delete_labor_detail(int detail) {
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) {
-            if (err) *err = "no plotinfo";
+            failure = {503, "plotinfo_unavailable", "no plotinfo"};
             return false;
         }
         auto& details = plotinfo->labor_info.work_details;
         if (detail < 0 || detail >= static_cast<int>(details.size()) || !details[detail]) {
-            if (err) *err = "bad detail index";
+            failure = {404, "labor_detail_not_found", "bad detail index"};
             return false;
         }
         if (details[detail]->flags.bits.no_modify) {
-            if (err) *err = "default work details cannot be deleted";
+            failure = {400, "labor_detail_protected", "default work details cannot be deleted"};
             return false;
         }
         auto old = details[detail];
@@ -625,29 +652,36 @@ bool labor_delete_impl(int detail, std::string* err) {
         recompute_all_citizen_professions();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
-bool labor_task_toggle_impl(int detail, int labor, bool on, std::string* err) {
-    return run_labor_locked([&]() {
+ApiResult<bool> set_labor_task(int detail, int labor, bool on) {
+    ApiError failure;
+    const bool ok = run_labor_locked([&]() {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) {
-            if (err) *err = "no plotinfo";
+            failure = {503, "plotinfo_unavailable", "no plotinfo"};
             return false;
         }
         auto& details = plotinfo->labor_info.work_details;
         if (detail < 0 || detail >= static_cast<int>(details.size()) || !details[detail]) {
-            if (err) *err = "bad detail index";
+            failure = {404, "labor_detail_not_found", "bad detail index"};
             return false;
         }
         if (!valid_labor_index(labor) ||
             !labor_is_visible_in_picker(static_cast<df::unit_labor>(labor))) {
-            if (err) *err = "bad labor index";
+            failure = {400, "invalid_labor", "bad labor index"};
             return false;
         }
         details[detail]->allowed_labors[labor] = on;
         recompute_all_citizen_professions();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -659,15 +693,10 @@ void register_labor_routes(httplib::Server& server) {
     server.Get("/labor", [](const httplib::Request& req, httplib::Response& res) {
         int detail = -1;
         query_int(req, "detail", detail);
-        LaborState state;
-        std::string err;
-        if (!build_labor_state(detail, state, &err)) {
-            res.status = 503;
-            res.set_content("labor failed: " + err + "\n", "text/plain; charset=utf-8");
-            return;
-        }
+        const auto result = build_labor_state(detail);
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
-        res.set_content(labor_json(state), "application/json; charset=utf-8");
+        res.set_content(labor_json(result.value), "application/json; charset=utf-8");
     });
 
     auto labor_toggle_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -680,12 +709,8 @@ void register_labor_routes(httplib::Server& server) {
             res.set_content("missing detail/unit/on\n", "text/plain; charset=utf-8");
             return;
         }
-        std::string err;
-        if (!labor_toggle_impl(detail, unit_id, on != 0, &err)) {
-            res.status = 400;
-            res.set_content("toggle failed: " + err + "\n", "text/plain; charset=utf-8");
-            return;
-        }
+        const auto result = set_labor_assignment(detail, unit_id, on != 0);
+        if (!result.ok) { send_api_error(result, res); return; }
         notify_player_input();
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
@@ -701,12 +726,8 @@ void register_labor_routes(httplib::Server& server) {
             res.set_content("missing detail/mode\n", "text/plain; charset=utf-8");
             return;
         }
-        std::string err;
-        if (!labor_mode_impl(detail, mode, &err)) {
-            res.status = 400;
-            res.set_content("mode failed: " + err + "\n", "text/plain; charset=utf-8");
-            return;
-        }
+        const auto result = set_labor_mode(detail, mode);
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
@@ -721,12 +742,8 @@ void register_labor_routes(httplib::Server& server) {
             res.set_content("missing unit/on\n", "text/plain; charset=utf-8");
             return;
         }
-        std::string err;
-        if (!labor_specialist_impl(unit_id, on != 0, &err)) {
-            res.status = 400;
-            res.set_content("specialist failed: " + err + "\n", "text/plain; charset=utf-8");
-            return;
-        }
+        const auto result = set_labor_specialist(unit_id, on != 0);
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
@@ -735,16 +752,10 @@ void register_labor_routes(httplib::Server& server) {
 
     auto labor_create_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string name = req.has_param("name") ? req.get_param_value("name") : "";
-        int index = -1;
-        std::string err;
-        if (!labor_create_impl(name, &index, &err)) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
-                            "application/json; charset=utf-8");
-            return;
-        }
+        const auto result = create_labor_detail(name);
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
-        res.set_content("{\"ok\":true,\"index\":" + std::to_string(index) + "}\n",
+        res.set_content("{\"ok\":true,\"index\":" + std::to_string(result.value) + "}\n",
                         "application/json; charset=utf-8");
     };
     server.Get("/labor-create", labor_create_handler);
@@ -757,13 +768,8 @@ void register_labor_routes(httplib::Server& server) {
             res.set_content("missing detail/name\n", "text/plain; charset=utf-8");
             return;
         }
-        std::string err;
-        if (!labor_rename_impl(detail, req.get_param_value("name"), &err)) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
-                            "application/json; charset=utf-8");
-            return;
-        }
+        const auto result = rename_labor_detail(detail, req.get_param_value("name"));
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
@@ -777,13 +783,8 @@ void register_labor_routes(httplib::Server& server) {
             res.set_content("missing detail\n", "text/plain; charset=utf-8");
             return;
         }
-        std::string err;
-        if (!labor_delete_impl(detail, &err)) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
-                            "application/json; charset=utf-8");
-            return;
-        }
+        const auto result = delete_labor_detail(detail);
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
@@ -800,13 +801,8 @@ void register_labor_routes(httplib::Server& server) {
             res.set_content("missing detail/labor/on\n", "text/plain; charset=utf-8");
             return;
         }
-        std::string err;
-        if (!labor_task_toggle_impl(detail, labor, on != 0, &err)) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
-                            "application/json; charset=utf-8");
-            return;
-        }
+        const auto result = set_labor_task(detail, labor, on != 0);
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };

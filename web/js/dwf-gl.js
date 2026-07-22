@@ -367,14 +367,25 @@
     10: [1, 7], 6: [1, 8], 12: [1, 9], 11: [1, 10], 7: [1, 11], 13: [1, 12],
     14: [1, 13], 15: [1, 14],
   };
-  // Category tint (rgb 0-255 -- canvas2d's rgba(...) string prefixes re-expressed as triples;
-  // alpha is baked into the instance separately, see emitDesignationOverlay below).
+  // Category wash tint (rgb 0-255 -- canvas2d's rgba(...) string prefixes re-expressed as
+  // triples; alpha is baked into the instance separately, see emitDesignationOverlay below).
+  // Automining is deliberately absent: native colours the complete translucent designation
+  // sprite rather than adding a separate wash under an unchanged glyph.
   var DESIG_TINT_RGB = {
-    dig: [240, 150, 40], channel: [200, 105, 20], ramp: [240, 175, 60], stair: [240, 195, 75],
+    dig: [240, 150, 40],
+    channel: [200, 105, 20], ramp: [240, 175, 60], stair: [240, 195, 75],
     chop: [215, 150, 45], gather: [120, 200, 90], smooth: [90, 150, 235], engrave: [80, 215, 225],
     traffic: [225, 205, 80], track: [185, 140, 90], fortify: [90, 150, 235],
     removeConstruction: [220, 110, 55],
   };
+  // AUTOMINE-NATIVE (owner capture, 2026-07-20):
+  // Menu Oracle Screenshots/designations/native automining designation green tint.png
+  // SHA-256 30F42D6EAD2E67A9649C4F0BB14BDC93E95958606A037549DB46FAA767BFB000.
+  // Native multiplies the ENTIRE designations.png cell by pure green, including its built-in
+  // translucent background and pick glyph. This exactly explains the capture's dominant pixel:
+  // background (49,44,52) under sheet pixel (125,125,127,a=90) -> (32,73,34). A separate pale
+  // wash plus an untinted glyph was the old invented treatment and made the tile too light.
+  var AUTOMINE_SPRITE_TINT = [0, 255, 0];
   var CHOP_PLANT_PART = { TRUNK: 1, BRANCH: 1, CANOPY: 1, LEAVES: 1, SAPLING: 1 };
   // Same wash alpha constants as dwf-tiles.js's drawDesignation (0.28 active / 0.13
   // marker) -- baked directly into the wash instance's own tint alpha at emit time, since the
@@ -458,7 +469,7 @@
             return { cell: DESIG_CELL.chop, cat: "chop" };
           if (shape === "SHRUB" || mat === "PLANT" || plantPart === "SHRUB")
             return { cell: DESIG_CELL.gather, cat: "gather" };
-          return { cell: DESIG_CELL.dig, cat: "dig" };
+          return { cell: DESIG_CELL.dig, cat: d.automine ? "automine" : "dig" };
       }
     }
     if (d.smooth === 2) return { cell: DESIG_CELL.engrave, cat: "engrave" };
@@ -3593,9 +3604,9 @@
       // same additive lighten to revealed WALL designated tiles (canvas2d drawDesignation makes
       // the byte-identical extension). Non-wall revealed terrain draws bright already, so the
       // dark-backdrop lighten stays gated to hidden || WALL (native does not brighten floors).
-      if ((t.hidden || (t.shape || "") === "WALL") && t.desig) {
+      var dv = t.desig ? resolveDesig(t.desig, t) : null;
+      if ((t.hidden || (t.shape || "") === "WALL") && dv && dv.cat !== "automine")
         emitSolid(gx, gy, [0, 0, 0], 0, ATTR_ADDITIVE);
-      }
 
       // (6) WB-14: collect this tile's designation glyph/wash for the batched OVERLAY pass
       // below (emitDesignationOverlay, called once per buildScene AFTER buildings) -- mirrors
@@ -3605,11 +3616,8 @@
       // skipped here"). Naturally skipped on a WB-10 descended/substituted tile since
       // decodeRawAt's synthetic record never carries a `.desig` field -- same documented
       // residual as the additive-lighten emit just above.
-      if (t.desig) {
-        var dv = resolveDesig(t.desig, t);
-        if (dv) desigList.push({ gx: gx, gy: gy, cell: dv.cell, cat: dv.cat, marker: !!t.desig.marker,
-                                 prio: (t.desigPriority && t.desigPriority.priority) | 0 });
-      }
+      if (dv) desigList.push({ gx: gx, gy: gy, cell: dv.cell, cat: dv.cat, marker: !!t.desig.marker,
+                               prio: (t.desigPriority && t.desigPriority.priority) | 0 });
     }
 
     // buildScene(view): view = {origin:{x,y,z}, width, height, tiles:[...]} (row-major, y-outer
@@ -3626,13 +3634,17 @@
         // MARKER-COLOR: marker mode swaps the category wash for the fixed native marker-blue and
         // recolours the glyph via its own instance tint (texel*tint == canvas2d multiplyTintedCell,
         // the same byte-parity mechanism ghost/fortification tints use) -- no ATTR_MARKER needed.
-        var rgb = e.marker ? MARKER_WASH_RGB : (DESIG_TINT_RGB[e.cat] || DESIG_TINT_RGB.dig);
-        var washA = Math.round((e.marker ? DESIG_WASH_ALPHA_MARKER : DESIG_WASH_ALPHA) * 255);
-        emitSolid(e.gx, e.gy, rgb, washA, 0);
+        var automine = !e.marker && e.cat === "automine";
+        if (!automine) {
+          var rgb = e.marker ? MARKER_WASH_RGB : (DESIG_TINT_RGB[e.cat] || DESIG_TINT_RGB.dig);
+          var washA = Math.round((e.marker ? DESIG_WASH_ALPHA_MARKER : DESIG_WASH_ALPHA) * 255);
+          emitSolid(e.gx, e.gy, rgb, washA, 0);
+        }
         if (!atlas || !designationGlyphVisible(e.djobKind, nowMs, e.djobWorker, e.djobActive)) continue;
         var gc = atlas.resolve(DESIG_SHEET, e.cell[0], e.cell[1]);
         if (gc > 0) {
           if (e.marker) emit(e.gx, e.gy, gc, MARKER_GLYPH_TINT[0], MARKER_GLYPH_TINT[1], MARKER_GLYPH_TINT[2], 255, 0);
+          else if (automine) emit(e.gx, e.gy, gc, AUTOMINE_SPRITE_TINT[0], AUTOMINE_SPRITE_TINT[1], AUTOMINE_SPRITE_TINT[2], 255, 0);
           else emitSprite(e.gx, e.gy, gc, 0);
         }
         // WC-19: dig-priority numeral (designation_priority.png col 0, row level-1) over the
@@ -5731,6 +5743,7 @@
     // WB-14: pure designation/presence helpers exposed module-wide (no builder/GL instance
     // needed) -- fixture tests exercise these directly, same convention as every tier above.
     DESIG_CELL: DESIG_CELL, DESIG_TRACK_CELL: DESIG_TRACK_CELL, DESIG_TINT_RGB: DESIG_TINT_RGB,
+    AUTOMINE_SPRITE_TINT: AUTOMINE_SPRITE_TINT,
     DESIG_WASH_ALPHA: DESIG_WASH_ALPHA, DESIG_WASH_ALPHA_MARKER: DESIG_WASH_ALPHA_MARKER,
     MARKER_RECOLOR: MARKER_RECOLOR, MARKER_GLYPH_TINT: MARKER_GLYPH_TINT, MARKER_WASH_RGB: MARKER_WASH_RGB,
     resolveDesig: resolveDesig, resolveDjob: resolveDjob, playerColorRgb: playerColorRgb, hslToRgb255: hslToRgb255,

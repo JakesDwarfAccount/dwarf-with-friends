@@ -1,0 +1,77 @@
+name: Windows native build
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-plugin:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Install build dependencies
+        run: |
+          choco install sccache
+          pip install Jinja2
+
+      - name: Check out pinned DFHack
+        uses: actions/checkout@v4
+        with:
+          repository: DFHack/dfhack
+          ref: 53.15-r2
+          submodules: true
+          fetch-depth: 0
+
+      - name: Check out Dwarf With Friends as the external plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugins/external/multi-dwarf
+
+      - name: Register the external plugin
+        shell: pwsh
+        run: Set-Content plugins/external/CMakeLists.txt 'add_subdirectory(multi-dwarf)'
+
+      - name: Enable MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure the pinned source tree
+        run: |
+          cmake -S . -B build -GNinja `
+            -DDFHACK_BUILD_ARCH=64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_LIBRARY=ON `
+            -DBUILD_PLUGINS=ON `
+            -DBUILD_DOCS=OFF `
+            -DBUILD_TESTS=OFF `
+            -DINSTALL_DATA_FILES=OFF `
+            -DDFCAPTURE_BUILD_STAMP=${{ github.sha }}
+
+      - name: Compile dwf.plug.dll
+        run: cmake --build build --config Release --target dfcapture_public
+
+      - name: Record artifact identity
+        shell: pwsh
+        run: |
+          $dll = Resolve-Path build/plugins/external/multi-dwarf/dwf.plug.dll
+          $hash = (Get-FileHash -Algorithm SHA256 $dll).Hash.ToLowerInvariant()
+          $size = (Get-Item $dll).Length
+          "commit=${{ github.sha }}`ndfhack=53.15-r2`nsha256=$hash`nbytes=$size" | Set-Content build-receipt.txt
+
+      - name: Upload native artifact and receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: dwf-windows-${{ github.sha }}
+          path: |
+            build/plugins/external/multi-dwarf/dwf.plug.dll
+            build-receipt.txt
+          if-no-files-found: error

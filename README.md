@@ -1,8 +1,18 @@
 # Dwarf With Friends
 
-### [⬇ Download v1.0.0-beta.2](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.2/DwarfWithFriends-v1.0.0-beta.2.zip) — unzip, run `DWF Setup.cmd`, play
+### [⬇ Download Beta 3 for Windows](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.3/DwarfWithFriends-v1.0.0-beta.3.zip)
 
-*(That link is the ready-to-play release zip. The green "Code → Download ZIP" button is the source code — that's for developers, not for playing.)*
+### [⬇ Download Beta 3 for Linux](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.3/DwarfWithFriends-v1.0.0-beta.3-linux.zip)
+
+Unzip the package for your platform, run its setup launcher, and play. See the
+[Beta 3 release notes](docs/RELEASE-NOTES-v1.0.0-beta.3.md) for what changed.
+
+> **Stabilization period:** new panels, actions, and cosmetic parity work are temporarily frozen.
+> Until the stabilization roadmap is complete, changes are limited to supported-version fixes,
+> crashes/data loss, security and release correctness, tests, documentation, and work explicitly
+> listed in the [stabilization specification](docs/superpowers/specs/2026-07-18-dwf-stabilization-maintainability-spec.md).
+
+*(Those links are the ready-to-play release zips. The green "Code → Download ZIP" button is the source code — that's for developers, not for playing.)*
 
 Play one Dwarf Fortress fortress with your friends, at the same time, each from your own browser.
 One person hosts the running game; everyone else clicks a link and they're in, no account or no
@@ -19,6 +29,12 @@ watch the box grow. It's the difference between watching someone play and *playi
 Dwarf With Friends is a [DFHack](https://github.com/DFHack/dfhack) plugin for Steam-era Dwarf
 Fortress (v0.53.15, DFHack 53.15-r2). It's a **beta**: the everyday 90%+ of fortress play is built
 and tested; the rare corners fall back to "ask the host" instead of pretending to work.
+
+The project grew directly from Gabriel Rios's
+[SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that
+project's copyright and AGPL license. [UPSTREAM.md](UPSTREAM.md) records what was inherited and what
+Dwarf With Friends subsequently added; [SECURITY.md](SECURITY.md) explains the trusted-friends
+threat model and why this is not intended as a public server.
 
 ![Two players building a fort together, each with their own labeled cursor](media/two-players.gif)
 
@@ -89,13 +105,16 @@ works — friends see simple placeholders.
 
 ## Quickstart for players
 
-The supported install is the one-click **DWF Setup.cmd** in the release zip. It also verifies and
-repairs an existing install, so re-running it is always safe.
+Use the setup launcher in the release zip. It also verifies and repairs an existing install, so
+re-running it is always safe.
 
-1. Download the `DwarfWithFriends` zip from the project's releases page (not a source archive).
-2. Unzip it anywhere on a Windows PC and double-click **DWF Setup.cmd**.
-3. Follow the setup page that opens in your browser, then open **Dwarf With Friends** (the desktop
-   shortcut setup creates, or `Dwarf With Friends.cmd` in the unzipped folder — same thing). The
+1. Download the Windows or Linux `DwarfWithFriends` zip from the project's releases page (not a
+   source archive).
+2. Unzip it on the computer that runs Dwarf Fortress. On Windows, double-click **DWF Setup.cmd**.
+   On Linux, run **`./dwf-setup.sh`**.
+3. Follow the setup page that opens in your browser, then open **Dwarf With Friends**. On Windows,
+   use the desktop shortcut or `Dwarf With Friends.cmd`. On Linux, use the application launcher or
+   `./dwarf-with-friends.sh`. The
    host panel opens in your browser; click **Start hosting**, load a fortress, and share the friend
    link (and a join password, if you set one — optional).
 
@@ -112,7 +131,9 @@ The everyday flows are solid, that's what my friends and I actually play on. But
 the host will need to tab back to the Steam client for things that aren't in yet: trading, some
 niche corners of the justice and hospital systems, missions and diplomacy, and petition
 decisions. Rebuilding the entire DF interface in a browser is hard, so there are UI quirks I
-know about, and I'm planning a larger update fixing the jank for the next beta release. Windows host only.
+know about, and I'm planning a larger update fixing the jank for the next beta release. Linux
+hosting is new and currently uses the shared host camera and placeholder unit portraits instead
+of the Windows-only native rendering paths.
 
 This project was built almost entirely with AI coding tools (Claude Code and Codex) by someone
 who is not a software engineer, but not as a one-shot prompt: it's been weeks of obsessive
@@ -123,8 +144,8 @@ to poke around in. If you're smarter than me (likely), I'd love your corrections
 
 This repository is a source checkout for development; supported downloads come from the releases
 page. The plugin builds as an external plugin inside a DFHack 53.15-r2 source tree (CMake target
-`dfcapture_public`, output `dwf.plug.dll`); the browser client is plain JavaScript with no install
-or bundling step.
+`dfcapture_public`, output `dwf.plug.dll` on Windows or `dwf.plug.so` on Linux); the browser client
+is plain JavaScript with no install or bundling step.
 
 ```powershell
 # Build the plugin (inside a configured DFHack 53.15-r2 tree; see BUILD.md for setup)
@@ -144,7 +165,8 @@ screenshot corpus are development-only and are not part of this public distribut
 - **Contribute:** [CONTRIBUTING.md](CONTRIBUTING.md), and read [AGENTS.md](AGENTS.md) first — its
   Dwarf Fortress safety rules are mandatory.
 
-The client has no npm dependencies and the plugin vendors only `cpp-httplib` under `third_party/`.
+The client has no npm dependencies and the plugin vendors `cpp-httplib` and `stb_image_write` under
+`third_party/`.
 
 ## Repository layout
 
@@ -173,4 +195,3 @@ It runs on **DFHack** (Zlib), grew out of
 (AGPL-3.0-only), and continues the multiplayer approach of **DFPlex** (Zlib), which itself builds
 on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and third-party licence
 texts are in [NOTICE](NOTICE).
-

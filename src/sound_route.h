@@ -50,6 +50,8 @@
 
 #pragma once
 
+#include "request_origin.h"
+
 #include <cstddef>
 #include <string>
 
@@ -123,27 +125,12 @@ inline bool remote_allowed(bool peer_is_host, bool audio_remote_cfg) {
 // gate's threat model is the REMOTE friend on the tunnel URL, who can forge none of them.
 // Pure (strings in, bool out) so the offline fixture drives the full matrix.
 inline bool host_header_is_local(const std::string& host) {
-    // Strip :port (careful with [::1]:port).
-    std::string h = host;
-    if (!h.empty() && h.front() == '[') {                 // bracketed IPv6
-        size_t rb = h.find(']');
-        h = (rb == std::string::npos) ? h : h.substr(1, rb - 1);
-    } else {
-        size_t c = h.find(':');
-        if (c != std::string::npos) h = h.substr(0, c);
-    }
-    for (char& ch : h) if (ch >= 'A' && ch <= 'Z') ch = static_cast<char>(ch - 'A' + 'a');
-    if (h == "localhost" || h == "::1") return true;
-    if (h.rfind("127.", 0) == 0) {                        // 127.0.0.0/8 -- IP LITERAL only:
-        for (char ch : h)                                 // "127.evil.com" must NOT qualify
-            if (!((ch >= '0' && ch <= '9') || ch == '.')) return false;
-        return true;
-    }
-    return false;
+    return origin_host_header_is_local(host);
 }
 inline bool request_is_local_host(bool peer_is_loopback, bool has_forwarded_header,
                                   const std::string& host_header) {
-    return peer_is_loopback && !has_forwarded_header && host_header_is_local(host_header);
+    return origin_has_host_authority(classify_request_origin(
+        peer_is_loopback, has_forwarded_header, host_header));
 }
 
 // Pure flat scan of a dfcapture.json body for `"audio_remote"`. DEFAULT ON (2026-07-09):

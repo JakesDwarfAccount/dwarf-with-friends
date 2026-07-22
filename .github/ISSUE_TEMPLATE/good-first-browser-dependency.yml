@@ -1,0 +1,19 @@
+name: "Good first issue: browser dependency"
+description: Clarify one classic-script dependency or remove an unnecessary global dependency.
+title: "[Good first issue] Browser dependency: "
+labels: ["good-first-issue", "browser"]
+body:
+  - type: input
+    id: script
+    attributes:
+      label: Browser script
+      placeholder: web/js/dwf-example.js
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: "Keep script order compatible, update the dependency inventory if needed, and run node tools/harness/browser_dependency_inventory_test.mjs."
+    validations:
+      required: true

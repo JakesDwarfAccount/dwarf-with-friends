@@ -25,11 +25,15 @@
 #include "LuaTools.h"
 #include "console_policy.h"
 #include "diagnostics.h"
+#include "save_barrier.h"
 #include "sdl_capture.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <chrono>
+#include <cstring>
+#include <initializer_list>
 #include <mutex>
 #include <sstream>
 #include <thread>
@@ -44,12 +48,120 @@ namespace {
 constexpr const char* LUA_MODULE = "plugins.dwf";
 
 std::recursive_mutex g_lua_bridge_mutex;
+std::atomic<uint64_t> g_lua_calls{0};
+std::atomic<uint64_t> g_lua_successes{0};
+std::atomic<uint64_t> g_lua_call_failures{0};
+std::atomic<uint64_t> g_lua_signature_failures{0};
+
+struct RetSlot {
+    char type;       // b=boolean, n=number, s=string, t=table
+    bool nilable;
+};
+
+const char* return_type_name(char type) {
+    switch (type) {
+    case 'b': return "boolean";
+    case 'n': return "number";
+    case 's': return "string";
+    case 't': return "table";
+    default: return "unknown";
+    }
+}
+
+bool validate_returns(lua_State* L, const char* function_name,
+                      std::initializer_list<RetSlot> slots, std::string* err) {
+    int index = -static_cast<int>(slots.size());
+    int position = 1;
+    for (const RetSlot& slot : slots) {
+        int actual = lua_type(L, index);
+        bool matches = slot.nilable && actual == LUA_TNIL;
+        if (!matches) {
+            switch (slot.type) {
+            case 'b': matches = actual == LUA_TBOOLEAN; break;
+            case 'n': matches = actual == LUA_TNUMBER; break;
+            case 's': matches = actual == LUA_TSTRING; break;
+            case 't': matches = actual == LUA_TTABLE; break;
+            default: matches = false; break;
+            }
+        }
+        if (!matches) {
+            if (err) {
+                *err = std::string(function_name) + ": return #" + std::to_string(position) +
+                    " expected " + return_type_name(slot.type) + (slot.nilable ? " or nil" : "") +
+                    ", got " + lua_typename(L, actual);
+            }
+            return false;
+        }
+        ++index;
+        ++position;
+    }
+    return true;
+}
+
+bool function_is(const char* function_name, std::initializer_list<const char*> names) {
+    for (const char* name : names) {
+        if (std::strcmp(function_name, name) == 0) return true;
+    }
+    return false;
+}
+
+bool validate_named_returns(lua_State* L, const char* function_name, int returns,
+                            std::string* err) {
+    if (function_is(function_name, {
+            "building_catalog", "build_materials", "place_candidates",
+            "stockpile_cat_groups", "stockpile_item_list", "stockpile_settings_snapshot",
+            "hauling_stop_settings_snapshot", "hauling_stop_item_list", "workshop_info",
+            "burial_coffin_info", "zone_locations_json", "location_detail_json",
+            "list_orders", "order_catalog", "order_catalog_by_shop", "order_presets",
+            "condition_targets", "order_workshops", "condition_materials",
+            "suggested_conditions", "console_catalog", "hw_trade_state",
+            "hw_justice_state", "hw_widget_dump", "hw_trade_action", "hw_justice_action"})) {
+        return returns == 1 && validate_returns(L, function_name, {{'s', true}}, err);
+    }
+    if (function_is(function_name, {
+            "stockpile_set_preset", "stockpile_toggle_item", "stockpile_toggle_all", "hauling_stop_toggle_item",
+            "hauling_stop_toggle_all", "hauling_stop_set_preset", "workshop_add_job",
+            "workshop_job_action", "workshop_worker_action", "workshop_workers_clear",
+            "workshop_profile_set", "burial_coffin_action", "queue_memorial_slab",
+            "zone_location_action", "location_action", "import_order_preset", "cancel_order",
+            "adjust_order", "add_item_condition", "edit_item_condition",
+            "add_order_condition", "remove_condition", "set_order_max_workshops",
+            "set_order_workshop", "reorder_order"})) {
+        return returns == 2 && validate_returns(L, function_name, {{'b', false}, {'s', true}}, err);
+    }
+    if (function_is(function_name, {"create_stockpile", "create_zone", "missions_rescue_stuck"})) {
+        return returns == 2 && validate_returns(L, function_name, {{'n', false}, {'s', true}}, err);
+    }
+    if (std::strcmp(function_name, "place_building") == 0) {
+        return returns == 5 && validate_returns(L, function_name,
+            {{'n', false}, {'n', false}, {'s', true}, {'t', true}, {'s', true}}, err);
+    }
+    if (std::strcmp(function_name, "create_order") == 0) {
+        return returns == 3 && validate_returns(L, function_name,
+            {{'b', false}, {'s', true}, {'t', true}}, err);
+    }
+    if (std::strcmp(function_name, "console_run") == 0) {
+        return returns == 2 && validate_returns(L, function_name, {{'n', false}, {'s', false}}, err);
+    }
+    if (std::strcmp(function_name, "repair_incomplete_stockpile_settings") == 0) {
+        return returns == 2 && validate_returns(L, function_name, {{'n', false}, {'n', false}}, err);
+    }
+    if (std::strcmp(function_name, "hw_flags") == 0) {
+        return returns == 1 && validate_returns(L, function_name, {{'t', false}}, err);
+    }
+    if (err) *err = std::string(function_name) + ": no registered Lua return signature";
+    return false;
+}
 
 template <typename Fn>
 bool run_lua_locked(Fn&& fn) {
     std::lock_guard<std::recursive_mutex> module_lock(g_lua_bridge_mutex);
     std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
     DFHack::CoreSuspender suspend;
+    // A request can enter HTTP just before DF raises its save callback and then wait here for the
+    // core. Re-check after acquiring the core lock so it cannot execute in the post-save cleanup
+    // boundary even if it passed the outer HTTP barrier before the save began.
+    if (save_barrier_active()) return false;
     return fn();
 }
 
@@ -98,11 +210,18 @@ std::string lua_output_text(DFHack::buffered_color_ostream& out) {
 template <typename Args, typename ResultFn>
 bool call_lua(const char* function_name, Args&& args, int returns,
               ResultFn&& result_fn, std::string* err) {
+    g_lua_calls.fetch_add(1, std::memory_order_relaxed);
     DFHack::buffered_color_ostream lua_out;
+    bool signature_ok = false;
+    std::string signature_error;
     bool called = Lua::CallLuaModuleFunction(lua_out, LUA_MODULE, function_name,
                                              std::forward<Args>(args), returns,
-                                             std::forward<ResultFn>(result_fn));
+        [&](lua_State* L) {
+            signature_ok = validate_named_returns(L, function_name, returns, &signature_error);
+            if (signature_ok) result_fn(L);
+        });
     if (!called) {
+        g_lua_call_failures.fetch_add(1, std::memory_order_relaxed);
         if (err) {
             std::string details = lua_output_text(lua_out);
             *err = details.empty()
@@ -111,6 +230,13 @@ bool call_lua(const char* function_name, Args&& args, int returns,
         }
         return false;
     }
+    if (!signature_ok) {
+        g_lua_signature_failures.fetch_add(1, std::memory_order_relaxed);
+        if (err) *err = signature_error;
+        diagnostics_log("lua-bridge signature mismatch: " + signature_error);
+        return false;
+    }
+    g_lua_successes.fetch_add(1, std::memory_order_relaxed);
     return true;
 }
 
@@ -176,6 +302,15 @@ bool bool_error_lua_int_string(const char* function_name, int32_t id,
 }
 
 } // namespace
+
+LuaBridgeHealth lua_bridge_health_snapshot() {
+    LuaBridgeHealth health;
+    health.calls = g_lua_calls.load(std::memory_order_relaxed);
+    health.successes = g_lua_successes.load(std::memory_order_relaxed);
+    health.call_failures = g_lua_call_failures.load(std::memory_order_relaxed);
+    health.signature_failures = g_lua_signature_failures.load(std::memory_order_relaxed);
+    return health;
+}
 
 std::string building_catalog_json_via_lua(std::string* err) {
     return json_returning_lua("building_catalog", err);
@@ -492,6 +627,22 @@ bool hauling_stop_toggle_item_via_lua(int32_t route_id, int32_t stop_id, const s
     return result_ok;
 }
 
+bool stockpile_set_preset_via_lua(int32_t id, const std::string& preset,
+                                  const std::string& mode, std::string* err) {
+    bool result_ok = false;
+    std::string result_err;
+    bool ok = run_lua_locked([&]() -> bool {
+        return call_lua("stockpile_set_preset", std::make_tuple(id, preset, mode), 2,
+            [&](lua_State* L) {
+                result_ok = lua_toboolean(L, -2) != 0;
+                if (lua_isstring(L, -1)) result_err = lua_tostring(L, -1);
+            }, err);
+    });
+    if (!ok) return false;
+    if (!result_ok && err) *err = result_err.empty() ? "preset failed" : result_err;
+    return result_ok;
+}
+
 bool hauling_stop_toggle_all_via_lua(int32_t route_id, int32_t stop_id, const std::string& cat,
                                      const std::string& group, bool on, std::string* err) {
     bool result_ok = false;
@@ -507,6 +658,16 @@ bool hauling_stop_toggle_all_via_lua(int32_t route_id, int32_t stop_id, const st
     if (!ok) return false;
     if (!result_ok && err) *err = result_err.empty() ? "toggle-all failed" : result_err;
     return result_ok;
+}
+
+bool repair_stockpile_settings_via_lua(int& out_holders, int& out_categories, std::string* err) {
+    return run_lua_locked([&]() -> bool {
+        return call_lua("repair_incomplete_stockpile_settings", std::make_tuple(), 2,
+            [&](lua_State* L) {
+                out_holders = static_cast<int>(lua_tointeger(L, -2));
+                out_categories = static_cast<int>(lua_tointeger(L, -1));
+            }, err);
+    });
 }
 
 bool hauling_stop_set_preset_via_lua(int32_t route_id, int32_t stop_id, const std::string& preset,

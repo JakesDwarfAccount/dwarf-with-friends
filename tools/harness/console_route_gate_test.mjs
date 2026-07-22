@@ -7,8 +7,9 @@
 // here in CI without a DF build:
 //
 //   1. AUTH, NOT LOOPBACK: console_routes.cpp must NOT call peer_ip_is_loopback anywhere -- the
-//      console is for any authed player (decision). (Counterexample: /save DOES gate on loopback;
-//      session_routes.cpp is checked to still do so, proving the test can tell the two apart.)
+//      console is for any authed player (decision). (Counterexample: /join-password DOES gate on
+//      host authority; session_routes.cpp is checked to still do so, proving the test can tell the
+//      two apart.)
 //   2. THE BLOCKLIST GATES EXECUTION: the run handler calls console::command_denied BEFORE the
 //      bridge, and the bridge (lua_bridge.cpp) ALSO calls it -- two enforcement sites, one table.
 //   3. THE GATE HAS NO CALLER IDENTITY: command_denied takes only the command string (no host/
@@ -54,6 +55,10 @@ function stripComments(src) {
 }
 const routesCode = stripComments(routes);
 const bridgeCode = stripComments(bridge);
+const joinPasswordRoute = stripComments(session).slice(
+  stripComments(session).indexOf("auto join_password_handler"),
+  stripComments(session).indexOf('server.Post("/join-password"'),
+);
 
 // ---- 1. AUTH, NOT LOOPBACK ----------------------------------------------------------------------
 console.log("\n# 1. any authed player -- NO host/loopback gate in the console routes");
@@ -61,9 +66,9 @@ check("console_routes.cpp does NOT call peer_ip_is_loopback (no host gate)",
   !/peer_ip_is_loopback/.test(routesCode));
 check("console_routes.cpp does NOT return \"host only\"",
   !/host only/.test(routesCode));
-// The discriminator: /save legitimately IS host-only. If this flips, the test lost its teeth.
-check("(discriminator) session_routes.cpp /save STILL gates on peer_ip_is_loopback",
-  /peer_ip_is_loopback/.test(stripComments(session)));
+// The discriminator: /join-password legitimately IS host-only. If this flips, the test lost its teeth.
+check("(discriminator) the /join-password route still contains a host-authority gate",
+  /request_has_host_authority/.test(joinPasswordRoute));
 
 // ---- 2. THE BLOCKLIST GATES EXECUTION -----------------------------------------------------------
 console.log("\n# 2. the blocklist is enforced before execution, at two sites, one table");

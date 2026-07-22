@@ -1,0 +1,19 @@
+name: "Good first issue: test blind spot"
+description: Add an offline regression fixture for one currently untested behaviour.
+title: "[Good first issue] Test blind spot: "
+labels: ["good-first-issue", "tests"]
+body:
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: Behaviour to protect
+      description: Describe one observable input, output, or failure path.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: "Add a focused offline suite, demonstrate that it detects the known-bad case, add it to tools/release/test-manifest.json, and run the manifest test."
+    validations:
+      required: true

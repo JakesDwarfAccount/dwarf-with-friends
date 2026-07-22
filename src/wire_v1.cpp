@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "wire_v1.h"
+#include "diagnostics.h"
 
 // The DF map headers are needed ONLY by encode_block(); the pure codec above it does
 // not touch them. Mirrors tile_map_dump.cpp's include set (its emit_tile_fields is the
@@ -188,6 +189,9 @@ TileRecord read_tile_record(const uint8_t in[kTileRecordSize]) {
 // ---- BLOCK_SET payload (§0.3) ------------------------------------------------------
 std::vector<uint8_t> assemble_block_set(uint32_t world_seq, const EncodedBlock* blocks, size_t n) {
     std::vector<uint8_t> o;
+    size_t dropped_oversized_tails = 0;
+    uint8_t first_dropped_kind = 0;
+    size_t first_dropped_size = 0;
     o.reserve(6 + n * (13 + kTilesPerBlock * kTileRecordSize + 16));
     put_u32(o, world_seq);
     put_u16(o, (uint16_t)n);
@@ -204,20 +208,40 @@ std::vector<uint8_t> assemble_block_set(uint32_t world_seq, const EncodedBlock* 
         // clamp silently truncated every tail past the 255th -- ITEM tails at high tile_idx got
         // dropped SERVER-SIDE, so no client fix could recover bytes that never left. A block has
         // at most 256 tiles x a handful of layered tails, so u16 (65535) is ample headroom.
-        uint16_t tail_count = (uint16_t)(b.tails.size() > 65535 ? 65535 : b.tails.size());
+        uint16_t tail_count = 0;
+        for (const Tail& t : b.tails) {
+            if (t.data.size() > 255) {
+                if (dropped_oversized_tails == 0) {
+                    first_dropped_kind = t.kind;
+                    first_dropped_size = t.data.size();
+                }
+                ++dropped_oversized_tails;
+                continue;
+            }
+            if (tail_count == 65535) break;
+            ++tail_count;
+        }
         put_u16(o, tail_count);
         for (size_t i = 0; i < kTilesPerBlock; ++i) {
             uint8_t rec[kTileRecordSize];
             write_tile_record(rec, b.records[i]);
             o.insert(o.end(), rec, rec + kTileRecordSize);
         }
-        for (size_t ti = 0; ti < tail_count; ++ti) {
-            const Tail& t = b.tails[ti];
+        uint16_t emitted_tails = 0;
+        for (const Tail& t : b.tails) {
+            if (t.data.size() > 255) continue;
+            if (emitted_tails == tail_count) break;
             o.push_back(t.tile_idx);
             o.push_back(t.kind);
-            o.push_back((uint8_t)(t.data.size() > 255 ? 255 : t.data.size()));
+            o.push_back((uint8_t)t.data.size());
             o.insert(o.end(), t.data.begin(), t.data.end());
+            ++emitted_tails;
         }
+    }
+    if (dropped_oversized_tails != 0) {
+        diagnostics_log("wire-v1: dropped " + std::to_string(dropped_oversized_tails) +
+                        " oversized tail(s); first kind=" + std::to_string(first_dropped_kind) +
+                        " size=" + std::to_string(first_dropped_size));
     }
     return o;
 }
@@ -427,7 +451,8 @@ static Tail make_spatter_tail(uint8_t idx, int mat_type, int mat_index, int amou
     Tail t; t.tile_idx = idx; t.kind = kTailSpatterMat;
     put_i16(t.data, mat_type);
     put_i32(t.data, mat_index);
-    if (amount < 0) amount = 0; if (amount > 65535) amount = 65535;
+    if (amount < 0) amount = 0;
+    if (amount > 65535) amount = 65535;
     put_u16(t.data, (uint16_t)amount);
     t.data.push_back((uint8_t)(int8_t)state);
     if (has_rgb) {
@@ -1159,18 +1184,19 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
             r.base_mt = (int16_t)base_mt;
             r.base_mi = (int16_t)base_mi;
 
-            // designation bytes (dig/smooth/marker; traffic/track) -- emitter parity.
+            // designation bytes (dig/smooth/marker/automine; traffic/track) -- emitter parity.
             {
                 int dig     = (int)des.bits.dig;
                 int smooth  = (int)des.bits.smooth;
                 int marker  = occ.bits.dig_marked ? 1 : 0;
+                int automine = occ.bits.dig_auto ? 1 : 0;
                 int traffic = (int)des.bits.traffic;
                 int track = 0;
                 if (occ.bits.carve_track_north) track |= 1;
                 if (occ.bits.carve_track_south) track |= 2;
                 if (occ.bits.carve_track_east)  track |= 4;
                 if (occ.bits.carve_track_west)  track |= 8;
-                r.desig1 = pack_desig1(dig, smooth, marker);
+                r.desig1 = pack_desig1(dig, smooth, marker, automine);
                 r.desig2 = pack_desig2(traffic, track);
             }
 

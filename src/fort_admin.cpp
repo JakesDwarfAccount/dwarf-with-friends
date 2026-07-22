@@ -773,7 +773,8 @@ void append_guard_json(std::ostringstream& body, df::historical_entity* fort) {
                 for (auto u : df::global::world->units.active)
                     if (u && u->hist_figure_id == hf->id) { unit = u; break; }
             }
-            if (!first) body << ","; first = false;
+            if (!first) body << ",";
+            first = false;
             body << "{\"unitId\":" << (unit ? unit->id : -1)
                  << ",\"name\":" << json_string(unit ? DFHack::Units::getReadableName(unit) : histfig_name(pos->occupant))
                  << ",\"profession\":" << json_string(unit ? DFHack::Units::getProfessionName(unit) : "")
@@ -799,7 +800,8 @@ void append_convicts_json(std::ostringstream& body, df::world* world) {
         // R3: injured-party join (convict detail pane "Injured party: <name>."). Same crime->victim
         // read as append_crime_json; web omits the line when victimId<0.
         df::unit* victim = df::unit::find(crime->victim);
-        if (!first) body << ","; first = false;
+        if (!first) body << ",";
+        first = false;
         // W5 (wave-4 wire batch): native's convict row is a UNIT row -- portrait tile, then a
         // semantically-coloured `name, profession` second line (CIM-justice-convicts.jpg). The wire
         // carried neither, so the profession line was omitted and the portrait fell back. All three
@@ -844,7 +846,8 @@ std::string build_justice_json(const std::string& player, const std::string& mod
             int count = 0;
             for (auto crime : world->crimes.all) {
                 if (!crime) continue;
-                if (!first) body << ","; first = false;
+                if (!first) body << ",";
+                first = false;
                 append_crime_json(body, crime);
                 if (++count >= 200) break;
             }
@@ -860,7 +863,8 @@ std::string build_justice_json(const std::string& player, const std::string& mod
             for (auto crime : world->crimes.all) {
                 if (!crime || crime_case_state(crime) != mode)
                     continue;
-                if (!first) body << ","; first = false;
+                if (!first) body << ",";
+                first = false;
                 append_crime_json(body, crime);
                 if (++count >= 200) break;
             }

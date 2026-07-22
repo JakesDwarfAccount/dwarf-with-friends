@@ -50,7 +50,36 @@ export const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..");
 // SKIP line is neither). Grouped only for the printed report. Keep this list curated: adding a
 // suite that needs a live game or a save fixture would make a DF-less launch machine go red for
 // the wrong reason.
-export const SUITES = [
+const LEGACY_SUITE_CATALOG = [
+  { group: "protocol", file: "tools/harness/json_mini_vectors_test.mjs" },
+  { group: "security", file: "tools/harness/join_public_allowlist_test.mjs" },
+  { group: "security", file: "tools/harness/route_policy_completeness_test.mjs" },
+  { group: "security", file: "tools/harness/request_origin_test.mjs" },
+  { group: "security", file: "tools/harness/diagnostic_route_gate_test.mjs" },
+  { group: "security", file: "tools/harness/tiledump_bounds_test.mjs" },
+  { group: "security", file: "tools/harness/friend_save_policy_test.mjs" },
+  { group: "release", file: "tools/harness/test_manifest_test.mjs" },
+  { group: "release", file: "tools/harness/native_build_receipt_test.mjs" },
+  { group: "contributors", file: "tools/harness/contributor_surface_test.mjs" },
+  { group: "native", file: "tools/harness/stone_use_api_result_test.mjs" },
+  { group: "native", file: "tools/harness/burrows_api_result_test.mjs" },
+  { group: "native", file: "tools/harness/kitchen_api_result_test.mjs" },
+  { group: "native", file: "tools/harness/labor_api_result_test.mjs" },
+  { group: "native", file: "tools/harness/portrait_native_fault_guard_test.mjs" },
+  { group: "native", file: "tools/harness/df_access_inventory_test.mjs" },
+  { group: "wire", file: "tools/harness/wire_tail_bounds_test.mjs" },
+  { group: "wire", file: "tools/harness/automine_tint_test.mjs" },
+  { group: "lifecycle", file: "tools/harness/save_barrier_test.mjs" },
+  { group: "lua", file: "tools/harness/stockpile_settings_guard_test.mjs" },
+  { group: "lua", file: "tools/harness/stockpile_repair_wiring_test.mjs" },
+  { group: "lua", file: "tools/harness/lua_bridge_signature_test.mjs" },
+  { group: "lua", file: "tools/harness/lua_fort_entity_test.mjs" },
+  { group: "lua", file: "tools/harness/lua_generated_source_test.mjs" },
+  { group: "chat", file: "tools/harness/chat_rate_signal_test.mjs" },
+  { group: "wire", file: "tools/harness/reqblocks_queue_bounds_test.mjs" },
+  { group: "wire", file: "tools/harness/ws_drop_counters_test.mjs" },
+  { group: "diagnostics", file: "tools/harness/diagnostics_log_bound_test.mjs" },
+  { group: "lifecycle", file: "tools/harness/world_reload_reset_test.mjs" },
   // packaging + host install contract
   { group: "package", file: "tools/harness/pkg_install_roundtrip_test.mjs" },
   { group: "package", file: "tools/harness/release_zip_fixture_test.mjs" },
@@ -59,10 +88,12 @@ export const SUITES = [
   { group: "package", file: "tools/harness/dfroot_resolver_test.mjs" },
   // ground-truth / parity plumbing
   { group: "parity", file: "tools/ground_truth/task_test.mjs" },
-  { group: "parity", file: "tools/ground_truth/parity_seed_build_test.mjs" },
+  { group: "parity", file: "tools/ground_truth/parity_seed_build_test.mjs", platforms: ["win32"] },
   { group: "parity", file: "tools/ground_truth/parity_web_integrity_test.mjs" },
   // client render + shell guards
   { group: "shell", file: "tools/harness/lua_syntax_guard.mjs" },
+  { group: "shell", file: "tools/harness/browser_dependency_inventory_test.mjs" },
+  { group: "wire", file: "tools/harness/protocol_v1_registry_test.mjs" },
   { group: "shell", file: "tools/harness/view_stamp_test.mjs" },
   { group: "shell", file: "tools/harness/panel_frame_test.mjs" },
   { group: "shell", file: "tools/harness/uiflow_test.mjs" },
@@ -90,7 +121,6 @@ export const SUITES = [
   { group: "zone-repaint", file: "tools/harness/stockpile_repaint_session_test.mjs" },
   // seven-family flows: squads / stocks / units / work orders / tavern
   { group: "families", file: "tools/harness/squads_view_fixture_test.mjs" },
-  { group: "families", file: "tools/harness/parity_wave1_squads_test.mjs" },
   { group: "families", file: "tools/harness/wave4_squads_parity_test.mjs" },
   { group: "families", file: "tools/harness/b295_squad_flow_parity_test.mjs" },
   { group: "families", file: "tools/harness/b293_noble_squad_availability_test.mjs" },
@@ -101,6 +131,7 @@ export const SUITES = [
   { group: "families", file: "tools/harness/s5_location_tavern_test.mjs" },
   // v1 gate suites
   { group: "v1", file: "tools/harness/v1_safety_gate_test.mjs" },
+  { group: "v1", file: "tools/harness/squad_delete_teardown_test.mjs" },
   { group: "v1", file: "tools/harness/ws_upgrade_header_capacity_test.mjs" },
   { group: "v1", file: "tools/harness/ui_cache_purge_guard_test.mjs" },
   { group: "v1", file: "tools/harness/v1_shell_single_pop_test.mjs" },
@@ -109,6 +140,16 @@ export const SUITES = [
   { group: "v1", file: "tools/harness/v1_stock_item_flags_test.mjs" },
   { group: "v1", file: "tools/harness/v1_workorder_cancel_test.mjs" },
 ];
+
+const TEST_MANIFEST_PATH = path.join(REPO_ROOT, "tools", "release", "test-manifest.json");
+export const TEST_MANIFEST = JSON.parse(readFileSync(TEST_MANIFEST_PATH, "utf8"));
+export const SUITES = TEST_MANIFEST.offline;
+const suiteMembership = SUITES.map((suite) => {
+  const { private: _private, ...membership } = suite;
+  return membership;
+});
+if (JSON.stringify(suiteMembership) !== JSON.stringify(LEGACY_SUITE_CATALOG))
+  throw new Error("test-manifest.json offline membership drifted from the reviewed catalog");
 
 // Suites known to fail on this candidate for reasons already understood (long-term evidence debt,
 // not launch blockers). Keyed by file basename. A failure HERE is tolerated but reported apart; a
@@ -191,6 +232,17 @@ export async function runSuitesPool(suites, { repoRoot = REPO_ROOT, jobs = 0,
     const suite = suites[index];
     const started = Date.now();
     const args = suite.args || [];
+    if (suite.platforms && !suite.platforms.includes(process.platform)) {
+      const base = path.basename(suite.file);
+      const res = {
+        index, file: suite.file, base, group: suite.group || "",
+        code: 0, ok: true, skipped: true, known: false, ms: 0,
+        output: `SKIP: ${suite.file} runs on ${suite.platforms.join(", ")} (current platform: ${process.platform}).`,
+      };
+      results[index] = res;
+      if (onResult) onResult(res);
+      return Promise.resolve(res);
+    }
     // Skip-if-absent: some suites (e.g. the parity-studio-coupled tests) are excluded from the
     // public distribution by PRE_PUBLISH_HISTORY_FILTER_PATHS.txt while remaining in the private
     // tree. A missing suite file is a clean SKIP with a logged notice here, never a spawn failure
@@ -502,7 +554,7 @@ async function stagePackage(args, log) {
     log(`  Node v${buildResult.nodeVersion} sha256 ${buildResult.nodeSha256}`);
   } catch (e) {
     log(`  [${C.FAIL}] build_zip failed: ${e.message}`);
-    log(`  (package stage needs: --version <v> --node-version <v> --node-exe <path> --node-sha256 <sha> — forwarded to build_zip.mjs)`);
+    log(`  (package stage needs: --version <v> --node-version <v> --node-exe <path> --node-sha256 <sha>; --node-license <path> is optional when LICENSE is beside node.exe)`);
     return { stage: "package", status: C.FAIL, detail: { error: e.message } };
   }
 
@@ -539,9 +591,11 @@ async function stagePackage(args, log) {
 function packageArgs(argv) {
   const names = new Map([
     ["--version", "version"], ["--node-version", "nodeVersion"], ["--node-exe", "nodeExe"],
+    ["--node-license", "nodeLicense"],
     ["--node-sha256", "nodeSha256"], ["--dfhack-sha256", "dfhackSha256"],
     ["--cloudflared-sha256", "cloudflaredSha256"], ["--host", "hostDir"],
     ["--release", "releaseDir"], ["--output-dir", "outputDir"],
+    ["--source-commit", "sourceCommit"], ["--platform", "platform"],
   ]);
   const out = {};
   for (let i = 0; i < argv.length; i++) {

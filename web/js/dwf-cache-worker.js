@@ -190,7 +190,8 @@
       var jd = t.desig;
       if (jd) {
         var jdig = (typeof jd.dig === "string" && DIG_INDEX[jd.dig] !== undefined) ? DIG_INDEX[jd.dig] : 0;
-        var jd1 = (jdig & 0xF) | (((jd.smooth | 0) & 3) << 4) | ((jd.marker ? 1 : 0) << 6);
+        var jd1 = (jdig & 0xF) | (((jd.smooth | 0) & 3) << 4) |
+          ((jd.marker ? 1 : 0) << 6) | ((jd.automine ? 1 : 0) << 7);
         var jd2 = (((jd.traffic | 0) & 3)) | (((jd.track | 0) & 0xF) << 2);
         chunk.desig[idx] = (jd1 & 0xFF) | ((jd2 & 0xFF) << 8);
       } else {
@@ -218,9 +219,11 @@
       var digVal = (typeof d.dig === "string" && DIG_INDEX[d.dig] !== undefined) ? DIG_INDEX[d.dig] : 0;
       var smooth = d.smooth | 0;
       var marker = d.marker ? 1 : 0;
+      var automine = d.automine ? 1 : 0;
       var traffic = d.traffic | 0;
       var track = d.track | 0;
-      desig1 = (digVal & 0xF) | ((smooth & 3) << 4) | ((marker & 1) << 6);
+      desig1 = (digVal & 0xF) | ((smooth & 3) << 4) | ((marker & 1) << 6) |
+        ((automine & 1) << 7);
       desig2 = (traffic & 3) | ((track & 0xF) << 2);
     }
     chunk.desig[idx] = (desig1 & 0xFF) | ((desig2 & 0xFF) << 8);
@@ -378,7 +381,7 @@
 
   // Write one decoded wire-v1 tile record (DwfWireV1.decodeTileRecord's shape) into the
   // chunk's SoA slot `idx`. The wire's bit-packed sub-fields (liquid/flow/hidden/outside,
-  // dig/smooth/marker, traffic/track) are RE-derived rather than assumed byte-identical to the
+  // dig/smooth/marker/automine, traffic/track) are RE-derived rather than assumed byte-identical to the
   // SoA's own packing (even though the two layouts happen to coincide by construction) -- this
   // keeps the two representations decoupled so either can evolve independently.
   function writeBlockTile(chunk, idx, rec) {
@@ -390,7 +393,8 @@
       // shipped only to carry designations (src/wire_v1.cpp encode_block) sends void tiletypes with
       // live desig bytes; zeroing desig here would drop the very payload the block was shipped for.
       // Undesignated void tiles decode to 0, so this stays 0 for them (pure black) -- unchanged.
-      var vd1 = (rec.dig & 0xF) | ((rec.smooth & 3) << 4) | ((rec.marker & 1) << 6);
+      var vd1 = (rec.dig & 0xF) | ((rec.smooth & 3) << 4) | ((rec.marker & 1) << 6) |
+        ((rec.automine & 1) << 7);
       var vd2 = (rec.traffic & 3) | ((rec.track & 0xF) << 2);
       chunk.desig[idx] = (vd1 & 0xFF) | ((vd2 & 0xFF) << 8);
       chunk.spatterAmt[idx] = 0;
@@ -400,7 +404,8 @@
     chunk.tt[idx] = rec.tt;
     chunk.mat[idx] = packMat(rec.base_mt, rec.base_mi);
     chunk.bits[idx] = (rec.liquid & 3) | ((rec.flow & 7) << 2) | ((rec.hidden & 1) << 5) | ((rec.outside & 1) << 6);
-    var desig1 = (rec.dig & 0xF) | ((rec.smooth & 3) << 4) | ((rec.marker & 1) << 6);
+    var desig1 = (rec.dig & 0xF) | ((rec.smooth & 3) << 4) | ((rec.marker & 1) << 6) |
+      ((rec.automine & 1) << 7);
     var desig2 = (rec.traffic & 3) | ((rec.track & 0xF) << 2);
     chunk.desig[idx] = (desig1 & 0xFF) | ((desig2 & 0xFF) << 8);
     chunk.spatterAmt[idx] = rec.spatter_amt & 0xFF;

@@ -1114,6 +1114,7 @@ bool render_viewscreen_without_overlay(std::string* err = nullptr) {
 }
 #endif
 
+#ifdef _WIN32
 bool host_interacting() {
     auto game = df::global::game;
     if (!game)
@@ -1151,6 +1152,7 @@ bool host_interacting() {
 
     return false;
 }
+#endif
 
 struct RenderThreadCameraRequest {
     Camera camera;
@@ -1318,7 +1320,7 @@ void draw_tile_highlight(CapturedFrame& frame, int tx1, int ty1, int tx2, int ty
         draw_rect(frame, x1 + 1, y1 + 1, x2 - 1, y2 - 1, color, 210);
 }
 
-void draw_placement_overlay(const Camera& camera, CapturedFrame& frame) {
+[[maybe_unused]] void draw_placement_overlay(const Camera& camera, CapturedFrame& frame) {
     if (!camera.placement_mode || frame.width <= 0 || frame.height <= 0)
         return;
 
@@ -1557,7 +1559,9 @@ bool capture_shifted(const Camera& camera, CapturedFrame& frame,
     // camera_for_player's fallback never marshals back here (client_state.cpp crash fix).
     note_host_camera(saved);
 
+#ifdef _WIN32
     bool needs_full_host_restore = false;
+#endif
 
 #ifdef _WIN32
     {
@@ -1640,7 +1644,6 @@ bool capture_shifted(const Camera& camera, CapturedFrame& frame,
         if (err) *err = map_err;
         return false;
     }
-    needs_full_host_restore = true;
 #endif
 
 #ifdef _WIN32

@@ -99,10 +99,7 @@ bool read_file_bytes(const std::string& path, std::string& out) {
 // terminates on the host and dials 127.0.0.1, so a bare loopback-peer test would wave every
 // TUNNELED remote friend through as "the host" (adversarial-review finding #1).
 bool peer_is_host_tab(const httplib::Request& req) {
-    bool forwarded = req.has_header("X-Forwarded-For") || req.has_header("CF-Connecting-IP") ||
-                     req.has_header("Forwarded") || req.has_header("X-Real-IP");
-    return request_is_local_host(peer_ip_is_loopback(req.remote_addr), forwarded,
-                                 req.get_header_value("Host"));
+    return request_has_host_authority(req);
 }
 
 } // namespace

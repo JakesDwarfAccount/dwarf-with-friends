@@ -32,8 +32,9 @@
 //   server-side BLOCKLIST is the SOLE containment, and it applies to EVERY caller INCLUDING THE
 //   HOST -- there is deliberately no host/loopback parameter in command_denied() below, so a rule
 //   cannot be written that a non-host bypasses or that the host escapes. The deny table is the one
-//   thing standing between a friend and re-opening the host-only /join-password + /save gates
-//   (via the plugin's own capture-* console commands), stopping DF, or freezing the fort.
+//   thing standing between a friend and re-opening the host-only /join-password gate, bypassing
+//   the save route's collision checks (via capture-* console commands), stopping DF, or freezing
+//   the fort.
 //
 // WHY A PURE HEADER: identical to sound_route.h -- the DECISION logic is header-only and
 // DF/httplib-free so tools/harness/console_policy_fixture.cpp exercises the REAL command_denied()
@@ -77,9 +78,9 @@ inline const std::vector<DenyRule>& deny_table() {
     static const std::vector<DenyRule> kRules = {
         // 1. THE PLUGIN'S OWN CONTROL COMMANDS -- deny the ENTIRE capture-* namespace. This is the
         //    non-negotiable rule: capture-join-password / capture-stream-stop / the quicksave-class
-        //    capture-* commands would let a friend re-open the host-only /join-password and /save
-        //    HTTP gates or stop the stream, straight from the console. The HTTP layer gates those by
-        //    loopback; this closes the console back-door to the same power.
+        //    capture-* commands would let a friend re-open the host-only /join-password gate,
+        //    bypass the guarded /save route, or stop the stream straight from the console. This
+        //    closes the console back-door to those powers.
         //    NOTE the SECOND rule: the plugin also registers a BARE `capture` command (dwf.cpp
         //    plugin_init), which the "capture-" prefix does NOT match. The offline fixture caught
         //    that hole; do not delete this line thinking it is redundant.

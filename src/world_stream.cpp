@@ -232,6 +232,8 @@ struct DiagRow {
     uint32_t scan = 0, dirty = 0, encoded = 0, pending = 0; int inflight = 0; long long rtt = -1;
     bool trickleActive = false;               // WA-11: background snapshot walk in progress
     uint32_t trickleBacklog = 0, reqFront = 0;
+    uint32_t reqQueued = 0;
+    uint64_t reqRateDrops = 0, reqOverflowDrops = 0;
     bool isHost = false;   // isHostClient() hook (WD-27 follow-up): WsConnection::is_host()
 };
 std::mutex g_diag_mu;
@@ -312,7 +314,7 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
     h = fnv1a(h, &b->tiletype[0][0],    sizeof(b->tiletype));
     h = fnv1a(h, &b->designation[0][0], sizeof(b->designation));
     // build-place self-invalidation fix: the block wire (wire_v1.cpp emit) reads ONLY two
-    // things out of tile occupancy -- the `dig_marked` (marker-mode) bit and the four
+    // things out of tile occupancy -- the `dig_marked` (marker-mode), `dig_auto`, and four
     // carve_track_* bits. Folding the WHOLE 32-bit occupancy grid re-signed a block on every
     // transient occupancy change the wire never encodes: the `unit`/`unit_grounded` presence
     // bits flip on EVERY creature STEP (units ship on the AUX channel, not this per-tile
@@ -326,6 +328,7 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
     {
         constexpr uint32_t kOccWireMask =
             (uint32_t)df::tile_occupancy::mask_dig_marked |
+            (uint32_t)df::tile_occupancy::mask_dig_auto |
             (uint32_t)df::tile_occupancy::mask_carve_track_north |
             (uint32_t)df::tile_occupancy::mask_carve_track_south |
             (uint32_t)df::tile_occupancy::mask_carve_track_east |
@@ -464,7 +467,7 @@ bool block_discovered(df::map_block* b) {
 // designation must ALSO ship -- otherwise a mining designation dropped into unexplored rock is
 // written to the map (B133 accepts it) yet its block never reaches the client, so the glyph can
 // never draw over the black. Mirrors the emitter's own `active` designation test (dig != No, or
-// smooth/traffic set, or a carve-track / marker occupancy bit). encode_block emits such a block
+// smooth/traffic set, or a carve-track / marker / automine occupancy bit). encode_block emits such a block
 // with VOID tiletypes so only the designation (never real terrain/material) crosses the wire --
 // fog-of-war is preserved; the client draws the glyph over black with no terrain invented.
 bool block_has_active_designation(df::map_block* b) {
@@ -477,6 +480,7 @@ bool block_has_active_designation(df::map_block* b) {
             if (d.bits.traffic != df::tile_traffic::Normal) return true;
             const df::tile_occupancy& o = b->occupancy[x][y];
             if (o.bits.dig_marked) return true;
+            if (o.bits.dig_auto) return true;
             if (o.bits.carve_track_north || o.bits.carve_track_south ||
                 o.bits.carve_track_east  || o.bits.carve_track_west) return true;
         }
@@ -994,16 +998,57 @@ struct LastReadState {
     uint64_t env_delta_fold = 0;
 };
 LastReadState g_last_read;
+std::atomic<bool> g_world_reset_requested{false};
+std::atomic<bool> g_world_loaded{false};
+
+void reset_world_stream_state() {
+    g_gms = GlobalMapState{};
+    g_conn.clear();
+    g_sig_scan_tick = 0;
+    g_paused_idle_ticks = 0;
+    g_itemdef_ready = false;
+    g_itemdef_frame.clear();
+    g_unit_derived.clear();
+    g_bld_derived.clear();
+    g_race_caste_derived.clear();
+    g_mat_rgb_derived.clear();
+    g_last_read = LastReadState{};
+    {
+        std::lock_guard<std::mutex> lk(g_mapinfo_mu);
+        g_mapinfo = V1MapInfo{};
+    }
+    {
+        std::lock_guard<std::mutex> lk(g_diag_mu);
+        g_diag.clear();
+        g_susp_ring.clear();
+        g_phase_ring.clear();
+        g_simtick_ring.clear();
+    }
+    diagnostics_log("world-stream: reset all world-derived state after world unload");
+}
 
 // A v1 connection's interest for this tick.
 struct Interest { WsConnection* conn; std::string player; int ox, oy, oz, w, h; };
 
 } // namespace
 
+void world_stream_set_world_loaded(bool loaded) {
+    // On unload, close the gate before publishing the reset request. A push tick that observes
+    // either value must not enter CoreSuspender during DF's world teardown.
+    g_world_loaded.store(loaded, std::memory_order_release);
+    g_world_reset_requested.store(true, std::memory_order_release);
+    diagnostics_log(loaded ? "world-stream: lifecycle gate OPEN (world loaded)"
+                           : "world-stream: lifecycle gate CLOSED (world unavailable)");
+}
+
 // ---- hello_ack map info -----------------------------------------------------------
 V1MapInfo world_stream_map_info(std::recursive_mutex& capture_mu) {
     try {
+        if (!g_world_loaded.load(std::memory_order_acquire))
+            return {};
         std::lock_guard<std::recursive_mutex> lock(capture_mu);
+        if (!g_world_loaded.load(std::memory_order_acquire))
+            return {};
         CoreSuspender suspend;
         V1MapInfo mi;
         { std::lock_guard<std::mutex> lk(g_mapinfo_mu); mi = g_mapinfo; }
@@ -1025,6 +1070,10 @@ V1MapInfo world_stream_map_info(std::recursive_mutex& capture_mu) {
 // ---- the per-tick global read pass (§WA-9.3) --------------------------------------
 void world_stream_tick(std::recursive_mutex& capture_mu,
                        const std::function<std::string(const std::string&)>& presence_fn) {
+    if (g_world_reset_requested.exchange(false, std::memory_order_acq_rel))
+        reset_world_stream_state();
+    if (!g_world_loaded.load(std::memory_order_acquire))
+        return;
     auto conns = ws_v1_connections();
 
     // Prune per-conn state for connections that are gone; drop diag rows for players with
@@ -1217,8 +1266,15 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
             plans.push_back(std::move(plan));
         }
     } else {
+    // Invalidate before attempting a fresh read. Every early return and exception below therefore
+    // disables the paused-idle reuse path; only the complete publication at the end re-arms it.
+    g_last_read.valid = false;
     try {
+        if (!g_world_loaded.load(std::memory_order_acquire))
+            return;
         std::lock_guard<std::recursive_mutex> lock(capture_mu);
+        if (!g_world_loaded.load(std::memory_order_acquire))
+            return;
         tA = std::chrono::steady_clock::now();
         CoreSuspender suspend;
         tB = std::chrono::steady_clock::now();
@@ -1228,7 +1284,10 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
         // MUST break by ~suspWait. Proves the split is load-bearing, not decorative.
         tB = t0;
 #endif
-        if (!Maps::IsValid()) return;
+        if (!Maps::IsValid()) {
+            reset_world_stream_state();
+            return;
+        }
         auto world = df::global::world;
         if (!world) return;
         bake_sweep_observe_world(reinterpret_cast<uintptr_t>(world));
@@ -1952,9 +2011,8 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
         bake_sweep_submit_candidates(bake_candidates, bake_viewport_w, bake_viewport_h,
                                      bake_map_w, bake_map_h);
     bake_sweep_tick(capture_mu);
-    // PORTRAITS-ROOT (B128): at most one paced native portrait generation per push tick,
-    // and only once the map bake sweep above has drained (both are offscreen renders).
-    portrait_sweep_tick();
+    // Native portraits advance from plugin_onupdate. They must use DF's ordinary viewscreen
+    // lifecycle, never a recursive render-thread logic call from this streaming worker.
 
     // ---- AFTER release: assemble + enqueue per connection (no DF access below) --------
     const auto& send_units = g_last_read.units;
@@ -2051,7 +2109,8 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
                     if (u.y < in->oy || u.y >= in->oy + in->h) continue;
                     visible_units.push_back({&u, seedown});
                     if (units_changed) {
-                        if (!first) s << ","; first = false;
+                        if (!first) s << ",";
+                        first = false;
                         append_unit_json(s, u, seedown);
                     }
                 }
@@ -2073,7 +2132,8 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
                     if (b.y2 < in->oy || b.y1 >= in->oy + in->h) continue;
                     visible_bldgs.push_back({&b, seedown});
                     if (bldgs_changed) {
-                        if (!first) s << ","; first = false;
+                        if (!first) s << ",";
+                        first = false;
                         append_bld_json(s, b, seedown);
                     }
                 }
@@ -2085,7 +2145,8 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
                     if (dj.z != in->oz) continue;
                     if (dj.x < in->ox || dj.x >= in->ox + in->w) continue;
                     if (dj.y < in->oy || dj.y >= in->oy + in->h) continue;
-                    if (!first) s << ","; first = false;
+                    if (!first) s << ",";
+                    first = false;
                     s << "{\"x\":" << dj.x << ",\"y\":" << dj.y << ",\"z\":" << dj.z << ",\"k\":" << dj.k;
                     if (dj.w) s << ",\"w\":1";   // B135: additive worker-claimed flag
                     s << "}";
@@ -2098,7 +2159,8 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
                     if (p.z != in->oz) continue;
                     if (p.x < in->ox || p.x >= in->ox + in->w) continue;
                     if (p.y < in->oy || p.y >= in->oy + in->h) continue;
-                    if (!first) s << ","; first = false;
+                    if (!first) s << ",";
+                    first = false;
                     s << "{\"x\":" << p.x << ",\"y\":" << p.y << ",\"z\":" << p.z
                       << ",\"fx\":" << p.fx << ",\"fy\":" << p.fy
                       << ",\"item_type\":" << p.item_type << ",\"subtype\":" << p.subtype
@@ -2148,11 +2210,16 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
                     if (!up.empty() || !rm.empty()) {
                         emitted = true; d << ",\"units\":{\"up\":["; first = true;
                         for (const auto& v : up) {
-                            if (!first) d << ","; first = false;
+                            if (!first) d << ",";
+                            first = false;
                             append_unit_json(d, *v.first, v.second);
                         }
                         d << "],\"rm\":["; first = true;
-                        for (int id : rm) { if (!first) d << ","; first = false; d << id; }
+                        for (int id : rm) {
+                            if (!first) d << ",";
+                            first = false;
+                            d << id;
+                        }
                         d << "]}";
                     }
                     for (const auto& v : up) {
@@ -2175,11 +2242,16 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
                     if (!up.empty() || !rm.empty()) {
                         emitted = true; d << ",\"buildings\":{\"up\":["; first = true;
                         for (const auto& v : up) {
-                            if (!first) d << ","; first = false;
+                            if (!first) d << ",";
+                            first = false;
                             append_bld_json(d, *v.first, v.second);
                         }
                         d << "],\"rm\":["; first = true;
-                        for (int id : rm) { if (!first) d << ","; first = false; d << id; }
+                        for (int id : rm) {
+                            if (!first) d << ",";
+                            first = false;
+                            d << id;
+                        }
                         d << "]}";
                     }
                     for (const auto& v : up) {
@@ -2264,6 +2336,9 @@ void world_stream_tick(std::recursive_mutex& capture_mu,
         row.trickleActive = cs.trickle_active;
         row.trickleBacklog = (uint32_t)cs.trickle_backlog.size();
         row.reqFront = (uint32_t)cs.req_front.size();
+        row.reqQueued = (uint32_t)conn->reqblocks_queued();
+        row.reqRateDrops = conn->reqblocks_rate_drops();
+        row.reqOverflowDrops = conn->reqblocks_overflow_drops();
         row.isHost = conn->is_host();
         { std::lock_guard<std::mutex> lk(g_diag_mu); g_diag[in->player] = row; }
     }
@@ -2350,7 +2425,8 @@ std::string world_stream_diag_json() {
       << ",\"players\":[";
     bool first = true;
     for (auto& kv : g_diag) {
-        if (!first) o << ","; first = false;
+        if (!first) o << ",";
+        first = false;
         const DiagRow& r = kv.second;
         o << "{\"player\":\"" << json_escape(kv.first) << "\",\"scanBlocks\":" << r.scan
           << ",\"dirtyBlocks\":" << r.dirty << ",\"encodedBlocks\":" << r.encoded
@@ -2358,6 +2434,9 @@ std::string world_stream_diag_json() {
           << ",\"rttMs\":" << r.rtt
           << ",\"trickleActive\":" << (r.trickleActive ? "true" : "false")
           << ",\"trickleBacklog\":" << r.trickleBacklog << ",\"reqFront\":" << r.reqFront
+          << ",\"reqQueued\":" << r.reqQueued
+          << ",\"reqRateDrops\":" << r.reqRateDrops
+          << ",\"reqOverflowDrops\":" << r.reqOverflowDrops
           << ",\"isHost\":" << (r.isHost ? "true" : "false") << "}";
     }
     o << "]}";

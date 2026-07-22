@@ -26,27 +26,34 @@
 
 namespace dwf {
 
-// PORTRAITS-ROOT (B128): DF 53.x generates unit portrait textures LAZILY -- a unit's
-// portrait_texpos stays 0 for the whole session until a unit view sheet is rendered for
-// that unit (natively or via the plugin's guarded view-sheet emulation). Before this
-// sweep, portraits therefore only existed for units the HOST had personally viewed in
-// the Steam UI. The sweep triggers DF's own generator for every streamed unit at world
-// load and for each new arrival: one unit per paced step, deferring whenever the host
-// interface actually has a sheet open, so browser players get native busts with zero
-// native-view dependency.
+// DF 53.x creates portrait_texpos lazily when it displays a unit sheet. This sweep restores
+// automatic portraits by calling DF's OWN one-argument portrait generator directly on the render
+// thread (exe-pinned and SEH-latched in unit_portrait.cpp). It never opens or impersonates a
+// view sheet, never calls viewscreen logic/render, and never holds renderer or interface state
+// across frames — the rejected mechanisms stay rejected. The sweep itself only paces work (one
+// unit per update tick at most) and keeps honest per-outcome accounting.
 
 // Reset all sweep state when the loaded world changes.
 void portrait_sweep_observe_world(uintptr_t world_identity);
 
-// Offer a unit for portrait generation. Called during the world_stream unit scan (under
-// CoreSuspender) for units whose portrait_texpos is still 0. Deduplicated internally;
-// fort-controlled units are generated before everything else.
+// Record a portrait-less streamed unit. Deduplicated internally.
 void portrait_sweep_note_unit(int32_t unit_id, bool fort_priority);
 
-// Run at most one paced generation step. Called from the stream push tick AFTER the
-// CoreSuspender scan lock is released (same slot as bake_sweep_tick). Never runs a step
-// while the map bake sweep still has camera steps queued.
+// Paced update hook: dispatches at most ONE unit's native generation to the render thread,
+// without blocking DF's update thread. Hard-gated on the save barrier and the fault latch.
 void portrait_sweep_tick();
+
+// Record an explicit browser request; jumps the queue and retries prior failures once.
+void portrait_sweep_request_unit(int32_t unit_id);
+
+// Lifecycle symmetry (save/unload/shutdown). No native state is ever held across frames; any
+// queued callback re-validates the save barrier and its unit id before acting.
+void portrait_sweep_abort_active();
+
+// Runtime controls for `capture-portrait-sweep on|off|limit N`. The limit is a session cap on
+// attempted generations (0 = unlimited) used to canary a fresh deployment.
+void portrait_sweep_set_enabled(bool enabled);
+void portrait_sweep_set_limit(int limit);
 
 // Forget attempted/failed units so the next unit scan re-offers everything still at
 // texpos 0 (manual `capture-portrait-sweep rearm`).

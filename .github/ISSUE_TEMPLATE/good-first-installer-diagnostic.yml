@@ -1,0 +1,19 @@
+name: "Good first issue: installer diagnostic"
+description: Improve one safe, actionable installer or preflight error message.
+title: "[Good first issue] Installer diagnostic: "
+labels: ["good-first-issue", "installer"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Current confusing outcome
+      description: Include the exact message and the safe condition that produces it.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: "Make the message name the problem and recovery step, add an offline fixture, and verify the extracted release layout when relevant."
+    validations:
+      required: true
