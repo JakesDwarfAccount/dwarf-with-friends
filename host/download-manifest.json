@@ -1,15 +1,32 @@
 {
-  "schema": 1,
+  "schema": 2,
   "dfhack": {
     "version": "53.15-r2",
-    "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r2/dfhack-53.15-r2-Windows-64bit.zip",
     "manualUrl": "https://github.com/DFHack/dfhack/releases/tag/53.15-r2",
-    "sha256": "BAKE_DFHACK_SHA256_AT_PACKAGING_TIME"
+    "windows": {
+      "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r2/dfhack-53.15-r2-Windows-64bit.zip",
+      "sha256": "2be9fbc30b1850e5f7a35869a51c4cc3867aef279c377ffe2675c6107dc79196"
+    },
+    "linux": {
+      "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r2/dfhack-53.15-r2-Linux-64bit.tar.bz2",
+      "sha256": "294b788ab90c4d03f6f93ed30f16601d5f42567eae5528c6d93348c68b05f56c"
+    }
   },
   "cloudflared": {
     "version": "2026.6.1",
-    "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.6.1/cloudflared-windows-amd64.exe",
     "manualUrl": "https://github.com/cloudflare/cloudflared/releases/tag/2026.6.1",
-    "sha256": "5253e66f1f493c4e13539749f1aa86fd0c61e3072900fec29a44ba046a6d97e2"
+    "windows": {
+      "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.6.1/cloudflared-windows-amd64.exe",
+      "sha256": "5253e66f1f493c4e13539749f1aa86fd0c61e3072900fec29a44ba046a6d97e2"
+    },
+    "linux": {
+      "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.6.1/cloudflared-linux-amd64",
+      "sha256": "5861a10a438fe8ddcfebb3b830f83966cbf193edafce0fe2eeb198fbae1f7a22"
+    }
+  },
+  "package": {
+    "version": "1.0.0-beta.2",
+    "nodeVersion": "24.16.0",
+    "nodeSha256": "b3094d0b49f9ad602262a9921551737bb97637c05dd357a06ae98188d7290aa3"
   }
 }

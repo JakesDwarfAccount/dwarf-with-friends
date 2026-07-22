@@ -31,6 +31,8 @@
 #include "modules/DFSDL.h"
 #include "modules/Gui.h"
 
+#include "sdl_dlsym.h"
+
 #include "df/buildreq.h"
 #include "df/enabler.h"
 #include "df/gamest.h"
@@ -257,7 +259,21 @@ bool resolve_sdl(std::string* err) {
     if (err) *err = "could not resolve required SDL2 render-target functions";
     return false;
 #else
-    if (err) *err = "SDL capture is currently Windows-only";
+    p_CreateTexture = reinterpret_cast<pfn_CreateTexture>(sdl_symbol("SDL_CreateTexture"));
+    p_SetRenderTarget = reinterpret_cast<pfn_SetRenderTarget>(sdl_symbol("SDL_SetRenderTarget"));
+    p_RenderReadPixels = reinterpret_cast<pfn_RenderReadPixels>(sdl_symbol("SDL_RenderReadPixels"));
+    p_DestroyTexture = reinterpret_cast<pfn_DestroyTexture>(sdl_symbol("SDL_DestroyTexture"));
+    p_GetRendererOutputSize = reinterpret_cast<pfn_GetRendererOutputSize>(sdl_symbol("SDL_GetRendererOutputSize"));
+    p_SetRenderDrawColor = reinterpret_cast<pfn_SetRenderDrawColor>(sdl_symbol("SDL_SetRenderDrawColor"));
+    p_RenderClear = reinterpret_cast<pfn_RenderClear>(sdl_symbol("SDL_RenderClear"));
+
+    if (p_CreateTexture && p_SetRenderTarget && p_RenderReadPixels &&
+        p_DestroyTexture && p_GetRendererOutputSize &&
+        p_SetRenderDrawColor && p_RenderClear) {
+        return true;
+    }
+
+    if (err) *err = "could not resolve required SDL2 render-target functions";
     return false;
 #endif
 }

@@ -41,6 +41,9 @@ DFHACK_BUILD_NAMES = ["build-msvc", "build", "build-vs2022", "build-vs2026"]
 
 # Keep in lockstep with host/hostlib.mjs steamDfCandidates() -- the resolver test asserts it.
 DRIVES = ["C", "D", "E", "F", "G", "H"]
+IS_WIN = sys.platform == "win32"
+DF_EXE_NAME = "Dwarf Fortress.exe" if IS_WIN else "dwarfort"
+
 TAILS = [
     r"SteamLibrary\steamapps\common\Dwarf Fortress",
     r"Steam\steamapps\common\Dwarf Fortress",
@@ -51,11 +54,25 @@ TAILS = [
 STEAM_VDFS = [
     r"C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf",
     r"C:\Program Files\Steam\steamapps\libraryfolders.vdf",
+] if IS_WIN else [
+    os.path.join(os.environ.get("HOME", ""), ".local", "share", "Steam", "steamapps", "libraryfolders.vdf"),
+    os.path.join(os.environ.get("HOME", ""), ".steam", "steam", "steamapps", "libraryfolders.vdf"),
+    os.path.join(os.environ.get("HOME", ""), ".var", "app", "com.valvesoftware.Steam", ".local",
+                 "share", "Steam", "steamapps", "libraryfolders.vdf"),
 ]
 
 
 def steam_df_candidates(drives=None):
     """The fixed guesses. Pure: touches no disk."""
+    if not IS_WIN:
+        home = os.environ.get("HOME", "")
+        return [
+            os.path.join(home, ".local", "share", "Steam", "steamapps", "common", "Dwarf Fortress"),
+            os.path.join(home, ".steam", "steam", "steamapps", "common", "Dwarf Fortress"),
+            os.path.join(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share",
+                         "Steam", "steamapps", "common", "Dwarf Fortress"),
+            os.path.join(home, "Games", "Dwarf Fortress"),
+        ]
     return ["%s:\\%s" % (d, t) for d in (drives or DRIVES) for t in TAILS]
 
 
@@ -83,7 +100,7 @@ def is_df_root(df_root, exists=os.path.exists):
     """A DF install holds the game exe OR the vanilla raws (raws are all most tools need)."""
     if not df_root:
         return False
-    return (exists(os.path.join(df_root, "Dwarf Fortress.exe"))
+    return (exists(os.path.join(df_root, DF_EXE_NAME))
             or exists(os.path.join(df_root, "data", "vanilla")))
 
 
@@ -225,7 +242,10 @@ def require(value, tool_name, purpose=""):
 
 
 def dfhack_run(df_root):
-    """DFHack's CLI lives in hack/, NOT at the DF root."""
+    """Windows: DFHack's CLI lives in hack/, NOT at the DF root. Linux: the root-level
+    dfhack-run wrapper script (it sets LD_LIBRARY_PATH for the hack/ binary)."""
+    if not IS_WIN:
+        return os.path.join(df_root, "dfhack-run")
     return os.path.join(df_root, "hack", "dfhack-run.exe")
 
 

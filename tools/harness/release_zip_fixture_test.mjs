@@ -10,7 +10,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
-import { buildReleaseZip, REQUIRED_RELEASE_FILES } from "../release/build_zip.mjs";
+import { buildReleaseZip, requiredReleaseFiles } from "../release/build_zip.mjs";
 import { resolveManifest } from "../../host/hostlib.mjs";
 
 let passed = 0;
@@ -134,7 +134,7 @@ try {
       .filter((e) => e.kind === "file")
       .map((e) => path.relative("R:\\rel", e.src).split(path.sep).join("/")),
   )].sort();
-  const buildZipFiles = [...REQUIRED_RELEASE_FILES].sort();
+  const buildZipFiles = [...requiredReleaseFiles(process.platform === "win32" ? "windows" : "linux")].sort();
   const setsEqual = installerReleaseFiles.length === buildZipFiles.length &&
     installerReleaseFiles.every((f, i) => f === buildZipFiles[i]);
   if (installerReleaseFiles.some((f) => /dfcapture/i.test(f))) {

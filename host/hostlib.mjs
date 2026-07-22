@@ -56,6 +56,15 @@ export const SERVER_PORT = 8765;
 export const AUTH_COOKIE = "dfcap_auth";   // src/http_server.cpp:451,499 cookie_value(..., "dfcap_auth")
 export const DFHACK_VERSION = "53.15-r2";
 
+// ---------------------------------------------------------------- platform names
+// One switch per platform-shaped filename. Windows keeps its historical names; Linux uses the
+// native Steam depot (`dwarfort`) + Linux DFHack (`dfhack` launcher script, .plug.so plugins).
+export const IS_WIN = process.platform === "win32";
+export const PLUGIN_BINARY = IS_WIN ? "dwf.plug.dll" : "dwf.plug.so";
+export const DF_EXE_NAME = IS_WIN ? "Dwarf Fortress.exe" : "dwarfort";
+export const DFHACK_LAUNCHER = IS_WIN ? "dfhack.exe" : "dfhack";
+export const CLOUDFLARED_BIN = IS_WIN ? "cloudflared.exe" : "cloudflared";
+
 // ---------------------------------------------------------------- manifest resolution
 // Release layout (what a packaged dwf release contains, post-W9 rename):
 //   <release>/dwf.plug.dll          (CMake OUTPUT_NAME dwf -> dwf.plug.dll)
@@ -78,8 +87,8 @@ export function resolveManifest(dfRoot, releaseDir) {
   const j = path.join;
   return [
     { role: "dll", kind: "file",
-      src: j(releaseDir, "dwf.plug.dll"),
-      dest: j(dfRoot, "hack", "plugins", "dwf.plug.dll") },
+      src: j(releaseDir, PLUGIN_BINARY),
+      dest: j(dfRoot, "hack", "plugins", PLUGIN_BINARY) },
     { role: "lua-plugins", kind: "file",
       src: j(releaseDir, "dwf.lua"),
       dest: j(dfRoot, "hack", "lua", "plugins", "dwf.lua") },
@@ -99,9 +108,9 @@ export function resolveManifest(dfRoot, releaseDir) {
 export function dfhackMarkers(dfRoot) {
   return {
     dfRoot,
-    dfExe:          path.join(dfRoot, "Dwarf Fortress.exe"),
-    dfhackExe:      path.join(dfRoot, "dfhack.exe"),
-    dfhackDll:      path.join(dfRoot, "dfhack.dll"),
+    dfExe:          path.join(dfRoot, DF_EXE_NAME),
+    dfhackExe:      path.join(dfRoot, DFHACK_LAUNCHER),
+    dfhackDll:      IS_WIN ? path.join(dfRoot, "dfhack.dll") : path.join(dfRoot, "libdfhooks.so"),
     hackDir:        path.join(dfRoot, "hack"),
     hackPluginsDir: path.join(dfRoot, "hack", "plugins"),
     hackLuaPlugins: path.join(dfRoot, "hack", "lua", "plugins"),
@@ -121,7 +130,7 @@ export function checkDfhack(dfRoot, exists = existsSync) {
     return { ok: false, problems, markers: m };
   }
   if (!exists(m.dfExe)) {
-    problems.push(`This does not look like a Dwarf Fortress install -- "Dwarf Fortress.exe" is not in ${dfRoot}.`);
+    problems.push(`This does not look like a Dwarf Fortress install -- "${DF_EXE_NAME}" is not in ${dfRoot}.`);
   }
   if (!exists(m.hackDir)) {
     problems.push("DFHack is not installed here (no \"hack\" folder). In Steam: right-click Dwarf Fortress -> Properties -> Betas is not needed; instead subscribe to DFHack, or install it from dfhack.org, then run this again.");
@@ -158,8 +167,19 @@ export function inspectDfhackVersion(dfRoot, exists = existsSync, read = readFil
 }
 
 // ---------------------------------------------------------------- DF auto-detect
-// Common Steam locations across the usual drive letters. PURE list builder (no disk touch).
+// Common Steam locations across the usual drive letters (Windows) or the standard Steam
+// homes (Linux). PURE list builder (no disk touch).
 export function steamDfCandidates(drives = ["C", "D", "E", "F", "G", "H"]) {
+  if (!IS_WIN) {
+    const home = process.env.HOME || "";
+    return [
+      path.join(home, ".local", "share", "Steam", "steamapps", "common", "Dwarf Fortress"),
+      path.join(home, ".steam", "steam", "steamapps", "common", "Dwarf Fortress"),
+      path.join(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam",
+                "steamapps", "common", "Dwarf Fortress"),   // Flatpak Steam
+      path.join(home, "Games", "Dwarf Fortress"),
+    ];
+  }
   const tails = [
     "SteamLibrary\\steamapps\\common\\Dwarf Fortress",
     "Steam\\steamapps\\common\\Dwarf Fortress",
@@ -175,9 +195,14 @@ export function steamDfCandidates(drives = ["C", "D", "E", "F", "G", "H"]) {
 // Steam records every library folder it knows about in libraryfolders.vdf. Reading it finds
 // installs on drives/paths the fixed list above never guesses (the whole point: strangers do not
 // have their library where we do). PURE-ish: file readers are injectable for tests.
-export const STEAM_VDFS = [
+export const STEAM_VDFS = IS_WIN ? [
   "C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf",
   "C:\\Program Files\\Steam\\steamapps\\libraryfolders.vdf",
+] : [
+  path.join(process.env.HOME || "", ".local", "share", "Steam", "steamapps", "libraryfolders.vdf"),
+  path.join(process.env.HOME || "", ".steam", "steam", "steamapps", "libraryfolders.vdf"),
+  path.join(process.env.HOME || "", ".var", "app", "com.valvesoftware.Steam", ".local", "share",
+            "Steam", "steamapps", "libraryfolders.vdf"),
 ];
 export function steamLibraryDfCandidates(
   exists = existsSync,
@@ -201,13 +226,15 @@ export function steamLibraryDfCandidates(
 // checkDfhack: the raws/art oracles in tools/ need only `data/vanilla`, not a DFHack install.
 export function isDfRoot(dfRoot, exists = existsSync) {
   if (!dfRoot) return false;
-  return exists(path.join(dfRoot, "Dwarf Fortress.exe")) ||
+  return exists(path.join(dfRoot, DF_EXE_NAME)) ||
          exists(path.join(dfRoot, "data", "vanilla"));
 }
 
-// Steam's own library list FIRST (authoritative on a stranger's machine), then the fixed guesses.
+// An explicit DWF_DF_ROOT wins, then Steam's own library list (authoritative on a stranger's
+// machine), then the fixed guesses.
 export function dfCandidates(exists = existsSync, readText = (p) => readFileSync(p, "utf8")) {
-  return [...steamLibraryDfCandidates(exists, readText), ...steamDfCandidates()];
+  const env = process.env.DWF_DF_ROOT ? [process.env.DWF_DF_ROOT] : [];
+  return [...env, ...steamLibraryDfCandidates(exists, readText), ...steamDfCandidates()];
 }
 
 // First candidate that passes checkDfhack; else first that is a DF install; else null.
@@ -244,7 +271,8 @@ export function isDfhackBuild(buildRoot, exists = existsSync) {
   if (!buildRoot) return false;
   return exists(path.join(buildRoot, "CMakeCache.txt")) ||
          exists(path.join(buildRoot, "plugins", "external", "multi-dwarf", "Release",
-                          "dwf.plug.dll"));   // CMake OUTPUT_NAME dwf (W9) -> dwf.plug.dll
+                          "dwf.plug.dll")) ||   // CMake OUTPUT_NAME dwf (W9) -> dwf.plug.dll
+         exists(path.join(buildRoot, "plugins", "external", "multi-dwarf", "dwf.plug.so"));
 }
 
 export function autodetectDfhackBuild(candidates, exists = existsSync) {
@@ -421,7 +449,7 @@ export function explainStreamStartFailure({ output, dllDeployed, version }) {
       `then restart Dwarf Fortress and try again.`;
   }
   if (dllDeployed === false) {
-    return "The Dwarf With Friends plugin (dwf.plug.dll) is not installed in DFHack. " +
+    return `The Dwarf With Friends plugin (${PLUGIN_BINARY}) is not installed in DFHack. ` +
       "Run DWF Setup to install the mod, then restart Dwarf Fortress and try again.";
   }
   return `DFHack did not load the Dwarf With Friends plugin. This usually means the installed DFHack ` +
@@ -521,9 +549,34 @@ while (($panel -ne $null) -and (-not $panel.HasExited) -and (-not $cf.HasExited)
 if (-not $cf.HasExited) { try { $cf.Kill() } catch {} }
 exit 0
 `;
+// POSIX twin of the job-object wrapper: a plain sh loop that starts cloudflared, polls the panel
+// pid with kill -0, and kills cloudflared the moment the panel is gone. Weaker than the Windows
+// kernel guarantee (a SIGKILLed wrapper orphans the tunnel), but the panel's own exit handlers
+// remain the graceful path, and the wrapper covers every normal death.
+const TUNNEL_WRAPPER_SH = `
+"$DWF_TUNNEL_EXE" "$@" &
+cf=$!
+trap 'kill "$cf" 2>/dev/null; exit 0' TERM INT HUP
+while kill -0 "$DWF_PANEL_PID" 2>/dev/null && kill -0 "$cf" 2>/dev/null; do
+  sleep 0.3
+done
+kill "$cf" 2>/dev/null
+wait "$cf" 2>/dev/null
+exit 0
+`;
 // Args are pre-quoted into ONE string because ProcessStartInfo.Arguments is a raw command line.
 function quoteArg(a) { return /[\s"]/.test(a) ? `"${String(a).replace(/"/g, '\\"')}"` : String(a); }
 export function tunnelWrapperCommand({ exe, args, panelPid }) {
+  if (process.platform !== "win32") {
+    return {
+      file: "/bin/sh",
+      args: ["-c", TUNNEL_WRAPPER_SH, "dwf-tunnel-wrapper", ...(args || [])],
+      env: {
+        DWF_TUNNEL_EXE: String(exe),
+        DWF_PANEL_PID: String(panelPid),
+      },
+    };
+  }
   return {
     file: "powershell.exe",
     args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",

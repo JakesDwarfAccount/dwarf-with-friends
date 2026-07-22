@@ -21,6 +21,7 @@
 // touched, and the suite is identical on a machine that has one and a machine that does not.
 
 import assert from "node:assert/strict";
+import { DF_EXE_NAME, IS_WIN } from "../../host/hostlib.mjs";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -63,11 +64,18 @@ writeFileSync(path.join(FAKE_BUILD, "CMakeCache.txt"),
 console.log("# dfroot resolver");
 
 console.log("\n## candidate list (pure, no disk)");
-check("the fixed candidates are RELATIVE tails cross-producted with drives", () => {
+check(IS_WIN ? "the fixed candidates are RELATIVE tails cross-producted with drives"
+             : "the fixed candidates are the standard Linux Steam homes", () => {
   const c = steamDfCandidates(["Q"]);
-  assert.ok(c.length >= 5, "expected the usual Steam tails");
-  assert.ok(c.every((p) => /^Q:\\/.test(p)), "every candidate must be on the requested drive");
-  assert.ok(c.some((p) => p.endsWith("SteamLibrary\\steamapps\\common\\Dwarf Fortress")));
+  if (IS_WIN) {
+    assert.ok(c.length >= 5, "expected the usual Steam tails");
+    assert.ok(c.every((p) => /^Q:\\/.test(p)), "every candidate must be on the requested drive");
+    assert.ok(c.some((p) => p.endsWith("SteamLibrary\\steamapps\\common\\Dwarf Fortress")));
+  } else {
+    assert.ok(c.length >= 3, "expected the usual Steam homes");
+    assert.ok(c.some((p) => p.includes(".local/share/Steam/steamapps/common/Dwarf Fortress")));
+    assert.ok(c.some((p) => p.includes(".var/app/com.valvesoftware.Steam")), "Flatpak Steam home");
+  }
 });
 check("Steam's libraryfolders.vdf is parsed into candidates (finds drives we never guess)", () => {
   const vdf = 'X:\\lf.vdf';
@@ -88,8 +96,8 @@ check("a DF root is the exe OR data/vanilla (raws are all most tools need)", () 
 });
 check("autodetect prefers a DFHack-complete install over a bare one", () => {
   const bare = "A:\\bare", full = "B:\\full";
-  const present = new Set([bare, path.join(bare, "Dwarf Fortress.exe"),
-                           full, path.join(full, "Dwarf Fortress.exe"),
+  const present = new Set([bare, path.join(bare, DF_EXE_NAME),
+                           full, path.join(full, DF_EXE_NAME),
                            path.join(full, "hack"), path.join(full, "hack", "plugins")]);
   assert.equal(autodetectDfRoot([bare, full], (p) => present.has(p)), full,
     "the bare install is listed first, but the DFHack one must win");
@@ -135,8 +143,10 @@ check("no flag, no env, nothing on disk -> null, and the message says what to pa
 });
 
 console.log("\n## dfhack-run");
-check("dfhack-run lives in hack/, not at the DF root", () => {
-  assert.equal(dfhackRun(FAKE), path.join(FAKE, "hack", "dfhack-run.exe"));
+check(IS_WIN ? "dfhack-run lives in hack/, not at the DF root"
+             : "dfhack-run is the root-level wrapper script", () => {
+  assert.equal(dfhackRun(FAKE), IS_WIN ? path.join(FAKE, "hack", "dfhack-run.exe")
+                                       : path.join(FAKE, "dfhack-run"));
 });
 check("defaultDfhackRun is non-fatal with no install (the live oracles must still import)", () => {
   const saved = { ...process.env };
@@ -238,7 +248,7 @@ if (!pyOk) {
     assert.equal(isDfRoot(FAKE), true);
     assert.equal(isDfRoot(NOT_DF), false);
   });
-  check("both put dfhack-run in hack/", () => {
+  check(IS_WIN ? "both put dfhack-run in hack/" : "both use the root dfhack-run wrapper", () => {
     assert.equal(py(`print(dfroot.dfhack_run(r"${FAKE}"))`), dfhackRun(FAKE));
   });
   check("both agree on THIS machine (whatever it has, or has not)", () => {

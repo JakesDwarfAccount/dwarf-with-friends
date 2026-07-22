@@ -39,6 +39,14 @@ else()
     endif()
 endif()
 
+# Windows links GDI+ (image encode) + COM + winsock; Linux needs only libdl for
+# runtime SDL symbol resolution (stb_image_write replaces GDI+, sockets are libc).
+if(WIN32)
+    set(DWF_PLATFORM_LIBS gdiplus ole32 ws2_32)
+else()
+    set(DWF_PLATFORM_LIBS ${CMAKE_DL_LIBS})
+endif()
+
 dfhack_plugin(dfcapture_public
     src/announcements.cpp
     src/art_desc.cpp
@@ -105,10 +113,11 @@ dfhack_plugin(dfcapture_public
     src/work_orders.cpp
     src/write_guards.cpp
     src/world_stream.cpp
-    LINK_LIBRARIES gdiplus ole32 ws2_32 lua ZLIB::ZLIB)
+    LINK_LIBRARIES ${DWF_PLATFORM_LIBS} lua ZLIB::ZLIB)
 
 target_include_directories(dfcapture_public PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cpp-httplib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb"
     ${SDL2_INCLUDE_DIRS})
 
 target_compile_definitions(dfcapture_public PRIVATE

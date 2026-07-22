@@ -200,7 +200,12 @@ export function dfRootOrDie(toolName, purpose = "") {
 }
 
 /** The DFHack CLI inside an install. It lives in hack/, NOT at the DF root. */
-export function dfhackRun(dfRoot) { return path.join(dfRoot, "hack", "dfhack-run.exe"); }
+export function dfhackRun(dfRoot) {
+  // Windows: hack/dfhack-run.exe. Linux: the root-level dfhack-run wrapper script.
+  return process.platform === "win32"
+    ? path.join(dfRoot, "hack", "dfhack-run.exe")
+    : path.join(dfRoot, "dfhack-run");
+}
 
 /**
  * Default for the LIVE ORACLE suites' `--dfhack-run` flag. Non-fatal: these suites are gated by
