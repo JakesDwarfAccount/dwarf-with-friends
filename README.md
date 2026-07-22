@@ -25,12 +25,6 @@ Dwarf With Friends is a [DFHack](https://github.com/DFHack/dfhack) plugin for St
 Fortress (v0.53.15, DFHack 53.15-r2). It's a **beta**: the everyday 90%+ of fortress play is built
 and tested; the rare corners fall back to "ask the host" instead of pretending to work.
 
-The project grew directly from Gabriel Rios's
-[SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that
-project's copyright and AGPL license. [UPSTREAM.md](UPSTREAM.md) records what was inherited and what
-Dwarf With Friends subsequently added; [SECURITY.md](SECURITY.md) explains the trusted-friends
-threat model and why this is not intended as a public server.
-
 ![Two players building a fort together, each with their own labeled cursor](media/two-players.gif)
 
 ## How it works
@@ -185,8 +179,11 @@ Dwarf With Friends is licensed under **AGPL-3.0-only**; see [LICENSE](LICENSE). 
 players over a network, the AGPL entitles anyone you host for to the source — which is this
 repository.
 
-It runs on **DFHack** (Zlib), grew out of
-**[SourceAirbender's multi-dwarf / dfcapture](https://github.com/SourceAirbender/multi-dwarf)**
-(AGPL-3.0-only), and continues the multiplayer approach of **DFPlex** (Zlib), which itself builds
-on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and third-party licence
-texts are in [NOTICE](NOTICE).
+The project grew directly from Gabriel Rios's
+[SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that
+project's copyright and AGPL license. [UPSTREAM.md](UPSTREAM.md) records what was inherited and what
+Dwarf With Friends subsequently added.
+
+It runs on **DFHack** (Zlib) and continues the multiplayer approach of **DFPlex** (Zlib), which
+itself builds on **webfort** (ISC). It embeds **cpp-httplib** (MIT). Full attributions and
+third-party licence texts are in [NOTICE](NOTICE).
