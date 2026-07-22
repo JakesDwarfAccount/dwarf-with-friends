@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "info_panel.h"
+#include "render_thread_wait.h"
 #include "fort_stock.h"
 #include "interaction.h"
 #include "unit_activity.h"
@@ -2390,7 +2391,7 @@ bool info_panel_on_render_thread(const std::string& panel_name,
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;
@@ -2451,7 +2452,7 @@ bool cancel_job_on_render_thread(int32_t job_id, std::string* err) {
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok && err)
         *err = request->err;
     return ok;
@@ -2712,7 +2713,7 @@ bool livestock_action_on_render_thread(int32_t unit_id, const std::string& actio
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;
@@ -2751,7 +2752,7 @@ bool set_unit_nickname_on_render_thread(int32_t unit_id, const std::string& nick
         }
     });
 
-    if (!future.get()) {
+    if (!render_future_ready(future) || !future.get()) {
         if (err) *err = request->err;
         return false;
     }

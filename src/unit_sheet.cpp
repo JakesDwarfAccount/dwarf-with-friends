@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "unit_sheet.h"
+#include "render_thread_wait.h"
 
 #include "http_server.h"
 #include "info_panel.h"
@@ -3013,7 +3014,7 @@ bool unit_sheet_on_render_thread(int32_t unit_id,
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err.empty() ? "unit sheet failed" : request->err;
         return false;

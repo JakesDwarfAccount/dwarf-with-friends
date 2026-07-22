@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "unit_portrait.h"
+#include "render_thread_wait.h"
 
 #include "diagnostics.h"
 #include "sdl_capture.h"
@@ -974,7 +975,7 @@ bool unit_portrait_on_render_thread(int32_t unit_id,
         request->done.set_value(false);
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (ok) {
         frame = std::move(request->frame);
         texpos = request->texpos;

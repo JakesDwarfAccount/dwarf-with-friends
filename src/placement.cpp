@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "placement.h"
+#include "render_thread_wait.h"
 
 #include "attribution.h"
 #include "client_state.h"
@@ -821,7 +822,7 @@ bool designate_on_render_thread(const Camera& camera, const DesignationRequest& 
         req->done.set_value(
             effective_capture_viewport_dims(req->camera, probe_w, probe_h, &req->err));
     });
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (req->err.empty())
             req->err = "viewport/frame unavailable";

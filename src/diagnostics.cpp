@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "diagnostics.h"
+#include "render_thread_wait.h"
 
 #include "json_util.h"
 #include "sdl_capture.h"
@@ -297,7 +298,7 @@ bool host_state_on_render_thread(HostState& state, std::string* err) {
         request->done.set_value(read_host_state(request->state, &request->err));
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     state = request->state;
     if (!ok && err)
         *err = request->err;
@@ -331,7 +332,7 @@ bool viewport_probe_on_render_thread(ViewportProbe& probe, std::string* err) {
         request->done.set_value(read_viewport_probe(request->probe, &request->err));
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     probe = request->probe;
     if (!ok && err)
         *err = request->err;

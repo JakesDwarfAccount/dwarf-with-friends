@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "notifications.h"
+#include "render_thread_wait.h"
 
 #include "json_util.h"
 #include "MiscUtils.h"
@@ -407,7 +408,7 @@ bool notifications_on_render_thread(const std::unordered_set<std::string>& dismi
                                                     &request->err));
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;
