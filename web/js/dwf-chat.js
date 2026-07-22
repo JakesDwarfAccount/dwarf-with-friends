@@ -1001,12 +1001,21 @@
     }
   }
   var noteTimer = null;
+  var lastRejectionReason = "";
   function flashNote(text) {
     if (!els.note || supported === false) return;
     els.note.textContent = text;
     els.note.classList.add("show");
     if (noteTimer) clearTimeout(noteTimer);
     noteTimer = setTimeout(function () { if (supported !== false) els.note.classList.remove("show"); }, 2500);
+  }
+
+  function onRejected(msg) {
+    lastRejectionReason = msg && msg.reason || "rejected";
+    if (lastRejectionReason === "rate_limit")
+      flashNote("You're sending messages too quickly. Please wait a moment.");
+    else
+      flashNote("Message was not accepted by the host.");
   }
 
   // ---- open / close / badge ------------------------------------------------------------------
@@ -1053,6 +1062,7 @@
   // Public API + test hooks.
   window.DwfChat = {
     onChat: onChat,
+    onRejected: onRejected,
     storyMarkup: chatStoryMarkup,
     preparePreview: ensureStyle,
     // test-only internals (offline harness): the injection-critical render path + gap math.
@@ -1079,8 +1089,10 @@
     _applyLineForTest: function (msg) { applyLine(msg); },
     _emitPingSplashesForTest: emitPingSplashes,   // WT27: location-token -> DwfTiles.pingSplash
     _stateForTest: function () { return { lastSeq: lastSeq, supported: supported, count: lines.size, unread: unread }; },
+    _lastRejectionForTest: function () { return lastRejectionReason; },
     _resetForTest: function () { supported = null; lastSeq = 0; lines = new Map(); open = false;
-      unread = 0; activeMention = null; navigationHooks = null; pingArmed = false; },
+      unread = 0; activeMention = null; navigationHooks = null; pingArmed = false;
+      lastRejectionReason = ""; },
   };
 
   if (typeof document !== "undefined" && document.body && !window.__DWF_STORY_MODE) {

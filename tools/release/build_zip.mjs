@@ -3,9 +3,11 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// Build the dependency-free, portable-Node Windows release zip. This script never downloads.
+// Build the dependency-free, portable-Node release zip (--platform windows|linux).
+// This script never downloads.
 
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import {
   closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeSync,
 } from "node:fs";
@@ -25,6 +27,33 @@ const REQUIRED_HOST_FILES = [
 // resolveManifest) ships EXACTLY these release files -- the guard that catches a future name drift
 // like the dfcapture.* -> dwf.* split that shipped a mismatched zip and installer.
 export const REQUIRED_RELEASE_FILES = ["dwf.plug.dll", "dwf.lua", "gui/dwf.lua"];
+export function requiredReleaseFiles(platform) {
+  return [platform === "linux" ? "dwf.plug.so" : "dwf.plug.dll", "dwf.lua", "gui/dwf.lua"];
+}
+
+// Everything platform-shaped in one table: the bundled Node binary's zip path, the plugin binary
+// this platform deploys (the OTHER platform's binary is excluded from its zip), the launcher
+// scripts, and the archive suffix. Windows output keeps its historical unsuffixed name.
+const PLATFORMS = {
+  windows: {
+    nodeEntry: "node/node.exe",
+    pluginBinary: "dwf.plug.dll",
+    excludedPluginBinary: "dwf.plug.so",
+    launchers: [["DWF Setup.cmd", "setup.mjs"], ["Dwarf With Friends.cmd", "host_panel.mjs"]],
+    setupCommand: "Double-click DWF Setup.cmd.",
+    unpackLine: "1. Unzip this folder anywhere on your Windows PC.",
+    suffix: "",
+  },
+  linux: {
+    nodeEntry: "node/node",
+    pluginBinary: "dwf.plug.so",
+    excludedPluginBinary: "dwf.plug.dll",
+    launchers: [["dwf-setup.sh", "setup.mjs"], ["dwarf-with-friends.sh", "host_panel.mjs"]],
+    setupCommand: "Run ./dwf-setup.sh from a terminal.",
+    unpackLine: "1. Unzip this folder anywhere on your Linux PC (native Steam Dwarf Fortress).",
+    suffix: "-linux",
+  },
+};
 
 function fail(message) { throw new Error(message); }
 function validSha(value) { return /^[a-f0-9]{64}$/i.test(String(value || "")); }
@@ -34,6 +63,12 @@ function normalizedVersion(value, label) {
   return version;
 }
 function sha256(data) { return createHash("sha256").update(data).digest("hex"); }
+function sourceCommit(explicit) {
+  if (explicit) return String(explicit);
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  try { return execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim(); }
+  catch { fail("source commit is unavailable; pass --source-commit"); }
+}
 
 function walkFiles(root, relative = "") {
   const result = [];
@@ -47,21 +82,40 @@ function walkFiles(root, relative = "") {
   return result;
 }
 
-function requireLayout(hostDir, releaseDir) {
+function requireLayout(hostDir, releaseDir, platform) {
   for (const rel of REQUIRED_HOST_FILES) {
     if (!existsSync(path.join(hostDir, rel))) fail(`host tree is missing ${rel}`);
   }
-  for (const rel of REQUIRED_RELEASE_FILES) {
+  for (const rel of requiredReleaseFiles(platform)) {
     if (!existsSync(path.join(releaseDir, rel))) fail(`release tree is missing ${rel} (build only after W9)`);
   }
   const web = path.join(releaseDir, "web");
   if (!existsSync(web) || !statSync(web).isDirectory()) fail("release tree is missing web/");
   const forbidden = [...walkFiles(hostDir), ...walkFiles(releaseDir)]
-    .find((rel) => path.posix.basename(rel).toLowerCase() === "cloudflared.exe");
-  if (forbidden) fail(`cloudflared.exe must be fetched by setup, not shipped (${forbidden})`);
+    .find((rel) => ["cloudflared.exe", "cloudflared"].includes(path.posix.basename(rel).toLowerCase()));
+  if (forbidden) fail(`cloudflared must be fetched by setup, not shipped (${forbidden})`);
 }
 
-function launcher(script) {
+function launcher(script, platform) {
+  if (platform === "linux") {
+    // Mirrors the .cmd contract: bundled node first, system node fallback, honest failure.
+    return Buffer.from([
+      "#!/bin/sh",
+      "# This terminal is the DWF engine -- minimize it. Closing it stops DWF.",
+      'DIR="$(cd "$(dirname "$0")" && pwd)"',
+      'if [ -x "$DIR/node/node" ]; then',
+      '  NODE="$DIR/node/node"',
+      "elif command -v node >/dev/null 2>&1; then",
+      "  NODE=node",
+      "else",
+      '  echo "Node.js 18+ is required. Install it from your package manager and re-run." >&2',
+      "  exit 1",
+      "fi",
+      'echo "This window is the DWF engine -- minimize it. Closing it stops DWF."',
+      `exec "$NODE" "$DIR/host/${script}"`,
+      "",
+    ].join("\n"), "utf8");
+  }
   return Buffer.from([
     "@echo off",
     "setlocal",
@@ -74,18 +128,19 @@ function launcher(script) {
   ].join("\r\n"), "utf8");
 }
 
-function readme(version) {
+function readme(version, platform) {
+  const p = PLATFORMS[platform];
   return Buffer.from([
     `Dwarf With Friends v${version}`,
     "",
-    "1. Unzip this folder anywhere on your Windows PC.",
-    "2. Double-click DWF Setup.cmd.",
+    p.unpackLine,
+    `2. ${p.setupCommand}`,
     "3. Follow the setup page that opens in your browser.",
     "   If no page opens, the address is printed in the console window (http://127.0.0.1:<port>).",
     "The console window is the engine log; minimize it, but leave it open.",
     "After setup, use the Dwarf With Friends shortcut to host again.",
     "Friends need only the link and password shown in the host panel.",
-    "Re-run DWF Setup.cmd at any time to verify or repair the installation.",
+    `Re-run ${platform === "linux" ? "dwf-setup.sh" : "DWF Setup.cmd"} at any time to verify or repair the installation.`,
     "Dwarf Fortress is required and is not included.",
     "DFHack (the modding engine Dwarf With Friends runs on) is installed automatically by setup if it is missing.",
     "",
@@ -122,7 +177,7 @@ function u16(value) { const b = Buffer.alloc(2); b.writeUInt16LE(value); return 
 function u32(value) { const b = Buffer.alloc(4); b.writeUInt32LE(value >>> 0); return b; }
 function writeAll(fd, chunks) { for (const chunk of chunks) writeSync(fd, chunk); }
 
-function writeZip(output, sourceEntries) {
+function writeZip(output, sourceEntries, executables = new Set()) {
   const entries = new Map(sourceEntries);
   for (const name of [...entries.keys()]) {
     const parts = name.split("/");
@@ -143,6 +198,11 @@ function writeZip(output, sourceEntries) {
       const deflated = name.endsWith("/") ? data : deflateRawSync(data, { level: 9 });
       const compressed = deflated.length < data.length ? deflated : data;
       const method = compressed === deflated && deflated !== data ? 8 : 0;
+      // Unix mode in the external-attr high word (version-made-by is already 3=Unix): 0755 for
+      // the Linux launchers + node binary so unzip restores runnable files, 0644 otherwise.
+      const mode = name.endsWith("/") ? 0o755 : executables.has(name) ? 0o755 : 0o644;
+      const externalAttrs = ((mode | (name.endsWith("/") ? 0o040000 : 0o100000)) << 16) >>> 0 |
+                            (name.endsWith("/") ? 0x10 : 0);
       // DOS date 1980-01-01, time 00:00:00. UTF-8 names.
       const local = Buffer.concat([
         u32(0x04034b50), u16(20), u16(0x0800), u16(method), u16(0), u16(0x0021),
@@ -152,7 +212,7 @@ function writeZip(output, sourceEntries) {
       central.push(Buffer.concat([
         u32(0x02014b50), u16(0x0314), u16(20), u16(0x0800), u16(method), u16(0), u16(0x0021),
         u32(crc), u32(compressed.length), u32(data.length), u16(filename.length), u16(0), u16(0),
-        u16(0), u16(0), u32(name.endsWith("/") ? 0x10 : 0), u32(offset), filename,
+        u16(0), u16(0), u32(externalAttrs), u32(offset), filename,
       ]));
       offset += local.length + compressed.length;
     }
@@ -168,38 +228,56 @@ function writeZip(output, sourceEntries) {
 }
 
 export function buildReleaseZip(options) {
+  const platform = options.platform || "windows";
+  const plat = PLATFORMS[platform];
+  if (!plat) fail(`--platform must be one of: ${Object.keys(PLATFORMS).join(", ")}`);
   const version = normalizedVersion(options.version, "release version");
   const nodeVersion = normalizedVersion(options.nodeVersion, "Node version");
   const hostDir = path.resolve(options.hostDir || path.join(ROOT, "host"));
   const releaseDir = path.resolve(options.releaseDir || path.join(ROOT, "release"));
   const nodeExe = path.resolve(options.nodeExe || "");
+  const nodeLicense = path.resolve(options.nodeLicense || path.join(path.dirname(nodeExe), "LICENSE"));
   const outputDir = path.resolve(options.outputDir || ROOT);
   if (!existsSync(nodeExe) || !statSync(nodeExe).isFile()) fail(`Node binary not found: ${nodeExe}`);
+  if (!existsSync(nodeLicense) || !statSync(nodeLicense).isFile()) {
+    fail(`Node license not found: ${nodeLicense} (keep LICENSE beside node.exe or pass --node-license)`);
+  }
+  const nodeLicenseBytes = readFileSync(nodeLicense);
+  if (nodeLicenseBytes.length === 0) fail(`Node license is empty: ${nodeLicense}`);
   if (!validSha(options.nodeSha256)) fail("--node-sha256 must be a baked 64-digit SHA-256");
   const actualNodeSha = sha256(readFileSync(nodeExe));
   if (actualNodeSha !== options.nodeSha256.toLowerCase()) fail(`Node SHA-256 mismatch: expected ${options.nodeSha256}, got ${actualNodeSha}`);
-  requireLayout(hostDir, releaseDir);
+  requireLayout(hostDir, releaseDir, platform);
 
   const manifest = JSON.parse(readFileSync(path.join(hostDir, "download-manifest.json"), "utf8"));
-  if (options.dfhackSha256) manifest.dfhack.sha256 = options.dfhackSha256.toLowerCase();
-  if (options.cloudflaredSha256) manifest.cloudflared.sha256 = options.cloudflaredSha256.toLowerCase();
+  // Schema 2 nests per-platform {url, sha256} under "windows"/"linux"; schema 1 was flat
+  // (Windows-only). Overrides and the release blocker below target whichever shape is present.
+  const manifestItem = (name) => manifest[name]?.[platform] || manifest[name] || {};
+  if (options.dfhackSha256) manifestItem("dfhack").sha256 = options.dfhackSha256.toLowerCase();
+  if (options.cloudflaredSha256) manifestItem("cloudflared").sha256 = options.cloudflaredSha256.toLowerCase();
   manifest.package = { version, nodeVersion, nodeSha256: actualNodeSha };
   const manifestText = JSON.stringify(manifest, null, 2) + "\n";
   // RELEASE BLOCKER: a placeholder checksum means the fetcher verifies against nothing useful.
   if (PLACEHOLDER.test(manifestText)) fail("refusing to package: download-manifest.json still contains a placeholder");
   for (const name of ["dfhack", "cloudflared"]) {
-    if (!validSha(manifest[name]?.sha256)) fail(`refusing to package: ${name} SHA-256 is not baked`);
+    if (!validSha(manifestItem(name).sha256)) fail(`refusing to package: ${name} SHA-256 is not baked for ${platform}`);
   }
 
   const entries = new Map();
   addTree(entries, hostDir, "host", new Set(["download-manifest.json"]));
-  addTree(entries, releaseDir, "release", new Set(["VERSION.txt"]));
+  addTree(entries, releaseDir, "release", new Set(["VERSION.txt", plat.excludedPluginBinary]));
   entries.set(`${ZIP_ROOT}/host/download-manifest.json`, Buffer.from(manifestText));
   entries.set(`${ZIP_ROOT}/release/VERSION.txt`, Buffer.from(`v${version}\n`));
-  entries.set(`${ZIP_ROOT}/node/node.exe`, readFileSync(nodeExe));
-  entries.set(`${ZIP_ROOT}/DWF Setup.cmd`, launcher("setup.mjs"));
-  entries.set(`${ZIP_ROOT}/Dwarf With Friends.cmd`, launcher("host_panel.mjs"));
-  entries.set(`${ZIP_ROOT}/README.txt`, readme(version));
+  entries.set(`${ZIP_ROOT}/${plat.nodeEntry}`, readFileSync(nodeExe));
+  entries.set(`${ZIP_ROOT}/NODE-LICENSE.txt`, nodeLicenseBytes);
+  entries.set(`${ZIP_ROOT}/LICENSE`, readFileSync(path.join(ROOT, "LICENSE")));
+  entries.set(`${ZIP_ROOT}/NOTICE`, readFileSync(path.join(ROOT, "NOTICE")));
+  const executables = new Set([`${ZIP_ROOT}/${plat.nodeEntry}`]);
+  for (const [name, script] of plat.launchers) {
+    entries.set(`${ZIP_ROOT}/${name}`, launcher(script, platform));
+    executables.add(`${ZIP_ROOT}/${name}`);
+  }
+  entries.set(`${ZIP_ROOT}/README.txt`, readme(version, platform));
   // Most players only ever open this zip, never the git repo -- so the player-facing docs must
   // ship here too, not just in source control. ALL of them land at the zip ROOT (owner call,
   // beta.2): a player browsing the unzipped folder should see TROUBLESHOOTING next to the
@@ -214,18 +292,42 @@ export function buildReleaseZip(options) {
     entries.set(`${ZIP_ROOT}/${base}`, Buffer.from(flattenDocLinks(readFileSync(path.join(ROOT, rel), "utf8")), "utf8"));
   }
 
-  const output = path.join(outputDir, `DwarfWithFriends-v${version}.zip`);
-  writeZip(output, entries);
-  return { output, version, nodeVersion, nodeSha256: actualNodeSha, files: [...entries.keys()].sort() };
+  // Immutable inventory of the candidate payload. The manifest deliberately excludes itself (a
+  // file cannot contain its own hash); the independently returned packageSha256 closes the outer
+  // zip. Install/release checks can therefore prove every DLL, Lua, web, host, legal, and Node byte.
+  const releaseManifest = {
+    schemaVersion: 1,
+    sourceCommit: sourceCommit(options.sourceCommit),
+    releaseVersion: version,
+    platform,
+    dfhackVersion: manifest.dfhack.version,
+    node: { version: nodeVersion, sha256: actualNodeSha },
+    manifestSelfExcluded: true,
+    files: [...entries].sort(([a], [b]) => a.localeCompare(b)).map(([name, bytes]) => ({
+      path: name.slice(`${ZIP_ROOT}/`.length), bytes: bytes.length, sha256: sha256(bytes),
+    })),
+  };
+  entries.set(`${ZIP_ROOT}/RELEASE-MANIFEST.json`,
+              Buffer.from(`${JSON.stringify(releaseManifest, null, 2)}\n`, "utf8"));
+
+  const output = path.join(outputDir, `DwarfWithFriends-v${version}${plat.suffix}.zip`);
+  writeZip(output, entries, executables);
+  return { output, version, nodeVersion, nodeSha256: actualNodeSha,
+           platform,
+           packageSha256: sha256(readFileSync(output)), releaseManifest,
+           files: [...entries.keys()].sort() };
 }
 
 function parseArgs(argv) {
   const out = {};
   const names = new Map([
     ["--version", "version"], ["--node-version", "nodeVersion"], ["--node-exe", "nodeExe"],
+    ["--node-license", "nodeLicense"],
     ["--node-sha256", "nodeSha256"], ["--dfhack-sha256", "dfhackSha256"],
     ["--cloudflared-sha256", "cloudflaredSha256"], ["--host", "hostDir"],
     ["--release", "releaseDir"], ["--output-dir", "outputDir"],
+    ["--source-commit", "sourceCommit"],
+    ["--platform", "platform"],
   ]);
   for (let i = 0; i < argv.length; i++) {
     const key = names.get(argv[i]);
@@ -242,6 +344,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const result = buildReleaseZip(parseArgs(process.argv.slice(2)));
     console.log(`built ${result.output}`);
     console.log(`Node v${result.nodeVersion} SHA-256 ${result.nodeSha256}`);
+    console.log(`Package SHA-256 ${result.packageSha256}`);
   } catch (error) {
     console.error(`build_zip: ${error.message}`);
     process.exitCode = 1;

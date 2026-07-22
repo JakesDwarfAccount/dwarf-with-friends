@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "info_panel.h"
+#include "render_thread_wait.h"
 #include "fort_stock.h"
 #include "interaction.h"
 #include "unit_activity.h"
@@ -332,7 +333,7 @@ void fill_held_item(df::unit* unit, InfoRow& row) {
 //
 //   * unit.flags4.only_do_assigned_jobs -- df.unit.xml:1469 (UNITFLAG4_ONLY_DO_ASSIGNED_JOBS). This
 //     is the flag the green/red padlocked hammer flips, and it is the SAME bit /labor-specialist has
-//     always written (labor.cpp labor_specialist_impl). Nothing new is written here -- this is the
+//     always written (labor.cpp set_labor_specialist). Nothing new is written here -- this is the
 //     READ that the Creatures panel never had, which is why its toggle could not exist.
 //
 //   * plotinfo.labor_info.work_details -- df.plotinfo.xml:609. Each work_detail has assigned_units
@@ -1959,7 +1960,7 @@ std::string written_page_label(df::written_content* content) {
     return "";
 }
 
-void build_written_content_panel(InfoPanel& panel) {
+[[maybe_unused]] void build_written_content_panel(InfoPanel& panel) {
     auto world = df::global::world;
     if (!world)
         return;
@@ -2390,7 +2391,7 @@ bool info_panel_on_render_thread(const std::string& panel_name,
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;
@@ -2451,7 +2452,7 @@ bool cancel_job_on_render_thread(int32_t job_id, std::string* err) {
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok && err)
         *err = request->err;
     return ok;
@@ -2712,7 +2713,7 @@ bool livestock_action_on_render_thread(int32_t unit_id, const std::string& actio
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;
@@ -2751,7 +2752,7 @@ bool set_unit_nickname_on_render_thread(int32_t unit_id, const std::string& nick
         }
     });
 
-    if (!future.get()) {
+    if (!render_future_ready(future) || !future.get()) {
         if (err) *err = request->err;
         return false;
     }

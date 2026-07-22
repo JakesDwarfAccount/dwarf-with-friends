@@ -72,7 +72,8 @@ public:
     // legacy wire -- a v1 connection's interest window comes from HELLO's `cam` (or a
     // later `cam` message), never the URL. The server harmlessly ignores a `w=`/`h=` a
     // client still sends on the URL.
-    WsConnection(::socket_t sock, std::string player, bool proto_v1 = false);
+    WsConnection(::socket_t sock, std::string player, bool proto_v1 = false,
+                 bool host_authority = false);
     ~WsConnection();                           // defensively joins the writer thread if alive
 
     // ---- protocol v1 negotiation (WA-8) ----------------------------------------------
@@ -80,10 +81,9 @@ public:
     // pushes; it must send `hello` first (§0.4), gets `hello_ack`, then the binary stream.
     bool is_v1() const { return proto_v1_; }
     const std::string& session() const { return session_; }
-    // isHostClient() hook (WD-27 follow-up): true iff this connection's real TCP peer address
-    // is loopback (127.0.0.0/8 or ::1) -- computed once at connect time from the accepted
-    // socket itself (websocket.cpp's socket_is_loopback_peer()), never from anything the client
-    // sends, so a remote/tunnel peer cannot spoof it. Surfaced to the client in hello_ack's
+    // isHostClient() hook: computed once from the shared request-origin classifier using the
+    // accepted peer plus Upgrade headers. A locally terminated tunnel is therefore remote even
+    // though its origin socket is loopback. Surfaced to the client in hello_ack's
     // `isHost` field (send_hello_ack) -- the "existing per-player JSON" the client already
     // parses on every v1 connection.
     bool is_host() const { return is_host_; }
@@ -112,6 +112,9 @@ public:
     // by the caller's parser. Returns false when the message was rate-limited (dropped).
     bool queue_reqblocks(const std::vector<std::array<int, 3>>& triples);
     std::vector<std::array<int, 3>> take_reqblocks();   // push-loop thread: drain + clear
+    size_t reqblocks_queued() const;
+    uint64_t reqblocks_rate_drops() const { return reqblocks_rate_drops_.load(); }
+    uint64_t reqblocks_overflow_drops() const { return reqblocks_overflow_drops_.load(); }
 
     // ---- WP-D chat outbound (reliable FIFO, text frames) -----------------------------
     // Chat lines must NOT be coalesced away like the latest-wins channels (a chat frame on
@@ -121,8 +124,10 @@ public:
     // reconnect and refetch GET /chat scrollback anyway, so no line is ever truly lost.
     void enqueue_chat(std::vector<uint8_t> text_frame);   // thread-safe; the wire bytes of one frame
     // Per-connection send rate limit (recv-thread-only, like last_reqblocks_ms_): true iff enough
-    // time has elapsed since the last ACCEPTED chat message. Updates the clock on acceptance.
-    bool chat_rate_ok();
+    // time has elapsed since the last ACCEPTED chat message. Updates the clock on acceptance and
+    // reports the remaining wait on refusal so the sender gets an honest client-visible result.
+    bool chat_rate_ok(long long* retry_after_ms = nullptr);
+    bool control_json_error_log_ok();
 
     // ---- ack-clocked pacing (WA-9 basic window; WA-10 byte-window + app PING) ---------
     // Per-connection sequence space for BLOCK_SET/AUX frames (§0.6). The push loop queries
@@ -239,14 +244,18 @@ private:
 
     // REQ_BLOCKS queue (WA-11.3). last_reqblocks_ms_ is recv-thread-only (calls serialized
     // by the connection's own single recv loop -- no sync needed for it).
-    std::mutex reqblocks_mu_;
+    static constexpr size_t kReqblocksQueueDepth = 256;
+    mutable std::mutex reqblocks_mu_;
     std::vector<std::array<int, 3>> reqblocks_queue_;
     long long last_reqblocks_ms_ = 0;
+    std::atomic<uint64_t> reqblocks_rate_drops_{0};
+    std::atomic<uint64_t> reqblocks_overflow_drops_{0};
 
     // WP-D chat FIFO (guarded by out_mu_, drained after CH_CTRL) + recv-thread-only send clock.
     static constexpr size_t kChatFifoDepth = 64;
     std::deque<std::vector<uint8_t>> chat_fifo_;
     long long last_chat_ms_ = 0;   // recv-thread-only (chat_rate_ok); no lock needed
+    long long last_json_error_log_ms_ = 0; // recv-thread-only; bounds malformed-client logging
 
     // pacing (WA-10) -- guarded by out_mu_ (recv thread updates on ACK, writer reads).
     uint32_t last_sent_seq_ = 0;
@@ -322,6 +331,7 @@ size_t broadcast_chat_to_all(const std::string& msg);
 // WT24: total WS frames successfully written to a socket since the plugin loaded (all
 // players, all channels). The 60 s crash-evidence heartbeat prints the per-beat delta.
 uint64_t ws_frames_sent_total();
+std::string ws_drop_counters_json();
 size_t ws_connection_count();
 size_t ws_connection_count_for(const std::string& player);
 
@@ -371,5 +381,9 @@ bool peer_ip_is_loopback(const std::string& ip);
 // installed. Drop-in for `std::make_unique<httplib::Server>()` in start_server --
 // register_routes(*server), bind, and the listen thread are all unchanged.
 std::unique_ptr<httplib::Server> make_ws_server();
+
+// Reject queued HTTP work and wake accepted sockets before the listen thread is joined.
+// This is separate from httplib::Server::stop(), which only closes the listen socket.
+void ws_server_begin_shutdown(httplib::Server& server);
 
 } // namespace dwf

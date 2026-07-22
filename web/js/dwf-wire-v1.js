@@ -94,6 +94,7 @@
       dig: d1 & 15,
       smooth: (d1 >> 4) & 3,
       marker: (d1 >> 6) & 1,
+      automine: (d1 >> 7) & 1,
       traffic: d2 & 3,
       track: (d2 >> 2) & 15,
       spatter_amt: dv.getUint8(o + 9),

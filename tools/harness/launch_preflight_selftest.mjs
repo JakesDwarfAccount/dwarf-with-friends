@@ -85,6 +85,18 @@ async function main() {
       check("unexpected fail is NOT tolerated", cls.tolerated.length === 0, `tol=${cls.tolerated.length}`);
     }
 
+    // ---- platform-scoped suite: explicitly skipped before spawning on another OS ----
+    {
+      const otherPlatform = process.platform === "win32" ? "linux" : "win32";
+      const results = await runSuitesPool([{ ...unexpectedFail, platforms: [otherPlatform] }],
+        { repoRoot: base, jobs: 1 });
+      const cls = classifySuites(results);
+      check("non-matching platform -> explicit SKIP",
+        cls.verdict === "PASS" && cls.skipped.length === 1 && cls.failed.length === 0
+          && results[0].output.includes(`current platform: ${process.platform}`),
+        `verdict=${cls.verdict} skipped=${cls.skipped.length}`);
+    }
+
     // ---- (3) known failure tolerated -> verdict stays PASS, reported distinctly ----
     {
       const results = await runSuitesPool([...allGreen, knownFail], { repoRoot: base, jobs: 3 });

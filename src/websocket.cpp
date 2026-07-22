@@ -26,6 +26,7 @@
 #include "client_state.h"   // set_player_precise_cursor: store inbound smooth cursors + camera authority
 #include "http_server.h"    // notify_player_input: wake the push loop on a WS-borne camera move
 #include "json_util.h"      // json_escape: hello_ack.player (B09(a) name dedup)
+#include "request_origin.h"
 #include "sdl_capture.h"    // clamp_camera: mirror POST /camera's bounds clamp for WS-borne moves
 #include "wire_v1.h"        // v1 frame header build (writer stamps seq at send)
 #include "world_stream.h"   // world_stream_forget: prune the /diag v1.players row on disconnect
@@ -38,6 +39,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <set>
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -45,6 +47,7 @@
 #include <zlib.h>
 
 #include "diagnostics.h"
+#include "json_mini.h"
 
 // httplib.h (included via websocket.h) already pulls in <winsock2.h> on Windows and
 // the BSD socket headers on POSIX, so ::recv / ::send / MSG_PEEK / closesocket are
@@ -92,6 +95,12 @@ std::atomic<uint64_t> g_session_counter{0};
 // prints the DELTA, which is how a crash tail proves the transport was still moving bytes
 // (or had gone silent) in the minute before DF died.
 std::atomic<uint64_t> g_ws_frames_sent{0};
+constexpr size_t kReqblocksGlobalMax = 1024;
+std::atomic<size_t> g_reqblocks_queued_total{0};
+std::atomic<uint64_t> g_reqblocks_dropped_rate{0};
+std::atomic<uint64_t> g_reqblocks_dropped_cap{0};
+std::atomic<uint64_t> g_chat_dropped_rate{0};
+std::atomic<uint64_t> g_ws_upgrade_misclassified{0};
 
 // Sanity cap on an inbound frame payload so a hostile/broken client cannot make us
 // allocate unbounded memory (control JSON from the browser is tiny).
@@ -582,139 +591,6 @@ void dedup_player_name(const std::shared_ptr<WsConnection>& conn, const std::str
     }
 }
 
-// ---- inbound client control JSON ------------------------------------------------
-// The browser sends tiny fixed-shape control objects over the WS, e.g. the smooth
-// cursor: {"type":"cursor","x":12,"y":7,"z":6,"fx":0.5,"fy":0.25,"drag":1}. Rather than
-// pull in a full JSON dependency for a handful of numeric fields, we scan for a quoted
-// key and parse the number that follows. Tolerant: missing keys just leave the default.
-
-// Find `"key"` then the next ':' and parse the number after it (int or decimal, optional
-// leading '-'). Returns false (leaving `out` untouched) if the key/number isn't present.
-bool json_number(const std::string& s, const char* key, double& out) {
-    std::string needle = std::string("\"") + key + "\"";
-    size_t k = s.find(needle);
-    if (k == std::string::npos) return false;
-    size_t colon = s.find(':', k + needle.size());
-    if (colon == std::string::npos) return false;
-    size_t i = colon + 1;
-    while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) ++i;
-    size_t start = i;
-    if (i < s.size() && (s[i] == '-' || s[i] == '+')) ++i;
-    bool any = false;
-    while (i < s.size() && ((s[i] >= '0' && s[i] <= '9') || s[i] == '.' ||
-                            s[i] == 'e' || s[i] == 'E' || s[i] == '-' || s[i] == '+')) {
-        if (s[i] >= '0' && s[i] <= '9') any = true;
-        ++i;
-    }
-    if (!any) return false;
-    out = std::strtod(s.substr(start, i - start).c_str(), nullptr);
-    return true;
-}
-
-// Parse a JSON string value: find `"key"`, the following ':', a quoted string, and decode
-// the common escapes (\" \\ \/ \n \r \t \uXXXX->low bytes). Returns false (leaving `out`
-// untouched) if absent. WA-8: HELLO's `player` is JSON-decoded here (also fixes the A8
-// un-decoded req_player note for the v1 path).
-bool json_string(const std::string& s, const char* key, std::string& out) {
-    std::string needle = std::string("\"") + key + "\"";
-    size_t k = s.find(needle);
-    if (k == std::string::npos) return false;
-    size_t colon = s.find(':', k + needle.size());
-    if (colon == std::string::npos) return false;
-    size_t i = colon + 1;
-    while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) ++i;
-    if (i >= s.size() || s[i] != '"') return false;
-    ++i;
-    std::string v;
-    while (i < s.size() && s[i] != '"') {
-        char c = s[i];
-        if (c == '\\' && i + 1 < s.size()) {
-            char e = s[i + 1];
-            switch (e) {
-                case '"':  v.push_back('"');  i += 2; break;
-                case '\\': v.push_back('\\'); i += 2; break;
-                case '/':  v.push_back('/');  i += 2; break;
-                case 'n':  v.push_back('\n'); i += 2; break;
-                case 'r':  v.push_back('\r'); i += 2; break;
-                case 't':  v.push_back('\t'); i += 2; break;
-                case 'u': {
-                    if (i + 5 < s.size()) {
-                        int hv = 0; bool ok = true;
-                        for (int d = 0; d < 4; ++d) {
-                            char h = s[i + 2 + d]; int nyb;
-                            if (h >= '0' && h <= '9') nyb = h - '0';
-                            else if (h >= 'a' && h <= 'f') nyb = 10 + h - 'a';
-                            else if (h >= 'A' && h <= 'F') nyb = 10 + h - 'A';
-                            else { ok = false; break; }
-                            hv = (hv << 4) | nyb;
-                        }
-                        if (ok) { if (hv < 0x80) v.push_back((char)hv); i += 6; break; }
-                    }
-                    v.push_back(e); i += 2; break;
-                }
-                default: v.push_back(e); i += 2; break;
-            }
-        } else { v.push_back(c); ++i; }
-        if (v.size() > 4096) break;             // control JSON is tiny; bound it
-    }
-    out.swap(v);
-    return true;
-}
-
-// Parse `"key":[[a,b,c],[a,b,c],...]` (WA-11.3 REQ_BLOCKS `blocks`). Tolerant/bounded:
-// stops at `max_count` triples (§0.4 caps reqblocks at 64) and skips a malformed inner
-// array rather than aborting the whole message. Returns false if `key`'s value isn't an
-// array at all (no outer '[' found / unterminated).
-bool json_int_triples(const std::string& s, const char* key, std::vector<std::array<int, 3>>& out,
-                      size_t max_count) {
-    std::string needle = std::string("\"") + key + "\"";
-    size_t k = s.find(needle);
-    if (k == std::string::npos) return false;
-    size_t colon = s.find(':', k + needle.size());
-    if (colon == std::string::npos) return false;
-    size_t i = colon + 1;
-    while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) ++i;
-    if (i >= s.size() || s[i] != '[') return false;
-    // Depth-track to the matching outer ']' (inner [a,b,c] arrays close well before it).
-    size_t depth = 0, outerEnd = std::string::npos, p = i;
-    for (; p < s.size(); ++p) {
-        if (s[p] == '[') ++depth;
-        else if (s[p] == ']') { --depth; if (depth == 0) { outerEnd = p; break; } }
-    }
-    if (outerEnd == std::string::npos) return false;
-    p = i + 1;
-    while (p < outerEnd && out.size() < max_count) {
-        while (p < outerEnd && s[p] != '[') ++p;
-        if (p >= outerEnd) break;
-        size_t innerEnd = s.find(']', p);
-        if (innerEnd == std::string::npos || innerEnd > outerEnd) break;
-        std::string inner = s.substr(p + 1, innerEnd - p - 1);
-        int vals[3] = {0, 0, 0}; size_t vi = 0, q = 0;
-        while (vi < 3 && q < inner.size()) {
-            while (q < inner.size() && (inner[q] == ' ' || inner[q] == ',')) ++q;
-            size_t start = q;
-            if (q < inner.size() && inner[q] == '-') ++q;
-            bool any = false;
-            while (q < inner.size() && inner[q] >= '0' && inner[q] <= '9') { any = true; ++q; }
-            if (!any) break;
-            vals[vi++] = std::atoi(inner.substr(start, q - start).c_str());
-        }
-        if (vi == 3) out.push_back({vals[0], vals[1], vals[2]});
-        p = innerEnd + 1;
-    }
-    return true;
-}
-
-bool json_has_type(const std::string& s, const char* type) {
-    size_t t = s.find("\"type\"");
-    if (t == std::string::npos) return false;
-    size_t q = s.find('"', s.find(':', t) + 1);
-    if (q == std::string::npos) return false;
-    size_t e = s.find('"', q + 1);
-    if (e == std::string::npos) return false;
-    return s.compare(q + 1, e - q - 1, type) == 0;
-}
-
 // Build + enqueue the v1 hello_ack (§0.5) onto CH_CTRL. Map dims + world_seq come from
 // the registered provider (DF-derived, cached); session/tick_ms/limits are protocol facts.
 // NOTE (WA-16): `limits.k` is advertised as its FLOOR value (3) -- accurate at hello time,
@@ -757,10 +633,38 @@ void send_hello_ack(const std::shared_ptr<WsConnection>& conn) {
 void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::string& payload) {
     if (payload.size() > 4096) return;   // control JSON is tiny; ignore anything huge
     const std::string& player = conn->player();
+    const json_mini::Doc doc = json_mini::parse(payload);
+    auto malformed = [&](const std::string& detail) {
+        if (conn->control_json_error_log_ok())
+            diagnostics_log("ws control JSON rejected player=" + player + " detail=" + detail);
+    };
+    if (!doc.ok || doc.root.type != json_mini::Type::Object) {
+        malformed(doc.ok ? "root must be an object" : doc.error);
+        return;
+    }
+    std::string message_type;
+    const json_mini::Get type_result = json_mini::string(doc.root, "type", message_type);
+    if (type_result != json_mini::Get::Ok) {
+        if (type_result == json_mini::Get::Malformed) malformed("field 'type' must be a string");
+        return;
+    }
+    auto is_type = [&](const char* expected) { return message_type == expected; };
+    auto get_number = [&](const json_mini::Value& scope, const char* key, double& out) {
+        const json_mini::Get result = json_mini::number(scope, key, out);
+        if (result == json_mini::Get::Malformed)
+            malformed(std::string("field '") + key + "' must be a finite number");
+        return result == json_mini::Get::Ok;
+    };
+    auto get_string = [&](const json_mini::Value& scope, const char* key, std::string& out) {
+        const json_mini::Get result = json_mini::string(scope, key, out);
+        if (result == json_mini::Get::Malformed)
+            malformed(std::string("field '") + key + "' must be a string");
+        return result == json_mini::Get::Ok;
+    };
 
     // ---- protocol v1 control (§0.4) --------------------------------------------------
     if (conn->is_v1()) {
-        if (json_has_type(payload, "hello")) {
+        if (is_type("hello")) {
             // JOIN SECURITY: when a passphrase is configured, the hello MUST carry the shared
             // credential (`token`). This gates a DIRECT ws:// connection that bypasses the join
             // screen (the pre-routing HTTP gate can't see /ws -- the upgrade is intercepted below
@@ -769,7 +673,7 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             // stored-but-stale credential re-shows the join screen instead of silently reconnecting.
             if (dwf::auth::enabled()) {
                 std::string tok;
-                json_string(payload, "token", tok);
+                get_string(doc.root, "token", tok);
                 if (!dwf::auth::check(tok)) {
                     diagnostics_log("ws hello DENIED (bad/missing join token) player=" + player);
                     const std::string deny = "{\"type\":\"auth_fail\",\"reason\":\"join password required\"}";
@@ -780,21 +684,34 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
                 }
             }
             double have = 0;
-            json_number(payload, "have", have);
-            // cam is a nested object; json_number finds the first "x"/"w" past it. HELLO
-            // carries cam so the interest window is sized from the first message.
+            get_number(doc.root, "have", have);
+            // HELLO normally carries camera fields in a nested object. The top-level fallback
+            // preserves compatibility with early protocol-v1 clients without field shadowing.
+            const json_mini::Value* cam_scope = &doc.root;
+            const json_mini::Value* nested_cam = nullptr;
+            const json_mini::Get cam_result = json_mini::object(doc.root, "cam", nested_cam);
+            if (cam_result == json_mini::Get::Ok) cam_scope = nested_cam;
+            else if (cam_result == json_mini::Get::Malformed) malformed("field 'cam' must be an object");
             double cw = 0, ch = 0, cx = 0, cy = 0, cz = 0;
-            bool has_cam = json_number(payload, "w", cw) & json_number(payload, "h", ch);
-            json_number(payload, "x", cx); json_number(payload, "y", cy); json_number(payload, "z", cz);
+            bool has_cam = get_number(*cam_scope, "w", cw) & get_number(*cam_scope, "h", ch);
+            get_number(*cam_scope, "x", cx); get_number(*cam_scope, "y", cy); get_number(*cam_scope, "z", cz);
             // S5 capability is additive: old clients send no caps and keep full AUX.
-            conn->set_wants_auxd(payload.find("\"auxd\"") != std::string::npos);
+            bool wants_auxd = false;
+            const auto caps_it = doc.root.object.find("caps");
+            if (caps_it != doc.root.object.end() && caps_it->second.type == json_mini::Type::Array) {
+                for (const auto& cap : caps_it->second.array)
+                    if (cap.type == json_mini::Type::String && cap.string == "auxd") wants_auxd = true;
+            } else if (caps_it != doc.root.object.end()) {
+                malformed("field 'caps' must be an array");
+            }
+            conn->set_wants_auxd(wants_auxd);
             conn->mark_hello((uint32_t)(have < 0 ? 0 : have), has_cam,
                              (int)cx, (int)cy, (int)cz, (int)cw, (int)ch);
             // B09(a): capture the stable per-tab id, then dedup this connection's name against
             // OTHER live connections (renaming to name-2/... on a real collision). mark_hello
             // was called first so a concurrent hello sees this conn as an established name.
             std::string cid;
-            if (json_string(payload, "id", cid)) {
+            if (get_string(doc.root, "id", cid)) {
                 if (cid.size() > 64) cid.resize(64);
                 conn->set_client_id(cid);
             }
@@ -811,9 +728,9 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
         // registry key to every other client, and the server keys the smooth cursor on the live
         // connection name, so remote rosters + this player's cursor label update with NO ~40s ghost
         // (the old name leaves the registry immediately -- a web-only rejoin could not avoid that).
-        if (json_has_type(payload, "rename")) {
+        if (is_type("rename")) {
             std::string requested;
-            if (!json_string(payload, "name", requested)) return;
+            if (!get_string(doc.root, "name", requested)) return;
             // Same validation contract as the join card: trim, non-empty, maxlength 32. The name is
             // the HTTP ?player= key; is_safe_player_id (checked after dedup) now rejects only control
             // chars, so spaces/parens/UTF-8 in a rename are accepted just like on the join card.
@@ -833,16 +750,16 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             send_hello_ack(conn);                      // client adopts finalName via __dwfAdoptName
             return;
         }
-        if (json_has_type(payload, "ack")) {
+        if (is_type("ack")) {
             double seq = 0;
-            if (json_number(payload, "seq", seq) && seq >= 0) conn->apply_ack((uint32_t)seq);
+            if (get_number(doc.root, "seq", seq) && seq >= 0) conn->apply_ack((uint32_t)seq);
             return;
         }
-        if (json_has_type(payload, "cam")) {
+        if (is_type("cam")) {
             double cw = 0, ch = 0, cx = 0, cy = 0, cz = 0;
-            bool has_dims = json_number(payload, "w", cw) & json_number(payload, "h", ch);
-            bool has_pos = json_number(payload, "x", cx) & json_number(payload, "y", cy);
-            bool has_z = json_number(payload, "z", cz);
+            bool has_dims = get_number(doc.root, "w", cw) & get_number(doc.root, "h", ch);
+            bool has_pos = get_number(doc.root, "x", cx) & get_number(doc.root, "y", cy);
+            bool has_z = get_number(doc.root, "z", cz);
             if (has_dims || has_pos)
                 conn->update_cam(has_pos, (int)cx, (int)cy, (int)cz,
                                  has_dims ? (int)cw : 0, has_dims ? (int)ch : 0);
@@ -884,24 +801,27 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             }
             return;
         }
-        if (json_has_type(payload, "pong")) {
+        if (is_type("pong")) {
             double ts = 0, tc = 0;
-            json_number(payload, "ts", ts);
-            json_number(payload, "tc", tc);
+            get_number(doc.root, "ts", ts);
+            get_number(doc.root, "tc", tc);
             conn->note_app_pong((long long)ts, (long long)tc);
             return;
         }
-        if (json_has_type(payload, "auxr")) {
+        if (is_type("auxr")) {
             conn->request_aux_full();
             return;
         }
-        if (json_has_type(payload, "reqblocks")) {
+        if (is_type("reqblocks")) {
             std::vector<std::array<int, 3>> triples;
-            json_int_triples(payload, "blocks", triples, 64);
+            const json_mini::Get blocks_result =
+                json_mini::int_triples(doc.root, "blocks", triples, 64);
+            if (blocks_result == json_mini::Get::Malformed)
+                malformed("field 'blocks' must contain integer triples");
             if (!triples.empty()) conn->queue_reqblocks(triples);   // rate-limited (>=250ms/msg)
             return;
         }
-        if (json_has_type(payload, "reqkey")) {
+        if (is_type("reqkey")) {
             // §0.4/WA-15: reqkey is permanently "treated as reqblocks for the interest
             // window". The interest window is already re-offered every tick regardless of
             // this message (WA-9's in-view scan keeps re-queuing any block this connection
@@ -913,23 +833,31 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
 
     // ---- WP-D chat ({"type":"chat","text":"..."}) -- any session (v1 falls through here) -------
     // The WS handshake already authenticated this connection (hello token / cookie), so a live
-    // socket is trusted; chat needs no further auth. Rate-limited per connection (silent drop of
-    // extras). chat_post trims/clamps + rejects an empty line; on acceptance it broadcasts to all.
-    if (json_has_type(payload, "chat")) {
-        if (!conn->chat_rate_ok()) return;               // too fast: drop silently
+    // socket is trusted; chat needs no further auth. Rate-limited per connection; a refusal is sent
+    // back on the control channel so the composer does not falsely look successful. chat_post
+    // trims/clamps + rejects an empty line; on acceptance it broadcasts to all.
+    if (is_type("chat")) {
+        long long retry_after_ms = 0;
+        if (!conn->chat_rate_ok(&retry_after_ms)) {
+            const std::string rejected = "{\"type\":\"chat_rejected\",\"reason\":\"rate_limit\",\"retryMs\":" +
+                std::to_string(retry_after_ms) + "}";
+            conn->enqueue_frame(WsConnection::CH_CTRL,
+                std::vector<uint8_t>(rejected.begin(), rejected.end()), /*binary=*/false);
+            return;
+        }
         std::string text;
-        if (json_string(payload, "text", text)) chat_post(conn->player(), text);
+        if (get_string(doc.root, "text", text)) chat_post(conn->player(), text);
         return;
     }
 
-    if (!json_has_type(payload, "cursor")) return;
+    if (!is_type("cursor")) return;
     double x = 0, y = 0, z = 0, fx = 0, fy = 0, drag = 0;
-    json_number(payload, "x", x);
-    json_number(payload, "y", y);
-    json_number(payload, "z", z);
-    json_number(payload, "fx", fx);
-    json_number(payload, "fy", fy);
-    json_number(payload, "drag", drag);
+    get_number(doc.root, "x", x);
+    get_number(doc.root, "y", y);
+    get_number(doc.root, "z", z);
+    get_number(doc.root, "fx", fx);
+    get_number(doc.root, "fy", fy);
+    get_number(doc.root, "drag", drag);
     set_player_precise_cursor(player, (int)x, (int)y, (int)z,
                               (float)fx, (float)fy, drag != 0);
 }
@@ -967,10 +895,26 @@ void handle_ws_connection(std::shared_ptr<WsConnection> conn) {
 // ---- the httplib::Server subclass ----------------------------------------------
 class WsHttpServer : public httplib::Server {
 public:
-    ~WsHttpServer() override {
-        // listen_internal has already shut down its task queue before server destruction, so no
-        // new upgrade thread can race this join. Closing the registry unblocks every recv loop.
+    void begin_shutdown() {
+        {
+            std::lock_guard<std::mutex> lk(ws_threads_mu_);
+            ws_stopping_ = true;
+        }
+        // httplib::Server::stop() closes only the listen socket. Its thread pool still drains
+        // every accepted connection, and an idle keep-alive can hold each worker for five
+        // seconds. Wake active HTTP sockets and make queued workers close immediately.
+        {
+            std::lock_guard<std::mutex> lk(http_sockets_mu_);
+            http_stopping_ = true;
+            for (auto sock : http_sockets_) shutdown_fd(sock);
+        }
         ws_close_all();
+    }
+
+    ~WsHttpServer() override {
+        // Enforce the no-new-upgrades side of teardown even if a future httplib version changes
+        // task-queue destruction ordering. Closing the registry then unblocks every recv loop.
+        begin_shutdown();
         std::vector<std::pair<std::shared_ptr<std::atomic<bool>>, std::thread>> threads;
         { std::lock_guard<std::mutex> lk(ws_threads_mu_); threads.swap(ws_threads_); }
         for (auto& entry : threads) if (entry.second.joinable()) entry.second.join();
@@ -986,6 +930,19 @@ protected:
     // members keep_alive_max_count_/read_timeout_sec_/read_timeout_usec_/process_request
     // and the accessible httplib::detail::process_and_close_socket() free function.
     bool process_and_close_socket(::socket_t sock) override {
+        {
+            std::lock_guard<std::mutex> lk(http_sockets_mu_);
+            if (http_stopping_) {
+                close_fd(sock);
+                return false;
+            }
+            http_sockets_.insert(sock);
+        }
+        auto untrack_http = [this, sock] {
+            std::lock_guard<std::mutex> lk(http_sockets_mu_);
+            http_sockets_.erase(sock);
+        };
+
         // accept() returns a blocking socket. Make classification non-blocking first: a client
         // that connects and dies before sending headers must not occupy a pool worker forever.
         if (!set_socket_nonblocking(sock, true)) {
@@ -1045,15 +1002,27 @@ protected:
             for (auto& c : up) c = (char)std::tolower((unsigned char)c);
             if (up.find("websocket") != std::string::npos &&
                 head.find("\r\n\r\n") != std::string::npos) {
+                untrack_http();
                 launch_upgrade(sock, head);
                 return true;   // WS lifetime no longer consumes a shared HTTP pool worker
+            }
+            if (up.find("websocket") != std::string::npos &&
+                    head.find("\r\n\r\n") == std::string::npos) {
+                std::string request_line = head.substr(0, std::min<size_t>(head.find("\r\n"), 120));
+                for (char& ch : request_line)
+                    if (static_cast<unsigned char>(ch) < 0x20) ch = ' ';
+                const bool full = n >= static_cast<int>(peek.size()) - 1;
+                g_ws_upgrade_misclassified.fetch_add(1, std::memory_order_relaxed);
+                diagnostics_log("ws upgrade header incomplete reason=" +
+                    std::string(full ? "buffer-full" : "timeout") +
+                    " bytes=" + std::to_string(n) + " request=" + request_line);
             }
         }
         // Not a WebSocket. MSG_PEEK consumed nothing, so the bytes are still queued
         // for the base parser -- delegate byte-for-byte. Restore blocking I/O with kernel
         // deadlines so a dead reader/writer releases this worker within kHttpIoTimeoutMs.
         configure_http_socket(sock);
-        return httplib::detail::process_and_close_socket(
+        bool result = httplib::detail::process_and_close_socket(
             /*is_client_request=*/false, sock, keep_alive_max_count_,
             read_timeout_sec_, read_timeout_usec_,
             [this](httplib::Stream& strm, bool last_connection,
@@ -1061,11 +1030,17 @@ protected:
                 return this->process_request(strm, last_connection,
                                              connection_close, nullptr);
             });
+        untrack_http();
+        return result;
     }
 
 private:
     void launch_upgrade(::socket_t sock, std::string head) {
         std::lock_guard<std::mutex> lk(ws_threads_mu_);
+        if (ws_stopping_) {
+            close_fd(sock);
+            return;
+        }
         // Join completed connection threads now instead of retaining one OS thread handle per
         // historical reconnect until server shutdown. Active threads remain managed below.
         for (auto it = ws_threads_.begin(); it != ws_threads_.end(); ) {
@@ -1124,14 +1099,28 @@ private:
         // ignored -- a v1 connection's interest window comes from HELLO's `cam`, never
         // pre-HELLO URL dims.
         bool proto_v1 = req_int(head, "proto", 0) == 1;
-        auto conn = std::make_shared<WsConnection>(sock, req_player(head), proto_v1);
+        const bool forwarded = !header_val(head, "X-Forwarded-For").empty() ||
+            !header_val(head, "CF-Connecting-IP").empty() ||
+            !header_val(head, "Forwarded").empty() || !header_val(head, "X-Real-IP").empty();
+        const RequestOrigin origin = classify_request_origin(
+            socket_is_loopback_peer(sock), forwarded, header_val(head, "Host"));
+        auto conn = std::make_shared<WsConnection>(sock, req_player(head), proto_v1,
+                                                   origin_has_host_authority(origin));
         handle_ws_connection(conn);   // owns socket I/O until its recv loop exits
         close_fd(sock);               // exactly one closesocket; WsConnection::close only shutdowns
         return true;
     }
 
+    // Lifecycle: launch_upgrade owns spawning and opportunistically joins only threads whose
+    // `done` flag is set; the destructor rejects new upgrades, closes live connections, then
+    // joins every remaining thread. handle_upgrade owns the accepted socket until its one final
+    // close_fd; WsConnection::close performs shutdown only.
     std::mutex ws_threads_mu_;
+    bool ws_stopping_ = false;
     std::vector<std::pair<std::shared_ptr<std::atomic<bool>>, std::thread>> ws_threads_;
+    std::mutex http_sockets_mu_;
+    bool http_stopping_ = false;
+    std::set<::socket_t> http_sockets_;
 };
 
 } // namespace
@@ -1146,12 +1135,20 @@ bool peer_ip_is_loopback(const std::string& ip) {
     return false;
 }
 
+std::string ws_drop_counters_json() {
+    std::ostringstream out;
+    out << "{\"reqblocksRate\":" << g_reqblocks_dropped_rate.load(std::memory_order_relaxed)
+        << ",\"reqblocksCap\":" << g_reqblocks_dropped_cap.load(std::memory_order_relaxed)
+        << ",\"reqblocksQueued\":" << g_reqblocks_queued_total.load(std::memory_order_relaxed)
+        << ",\"chatRate\":" << g_chat_dropped_rate.load(std::memory_order_relaxed)
+        << ",\"upgradeMisclass\":" << g_ws_upgrade_misclassified.load(std::memory_order_relaxed)
+        << "}";
+    return out.str();
+}
+
 // ---- WsConnection --------------------------------------------------------------
-WsConnection::WsConnection(::socket_t sock, std::string player, bool proto_v1)
-    : sock_(sock), player_(std::move(player)), proto_v1_(proto_v1) {
-    // isHostClient() hook: computed ONCE here, from the accepted socket itself, before any
-    // client bytes are read -- see socket_is_loopback_peer() above.
-    is_host_ = socket_is_loopback_peer(sock);
+WsConnection::WsConnection(::socket_t sock, std::string player, bool proto_v1, bool host_authority)
+    : sock_(sock), player_(std::move(player)), is_host_(host_authority), proto_v1_(proto_v1) {
     // Start the silence clock at connect so a client that never sends anything is still swept.
     long long now = steady_ms();
     last_inbound_ms_.store(now);
@@ -1173,6 +1170,11 @@ WsConnection::~WsConnection() {
     // Never let a joinable std::thread reach its destructor (that calls std::terminate).
     // stop_writer() is normally called on disconnect; this is a belt-and-suspenders guard.
     stop_writer();
+    std::lock_guard<std::mutex> lk(reqblocks_mu_);
+    if (!reqblocks_queue_.empty()) {
+        g_reqblocks_queued_total.fetch_sub(reqblocks_queue_.size(), std::memory_order_relaxed);
+        reqblocks_queue_.clear();
+    }
 }
 
 bool WsConnection::send_frame(uint8_t opcode, const uint8_t* data, size_t len) {
@@ -1440,25 +1442,64 @@ bool WsConnection::get_cam(int& x, int& y, int& z, int& w, int& h) const {
 // ---- REQ_BLOCKS (WA-11.3) ------------------------------------------------------------
 bool WsConnection::queue_reqblocks(const std::vector<std::array<int, 3>>& triples) {
     long long now = steady_ms();
-    if (now - last_reqblocks_ms_ < 250) return false;   // rate-limited: drop the whole message
+    if (now - last_reqblocks_ms_ < 250) {
+        reqblocks_rate_drops_.fetch_add(triples.size(), std::memory_order_relaxed);
+        g_reqblocks_dropped_rate.fetch_add(triples.size(), std::memory_order_relaxed);
+        return false;   // rate-limited: drop the whole message
+    }
     last_reqblocks_ms_ = now;
     std::lock_guard<std::mutex> lk(reqblocks_mu_);
-    for (auto& t : triples) reqblocks_queue_.push_back(t);
-    return true;
+    const size_t local_space = kReqblocksQueueDepth - reqblocks_queue_.size();
+    size_t wanted = std::min(local_space, triples.size());
+    size_t reserved = 0;
+    size_t total = g_reqblocks_queued_total.load(std::memory_order_relaxed);
+    while (wanted && total < kReqblocksGlobalMax) {
+        reserved = std::min(wanted, kReqblocksGlobalMax - total);
+        if (g_reqblocks_queued_total.compare_exchange_weak(
+                total, total + reserved, std::memory_order_relaxed)) break;
+        reserved = 0;
+    }
+    for (size_t i = 0; i < reserved; ++i) reqblocks_queue_.push_back(triples[i]);
+    const size_t dropped = triples.size() - reserved;
+    if (dropped) {
+        reqblocks_overflow_drops_.fetch_add(dropped, std::memory_order_relaxed);
+        g_reqblocks_dropped_cap.fetch_add(dropped, std::memory_order_relaxed);
+    }
+    return reserved != 0;
 }
 
 std::vector<std::array<int, 3>> WsConnection::take_reqblocks() {
     std::lock_guard<std::mutex> lk(reqblocks_mu_);
     std::vector<std::array<int, 3>> out;
     out.swap(reqblocks_queue_);
+    if (!out.empty())
+        g_reqblocks_queued_total.fetch_sub(out.size(), std::memory_order_relaxed);
     return out;
 }
 
+size_t WsConnection::reqblocks_queued() const {
+    std::lock_guard<std::mutex> lk(reqblocks_mu_);
+    return reqblocks_queue_.size();
+}
+
 // ---- WP-D chat outbound --------------------------------------------------------------
-bool WsConnection::chat_rate_ok() {
+bool WsConnection::chat_rate_ok(long long* retry_after_ms) {
     long long now = steady_ms();
-    if (now - last_chat_ms_ < 400) return false;   // >=400ms between accepted lines (~2.5/s max)
+    long long elapsed = now - last_chat_ms_;
+    if (elapsed < 400) {
+        if (retry_after_ms) *retry_after_ms = 400 - elapsed;
+        g_chat_dropped_rate.fetch_add(1, std::memory_order_relaxed);
+        return false;   // >=400ms between accepted lines (~2.5/s max)
+    }
+    if (retry_after_ms) *retry_after_ms = 0;
     last_chat_ms_ = now;
+    return true;
+}
+
+bool WsConnection::control_json_error_log_ok() {
+    const long long now = steady_ms();
+    if (now - last_json_error_log_ms_ < 5000) return false;
+    last_json_error_log_ms_ = now;
     return true;
 }
 
@@ -1828,6 +1869,10 @@ void ws_close_all() {
 
 std::unique_ptr<httplib::Server> make_ws_server() {
     return std::unique_ptr<httplib::Server>(new WsHttpServer());
+}
+
+void ws_server_begin_shutdown(httplib::Server& server) {
+    static_cast<WsHttpServer&>(server).begin_shutdown();
 }
 
 } // namespace dwf

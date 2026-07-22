@@ -362,16 +362,18 @@
 
   // Decode a packed designation halfword (desig1 in the low byte, desig2 in the high byte, the
   // SoA layout writeTileRecord/writeBlockTile pack into) to the legacy `{dig,smooth,traffic,
-  // track,marker}` object the renderers consume -- or null when no designation is active. Shared
+  // track,marker,automine}` object the renderers consume -- or null when no designation is active. Shared
   // by the normal decodeTile path and the BLACK-GLYPHS/B204 void-with-designation path below so
   // both derive `active` and the string dig name IDENTICALLY.
   function decodeDesigObj(dv) {
     var desig1 = dv & 0xFF, desig2 = (dv >> 8) & 0xFF;
     var digName = DIG_NAMES[desig1 & 0xF] || "No";
     var smooth = (desig1 >> 4) & 3, marker = (desig1 >> 6) & 1;
+    var automine = (desig1 >> 7) & 1;
     var traffic = desig2 & 3, track = (desig2 >> 2) & 0xF;
     if (digName === "No" && smooth === 0 && traffic === 0 && track === 0) return null;
-    return { dig: digName, smooth: smooth, traffic: traffic, track: track, marker: marker };
+    return { dig: digName, smooth: smooth, traffic: traffic, track: track, marker: marker,
+      automine: automine };
   }
 
   var tiletypeMeta = new Map(); // tt(number) -> {ttname,shape,mat,special}

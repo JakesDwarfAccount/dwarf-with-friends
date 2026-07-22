@@ -3794,13 +3794,19 @@
     14: [1, 13], 15: [1, 14],
   };
   // Category color prefix for the synthetic wash / outline (alpha appended per use).
+  // Automining uses a native whole-sprite multiply instead, so it has no entry here.
   const DESIG_TINT = {
-    dig: "rgba(240,150,40,", channel: "rgba(200,105,20,", ramp: "rgba(240,175,60,",
+    dig: "rgba(240,150,40,",
+    channel: "rgba(200,105,20,", ramp: "rgba(240,175,60,",
     stair: "rgba(240,195,75,", chop: "rgba(215,150,45,", gather: "rgba(120,200,90,",
     smooth: "rgba(90,150,235,", engrave: "rgba(80,215,225,", traffic: "rgba(225,205,80,",
     track: "rgba(185,140,90,", fortify: "rgba(90,150,235,",
     removeConstruction: "rgba(220,110,55,",
   };
+  // AUTOMINE-NATIVE: see the byte-identical evidence/hash and compositing proof beside
+  // AUTOMINE_SPRITE_TINT in dwf-gl.js. Pure green multiplies the complete translucent DF
+  // designation cell; it is not a separate wash underneath a normal-coloured pick.
+  const AUTOMINE_SPRITE_TINT = [0, 255, 0];
   const CHOP_PLANT_PART = new Set(["TRUNK", "BRANCH", "CANOPY", "LEAVES", "SAPLING"]);
   // MARKER-COLOR (2026-07-13 live native probe -- see dwf-gl.js's MARKER_RECOLOR banner for
   // the full fit + residuals). Native marker mode recolours the whole designation cell blue; we
@@ -3868,7 +3874,7 @@
             return { cell: DESIG_CELL.chop, cat: "chop" };
           if (shape === "SHRUB" || mat === "PLANT" || plantPart === "SHRUB")
             return { cell: DESIG_CELL.gather, cat: "gather" };
-          return { cell: DESIG_CELL.dig, cat: "dig" };
+          return { cell: DESIG_CELL.dig, cat: d.automine ? "automine" : "dig" };
         }
       }
     }
@@ -3909,7 +3915,7 @@
       // emit uses the identical hidden||WALL gate + the same 27,29,26 designationLighten value).
       // Non-wall revealed terrain (floors/ramps) is drawn bright already and native does not
       // brighten it, so the dark-backdrop lighten stays gated to hidden || shape==="WALL".
-      if (t.hidden || (t.shape || "") === "WALL") {
+      if (r.cat !== "automine" && (t.hidden || (t.shape || "") === "WALL")) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         ctx.fillStyle = "rgb(27,29,26)";
@@ -3920,8 +3926,10 @@
       // (a) category wash -- makes the tile obviously marked in any sheet state. MARKER-COLOR:
       // marker mode swaps the category colour for native's fixed marker-blue (the whole cell
       // reads blue), NOT a fainter version of the orange wash (see MARKER_RECOLOR banner).
-      ctx.fillStyle = marker ? (MARKER_WASH_CSS + DESIG_WASH_ALPHA_MARKER + ")") : (tint + DESIG_WASH_ALPHA + ")");
-      ctx.fillRect(px, py, cell, cell);
+      if (marker || r.cat !== "automine") {
+        ctx.fillStyle = marker ? (MARKER_WASH_CSS + DESIG_WASH_ALPHA_MARKER + ")") : (tint + DESIG_WASH_ALPHA + ")");
+        ctx.fillRect(px, py, cell, cell);
+      }
       // (b) DF glyph, or a synthetic icon if the sheet isn't loaded yet. The category wash
       // stays visible while a claimed mining glyph is in its off beat, matching DF's pulse.
       if (glyphVisible) {
@@ -3931,7 +3939,8 @@
           // MARKER-COLOR: marker glyph is recoloured by the fitted per-channel tint via the shared
           // multiplyTintedCell offscreen (draw->multiply->destination-in), byte-identical to
           // dwf-gl.js's `texel * MARKER_GLYPH_TINT` instance-tint path. Non-marker draws raw.
-          const tc = marker ? multiplyTintedCell(DESIG_SHEET, r.cell[0], r.cell[1], MARKER_GLYPH_TINT) : null;
+          const spriteTint = marker ? MARKER_GLYPH_TINT : (r.cat === "automine" ? AUTOMINE_SPRITE_TINT : null);
+          const tc = spriteTint ? multiplyTintedCell(DESIG_SHEET, r.cell[0], r.cell[1], spriteTint) : null;
           if (tc) {
             ctx.drawImage(tc, 0, 0, 32, 32, px, py, cell, cell);
           } else {
@@ -3977,10 +3986,10 @@
   function drawDesigSynthetic(cat, px, py, cell) {
     const cx = px + cell / 2, cy = py + cell / 2, r = Math.max(2, cell * 0.28);
     ctx.save();
-    ctx.strokeStyle = "rgba(18,14,8,0.92)";
+    ctx.strokeStyle = cat === "automine" ? "rgb(0,255,0)" : "rgba(18,14,8,0.92)";
     ctx.lineWidth = Math.max(1, cell / 12);
     ctx.beginPath();
-    if (cat === "dig" || cat === "chop") {
+    if (cat === "dig" || cat === "automine" || cat === "chop") {
       ctx.moveTo(cx - r, cy + r); ctx.lineTo(cx + r, cy - r);            // pick shaft
       ctx.moveTo(cx + r * 0.35, cy - r); ctx.lineTo(cx + r, cy - r * 0.35); // pick head
     } else if (cat === "channel") {
@@ -6356,6 +6365,8 @@
     _buildingsInPaintOrderForTest: buildingsInPaintOrder,
     _buildingAlphaForZForTest: buildingAlphaForZ,
     _resolveDesigForTest: resolveDesig,
+    _DESIG_TINT: DESIG_TINT,
+    _AUTOMINE_SPRITE_TINT: AUTOMINE_SPRITE_TINT,
     _resolveDjobForTest: resolveDjob,
     _designationGlyphVisibleForTest: designationGlyphVisible,
     _hasBlinkingDesignationJobForTest: hasBlinkingDesignationJob,

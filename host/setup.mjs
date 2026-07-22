@@ -14,22 +14,26 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   DFHACK_VERSION, autodetectDfRoot, checkDfhack, inspectDfhackVersion, readReceipt,
+  DF_EXE_NAME, CLOUDFLARED_BIN,
 } from "./hostlib.mjs";
 import { bakeSprites, spriteBakeState } from "./bake_sprites.mjs";
-import { fetchCloudflared, fetchDfhack, loadDownloadManifest, sha256File } from "./fetchers.mjs";
+import { fetchCloudflared, fetchDfhack, loadDownloadManifest, platformManifestItem, sha256File } from "./fetchers.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DWF_ROOT = path.dirname(HERE);
 const RELEASE_DIR = existsSync(path.join(DWF_ROOT, "release"))
   ? path.join(DWF_ROOT, "release") : path.join(HERE, "release");
-const PANEL_LAUNCHER = path.join(DWF_ROOT, "Dwarf With Friends.cmd");
-const SHORTCUT_NAME = "Dwarf With Friends.lnk";
-const shortcutCandidates = () => [
+const IS_WIN = process.platform === "win32";
+const PANEL_LAUNCHER = path.join(DWF_ROOT, IS_WIN ? "Dwarf With Friends.cmd" : "dwarf-with-friends.sh");
+const SHORTCUT_NAME = IS_WIN ? "Dwarf With Friends.lnk" : "dwarf-with-friends.desktop";
+const shortcutCandidates = () => IS_WIN ? [
   path.join(os.homedir(), "Desktop", SHORTCUT_NAME),
   path.join(process.env.OneDrive || path.join(os.homedir(), "OneDrive"), "Desktop", SHORTCUT_NAME),
+] : [
+  path.join(os.homedir(), ".local", "share", "applications", SHORTCUT_NAME),
+  path.join(os.homedir(), "Desktop", SHORTCUT_NAME),
 ];
 const shortcutPath = () => shortcutCandidates().find((file) => existsSync(file)) || shortcutCandidates()[0];
-const IS_WIN = process.platform === "win32";
 
 let selectedDfRoot = "";
 let allowWrongVersion = false;
@@ -43,10 +47,10 @@ function run(command, args, options = {}) {
 
 export function validateDfRoot(candidate, exists = existsSync) {
   const value = String(candidate || "").trim().replace(/^"|"$/g, "");
-  if (!value) return { ok: false, error: "Paste the folder that contains Dwarf Fortress.exe." };
+  if (!value) return { ok: false, error: `Paste the folder that contains ${DF_EXE_NAME}.` };
   if (!exists(value)) return { ok: false, error: `That folder does not exist: ${value}` };
-  if (!exists(path.join(value, "Dwarf Fortress.exe"))) {
-    return { ok: false, error: `That folder does not contain Dwarf Fortress.exe: ${value}` };
+  if (!exists(path.join(value, DF_EXE_NAME))) {
+    return { ok: false, error: `That folder does not contain ${DF_EXE_NAME}: ${value}` };
   }
   return { ok: true, dfRoot: value };
 }
@@ -66,10 +70,10 @@ export function detectSteamDfhack(dfRoot, exists = existsSync) {
 }
 
 export function cloudflaredState(dwfRoot = HERE, exists = existsSync, manifest = loadDownloadManifest()) {
-  const executable = path.join(dwfRoot, "cloudflared.exe");
+  const executable = path.join(dwfRoot, CLOUDFLARED_BIN);
   if (!exists(executable)) return { ok: false, executable, note: "cloudflared is not installed yet." };
   try {
-    const expected = String(manifest.cloudflared?.sha256 || "").toLowerCase();
+    const expected = String(platformManifestItem(manifest.cloudflared || {}).sha256 || "").toLowerCase();
     const actual = sha256File(executable).toLowerCase();
     return expected.length === 64 && actual === expected
       ? { ok: true, executable, note: "cloudflared is installed and verified." }
@@ -138,9 +142,42 @@ export async function getSetupState() {
 }
 
 async function createShortcut() {
-  if (!IS_WIN) return { ok: false, error: "Desktop shortcut creation is available on Windows only." };
   if (!existsSync(PANEL_LAUNCHER)) {
     return { ok: false, error: `The launcher is missing: ${PANEL_LAUNCHER}. Re-extract the DWF zip, then run setup again.` };
+  }
+  if (!IS_WIN) {
+    // Freedesktop launcher: install into ~/.local/share/applications (app menus) and copy to
+    // ~/Desktop when that folder exists. No PowerShell/COM equivalent needed.
+    const desktopEntry = [
+      "[Desktop Entry]",
+      "Type=Application",
+      "Name=Dwarf With Friends",
+      "Comment=Host multiplayer Dwarf Fortress in the browser",
+      `Exec="${PANEL_LAUNCHER}"`,
+      `Path=${DWF_ROOT}`,
+      "Terminal=true",
+      "Categories=Game;",
+    ].join("\n") + "\n";
+    try {
+      const { writeFileSync, mkdirSync, chmodSync } = await import("node:fs");
+      const targets = [];
+      const appsDir = path.join(os.homedir(), ".local", "share", "applications");
+      mkdirSync(appsDir, { recursive: true });
+      const appFile = path.join(appsDir, SHORTCUT_NAME);
+      writeFileSync(appFile, desktopEntry);
+      chmodSync(appFile, 0o755);
+      targets.push(appFile);
+      const desktopDir = path.join(os.homedir(), "Desktop");
+      if (existsSync(desktopDir)) {
+        const desktopFile = path.join(desktopDir, SHORTCUT_NAME);
+        writeFileSync(desktopFile, desktopEntry);
+        chmodSync(desktopFile, 0o755);
+        targets.push(desktopFile);
+      }
+      return { ok: true, note: `Launcher installed (${targets.join(", ")}).` };
+    } catch (error) {
+      return { ok: false, error: `Could not create the launcher (${error.message}). You can still host: run "${PANEL_LAUNCHER}".` };
+    }
   }
   const escapedTarget = PANEL_LAUNCHER.replace(/'/g, "''");
   const script = `$w=New-Object -ComObject WScript.Shell;` +
@@ -233,6 +270,7 @@ async function main() {
   console.log(`\n  Dwarf With Friends setup  ->  ${url}`);
   console.log("  This wizard also verifies and repairs an existing install.\n");
   if (IS_WIN) run("cmd", ["/c", "start", "", url]);
+  else run("xdg-open", [url]);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

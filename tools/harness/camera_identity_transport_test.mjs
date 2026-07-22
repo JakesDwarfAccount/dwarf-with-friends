@@ -197,7 +197,9 @@ assert.ok(!isSafeOld("Your%20Friend"), "seeded-bad: the old charset rejected the
 // C. the WS cam handler applies a carried position to the per-player camera authority, mirroring
 //    POST /camera's absolute-set semantics. Seeded-bad: parse the position but never route it.
 {
-  const camHandler = ws.match(/json_has_type\(payload, "cam"\)[\s\S]*?return;\n\s*\}/);
+  // 1bf50648 refactored the message dispatch from json_has_type(payload, "cam") to the local
+  // is_type("cam") lambda over the strict json_mini document; pin the current spelling.
+  const camHandler = ws.match(/is_type\("cam"\)[\s\S]*?return;\n\s*\}/);
   assert.ok(camHandler, "the WS cam handler must exist");
   const h = camHandler[0];
   assert.match(h, /has_pos/, "cam handler still parses position");
@@ -208,7 +210,7 @@ assert.ok(!isSafeOld("Your%20Friend"), "seeded-bad: the old charset rejected the
   assert.match(h, /forget_player_follow\(player\)/, "must break follow exactly like POST /camera");
   assert.match(h, /notify_player_input\(\)/, "must wake the push loop exactly like POST /camera");
   // z drift: POST /camera leaves the seeded z untouched when `z` is absent; the WS path must too.
-  assert.match(h, /bool has_z = json_number\(payload, "z", cz\)/, "cam handler must track whether z was carried");
+  assert.match(h, /bool has_z = get_number\(doc\.root, "z", cz\)/, "cam handler must track whether z was carried");
   assert.match(h, /if \(has_z\)\s*\n\s*camera\.z = \(int\)cz;/,
     "seeded-bad: unconditionally forcing camera.z = cz would zero z on a z-omitted message (POST preserves it)");
 }

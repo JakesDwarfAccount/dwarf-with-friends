@@ -36,6 +36,7 @@ const diagH = read("src/diagnostics.h");
 const diagC = read("src/diagnostics.cpp");
 const ws = read("src/websocket.cpp");
 const plugin = read("src/dwf.cpp");
+const overlay = read("src/overlay_control.cpp");
 
 let failed = 0;
 function check(name, fn) {
@@ -155,6 +156,27 @@ check("shutdown: SHUTDOWN-CLEAN is the last thing the plugin ever writes", () =>
   assert.ok(stop > 0 && clean > stop,
     "the clean mark must come AFTER stop_server, or the tail of the log is not the last word");
   assert.match(http, /SERVER-STOP all threads joined/, "stop_server does not record the run's totals");
+});
+
+check("shutdown: accepted HTTP sockets are woken before the listener thread is joined", () => {
+  assert.match(ws, /void begin_shutdown\(\)[\s\S]*http_stopping_ = true;[\s\S]*shutdown_fd\(sock\)/,
+    "the server wrapper does not reject queued HTTP work and wake active sockets");
+  assert.match(ws, /if \(http_stopping_\)[\s\S]*close_fd\(sock\);[\s\S]*return false;/,
+    "an already-queued HTTP worker can still enter its keep-alive wait during shutdown");
+  const stop = http.slice(http.indexOf("void stop_server()"));
+  assert.ok(stop.indexOf("ws_server_begin_shutdown(*g_server)") < stop.indexOf("g_server->stop()"),
+    "accepted sockets must be woken before httplib begins draining its worker queue");
+});
+
+check("shutdown: overlay restore never re-enters the plugin manager during process exit", () => {
+  const at = overlay.indexOf("void restore_overlay_after_stream(");
+  const fn = overlay.slice(at);
+  const guard = fn.indexOf("!core.isValid()");
+  const enable = fn.indexOf('core.runCommand(con, "enable overlay")');
+  assert.ok(guard >= 0 && enable > guard,
+    "process shutdown must be rejected before the enable-overlay command");
+  assert.match(fn.slice(guard, enable), /g_overlay_disabled_by_dwf = false;[\s\S]*return;/,
+    "the shutdown-only path must clear its bookkeeping and return without enabling overlay");
 });
 
 console.log(failed ? `\n${failed} FAILED` : "\nALL PASS");

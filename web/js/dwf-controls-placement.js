@@ -2815,6 +2815,14 @@
     updateZoneRepaintSummary();
   }
   function setZonePreset(key) {
+    // A new-zone choice supersedes the whole existing-zone editor. Without this transition the
+    // old zoneRepaintId can win the pointer-up branch below, and even a non-repaint detail panel
+    // physically covers the new zone's Accept button. One choice should produce one clear mode:
+    // dismiss the old detail, leave repaint state, then arm the new-zone paint session.
+    if (key) {
+      if (typeof closeSelection === "function") closeSelection();
+      if (zoneMode === "repaint") disarmZoneRepaint();
+    }
     zonePreset = key;
     if (key) { // arming paint: leave every other placement mode (same order as WD-12)
       clearBuildPlacement(false);

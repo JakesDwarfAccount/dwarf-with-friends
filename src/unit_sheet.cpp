@@ -20,12 +20,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "unit_sheet.h"
+#include "render_thread_wait.h"
 
 #include "http_server.h"
 #include "info_panel.h"
 #include "client_state.h"
 #include "image_encoder.h"
 #include "unit_portrait.h"
+#include "portrait_sweep.h"
 #include "unit_sprites.h"
 #include "unit_activity.h"
 
@@ -1783,9 +1785,6 @@ std::vector<std::string> unit_overview_relation_lines(df::unit* unit) {
     int32_t spouse_id = unit->relationship_ids[df::enums::unit_relationship_type::Spouse];
     if (spouse_id != -1)
         lines.push_back("Spouse: " + related_unit_label(spouse_id));
-    int32_t lover_id = unit->relationship_ids[df::enums::unit_relationship_type::Lover];
-    if (lover_id != -1 && lover_id != spouse_id)
-        lines.push_back("Lover: " + related_unit_label(lover_id));
     int32_t owner_id = unit->relationship_ids[df::enums::unit_relationship_type::PetOwner];
     if (owner_id != -1)
         lines.push_back("Owner: " + related_unit_label(owner_id));
@@ -3013,7 +3012,7 @@ bool unit_sheet_on_render_thread(int32_t unit_id,
         }
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err.empty() ? "unit sheet failed" : request->err;
         return false;
@@ -3152,6 +3151,8 @@ void register_unit_routes(httplib::Server& server) {
             (req.get_param_value("generate") == "1" ||
              req.get_param_value("generate") == "true" ||
              req.get_param_value("generate") == "yes");
+        if (generate && !icon_mode)
+            portrait_sweep_request_unit(unit_id);
         if (!unit_portrait_on_render_thread(unit_id, icon_mode, generate,
                                             frame, texpos, source, &err)) {
             res.status = 404;

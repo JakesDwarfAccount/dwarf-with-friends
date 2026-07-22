@@ -1,0 +1,22 @@
+name: "Good first issue: route policy"
+description: Document or test one HTTP route's public, authenticated, host-only, or local-only policy.
+title: "[Good first issue] Route policy: "
+labels: ["good-first-issue", "documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: "Choose one route from tools/security/route-policy.json. Keep the change small and do not change authority without maintainer review."
+  - type: input
+    id: route
+    attributes:
+      label: Route
+      placeholder: /example
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: "Update the inventory or its explanation, add a focused fixture if behaviour changes, and run node tools/harness/route_inventory_test.mjs."
+    validations:
+      required: true

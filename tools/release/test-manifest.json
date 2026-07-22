@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 1,
+  "offline": [
+    {
+      "group": "protocol",
+      "file": "tools/harness/json_mini_vectors_test.mjs"
+    },
+    {
+      "group": "security",
+      "file": "tools/harness/join_public_allowlist_test.mjs"
+    },
+    {
+      "group": "security",
+      "file": "tools/harness/route_policy_completeness_test.mjs"
+    },
+    {
+      "group": "security",
+      "file": "tools/harness/request_origin_test.mjs"
+    },
+    {
+      "group": "security",
+      "file": "tools/harness/diagnostic_route_gate_test.mjs"
+    },
+    {
+      "group": "security",
+      "file": "tools/harness/tiledump_bounds_test.mjs"
+    },
+    {
+      "group": "security",
+      "file": "tools/harness/friend_save_policy_test.mjs"
+    },
+    {
+      "group": "release",
+      "file": "tools/harness/test_manifest_test.mjs"
+    },
+    {
+      "group": "release",
+      "file": "tools/harness/native_build_receipt_test.mjs"
+    },
+    {
+      "group": "contributors",
+      "file": "tools/harness/contributor_surface_test.mjs"
+    },
+    {
+      "group": "native",
+      "file": "tools/harness/stone_use_api_result_test.mjs"
+    },
+    {
+      "group": "native",
+      "file": "tools/harness/burrows_api_result_test.mjs"
+    },
+    {
+      "group": "native",
+      "file": "tools/harness/kitchen_api_result_test.mjs"
+    },
+    {
+      "group": "native",
+      "file": "tools/harness/labor_api_result_test.mjs"
+    },
+    {
+      "group": "native",
+      "file": "tools/harness/portrait_native_fault_guard_test.mjs"
+    },
+    {
+      "group": "native",
+      "file": "tools/harness/df_access_inventory_test.mjs"
+    },
+    {
+      "group": "wire",
+      "file": "tools/harness/wire_tail_bounds_test.mjs"
+    },
+    {
+      "group": "wire",
+      "file": "tools/harness/automine_tint_test.mjs"
+    },
+    {
+      "group": "lifecycle",
+      "file": "tools/harness/save_barrier_test.mjs"
+    },
+    {
+      "group": "lua",
+      "file": "tools/harness/stockpile_settings_guard_test.mjs"
+    },
+    {
+      "group": "lua",
+      "file": "tools/harness/stockpile_repair_wiring_test.mjs"
+    },
+    {
+      "group": "lua",
+      "file": "tools/harness/lua_bridge_signature_test.mjs"
+    },
+    {
+      "group": "lua",
+      "file": "tools/harness/lua_fort_entity_test.mjs"
+    },
+    {
+      "group": "lua",
+      "file": "tools/harness/lua_generated_source_test.mjs"
+    },
+    {
+      "group": "chat",
+      "file": "tools/harness/chat_rate_signal_test.mjs"
+    },
+    {
+      "group": "wire",
+      "file": "tools/harness/reqblocks_queue_bounds_test.mjs"
+    },
+    {
+      "group": "wire",
+      "file": "tools/harness/ws_drop_counters_test.mjs"
+    },
+    {
+      "group": "diagnostics",
+      "file": "tools/harness/diagnostics_log_bound_test.mjs"
+    },
+    {
+      "group": "lifecycle",
+      "file": "tools/harness/world_reload_reset_test.mjs"
+    },
+    {
+      "group": "package",
+      "file": "tools/harness/pkg_install_roundtrip_test.mjs"
+    },
+    {
+      "group": "package",
+      "file": "tools/harness/release_zip_fixture_test.mjs"
+    },
+    {
+      "group": "package",
+      "file": "tools/harness/host_install_fixture_test.mjs"
+    },
+    {
+      "group": "package",
+      "file": "tools/harness/deploy_integrity_check.mjs",
+      "args": [
+        "--selftest"
+      ]
+    },
+    {
+      "group": "package",
+      "file": "tools/harness/dfroot_resolver_test.mjs"
+    },
+    {
+      "group": "parity",
+      "file": "tools/ground_truth/task_test.mjs",
+      "private": true
+    },
+    {
+      "group": "parity",
+      "file": "tools/ground_truth/parity_seed_build_test.mjs",
+      "private": true,
+      "platforms": [
+        "win32"
+      ]
+    },
+    {
+      "group": "parity",
+      "file": "tools/ground_truth/parity_web_integrity_test.mjs",
+      "private": true
+    },
+    {
+      "group": "shell",
+      "file": "tools/harness/lua_syntax_guard.mjs"
+    },
+    {
+      "group": "shell",
+      "file": "tools/harness/browser_dependency_inventory_test.mjs"
+    },
+    {
+      "group": "wire",
+      "file": "tools/harness/protocol_v1_registry_test.mjs"
+    },
+    {
+      "group": "shell",
+      "file": "tools/harness/view_stamp_test.mjs"
+    },
+    {
+      "group": "shell",
+      "file": "tools/harness/panel_frame_test.mjs"
+    },
+    {
+      "group": "shell",
+      "file": "tools/harness/uiflow_test.mjs"
+    },
+    {
+      "group": "shell",
+      "file": "tools/harness/ui_components_test.mjs",
+      "private": true
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_cadence_test.mjs"
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_predicate_source_test.mjs"
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_predicate_test.mjs"
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_regression_suites_test.mjs"
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_resolver_parity_test.mjs"
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_seeded_bad_test.mjs"
+    },
+    {
+      "group": "status-bubbles",
+      "file": "tools/harness/sb_transport_test.mjs"
+    },
+    {
+      "group": "status",
+      "file": "tools/harness/wt29_mood_subtype_test.mjs"
+    },
+    {
+      "group": "status",
+      "file": "tools/harness/wt30_status_full_test.mjs"
+    },
+    {
+      "group": "status",
+      "file": "tools/harness/wb13_units_test.mjs"
+    },
+    {
+      "group": "status",
+      "file": "tools/harness/b248_status_priority_test.mjs"
+    },
+    {
+      "group": "status",
+      "file": "tools/harness/status_truth_test.mjs"
+    },
+    {
+      "group": "status",
+      "file": "tools/harness/b222_status_serializer_parity_test.mjs"
+    },
+    {
+      "group": "zone-repaint",
+      "file": "tools/harness/zone_repaint_safety_test.mjs"
+    },
+    {
+      "group": "zone-repaint",
+      "file": "tools/harness/zone_repaint_session_test.mjs"
+    },
+    {
+      "group": "zone-repaint",
+      "file": "tools/harness/zone_repaint_shape_test.mjs"
+    },
+    {
+      "group": "zone-repaint",
+      "file": "tools/harness/zone_repaint_status_test.mjs"
+    },
+    {
+      "group": "zone-repaint",
+      "file": "tools/harness/stockpile_repaint_session_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/squads_view_fixture_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/wave4_squads_parity_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/b295_squad_flow_parity_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/b293_noble_squad_availability_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/cim_workorders_test.mjs",
+      "private": true
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/b285_workorder_condition_editor_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/b285_workorder_conditions_read_test.mjs"
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/wave4_info_stocks_test.mjs",
+      "private": true
+    },
+    {
+      "group": "families",
+      "file": "tools/harness/s5_location_tavern_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/v1_safety_gate_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/squad_delete_teardown_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/ws_upgrade_header_capacity_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/ui_cache_purge_guard_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/v1_shell_single_pop_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/v1_squad_asneeded_gates_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/v1_stale_honesty_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/v1_stock_item_flags_test.mjs"
+    },
+    {
+      "group": "v1",
+      "file": "tools/harness/v1_workorder_cancel_test.mjs"
+    }
+  ],
+  "df_install_optional": [
+    {"file":"tools/harness/status_truth_test.mjs","args":["--live"],"requires":"supported DF install and loaded fortress"},
+    {"file":"tools/harness/parity_wave1_squads_test.mjs","requires":"private generated build/atlas/families.json evidence","private":true}
+  ],
+  "live_read_only": [
+    {"file":"tools/harness/gate_perf.py","requires":"running supported server and performance witness"},
+    {"file":"tools/harness/gate_parity.py","requires":"running native game and browser oracle"}
+  ],
+  "live_mutating": [
+    {"file":"tools/harness/flight_recorder_qualification.mjs","requires":"DF_LOCK, approved save, explicit owner approval"}
+  ],
+  "manual_visual": [
+    {"document":"docs/stabilization/GOLDEN-LIVE-CAMPAIGN.md","requires":"two browsers, supported fortress save, human verdict","private":true}
+  ]
+}

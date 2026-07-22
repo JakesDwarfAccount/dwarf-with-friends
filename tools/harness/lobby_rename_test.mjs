@@ -146,7 +146,8 @@ it("validation matches the join card: trimmed, non-empty, maxlength 32", () => {
 const wsSrc = fs.readFileSync(path.join(root, "src/websocket.cpp"), "utf8");
 const csSrc = fs.readFileSync(path.join(root, "src/client_state.cpp"), "utf8");
 it("the DLL rename handler is present and reuses the in-place registry rename", () => {
-  assert.match(wsSrc, /json_has_type\(payload,\s*"rename"\)/, "server handles the rename control message");
+  // 1bf50648 refactored dispatch to the local is_type lambda over the strict json_mini document.
+  assert.match(wsSrc, /is_type\("rename"\)/, "server handles the rename control message");
   assert.match(wsSrc, /ws_rename_connection\(conn,\s*requested\)/, "server renames the connection's registry bucket in place");
   assert.match(wsSrc, /rename_player_state\(oldName,\s*finalName\)/, "server carries name-keyed camera/cursor/follow across the rename");
   assert.match(wsSrc, /send_hello_ack\(conn\)/, "server replies with an authoritative-name hello_ack the client adopts");

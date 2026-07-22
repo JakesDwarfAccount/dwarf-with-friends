@@ -461,16 +461,16 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
      (cheap slice, before dispatching the payload), and dwf-cache-worker.js's fallback
      (non-dedicated-worker) mode expects it too (a real dedicated Worker self-loads its own
      copy via importScripts instead). Must load before BOTH of those. -->
-<script src="/js/dwf-wire-v1.js?v=1.1.0-wavea.r26.fx-n0715d"></script>
+<script src="/js/dwf-wire-v1.js?v=1.1.1-automine"></script>
 <!-- WA-6 world cache: dwf-ws.js's deliver() posts every surviving map message into
      DwfCache (shadow-only until WA-7 rewires the tile renderer to read from it). The
      worker script doubles as the synchronous ingest-core fallback when loaded as a plain
      <script> (see the dual-mode banner in dwf-cache-worker.js), so it must load first. -->
-<script src="/js/dwf-cache-worker.js?v=1.0.9-b204-n0715d"></script>
-<script src="/js/dwf-cache.js?v=2.3.0-b211-n0715d"></script>
+<script src="/js/dwf-cache-worker.js?v=1.0.10-automine"></script>
+<script src="/js/dwf-cache.js?v=2.3.1-automine"></script>
 <!-- WS push transport must load BEFORE the tile renderer so window.DwfWS exists
      when it wires the push hook. Absent => the renderer just keeps HTTP polling. -->
-<script src="/js/dwf-ws.js?v=2.0.6-b238-n0715d"></script>
+<script src="/js/dwf-ws.js?v=2.0.7-stabilization-n0719"></script>
 <!-- WB-6: shared 8-neighbor adjacency (wall-join upgrade + WB-7's shadow-decal tables).
      Renderer-agnostic, must load before dwf-tiles.js's drawWallJoin/drawTileComposite
      reference window.DwfAdjacency. -->
@@ -481,12 +481,12 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
      Must load BEFORE the renderers so window.DFAnimClock exists when they first read it. -->
 <script src="/js/dwf-animclock.js?v=1.0.0-b206-n0715d"></script>
 <script src="/js/dwf-farm-crops.js?v=1.0.0-tx4.r26.fx-n0715d"></script>
-<script src="/js/dwf-tiles.js?v=8.4.1-gatec-b235-b71r3-b211-b273r2-n0715d-p0716f1-blink1-plist2-join1-drag2-wscam1-scrub1"></script>
+<script src="/js/dwf-tiles.js?v=8.4.3-automine-native"></script>
 <!-- WB-8/WB-9 GL renderer: the instanced-quad atlas packer + the WebGL2 core pipeline. Behind
      the ?renderer=gl seam flag (default stays canvas2d until WB-14). Load BEFORE render.js so
      its gl impl can reference window.DwfGL / window.DwfGLAtlas at init. -->
 <script src="/js/dwf-gl-atlas.js?v=1.0.5-spritefresh.r26.fx-n0715d"></script>
-<script src="/js/dwf-gl.js?v=7.6.0-b206-b235-b71r3-b211-b273r2-n0715d-p0716f1-blink1-scrub1"></script>
+<script src="/js/dwf-gl.js?v=7.6.2-automine-native"></script>
 <!-- Renderer seam (WB-1): registers canvas2d/gl + selection/fallback. Loads AFTER
      dwf-tiles.js (so window.DwfTiles already exists) and BEFORE core.js. -->
 <script src="/js/dwf-render.js?v=2.3.0-b211-n0715d"></script>
@@ -528,7 +528,7 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
      bump, so the HTML parser swallowed the ENTIRE build-info-panels tag as script text -- the
      module never existed in the DOM and the input layer died at init (win31 outage). Keep
      these two tags CLOSED. ui_drift_guard now pins unclosed-script-tag detection. -->
-<script src="/js/dwf-unit-hud-notifications.js?v=2.7.2-portrait-reuse-b233-b232r2-n0715d-p0716v1-dwfui1-plist2"></script>
+<script src="/js/dwf-unit-hud-notifications.js?v=2.7.3-native-portrait-lifecycle2"></script>
 <script src="/js/dwf-build-info-panels.js?v=2.2.4-b225-b229-b236-b232r2-b254-n0715d-p0716v1-p0716f1-dwfui1"></script>
 <script src="/js/dwf-labor-work-orders.js?v=0.9.1-gatec-n0715c-b285w2-recorder-v3-dwfui1-scrub1"></script>
 <script src="/js/dwf-squads.js?v=1.2.0-gatec-b233-b252-w23-n0715d-p0716v1-dwfui1-zdel3-pos0"></script>
@@ -584,15 +584,15 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
      exists when paintSprite() calls into it. -->
 <script src="/js/dwf-chrome.js?v=0.9.1-wd6.r26.fx-n0715d"></script>
 <script src="/js/dwf-control-shell.js?v=1.1.0-toolbar-align-b230-b233-b231-b217r2-b267-b268-w23-n0715d-dwfui1-zdel2"></script>
-<script src="/js/dwf-controls-placement.js?v=4.9.0-b223-pingflow-b230-b233-b231-b238-b267-b268-w23-n0715d-p0716v1-p0716z1-p0716z2-dwfui1-wthr1-plist2-zdel2-drag1-sprepaintctl1"></script>
+<script src="/js/dwf-controls-placement.js?v=4.9.0-b223-pingflow-b230-b233-b231-b238-b267-b268-w23-n0715d-p0716v1-p0716z1-p0716z2-dwfui1-wthr1-plist2-zdel2-drag1-sprepaintctl1-ztransition2"></script>
 <!-- WT20 (mobile): touch-gesture layer for the map canvas -- one-finger pan / pinch zoom /
      two-finger z-swipe / tap-as-click, all routed into the EXISTING camera+selection
      primitives (window.DFTouchNav from core.js, window.DFPlacementArmed from
      controls-placement.js). Acts only on pointerType==="touch" events; a mouse-only desktop
      never enters it. Also maintains the --dfvv-kb-inset keyboard var for chat. -->
 <script src="/js/dwf-touch.js?v=1.0.0-wt20-n0715d"></script>
-<!-- WD-27: Esc menu (client-scoped; see file header for the host-gating rationale). -->
-<script src="/js/dwf-escmenu.js?v=1.1.1-settings.r26.fx-n0715d-dwfui1"></script>
+<!-- WD-27: Esc menu (client-scoped; see file header for save permissions). -->
+<script src="/js/dwf-escmenu.js?v=1.1.2-friend-save-n0720"></script>
 <!-- HOST SETTINGS panel: host-only point-and-click for pause permissions, join password, and the
      connected-players roster. Self-contained (own <style>); entry row injected into the Esc menu
      for the loopback host only. Dormant-graceful against an older DLL (missing routes -> hints). -->
@@ -616,7 +616,7 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
      (composer/suggestion components). XSS-safe: raw chat reaches textContent/safe link attributes
      only. Graceful-dormant against an old DLL (no /chat route -> disabled). -->
 <script src="/js/dwf-digest.js?v=1.0.0-wt09.r26.fx-n0715d-dwfui1"></script>
-<script src="/js/dwf-chat.js?v=2.2.0-b223-pingflow-n0715d-dwfui1"></script>
+<script src="/js/dwf-chat.js?v=2.2.1-stabilization-n0719"></script>
 <!-- B04: per-tile unit selection cycling. Loads after core.js + unit-hud so it can read the
      shared `player`/`selectedUnitData`/`showUnitSheet` bindings; injects a unit-cycle bar into
      the open unit sheet whenever the clicked tile holds more than one unit. -->

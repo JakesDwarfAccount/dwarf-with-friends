@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "api_result.h"
 #include "httplib.h"
 
 #include <cstdint>
@@ -71,22 +72,20 @@ struct LaborState {
     std::vector<LaborRow> rows;
 };
 
-bool build_labor_state(int selected, LaborState& out, std::string* err = nullptr);
+ApiResult<LaborState> build_labor_state(int selected);
 std::string labor_json(const LaborState& state);
 
 // cpp-batch (Item 3): full assignable unit_labor enum ([{id,key,name,categoryKey,category,
 // categoryOrder}]) for the Workers-tab checkboxes. Enum-only, lock-free (no world access).
 std::string labor_list_json();
 
-bool labor_toggle_impl(int detail, int unit_id, bool on, std::string* err = nullptr);
-bool labor_mode_impl(int detail, int mode, std::string* err = nullptr);
-bool labor_specialist_impl(int unit_id, bool on, std::string* err = nullptr);
-bool labor_create_impl(const std::string& requested_name,
-                       int* out_index = nullptr,
-                       std::string* err = nullptr);
-bool labor_rename_impl(int detail, const std::string& requested_name, std::string* err = nullptr);
-bool labor_delete_impl(int detail, std::string* err = nullptr);
-bool labor_task_toggle_impl(int detail, int labor, bool on, std::string* err = nullptr);
+ApiResult<bool> set_labor_assignment(int detail, int unit_id, bool on);
+ApiResult<bool> set_labor_mode(int detail, int mode);
+ApiResult<bool> set_labor_specialist(int unit_id, bool on);
+ApiResult<int> create_labor_detail(const std::string& requested_name);
+ApiResult<bool> rename_labor_detail(int detail, const std::string& requested_name);
+ApiResult<bool> delete_labor_detail(int detail);
+ApiResult<bool> set_labor_task(int detail, int labor, bool on);
 
 // Registers this module's HTTP routes (moved verbatim from http_server.cpp's
 // register_routes monolith -- B212, 2026-07-13).

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "magic": [68, 53],
+  "version": 1,
+  "headerBytes": 10,
+  "frameTypes": {"BLOCK_SET":1,"AUX":2,"ITEMDEF_DICT":3},
+  "flags": {"DEFLATED":1},
+  "tileRecordBytes": 12,
+  "tilesPerBlock": 256,
+  "maxBlocksPerFrame": 24,
+  "tailKinds": {"ITEM":1,"PLANT":2,"SPATTER_MAT":3,"FLOW":4,"ITEM_SPATTER":5,"GRASS":6,"ENGRAVING":7,"DESIG_PRIORITY":8,"VERMIN":9,"CONTAINER_PEEK":10,"FARM_CROP":11}
+}

@@ -89,6 +89,7 @@ function stockpile_set_preset(id, preset, mode)
         require('plugins.stockpiles').import_settings(lib, {id = id, mode = mode})
     end)
     if not ok then return false, tostring(err) end
+    sp_normalize_enabled_categories(b)
     return true, ''
 end
 
@@ -404,6 +405,11 @@ function sp_finished_mat(m)
     return m and m.material and m.material.flags and
         (m.material.flags.IS_GEM or m.material.flags.IS_METAL or m.material.flags.IS_STONE)
 end
+function sp_builtin_material_name(m)
+    local ok, name = pcall(function() return m.state_name.Solid end)
+    if ok and name and #name > 0 then return name end
+    return 'other material'
+end
 
 SP_QUALITIES = sp_enum_list({
     {0, 'Ordinary'}, {1, 'Well-crafted'}, {2, 'Finely-crafted'}, {3, 'Superior'},
@@ -620,6 +626,14 @@ local SP_CATEGORIES = {
         groups = {
             sp_inorganic_group('rough_mats', 'Rough gems', function(b) return b.settings.gems.rough_mats end, sp_gem),
             sp_inorganic_group('cut_mats', 'Cut gems', function(b) return b.settings.gems.cut_mats end, sp_gem),
+            sp_vec_group('rough_other', 'Other rough materials',
+                function(b) return b.settings.gems.rough_other_mats end,
+                function() return df.global.world.raws.mat_table.builtin end,
+                sp_any, sp_builtin_material_name),
+            sp_vec_group('cut_other', 'Other cut materials',
+                function(b) return b.settings.gems.cut_other_mats end,
+                function() return df.global.world.raws.mat_table.builtin end,
+                sp_any, sp_builtin_material_name),
         },
     },
     leather = {
@@ -729,6 +743,34 @@ function sp_group_set(g, b, idx, on)
     vec[idx] = sp_bool(on) and 1 or 0
 end
 
+-- DF's item-matching code assumes every vector in an enabled category has been initialized,
+-- even when only one of the category's groups is selected. Enabling (for example) metal bars
+-- while leaving the sibling "other blocks" vector empty produces a native null dereference as
+-- soon as hauling considers a wooden block. Grow missing sibling entries as disabled before the
+-- category flag becomes visible to DF. Existing choices are never overwritten.
+function sp_ensure_category_vectors(b, spec)
+    local changed = false
+    for _, g in ipairs(spec.groups) do
+        if g.vec and not g.fixed then
+            local vec = g.vec(b)
+            local before = #vec
+            sp_ensure_vec(vec, sp_group_count(g))
+            if #vec ~= before then changed = true end
+        end
+    end
+    return changed
+end
+
+function sp_normalize_enabled_categories(b)
+    local changed = 0
+    for _, spec in pairs(SP_CATEGORIES) do
+        if b.settings.flags[spec.flag] and sp_ensure_category_vectors(b, spec) then
+            changed = changed + 1
+        end
+    end
+    return changed
+end
+
 -- Resolve (category, group key) -> spec, group. Defaults to the first group if blank/unknown.
 function sp_find_group(cat, group)
     local spec = SP_CATEGORIES[tostring(cat or '')]
@@ -750,6 +792,7 @@ function sp_toggle_item_on(b, cat, group, idx, on)
     idx = tonumber(idx)
     if not idx or idx < 0 then return false, 'bad index' end
     local ok, err = pcall(function()
+        if sp_bool(on) then sp_ensure_category_vectors(b, spec) end
         sp_group_set(g, b, idx, on)
         if sp_bool(on) then b.settings.flags[spec.flag] = true end
     end)
@@ -762,6 +805,7 @@ function sp_toggle_all_on(b, cat, group, on)
     if not g then return false, 'category not editable' end
     local want = sp_bool(on)
     local ok, err = pcall(function()
+        if want then sp_ensure_category_vectors(b, spec) end
         for i = 0, sp_group_count(g) - 1 do
             local r = sp_group_item(g, i)
             if r and g.include(r, i) then sp_group_set(g, b, i, want) end
@@ -797,6 +841,39 @@ function hauling_stop_toggle_all(route_id, stop_id, cat, group, on)
     return sp_toggle_all_on(stop, cat, group, on)
 end
 
+-- One-shot recovery for saves created before the sibling-vector guard above. This is deliberately
+-- conservative: it only grows missing vectors in categories that are already enabled and fills
+-- new entries with false. It covers all three places a save embeds df::stockpile_settings:
+-- ordinary stockpiles, minecart hauling stops, and the fort-wide custom-stockpile buffer at
+-- plotinfo.stockpile.custom_settings (that one IS a settings object, so it gets a thin
+-- {settings = ...} adapter to look like a holder).
+function repair_incomplete_stockpile_settings()
+    local holders, categories = 0, 0
+    local function repair(holder)
+        local changed = sp_normalize_enabled_categories(holder)
+        if changed > 0 then
+            holders = holders + 1
+            categories = categories + changed
+        end
+    end
+
+    local world = df.global.world
+    if world then
+        for _, bld in ipairs(world.buildings.all) do
+            if df.building_stockpilest:is_instance(bld) then repair(bld) end
+        end
+    end
+    local plotinfo = df.global.plotinfo
+    if plotinfo then
+        for _, route in ipairs(plotinfo.hauling.routes) do
+            for _, stop in ipairs(route.stops) do repair(stop) end
+        end
+        local custom = plotinfo.stockpile and plotinfo.stockpile.custom_settings
+        if custom then repair({settings = custom}) end
+    end
+    return holders, categories
+end
+
 -- Preset ('stone', 'food', 'none', ...) on a stop. This one does NOT hand-write anything: DFHack's
 -- stockpiles plugin already exposes a native route-stop importer, and its Lua front door takes the
 -- route/stop pair directly -- plugins/lua/stockpiles.lua:124 import_settings(name, opts) dispatches
@@ -818,6 +895,7 @@ function hauling_stop_set_preset(route_id, stop_id, preset, mode)
             lib, {route_id = tonumber(route_id), stop_id = tonumber(stop_id), mode = mode})
     end)
     if not ok2 then return false, tostring(err2) end
+    sp_normalize_enabled_categories(stop)
     return true, ''
 end
 
@@ -846,13 +924,17 @@ function create_stockpile(x1, y1, x2, y2, z, preset)
     local want = tostring(preset or 'all'):lower()
     if want ~= 'none' then
         local libname = STOCKPILE_PRESETS[want] or 'all'
-        pcall(function()
+        local imported, import_err = pcall(function()
             require('plugins.stockpiles').import_settings(libname, {id = bld.id, mode = 'enable'})
         end)
+        if not imported then
+            pcall(dfhack.buildings.deconstruct, bld)
+            return -1, tostring(import_err)
+        end
+        sp_normalize_enabled_categories(bld)
     end
     return bld.id, ''
 end
-
 -- ---------------------------------------------------------------------------
 -- Browser build menu + placement
 -- ---------------------------------------------------------------------------
@@ -1883,7 +1965,7 @@ function resolve_closest_materials(opts, btype, subtype, custom, cx, cy, cz)
     end
 end
 
-function filters_for_building(btype, subtype, custom, opts)
+function filters_for_building(btype, subtype, custom, opts, apply_material_picks)
     local filters = dfhack.buildings.getFiltersByType({}, btype, subtype, custom)
     if not filters then return nil end
     if is_pressure_plate(btype, subtype) and filters[1] then
@@ -1898,7 +1980,13 @@ function filters_for_building(btype, subtype, custom, opts)
     elseif is_spike_trap(btype) and filters[1] then
         filters[1].quantity = clamp(opt_num(opts, 'weapon_count', 1), 1, 10)
     end
-    apply_chosen_materials(filters, opts)   -- DF-style per-requirement material selection
+    -- An explicit finished item is already the most specific possible material choice. Ignore
+    -- generic/closest material preferences in that path; otherwise a request can demand both
+    -- "item #4309" and "whatever material is closest", then reject its own valid item when the
+    -- closest material differs. The exact item still has to satisfy the building's base filter.
+    if apply_material_picks ~= false then
+        apply_chosen_materials(filters, opts)   -- DF-style per-requirement material selection
+    end
     return filters
 end
 
@@ -1947,7 +2035,8 @@ function plan_buildings(blds)
 end
 
 function place_one(pos, btype, subtype, custom, width, height, direction, opts, full_rectangle, selected_item_id)
-    local filters = filters_for_building(btype, subtype, custom, opts)
+    local filters = filters_for_building(btype, subtype, custom, opts,
+        not (selected_item_id and selected_item_id >= 0))
     if not filters then return nil, 'building has no material filter' end
     local fields = {}
     if btype == df.building_type.SiegeEngine then
@@ -2787,12 +2876,6 @@ function occupation_type_key(occ_type)
     return tostring(occ_type)
 end
 
-function fort_entity()
-    local plotinfo = df.global.plotinfo
-    if not plotinfo then return nil end
-    return df.historical_entity.find(plotinfo.group_id or -1)
-end
-
 -- Every civzone attached to the location, with its footprint, so the client can list them and so
 -- occupant counting has a region to test against.
 function location_zone_records(loc)
@@ -3578,8 +3661,6 @@ function building_label(b)
     end
     return pretty_enum_name(df.building_type[btype], 'Building')
 end
-
-
 -- ---------------------------------------------------------------------------
 -- Burial / memorial flows (Phase 5)
 -- ---------------------------------------------------------------------------
@@ -4107,7 +4188,6 @@ function list_orders()
     if ok and result then return result end
     return '{"ok":false,"hasManager":' .. json_bool(mgr) .. ',"orders":[],"error":' .. json_string(result) .. '}\n'
 end
-
 -- ---------------------------------------------------------------------------
 -- Workshop/furnace panels
 -- ---------------------------------------------------------------------------
@@ -8093,7 +8173,6 @@ function cancel_order(id)
     end
     return false, 'order not found'
 end
-
 -- Change an order's target amount and/or frequency. Returns (ok, msg).
 function adjust_order(id, amount, frequency)
     id = tonumber(id)
@@ -8116,7 +8195,6 @@ function adjust_order(id, amount, frequency)
     end
     return false, 'order not found'
 end
-
 -- ---------------------------------------------------------------------------
 -- WT26 -- DFHack command console (browser gui/launcher equivalent)
 -- ---------------------------------------------------------------------------
@@ -8234,7 +8312,6 @@ order_presets = safe_json(order_presets)
 workshop_info = safe_json(workshop_info)
 burial_coffin_info = safe_json(burial_coffin_info)
 console_catalog = safe_json(console_catalog)
-
 -- ================================================================================================
 -- HOST-WRITES (B226 browser barter / B227 justice convict+interrogate)
 --

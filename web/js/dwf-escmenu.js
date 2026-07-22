@@ -40,11 +40,10 @@
 // the real signal through, and those five session rows remain hard-disabled regardless of what it
 // returns -- see the render() tooltip logic, which does not branch their disabled state on `host`.
 //
-// UPDATE (approved 2026-07-07, "HOST CAN SAVE FROM THE WEB -- SAVE-ONLY, no load"): a SINGLE
-// genuinely functional row -- "Save the fortress" (`webSave: true`) -- now DOES gate on
-// isHostClient(). It POSTs /save, which quicksaves WITHOUT exiting (the DFHack autosave-request
-// pathway; server route in http_server.cpp, host-gated by the same peer-loopback test the pause
-// arbiter uses). It never triggers a load. The saving-in-progress feedback reuses the existing
+// UPDATE: a SINGLE genuinely functional row -- "Save the fortress" (`webSave: true`) -- is
+// available to every authenticated player. It POSTs /save, which quicksaves WITHOUT exiting (the
+// DFHack autosave-request pathway; server route in session_routes.cpp). It never triggers a load.
+// The saving-in-progress feedback reuses the existing
 // WP-B busy banner (dwf-pause.js) -- this menu only adds a confirm + a result toast.
 //
 // THE MUSIC STRIP (23-esc-menu.png, below the window: a SEPARATE gold-framed strip carrying
@@ -69,15 +68,14 @@
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
     DWFUI.require("escmenu", ["windowHtml", "plaqueBtnHtml", "bitmapTextHtml"]);
 
-  // The `webSave` row is the ONE genuinely functional host action in this menu (approved
-  // 2026-07-07, SAVE-ONLY): it POSTs /save, which quicksaves the fortress WITHOUT exiting. It is
-  // host-gated on the real isHostClient() signal (see below) -- enabled only for the loopback host,
-  // disabled with a reason for everyone else. The five rows below it stay COSMETIC-ONLY mirrors of
+  // The `webSave` row is the ONE genuinely functional group action in this menu: it POSTs /save,
+  // which quicksaves the fortress WITHOUT exiting. Every authenticated player can use it. The five
+  // rows below it stay COSMETIC-ONLY mirrors of
   // DF's own Esc menu (save-and-return / save-and-continue / retire / abandon / quit) -- those
   // still happen in the host's Steam window, never through this browser (see file header). Only
   // `webSave` and `settings`/`return` do anything.
   const ROWS = [
-    { key: "web-save", label: "Save the fortress", hostOnly: true, webSave: true },
+    { key: "web-save", label: "Save the fortress", hostOnly: false, webSave: true },
     { key: "save-title", label: "Save and return to title menu", hostOnly: true },
     { key: "save-continue", label: "Save and continue playing", hostOnly: true },
     { key: "retire", label: "Retire the fortress (for the time being)", hostOnly: true },
@@ -123,25 +121,20 @@
   }
 
   function escMenuMarkup(options) {
-    // isHostClient() is a REAL signal now (see file header) but is deliberately NOT consulted
-    // for `disabled` here: The owner ruled Save/Retire/Abandon/Quit cosmetic-only for every client,
-    // host included (host saves through their own Steam client window). Only the tooltip
-    // wording varies by host-ness, so the wired-through signal is visibly doing something
-    // today, not just plumbing for later.
+    // isHostClient() remains relevant to the five cosmetic host-session rows and Host settings.
+    // The functional quicksave row is different: every player who passed the join gate can use it.
     const preview = options || null;
     const host = preview && typeof preview.host === "boolean" ? preview.host : isHostClient();
     const rowsHtml = ROWS.map(row => {
-      // The functional host-save row: enabled ONLY for the loopback host, and only when no save is
-      // already in flight from this client. Its label reflects the in-flight state so a re-opened
+      // The functional save row is available to every joined player, and disabled only while a save
+      // is already in flight from this client. Its label reflects the in-flight state so a re-opened
       // menu shows "Saving…" rather than an actionable-looking button.
       if (row.webSave) {
-        const disabled = !host || saveInFlight;
+        const disabled = saveInFlight;
         const label = saveInFlight ? "Saving…" : row.label;
-        const title = !host
-          ? "Host only -- only the host (the machine running Dwarf Fortress) can save the fortress."
-          : (saveInFlight
-              ? "A save is already in progress."
-              : "Save the fortress to disk now. Does not exit -- the game keeps running (host stays where they are).");
+        const title = saveInFlight
+          ? "A save is already in progress."
+          : "Save the fortress to disk now. Does not exit -- the game keeps running for everyone.";
         return escRowHtml({ key: row.key, label, disabled, title, extraCls: "esc-row-save" });
       }
       const disabled = row.hostOnly;
@@ -240,14 +233,10 @@
     try { console.log("[dwf] " + text); } catch (_) {}
   }
 
-  // Host-only Save action (approved 2026-07-07, SAVE-ONLY). Confirm -> POST /save -> result
+  // Friend-group Save action. Confirm -> POST /save -> result
   // toast. The blocking "saving…" feedback is the shared WP-B busy banner, not anything here.
   async function doWebSave() {
     if (saveInFlight) return;                 // in-flight: ignore double-click / menu-reopen re-fire
-    if (!isHostClient()) {                    // defence-in-depth (the button is already disabled)
-      saveToast("Host only — only the host can save the fortress.");
-      return;
-    }
     // Confirm (matches the window.confirm pattern used elsewhere in the client). The menu stays
     // open behind it; Cancel is a clean no-op.
     if (!window.confirm(
@@ -261,7 +250,7 @@
     try {
       const r = await fetch("/save", { method: "POST", cache: "no-store" });
       // Same-origin POST: the dfcap_auth cookie is attached automatically (no credentials opt-in
-      // needed). 200 => save requested; 403 => not host; 409 => world state refused it.
+      // needed). 200 => save requested; 401 => not joined; 409 => world state refused it.
       let body = null;
       try { body = await r.json(); } catch (_) {}
       ok = r.ok && body && body.ok === true;

@@ -434,16 +434,23 @@ bool sample_screen(uint64_t previous_hash, uint64_t previous_route_stamp, bool f
                 w.id = conditions.wq->id;
                 // df-structures 80a6267 declares this as vector<T>, but DF 0.53.15 stores
                 // vector<T*>. Native construction and rendering both use pointer elements. Keep
-                // this compatibility view local until the authoritative XML correction lands;
-                // vector<T> and vector<T*> have the same three-pointer MSVC release layout.
-                using SuggestionPtrs = std::vector<df::manager_order_condition_item*>;
+                // this compatibility view local until the authoritative XML correction lands.
+                // Copy the three-pointer vector representation instead of type-punning two
+                // vector specializations, which violates GCC's strict-aliasing rules.
+                struct SuggestionPtrRange {
+                    df::manager_order_condition_item** begin;
+                    df::manager_order_condition_item** end;
+                    df::manager_order_condition_item** capacity;
+                } suggestions{};
                 static_assert(sizeof(conditions.suggested_item_condition) ==
-                                  sizeof(SuggestionPtrs),
-                              "unexpected MSVC vector layout");
-                const auto& suggestions = *reinterpret_cast<const SuggestionPtrs*>(
-                    &conditions.suggested_item_condition);
-                for (const df::manager_order_condition_item* c : suggestions)
+                                  sizeof(suggestions),
+                              "unexpected release vector layout");
+                std::memcpy(&suggestions, &conditions.suggested_item_condition,
+                            sizeof(suggestions));
+                for (auto it = suggestions.begin; it != suggestions.end; ++it) {
+                    const df::manager_order_condition_item* c = *it;
                     if (c) w.suggestions.push_back(copy_condition(*c));
+                }
             }
         }
     }

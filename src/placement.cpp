@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "placement.h"
+#include "render_thread_wait.h"
 
 #include "attribution.h"
 #include "client_state.h"
@@ -571,8 +572,8 @@ bool apply_tile_designations_at(RenderDesignationRequest& req, MapExtras::MapCac
 // Old-name wrapper: single-z callers (none currently outside apply_designation, but kept so any
 // future/external call site compiles unchanged) get the pre-multi-z behavior of designating
 // exactly req.dig at wz.
-bool apply_tile_designations(RenderDesignationRequest& req, MapExtras::MapCache& map,
-                             int tx1, int ty1, int tx2, int ty2, int wz) {
+[[maybe_unused]] bool apply_tile_designations(RenderDesignationRequest& req, MapExtras::MapCache& map,
+                                              int tx1, int ty1, int tx2, int ty2, int wz) {
     return apply_tile_designations_at(req, map, tx1, ty1, tx2, ty2, wz, req.dig);
 }
 
@@ -821,7 +822,7 @@ bool designate_on_render_thread(const Camera& camera, const DesignationRequest& 
         req->done.set_value(
             effective_capture_viewport_dims(req->camera, probe_w, probe_h, &req->err));
     });
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (req->err.empty())
             req->err = "viewport/frame unavailable";

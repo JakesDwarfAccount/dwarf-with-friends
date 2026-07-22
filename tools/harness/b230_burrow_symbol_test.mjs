@@ -202,8 +202,8 @@ check("C++: colour RGB comes from DF's live palette, not a hardcoded table", () 
 });
 
 check("C++: create no longer leaves a burrow black-on-black", () => {
-  const body = /int32_t do_burrow_create\([\s\S]*?\n\}/.exec(CPP);
-  assert.ok(body, "do_burrow_create must exist");
+  const body = /ApiResult<int32_t> create_burrow\([\s\S]*?\n\}/.exec(CPP);
+  assert.ok(body, "create_burrow must exist");
   assert.doesNotMatch(body[0], /burrow->fg_color\s*=\s*7\s*;/,
     "the old fg=7/bg=0 write left texture_r/g/b at 0 -- an invisible burrow");
   assert.match(body[0], /apply_burrow_symbol\(burrow,[^)]*\)/,
@@ -212,8 +212,8 @@ check("C++: create no longer leaves a burrow black-on-black", () => {
 
 check("C++: /burrow-symbol accepts a partial update (colour without restating the symbol)", () => {
   assert.match(CPP, /server\.Post\("\/burrow-symbol"/, "the route must be registered");
-  const body = /bool do_burrow_symbol\([\s\S]*?\n\}/.exec(CPP);
-  assert.ok(body, "do_burrow_symbol must exist");
+  const body = /ApiResult<bool> set_burrow_symbol\([\s\S]*?\n\}/.exec(CPP);
+  assert.ok(body, "set_burrow_symbol must exist");
   assert.match(CPP, /if \(symbol >= 0\)/, "a negative symbol must mean 'leave it alone'");
   assert.match(CPP, /if \(fg >= 0\)/, "a negative fg must mean 'leave it alone'");
   assert.match(CPP, /if \(bg >= 0\)/, "a negative bg must mean 'leave it alone'");

@@ -21,6 +21,7 @@
 
 #include "burrows_panel.h"
 
+#include "api_response.h"
 #include "Core.h"
 #include "client_state.h"
 #include "curses_palette.h"
@@ -257,14 +258,21 @@ void apply_burrow_symbol(df::burrow* burrow, int symbol, int fg, int bg) {
     }
 }
 
-bool do_burrow_symbol(int32_t id, int symbol, int fg, int bg, std::string* err) {
-    return run_burrows_locked([&]() -> bool {
+ApiResult<bool> set_burrow_symbol(int32_t id, int symbol, int fg, int bg) {
+    ApiError failure;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto burrow = find_burrow(id);
-        if (!burrow) { if (err) *err = "burrow not found"; return false; }
+        if (!burrow) {
+            failure = {404, "burrow_not_found", "burrow not found"};
+            return false;
+        }
         apply_burrow_symbol(burrow, symbol, fg, bg);
         bump_burrow_seq();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 struct BurrowRect { int x; int y; int w; int h; };
@@ -361,12 +369,12 @@ void append_burrow_rects_json(std::ostringstream& body, const std::vector<Burrow
     body << "]";
 }
 
-std::string build_burrows_json(const std::string& player, const Camera& camera, bool have_camera,
-                               int32_t detail_id, std::string* err) {
+ApiResult<std::string> build_burrows_json(const std::string& player, const Camera& camera,
+                                          bool have_camera, int32_t detail_id) {
     std::ostringstream body;
     bool ok = run_burrows_locked([&]() -> bool {
         auto plotinfo = df::global::plotinfo;
-        if (!plotinfo) { if (err) *err = "world unavailable"; return false; }
+        if (!plotinfo) return false;
 
         // B230: DF's live 16-colour curses palette (gps->uccolor), shipped once per payload so the
         // browser's symbol/colour picker can paint real DF swatches instead of carrying a hardcoded
@@ -440,18 +448,25 @@ std::string build_burrows_json(const std::string& player, const Camera& camera, 
         body << "],\"detailId\":" << detail_id << "}\n";
         return true;
     });
-    if (!ok)
-        return "";
-    return body.str();
+    if (!ok) return ApiResult<std::string>::failure(
+        503, "burrows_unavailable", "burrows are unavailable");
+    return ApiResult<std::string>::success(body.str());
 }
 
-int32_t do_burrow_create(const std::string& name, std::string* err) {
+ApiResult<int32_t> create_burrow(const std::string& name) {
     int32_t new_id = -1;
-    run_burrows_locked([&]() -> bool {
+    ApiError failure;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto plotinfo = df::global::plotinfo;
-        if (!plotinfo) { if (err) *err = "world unavailable"; return false; }
+        if (!plotinfo) {
+            failure = {503, "world_unavailable", "world unavailable"};
+            return false;
+        }
         auto burrow = df::allocate<df::burrow>();
-        if (!burrow) { if (err) *err = "allocation failed"; return false; }
+        if (!burrow) {
+            failure = {500, "burrow_allocation_failed", "could not allocate burrow"};
+            return false;
+        }
         burrow->id = plotinfo->burrows.next_id++;
         burrow->name = name;
         // B230 BUGFIX (invisible burrows). This used to set fg_color=7/bg_color=0 and touch
@@ -473,50 +488,84 @@ int32_t do_burrow_create(const std::string& name, std::string* err) {
         bump_burrow_seq();
         return true;
     });
-    return new_id;
+    if (!ok) return ApiResult<int32_t>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<int32_t>::success(new_id);
 }
 
-bool do_burrow_rename(int32_t id, const std::string& name, std::string* err) {
-    return run_burrows_locked([&]() -> bool {
+ApiResult<bool> rename_burrow(int32_t id, const std::string& name) {
+    ApiError failure;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto burrow = find_burrow(id);
-        if (!burrow) { if (err) *err = "burrow not found"; return false; }
+        if (!burrow) {
+            failure = {404, "burrow_not_found", "burrow not found"};
+            return false;
+        }
         burrow->name = name;
         bump_burrow_seq();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
-bool do_burrow_member(int32_t id, int32_t unit_id, bool enable, std::string* err) {
-    return run_burrows_locked([&]() -> bool {
+ApiResult<bool> set_burrow_member(int32_t id, int32_t unit_id, bool enable) {
+    ApiError failure;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto burrow = find_burrow(id);
-        if (!burrow) { if (err) *err = "burrow not found"; return false; }
+        if (!burrow) {
+            failure = {404, "burrow_not_found", "burrow not found"};
+            return false;
+        }
         auto unit = df::unit::find(unit_id);
-        if (!unit) { if (err) *err = "unit not found"; return false; }
+        if (!unit) {
+            failure = {404, "unit_not_found", "unit not found"};
+            return false;
+        }
         DFHack::Burrows::setAssignedUnit(burrow, unit, enable);
         bump_burrow_seq();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 // POST /burrow-action?id=&action=suspend|resume|civalert-on|civalert-off (ENDPOINT-ADD, WD-13
 // client's per-row suspend + civilian-alert toggle buttons).
-bool do_burrow_action(int32_t id, const std::string& action, std::string* err) {
-    return run_burrows_locked([&]() -> bool {
+ApiResult<bool> apply_burrow_action(int32_t id, const std::string& action) {
+    ApiError failure;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto burrow = find_burrow(id);
-        if (!burrow) { if (err) *err = "burrow not found"; return false; }
+        if (!burrow) {
+            failure = {404, "burrow_not_found", "burrow not found"};
+            return false;
+        }
         if (action == "suspend") { burrow->flags.bits.suspended = 1; bump_burrow_seq(); return true; }
         if (action == "resume") { burrow->flags.bits.suspended = 0; bump_burrow_seq(); return true; }
-        if (action == "civalert-on") { bump_burrow_seq(); return set_burrow_civalert(id, true, err); }
-        if (action == "civalert-off") { bump_burrow_seq(); return set_burrow_civalert(id, false, err); }
+        if (action == "civalert-on" || action == "civalert-off") {
+            std::string error;
+            if (!set_burrow_civalert(id, action == "civalert-on", &error)) {
+                failure = {400, "civ_alert_update_failed",
+                    error.empty() ? "civilian alert update failed" : error};
+                return false;
+            }
+            bump_burrow_seq();
+            return true;
+        }
         // B230: the OTHER half of df::burrow_flag. burrow_flag has exactly two bits
         // (df.burrow.xml): limit_workshops (original-name WORKSHOPS_RESTRICTED) and suspended.
         // DF ships real art for both states of this one -- BURROW_WORKSHOPS_BURROW_ONLY /
         // BURROW_WORKSHOPS_EVERYWHERE in interface_map.json -- and nothing was driving it.
         if (action == "workshops-limit") { burrow->flags.bits.limit_workshops = 1; bump_burrow_seq(); return true; }
         if (action == "workshops-all") { burrow->flags.bits.limit_workshops = 0; bump_burrow_seq(); return true; }
-        if (err) *err = "unknown burrow action: " + action;
+        failure = {400, "unknown_burrow_action", "unknown burrow action: " + action};
         return false;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 // POST /burrow-delete?id= (ENDPOINT-ADD). DFHack exposes no single "delete burrow" helper (the
@@ -525,12 +574,19 @@ bool do_burrow_action(int32_t id, const std::string& action, std::string* err) {
 // `burrow` plugin's own tile/unit-remove commands use), drop it from any civilian-alert burrow
 // list (mirrors gui/civ-alert.lua's remove_civalert_burrow, including clearing the alarm if that
 // was the last burrow in it), then erase it from plotinfo->burrows.list and free it.
-bool do_burrow_delete(int32_t id, std::string* err) {
-    return run_burrows_locked([&]() -> bool {
+ApiResult<bool> delete_burrow(int32_t id) {
+    ApiError failure;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto plotinfo = df::global::plotinfo;
-        if (!plotinfo) { if (err) *err = "world unavailable"; return false; }
+        if (!plotinfo) {
+            failure = {503, "world_unavailable", "world unavailable"};
+            return false;
+        }
         auto burrow = find_burrow(id);
-        if (!burrow) { if (err) *err = "burrow not found"; return false; }
+        if (!burrow) {
+            failure = {404, "burrow_not_found", "burrow not found"};
+            return false;
+        }
 
         DFHack::Burrows::clearTiles(burrow);
         DFHack::Burrows::clearUnits(burrow);
@@ -548,12 +604,18 @@ bool do_burrow_delete(int32_t id, std::string* err) {
 
         auto& list = plotinfo->burrows.list;
         auto it = std::find(list.begin(), list.end(), burrow);
-        if (it == list.end()) { if (err) *err = "burrow not tracked in plotinfo"; return false; }
+        if (it == list.end()) {
+            failure = {500, "burrow_not_tracked", "burrow is not tracked by the fortress"};
+            return false;
+        }
         list.erase(it);
         delete burrow;
         bump_burrow_seq();
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 // POST /burrow-paint?id=&px=&py=&px2=&py2=&w=&h=&mode=add|erase (ENDPOINT-ADD, spec contract:
@@ -562,12 +624,16 @@ bool do_burrow_delete(int32_t id, std::string* err) {
 // camera-relative); converts to a world tile rect and calls
 // DFHack::Burrows::setAssignedTile(burrow, pos, mode==add) per tile on the camera's current z,
 // exactly the API the spec item names.
-bool do_burrow_paint(const Camera& camera, int frame_w, int frame_h, int32_t id,
-                     int px, int py, int px2, int py2, bool add, int& out_count,
-                     std::string* err) {
-    return run_burrows_locked([&]() -> bool {
+ApiResult<int> paint_burrow(const Camera& camera, int frame_w, int frame_h, int32_t id,
+                            int px, int py, int px2, int py2, bool add) {
+    ApiError failure;
+    int changed = 0;
+    const bool ok = run_burrows_locked([&]() -> bool {
         auto burrow = find_burrow(id);
-        if (!burrow) { if (err) *err = "burrow not found"; return false; }
+        if (!burrow) {
+            failure = {404, "burrow_not_found", "burrow not found"};
+            return false;
+        }
 
         // BUGFIX (cursor/selection misalignment): frame_w/frame_h are the client's real
         // rendered-window tile dims (px/py are ALREADY a plain tile-grid index into that
@@ -579,8 +645,10 @@ bool do_burrow_paint(const Camera& camera, int frame_w, int frame_h, int32_t id,
         // (see its banner). Use frame_w/frame_h directly; the viewport probe stays as a
         // best-effort "is DF's capture path alive" signal only.
         int probe_w = 0, probe_h = 0;
-        if (!effective_capture_viewport_dims(camera, probe_w, probe_h, err)) {
-            if (err && err->empty()) *err = "viewport unavailable";
+        std::string viewport_error;
+        if (!effective_capture_viewport_dims(camera, probe_w, probe_h, &viewport_error)) {
+            failure = {503, "viewport_unavailable",
+                viewport_error.empty() ? "viewport unavailable" : viewport_error};
             return false;
         }
 
@@ -591,7 +659,6 @@ bool do_burrow_paint(const Camera& camera, int frame_w, int frame_h, int32_t id,
         int wx1 = camera.x + tx1, wy1 = camera.y + ty1;
         int wx2 = camera.x + tx2, wy2 = camera.y + ty2;
 
-        int changed = 0;
         for (int y = wy1; y <= wy2; ++y) {
             for (int x = wx1; x <= wx2; ++x) {
                 df::coord pos(x, y, camera.z);
@@ -599,11 +666,13 @@ bool do_burrow_paint(const Camera& camera, int frame_w, int frame_h, int32_t id,
                     ++changed;
             }
         }
-        out_count = changed;
         if (changed)
             bump_burrow_seq();
         return true;
     });
+    if (!ok) return ApiResult<int>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<int>::success(changed);
 }
 
 } // namespace
@@ -672,20 +741,18 @@ void register_burrows_routes(httplib::Server& server) {
         Camera camera;
         std::string cam_err;
         bool have_camera = camera_for_player(player, camera, &cam_err);
-        std::string err;
-        std::string json = build_burrows_json(player, camera, have_camera, detail, &err);
-        if (json.empty()) { json_error(res, 503, err.empty() ? "burrows unavailable" : err); return; }
-        set_no_store_json(res, json);
+        const auto result = build_burrows_json(player, camera, have_camera, detail);
+        if (!result.ok) { send_api_error(result, res); return; }
+        set_no_store_json(res, result.value);
     });
 
     // POST /burrow-create?name= -> allocate a new (tile-less) burrow.
     auto create_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string name = req.has_param("name") ? req.get_param_value("name") : "New Burrow";
         if (name.size() > 64) name.resize(64);
-        std::string err;
-        int32_t id = do_burrow_create(name, &err);
-        if (id < 0) { json_error(res, 400, err.empty() ? "create failed" : err); return; }
-        set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(id) + "}\n");
+        const auto result = create_burrow(name);
+        if (!result.ok) { send_api_error(result, res); return; }
+        set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(result.value) + "}\n");
     };
     server.Get("/burrow-create", create_handler);
     server.Post("/burrow-create", create_handler);
@@ -699,8 +766,8 @@ void register_burrows_routes(httplib::Server& server) {
         }
         std::string name = req.get_param_value("name");
         if (name.size() > 64) name.resize(64);
-        std::string err;
-        if (!do_burrow_rename(id, name, &err)) { json_error(res, 400, err); return; }
+        const auto result = rename_burrow(id, name);
+        if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
     server.Get("/burrow-rename", rename_handler);
@@ -716,8 +783,8 @@ void register_burrows_routes(httplib::Server& server) {
         }
         int on = 1;
         query_int(req, "on", on);
-        std::string err;
-        if (!do_burrow_member(id, unit_id, on != 0, &err)) { json_error(res, 400, err); return; }
+        const auto result = set_burrow_member(id, unit_id, on != 0);
+        if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
     server.Get("/burrow-unit", member_handler);
@@ -730,11 +797,8 @@ void register_burrows_routes(httplib::Server& server) {
             json_error(res, 400, "missing id/action");
             return;
         }
-        std::string err;
-        if (!do_burrow_action(id, req.get_param_value("action"), &err)) {
-            json_error(res, 400, err.empty() ? "burrow action failed" : err);
-            return;
-        }
+        const auto result = apply_burrow_action(id, req.get_param_value("action"));
+        if (!result.ok) { send_api_error(result, res); return; }
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
@@ -761,11 +825,8 @@ void register_burrows_routes(httplib::Server& server) {
             json_error(res, 400, "nothing to set (want symbol/fg/bg)");
             return;
         }
-        std::string err;
-        if (!do_burrow_symbol(id, symbol, fg, bg, &err)) {
-            json_error(res, 400, err.empty() ? "burrow symbol failed" : err);
-            return;
-        }
+        const auto result = set_burrow_symbol(id, symbol, fg, bg);
+        if (!result.ok) { send_api_error(result, res); return; }
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
@@ -779,11 +840,8 @@ void register_burrows_routes(httplib::Server& server) {
             json_error(res, 400, "missing id");
             return;
         }
-        std::string err;
-        if (!do_burrow_delete(id, &err)) {
-            json_error(res, 400, err.empty() ? "burrow delete failed" : err);
-            return;
-        }
+        const auto result = delete_burrow(id);
+        if (!result.ok) { send_api_error(result, res); return; }
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
@@ -815,14 +873,11 @@ void register_burrows_routes(httplib::Server& server) {
             return;
         }
 
-        int count = 0;
-        if (!do_burrow_paint(camera, frame_w, frame_h, id, px, py, px2, py2, add, count, &err)) {
-            json_error(res, 400, err.empty() ? "burrow paint failed" : err);
-            return;
-        }
+        const auto result = paint_burrow(camera, frame_w, frame_h, id, px, py, px2, py2, add);
+        if (!result.ok) { send_api_error(result, res); return; }
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(id) +
-                                ",\"count\":" + std::to_string(count) + "}\n");
+                                ",\"count\":" + std::to_string(result.value) + "}\n");
     };
     server.Get("/burrow-paint", paint_handler);
     server.Post("/burrow-paint", paint_handler);

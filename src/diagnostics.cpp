@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "diagnostics.h"
+#include "render_thread_wait.h"
 
 #include "json_util.h"
 #include "sdl_capture.h"
@@ -35,6 +36,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <ctime>
 #include <fstream>
 #include <future>
@@ -48,6 +50,23 @@ namespace {
 
 std::mutex g_diag_mutex;
 CaptureDiagnostics g_diag;
+constexpr std::streamoff kDiagnosticsLogMaxBytes = 4 * 1024 * 1024;
+constexpr const char* kDiagnosticsLogPath = "dwf.log";
+constexpr const char* kDiagnosticsLogPreviousPath = "dwf.log.1";
+
+bool rotate_diagnostics_log_if_needed() {
+    std::ifstream current(kDiagnosticsLogPath, std::ios::binary | std::ios::ate);
+    if (!current || current.tellg() < kDiagnosticsLogMaxBytes) return false;
+    current.close();
+
+    std::remove(kDiagnosticsLogPreviousPath);
+    if (std::rename(kDiagnosticsLogPath, kDiagnosticsLogPreviousPath) == 0) return false;
+
+    // A locked/stale backup must not make the active log grow forever. Truncate the active file
+    // as the bounded fallback; the caller writes a visible marker before the requested line.
+    std::ofstream truncated(kDiagnosticsLogPath, std::ios::trunc);
+    return static_cast<bool>(truncated);
+}
 
 std::string utc_now() {
     auto now = std::chrono::system_clock::now();
@@ -162,9 +181,13 @@ struct ViewportProbeRequest {
 
 void diagnostics_log(const std::string& line) {
     std::lock_guard<std::mutex> lock(g_diag_mutex);
-    std::ofstream out("dwf.log", std::ios::app);
-    if (out)
+    bool truncated_fallback = rotate_diagnostics_log_if_needed();
+    std::ofstream out(kDiagnosticsLogPath, std::ios::app);
+    if (out) {
+        if (truncated_fallback)
+            out << utc_now() << " diagnostics log truncated because rotation failed\n";
         out << utc_now() << " " << line << "\n";
+    }
 }
 
 // Verbose transport tracing gate. Relaxed atomics: this is a debug toggle, not a
@@ -297,7 +320,7 @@ bool host_state_on_render_thread(HostState& state, std::string* err) {
         request->done.set_value(read_host_state(request->state, &request->err));
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     state = request->state;
     if (!ok && err)
         *err = request->err;
@@ -331,7 +354,7 @@ bool viewport_probe_on_render_thread(ViewportProbe& probe, std::string* err) {
         request->done.set_value(read_viewport_probe(request->probe, &request->err));
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     probe = request->probe;
     if (!ok && err)
         *err = request->err;

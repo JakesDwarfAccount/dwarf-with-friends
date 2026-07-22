@@ -217,7 +217,7 @@ struct TileRecord {
     int16_t  base_mt    = 0;
     int16_t  base_mi    = 0;
     uint8_t  bits       = 0;   // liquid:2 flow:3 hidden:1 outside:1
-    uint8_t  desig1     = 0;   // dig:4 smooth:2 marker:1
+    uint8_t  desig1     = 0;   // dig:4 smooth:2 marker:1 automine:1
     uint8_t  desig2     = 0;   // traffic:2 track:4
     uint8_t  spatter_amt = 0;  // clamped 0..255
     uint16_t flags2     = 0;   // bit0 item, bit1 plant, bit2 spatter-mat tail present
@@ -259,8 +259,9 @@ inline uint32_t get_u32(const uint8_t* p) {
 inline uint8_t pack_bits(int liquid, int flow, int hidden, int outside) {
     return (uint8_t)((liquid & 3) | ((flow & 7) << 2) | ((hidden & 1) << 5) | ((outside & 1) << 6));
 }
-inline uint8_t pack_desig1(int dig, int smooth, int marker) {
-    return (uint8_t)((dig & 15) | ((smooth & 3) << 4) | ((marker & 1) << 6));
+inline uint8_t pack_desig1(int dig, int smooth, int marker, int automine = 0) {
+    return (uint8_t)((dig & 15) | ((smooth & 3) << 4) | ((marker & 1) << 6) |
+                     ((automine & 1) << 7));
 }
 inline uint8_t pack_desig2(int traffic, int track) {
     return (uint8_t)((traffic & 3) | ((track & 15) << 2));

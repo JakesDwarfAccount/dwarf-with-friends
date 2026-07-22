@@ -115,6 +115,13 @@ version — even one bugfix release apart — so the plugin's commands simply do
 4. Confirmation lives in `stderr.log` in your Dwarf Fortress folder — a line saying the `dwf`
    plugin was built for a different version of DFHack.
 
+## Diagnostic log retention
+
+The plugin writes `dwf.log` in the Dwarf Fortress folder. The active log is capped at 4 MiB. When
+it reaches that size, the previous contents move to `dwf.log.1` and a fresh `dwf.log` begins. Only
+those two generations are retained, so copy both files before restarting repeatedly when reporting
+a difficult crash or stall.
+
 ## Port 8765 is already in use
 
 Dwarf With Friends uses port 8765 by default. Another copy of Dwarf With Friends, an old plugin,

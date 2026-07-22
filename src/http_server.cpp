@@ -53,6 +53,8 @@
 #include "pause_arbiter.h"
 #include "oracle_routes.h"
 #include "route_helpers.h"
+#include "request_origin.h"
+#include "save_barrier.h"
 #include "session_routes.h"
 #include "kitchen_panel.h"
 #include "labor.h"
@@ -377,7 +379,7 @@ std::string cursors_json(const std::string& self) {
     return body.str();
 }
 
-std::string clients_json() {
+[[maybe_unused]] std::string clients_json() {
     std::ostringstream body;
     auto clients = client_camera_snapshot();
     body << "{\"count\":" << clients.size() << ",\"clients\":[";
@@ -403,12 +405,10 @@ std::string clients_json() {
 // resource load that can't set a header. The WS wire is gated separately at the hello (websocket
 // .cpp) since the /ws upgrade is intercepted below httplib routing.
 //
-// PUBLIC (never gated): the CORS preflight; the shell HTML; the static client bundle (anything
-// with a static-asset extension -- .js/.css/.json/.png/... ); /health; /version; /join. Game
-// STATE (/mapdata, /unit, /panel, /hud, /diag, ...) and every MUTATION (/designate, /camera,
-// /build-place, ...) have no static extension, so they fall through to "gated". Unit sprite PNGs
-// are static-extension (public) -- generated dwarf textures aren't a friends-tier secret; the
-// protected surface is live game state + orders.
+// PUBLIC (never gated): CORS preflight, the shell/join endpoints, and an explicit list of files
+// required to render that shell. Authorization is never inferred from a filename extension: a new
+// .json/.jpg route remains protected until deliberately added here. Live state, generated game
+// art, diagnostics, and mutations therefore stay gated even when their path looks like a file.
 namespace {
 
 bool join_public_path(const std::string& method, const std::string& path) {
@@ -416,17 +416,27 @@ bool join_public_path(const std::string& method, const std::string& path) {
     if (path == "/" || path == "/view" || path == "/health" ||
         path == "/version" || path == "/join")
         return true;
-    // Static-asset extension => part of the client bundle / non-sensitive static data.
-    static const char* kExt[] = {
-        ".js", ".css", ".json", ".png", ".html", ".ico", ".svg", ".jpg", ".jpeg",
-        ".gif", ".woff", ".woff2", ".map", ".wasm", ".webmanifest", ".txt",
+    static const char* kPublicPrefixes[] = { "/js/", "/css/", "/fonts/" };
+    for (const char* prefix : kPublicPrefixes)
+        if (path.rfind(prefix, 0) == 0) return true;
+    static const char* kPublicFiles[] = {
+        "/index.html", "/building_map.json", "/creatures_map.json", "/flow_map.json",
+        "/grass_colors.json", "/interface_map.json", "/item_map.json",
+        "/material_map.json", "/overlay_map.json", "/plant_map.json",
+        "/portraits_map.json", "/shadow_cell_map.json", "/spatter_map.json",
+        "/tiletype_token_map.json", "/tree_map.json",
     };
-    // Compare against the path only (query already stripped by httplib into req.params).
-    for (const char* ext : kExt) {
-        const size_t el = std::strlen(ext);
-        if (path.size() >= el && path.compare(path.size() - el, el, ext) == 0)
-            return true;
-    }
+    for (const char* file : kPublicFiles) if (path == file) return true;
+    return false;
+}
+
+bool local_diagnostic_path(const std::string& path) {
+    static const char* kExact[] = {
+        "/diag", "/host-state", "/zoom-probe", "/frame.jpg", "/tiledump",
+        "/menu-oracle", "/statustruth", "/statusharvest",
+        "/recorder/start", "/recorder/stop", "/recorder/status",
+    };
+    for (const char* candidate : kExact) if (path == candidate) return true;
     return false;
 }
 
@@ -499,6 +509,18 @@ void register_routes(httplib::Server& server) {
     // no passphrase is set (dev-default open behavior).
     server.set_pre_routing_handler([](const httplib::Request& req, httplib::Response& res) -> bool {
         g_http_requests.fetch_add(1, std::memory_order_relaxed);   // WT24: one relaxed add
+        // SAVE-BARRIER: reject every routed HTTP operation while DF serializes or cleans up a
+        // save. This deliberately includes legacy mutating GET routes and reads that would queue
+        // on CoreSuspender; static assets already in flight are harmless, and the browser's live
+        // WebSocket busy banner remains available because upgrades bypass httplib routing.
+        if (save_barrier_active()) {
+            res.status = 503;
+            res.set_header("Cache-Control", "no-store");
+            res.set_header("Retry-After", "2");
+            res.set_content("{\"ok\":false,\"busy\":true,\"error\":\"Dwarf Fortress is saving; try again when saving finishes\"}\n",
+                            "application/json; charset=utf-8");
+            return true;
+        }
         // STALE-TAB GATE (2026-07-17): force the game entry point through /view, which is the ONLY
         // path that substitutes the __DFCAPTURE_BUILD__ stamp. A GET("/") redirect route exists in
         // session_routes.cpp but is DEAD -- the "/" static mount wins cpp-httplib routing precedence
@@ -511,6 +533,14 @@ void register_routes(httplib::Server& server) {
         if (req.method == "GET" && (req.path == "/" || req.path == "/index.html")) {
             res.set_header("Cache-Control", "no-store");
             res.set_redirect("/view");
+            return true;
+        }
+        // Development oracles and crash diagnostics are useful on the host, but are not product
+        // APIs. Hide them from LAN/tunnel players even when those players know the join password.
+        if (local_diagnostic_path(req.path) && !request_has_host_authority(req)) {
+            res.status = 404;
+            res.set_header("Cache-Control", "no-store");
+            res.set_content("not found\n", "text/plain; charset=utf-8");
             return true;
         }
         if (!auth::enabled()) return false;                     // wide-open dev default
@@ -781,6 +811,7 @@ void register_routes(httplib::Server& server) {
 
     server.Get("/diag", [](const httplib::Request&, httplib::Response& res) {
         std::ostringstream out;
+        LuaBridgeHealth lua_health = lua_bridge_health_snapshot();
         out.setf(std::ios::fixed);
         out.precision(2);
         out << "{\"players\":[";
@@ -813,6 +844,11 @@ void register_routes(httplib::Server& server) {
             // B225: true while the native diplomacy meeting dialog is open (sim-blocking per
             // DFHack World::ReadPauseState) -- the reason a web unpause is being refused.
             << ",\"diploBlocked\":" << (diplo_meeting_open() ? "true" : "false")
+            << ",\"luaBridge\":{\"calls\":" << lua_health.calls
+            << ",\"successes\":" << lua_health.successes
+            << ",\"callFailures\":" << lua_health.call_failures
+            << ",\"signatureFailures\":" << lua_health.signature_failures << "}"
+            << ",\"wsDrops\":" << ws_drop_counters_json()
             << ",\"v1\":" << world_stream_diag_json() << "}";
         res.set_header("Cache-Control", "no-store");
         res.set_content(out.str(), "application/json; charset=utf-8");
@@ -1010,6 +1046,7 @@ std::string heartbeat_line(size_t players, uint64_t push_delta, uint64_t cursor_
       << " paused=" << (df_paused_unsafe() ? 1 : 0)
       << " players=" << players
       << " wsFrames=+" << frame_delta << "/" << ws_frames_sent_total()
+      << " wsDrops=" << ws_drop_counters_json()
       << " pushIters=+" << push_delta
       << " cursorIters=+" << cursor_delta
       << " httpReqs=+" << req_delta
@@ -1293,6 +1330,8 @@ void stop_server() {
         std::lock_guard<std::mutex> lock(g_server_mutex);
         if (!g_server)
             return;
+        g_running = false;
+        ws_server_begin_shutdown(*g_server);
         g_server->stop();
         server = std::move(g_server);
         thread = std::move(g_server_thread);
@@ -1300,7 +1339,6 @@ void stop_server() {
 
     // FIX 2: unblock the push loop (its wait_for) and every WS worker parked in recv(),
     // then join the push thread before returning.
-    g_running = false;
     { std::lock_guard<std::mutex> lk(g_stream_wake_mutex); }
     g_stream_wake_cv.notify_all();
     ws_close_all();

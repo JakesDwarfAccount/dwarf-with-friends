@@ -30,6 +30,7 @@
 #include "interaction.h"
 #include "json_util.h"
 #include "pause_arbiter.h"
+#include "request_origin.h"
 #include "sdl_capture.h"
 #include "web_assets.h"
 #include <filesystem>
@@ -362,7 +363,7 @@ void register_session_routes(httplib::Server& server) {
 
         // isHostClient() signal for the host-only-unpause gate: the SAME loopback-peer test the
         // WS uses, applied to this HTTP request's real peer address (nothing the client can spoof).
-        const bool is_host = peer_ip_is_loopback(req.remote_addr);
+        const bool is_host = request_has_host_authority(req);
         PauseDecision d = pause_request(query_player(req), req.get_param_value("action"), is_host);
         res.set_header("Cache-Control", "no-store");
         if (!d.ok) {
@@ -379,26 +380,19 @@ void register_session_routes(httplib::Server& server) {
     server.Get("/action", action_handler);
     server.Post("/action", action_handler);
 
-    // HOST SAVE (SAVE-ONLY -- approved 2026-07-07). POST /save triggers a DF quicksave WITHOUT
+    // FRIEND-GROUP SAVE (SAVE-ONLY). POST /save triggers a DF quicksave WITHOUT
     // exiting (interaction.cpp's save_world_on_core_thread, the quicksave.lua autosave-request
-    // pathway). HOST-ONLY via the SAME loopback-peer test the pause host-unpause gate uses
-    // (peer_ip_is_loopback on the request's real TCP peer -- nothing a client can spoof). Auth is
-    // already enforced upstream by the pre-routing gate, so an unauthenticated request never
-    // reaches here. There is deliberately NO load counterpart. The saving banner is driven entirely
+    // pathway). Any authenticated player may request it. Auth is already enforced upstream by the
+    // pre-routing gate, so an unauthenticated request never reaches here. There is deliberately NO
+    // load counterpart. The saving banner is driven entirely
     // by the WP-B busy watchdog broadcast once DF's world write stalls the push loop -- not by this
     // route -- so success here only means "save requested", not "save finished".
-    auto save_handler = [](const httplib::Request& req, httplib::Response& res) {
+    auto save_handler = [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
-        if (!peer_ip_is_loopback(req.remote_addr)) {
-            res.status = 403;
-            res.set_content("{\"ok\":false,\"err\":\"host only\"}\n",
-                            "application/json; charset=utf-8");
-            return;
-        }
         std::string err;
         if (!save_world_on_core_thread(&err)) {
-            // 409 Conflict: a valid, authorized host request refused by world state (no world /
-            // wrong mode / save already running) -- distinct from the 403 non-host rejection.
+            // 409 Conflict: a valid authenticated request refused by world state (no world /
+            // wrong mode / save already running).
             res.status = 409;
             res.set_content("{\"ok\":false,\"err\":" + json_string(err) + "}\n",
                             "application/json; charset=utf-8");
@@ -410,8 +404,8 @@ void register_session_routes(httplib::Server& server) {
 
     // HOST JOIN-PASSWORD (host-only; staged, window #12). POST /join-password sets / changes /
     // clears the shared join passphrase from the host UI -- the point-and-click twin of the
-    // `capture-join-password` console command. HOST-ONLY via the SAME loopback-peer test /save and
-    // the pause host-unpause gate use (peer_ip_is_loopback on the request's real TCP peer --
+    // `capture-join-password` console command. HOST-ONLY via the SAME loopback-peer test the
+    // pause host-unpause gate uses (peer_ip_is_loopback on the request's real TCP peer --
     // nothing a client can spoof); the pre-routing auth gate already rejected any unauthenticated
     // request upstream. The new value is applied immediately (auth::set_password) AND persisted to
     // auth::kPasswordFile (auth::persist_password) so it survives a DF restart, matching the file
@@ -423,7 +417,7 @@ void register_session_routes(httplib::Server& server) {
     // screen re-prompts for the new passphrase; expected, not a bug.
     auto join_password_handler = [](const httplib::Request& req, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
-        if (!peer_ip_is_loopback(req.remote_addr)) {
+        if (!request_has_host_authority(req)) {
             res.status = 403;
             res.set_content("{\"ok\":false,\"err\":\"host only\"}\n",
                             "application/json; charset=utf-8");
@@ -455,6 +449,15 @@ void register_session_routes(httplib::Server& server) {
     // sets any provided knob and returns the current config. Drives the oracle's known-bad runs
     // (merge-window=0, grace=0, busy-threshold perturbed) without a rebuild.
     server.Get("/pause-config", [](const httplib::Request& req, httplib::Response& res) {
+        const bool changes_config = req.has_param("window") || req.has_param("grace") ||
+            req.has_param("busy") || req.has_param("autopause") || req.has_param("hostunpause");
+        if (changes_config && !request_has_host_authority(req)) {
+            res.status = 403;
+            res.set_header("Cache-Control", "no-store");
+            res.set_content("{\"ok\":false,\"err\":\"host only\"}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
         int v = 0;
         if (query_int(req, "window", v)) pause_set_merge_window_ms(v);
         if (query_int(req, "grace", v)) pause_set_autopause_grace_ms(v);

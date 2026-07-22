@@ -89,10 +89,7 @@ namespace {
 // loopback peer + no proxy forwarding header + a loopback-ish Host. A tunneled remote friend must
 // NOT be able to seize the fort's music channel by curling /music.
 bool peer_is_host(const httplib::Request& req) {
-    bool forwarded = req.has_header("X-Forwarded-For") || req.has_header("CF-Connecting-IP") ||
-                     req.has_header("Forwarded") || req.has_header("X-Real-IP");
-    return sound::request_is_local_host(peer_ip_is_loopback(req.remote_addr), forwarded,
-                                        req.get_header_value("Host"));
+    return request_has_host_authority(req);
 }
 
 // Flat body scan -- our own client sends `{"track":"<key>"}` or `{"auto":true}`. Extracts the

@@ -1,0 +1,13 @@
+[
+  {"name":"zero","input":"{\"type\":\"ack\",\"seq\":0}","valid":true},
+  {"name":"missing optional","input":"{\"type\":\"pong\"}","valid":true},
+  {"name":"wrong field type","input":"{\"type\":\"ack\",\"seq\":\"1\"}","valid":true},
+  {"name":"unicode surrogate pair","input":"{\"type\":\"chat\",\"text\":\"\\ud83e\\udeb6\"}","valid":true},
+  {"name":"nested type shadow","input":"{\"type\":\"hello\",\"cam\":{\"type\":\"ack\",\"x\":1,\"y\":2,\"w\":80,\"h\":25}}","valid":true},
+  {"name":"integer triples","input":"{\"type\":\"reqblocks\",\"blocks\":[[1,2,3],[-4,5,6]]}","valid":true},
+  {"name":"malformed exponent","input":"{\"type\":\"ack\",\"seq\":1e+}","valid":false},
+  {"name":"truncated escape","input":"{\"type\":\"chat\",\"text\":\"\\u12\"}","valid":false},
+  {"name":"duplicate key","input":"{\"type\":\"ack\",\"type\":\"cam\"}","valid":false,"jsonValid":true},
+  {"name":"too deep","input":"{\"a\":{\"b\":{\"c\":{\"d\":{\"e\":1}}}}}","valid":false,"jsonValid":true},
+  {"name":"number overflow","input":"{\"type\":\"ack\",\"seq\":1e999}","valid":false,"jsonValid":true}
+]

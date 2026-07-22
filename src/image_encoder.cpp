@@ -31,6 +31,11 @@
 #include <windows.h>
 #include <objidl.h>
 #include <gdiplus.h>
+#else
+// Linux/macOS: encode with the vendored stb_image_write (public domain) instead of GDI+.
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_WRITE_NO_STDIO
+#include "stb_image_write.h"
 #endif
 
 #include <algorithm>
@@ -127,6 +132,29 @@ bool save_bitmap_to_memory(const CapturedFrame& frame, const CLSID& encoder,
     stream->Release();
     return true;
 }
+#else
+// stb_image_write emits through a callback; append each chunk to the output vector.
+void stbi_append_to_vector(void* context, void* data, int size) {
+    auto* out = static_cast<std::vector<uint8_t>*>(context);
+    const auto* begin = static_cast<const uint8_t*>(data);
+    out->insert(out->end(), begin, begin + size);
+}
+
+// stb expects RGB(A) byte order; frames are BGRA rows (same layout GDI+ consumed).
+std::vector<uint8_t> bgra_to_rgb(const CapturedFrame& frame, int channels) {
+    const size_t pixels = static_cast<size_t>(frame.width) * frame.height;
+    std::vector<uint8_t> out(pixels * channels);
+    for (size_t i = 0; i < pixels; ++i) {
+        const uint8_t* p = &frame.bgra[i * 4];
+        uint8_t* q = &out[i * channels];
+        q[0] = p[2];
+        q[1] = p[1];
+        q[2] = p[0];
+        if (channels == 4)
+            q[3] = p[3];
+    }
+    return out;
+}
 #endif
 
 bool validate_frame(const CapturedFrame& frame, std::string* err) {
@@ -202,8 +230,15 @@ bool encode_jpeg(const CapturedFrame& frame, std::vector<uint8_t>& jpeg,
 
     return save_bitmap_to_memory(frame, jpeg_clsid, &params, jpeg, err);
 #else
-    if (err) *err = "JPEG encoding is currently Windows-only";
-    return false;
+    const int q = std::max(1, std::min(100, quality));
+    const std::vector<uint8_t> rgb = bgra_to_rgb(frame, 3);
+    jpeg.clear();
+    if (!stbi_write_jpg_to_func(stbi_append_to_vector, &jpeg,
+                                frame.width, frame.height, 3, rgb.data(), q)) {
+        if (err) *err = "stb JPEG encode failed";
+        return false;
+    }
+    return true;
 #endif
 }
 
@@ -223,8 +258,15 @@ bool encode_png(const CapturedFrame& frame, std::vector<uint8_t>& png, std::stri
 
     return save_bitmap_to_memory(frame, png_clsid, nullptr, png, err);
 #else
-    if (err) *err = "PNG encoding is currently Windows-only";
-    return false;
+    const std::vector<uint8_t> rgba = bgra_to_rgb(frame, 4);
+    png.clear();
+    if (!stbi_write_png_to_func(stbi_append_to_vector, &png,
+                                frame.width, frame.height, 4, rgba.data(),
+                                frame.width * 4)) {
+        if (err) *err = "stb PNG encode failed";
+        return false;
+    }
+    return true;
 #endif
 }
 

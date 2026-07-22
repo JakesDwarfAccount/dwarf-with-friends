@@ -66,9 +66,10 @@ node tools/release/launch_preflight.mjs --stage=all         # suites, build-chec
 ```
 
 Every stage resolves to `PASS`, `FAIL`, or `MANUAL`, and the run ends with a go/no-go summary and
-the remaining human checklist. Exit 0 means go; exit 1 means a hard failure. The `--stage=suites`
-list is deliberately curated to contain only suites that stay green on a DF-less machine — adding a
-live-game suite there would make the launch machine go red for the wrong reason.
+the remaining human checklist. Exit 0 means go; exit 1 means a hard failure. The suites and their
+execution boundaries live in `tools/release/test-manifest.json`: offline, DF-install optional,
+live read-only, live mutating, and manual visual. Only the offline category runs in the default
+battery, so a machine without Dwarf Fortress does not fail for lacking the game.
 
 ### Test-the-test
 
@@ -84,8 +85,10 @@ On a machine with no Dwarf Fortress install the whole sweep is green: the raws/a
 live-server oracles skip honestly rather than fail, and nothing is red. That skipping set is exactly
 what continuous integration runs. `tools/harness/README.md` lists the install-only and live-only
 suites; `node tools/release/launch_preflight.mjs --stage=suites` prints the current pass/skip
-counts — treat those numbers as living, and run that command rather than memorising a figure. CI
-does not build the DLL — the pinned DFHack/MSVC build is a maintainer check.
+counts — treat those numbers as living, and run that command rather than memorising a figure. The
+Windows native-build workflow also compiles `dfcapture_public` against pinned DFHack 53.15-r2. A
+maintainer still records a local build receipt before a release because CI cannot prove that the
+locally packaged DLL came from the reviewed source tree.
 
 Before opening a pull request, run the full Node battery and the UI suites relevant to your change;
 [CONTRIBUTING.md](../CONTRIBUTING.md) lists the exact commands.

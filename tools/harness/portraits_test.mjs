@@ -83,12 +83,42 @@ check("late image load swaps glyph to portrait", classes.has("has-native-portrai
 const retryImage = {
   parentElement: box,
   isConnected: true,
-  dataset: { srcBase: "/unit-portrait?id=43", portraitRetry: "0" }
+  dataset: { unitId: "43", portraitSource: "native", srcBase: "/unit-portrait?id=43", portraitRetry: "0" },
+  remove() { this.removed = true; }
 };
 window.dfcPortraitError(retryImage);
 check("failed lazy portrait schedules spritefresh cadence", timers.length === 1 && timers[0].ms === 3000);
 timers[0].fn();
 check("scheduled retry keeps the existing portrait route", retryImage.src.startsWith("/unit-portrait?id=43&retry=1&_="));
+
+const terminalClasses = new Set();
+const terminalBox = {
+  isConnected: true,
+  classList: { add(x) { terminalClasses.add(x); }, remove(x) { terminalClasses.delete(x); } },
+  setAttribute(name, value) { this[name] = value; }
+};
+const terminalImage = {
+  parentElement: terminalBox,
+  dataset: { unitId: "430", portraitSource: "native", srcBase: "/unit-portrait?id=430&mode=portrait&tex=0&sheet=1", portraitRetry: "0" },
+  remove() { this.removed = true; }
+};
+const timersBeforeExhaustion = timers.length;
+for (let i = 0; i < 4; i++) window.dfcPortraitError(terminalImage);
+check("failed portrait stops after three retries",
+  timers.length - timersBeforeExhaustion === 3 && terminalImage.removed === true);
+check("exhausted portrait exposes a flagged glyph",
+  terminalBox["data-df-identity-missing"] === "portrait:retry-exhausted");
+const exhausted = unitPortraitMarkup(
+  { id: 430, name: "Deler", portraitState: "pending", portraitKind: "native", portraitTexpos: 0, sheetIconTexpos: 1 },
+  "info-portrait-small"
+);
+check("rerender does not restart an exhausted portrait request",
+  !exhausted.includes("native-portrait-img") && exhausted.includes('data-df-identity-missing="portrait:retry-exhausted"'));
+const recovered = unitPortraitMarkup(
+  { id: 430, name: "Deler", portraitState: "ready", portraitKind: "native", portraitTexpos: 1, sheetIconTexpos: 1 },
+  "info-portrait-small"
+);
+check("a changed portrait source can recover after exhaustion", recovered.includes("native-portrait-img"));
 
 console.log("# squad portrait surface");
 globalThis.unitPortraitMarkup = row => "[portrait " + (row.id ?? row.unitId) + ":" + row.portraitTexpos + "]";

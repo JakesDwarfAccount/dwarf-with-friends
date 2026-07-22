@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "announcements.h"
+#include "render_thread_wait.h"
 
 #include "announce_taxonomy.gen.h"
 #include "json_util.h"
@@ -410,7 +411,7 @@ bool reports_on_render_thread(const ReportsQuery& query, ReportsPage& page, std:
             request->done.set_value(false);
         }
     });
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;
@@ -497,7 +498,7 @@ bool unit_reports_on_render_thread(int32_t unit_id, int log_filter, int32_t sinc
             request->done.set_value(false);
         }
     });
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (!ok) {
         if (err) *err = request->err;
         return false;

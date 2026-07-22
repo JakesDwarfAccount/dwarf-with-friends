@@ -22,6 +22,7 @@
 #include "stone_use.h"
 
 #include "Core.h"
+#include "api_response.h"
 #include "http_server.h"
 #include "json_util.h"
 #include "sdl_capture.h"
@@ -37,6 +38,8 @@
 #include "df/world.h"
 
 #include <algorithm>
+#include <charconv>
+#include <limits>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -119,7 +122,7 @@ std::string stone_display_name(const df::inorganic_raw* raw) {
     return raw->id;
 }
 
-std::string build_stone_use_json() {
+ApiResult<std::string> build_stone_use_json() {
     std::ostringstream body;
     bool ok = run_stone_use_locked([&]() -> bool {
         auto world = df::global::world;
@@ -169,29 +172,79 @@ std::string build_stone_use_json() {
         body << "],\"other\":" << other_body.str() << "}\n";
         return true;
     });
-    if (!ok)
-        return "";
-    return body.str();
+    if (!ok) return ApiResult<std::string>::failure(
+        503, "stone_use_unavailable", "stone-use data is unavailable");
+    return ApiResult<std::string>::success(body.str());
 }
 
-bool set_stone_use(int16_t mat_type, int32_t mat_index, bool selected, std::string* err) {
-    return run_stone_use_locked([&]() -> bool {
+struct StoneUseCommand { int16_t mat_type = 0; int32_t mat_index = 0; bool selected = false; };
+
+bool parse_integer(const std::string& text, int64_t& out) {
+    if (text.empty()) return false;
+    const char* first = text.data();
+    const char* last = first + text.size();
+    auto parsed = std::from_chars(first, last, out);
+    return parsed.ec == std::errc{} && parsed.ptr == last;
+}
+
+ApiResult<StoneUseCommand> parse_stone_use_command(const httplib::Request& req) {
+    if (!req.has_param("mat")) return ApiResult<StoneUseCommand>::failure(
+        400, "missing_mat", "missing mat");
+    const std::string mat = req.get_param_value("mat");
+    const size_t separator = mat.find(':');
+    if (separator == std::string::npos || mat.find(':', separator + 1) != std::string::npos)
+        return ApiResult<StoneUseCommand>::failure(
+            400, "invalid_mat", "mat must be matType:matIndex");
+    int64_t type = 0, index = 0;
+    if (!parse_integer(mat.substr(0, separator), type) ||
+            !parse_integer(mat.substr(separator + 1), index) ||
+            type < std::numeric_limits<int16_t>::min() ||
+            type > std::numeric_limits<int16_t>::max() ||
+            index < std::numeric_limits<int32_t>::min() ||
+            index > std::numeric_limits<int32_t>::max())
+        return ApiResult<StoneUseCommand>::failure(
+            400, "invalid_mat", "mat contains an invalid integer");
+    int64_t value = 1;
+    if (req.has_param("value") && (!parse_integer(req.get_param_value("value"), value) ||
+            (value != 0 && value != 1)))
+        return ApiResult<StoneUseCommand>::failure(
+            400, "invalid_value", "value must be 0 or 1");
+    return ApiResult<StoneUseCommand>::success(StoneUseCommand{
+        static_cast<int16_t>(type), static_cast<int32_t>(index), value != 0});
+}
+
+ApiResult<bool> set_stone_use(const StoneUseCommand& command) {
+    ApiError failure;
+    const bool ok = run_stone_use_locked([&]() -> bool {
         auto world = df::global::world;
         auto plotinfo = df::global::plotinfo;
-        if (!world || !plotinfo) { if (err) *err = "world/plotinfo unavailable"; return false; }
-        if (mat_type != kInorganicMatType) { if (err) *err = "not an inorganic material"; return false; }
-        if (mat_index < 0 || static_cast<size_t>(mat_index) >= world->raws.inorganics.all.size()) {
-            if (err) *err = "invalid material index";
+        if (!world || !plotinfo) {
+            failure = {503, "world_unavailable", "world/plotinfo unavailable"};
             return false;
         }
-        auto* raw = world->raws.inorganics.all[mat_index];
-        if (!has_economic_use(raw)) { if (err) *err = "stone has no economic use to toggle"; return false; }
+        if (command.mat_type != kInorganicMatType) {
+            failure = {400, "not_inorganic", "not an inorganic material"};
+            return false;
+        }
+        if (command.mat_index < 0 ||
+                static_cast<size_t>(command.mat_index) >= world->raws.inorganics.all.size()) {
+            failure = {400, "invalid_material", "invalid material index"};
+            return false;
+        }
+        auto* raw = world->raws.inorganics.all[command.mat_index];
+        if (!has_economic_use(raw)) {
+            failure = {400, "not_economic", "stone has no economic use to toggle"};
+            return false;
+        }
         auto& economic_stone = plotinfo->economic_stone;
-        if (static_cast<size_t>(mat_index) >= economic_stone.size())
-            economic_stone.resize(mat_index + 1, 0);
-        economic_stone[mat_index] = selected ? 1 : 0;
+        if (static_cast<size_t>(command.mat_index) >= economic_stone.size())
+            economic_stone.resize(command.mat_index + 1, 0);
+        economic_stone[command.mat_index] = command.selected ? 1 : 0;
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 } // namespace
@@ -199,40 +252,18 @@ bool set_stone_use(int16_t mat_type, int32_t mat_index, bool selected, std::stri
 void register_stone_use_routes(httplib::Server& server) {
     // GET /stone-use -> economic stones (name/magma-safe/uses/selected) + plain "other" stones.
     server.Get("/stone-use", [](const httplib::Request&, httplib::Response& res) {
-        std::string json = build_stone_use_json();
-        if (json.empty()) {
-            res.status = 503;
-            res.set_content("{\"ok\":false,\"error\":\"stone-use unavailable\"}\n", "application/json; charset=utf-8");
-            return;
-        }
+        const auto result = build_stone_use_json();
+        if (!result.ok) { send_api_error(result, res); return; }
         res.set_header("Cache-Control", "no-store");
-        res.set_content(json, "application/json; charset=utf-8");
+        res.set_content(result.value, "application/json; charset=utf-8");
     });
 
     // POST /stone-use?mat=matType:matIndex&value=1|0 -> select/deselect for non-economic jobs.
     auto toggle_handler = [](const httplib::Request& req, httplib::Response& res) {
-        if (!req.has_param("mat")) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":\"missing mat\"}\n", "application/json; charset=utf-8");
-            return;
-        }
-        std::string mat = req.get_param_value("mat");
-        auto sep = mat.find(':');
-        if (sep == std::string::npos) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":\"mat must be matType:matIndex\"}\n", "application/json; charset=utf-8");
-            return;
-        }
-        int16_t mat_type = static_cast<int16_t>(std::atoi(mat.substr(0, sep).c_str()));
-        int32_t mat_index = std::atoi(mat.substr(sep + 1).c_str());
-        int value = 1;
-        query_int(req, "value", value);
-        std::string err;
-        if (!set_stone_use(mat_type, mat_index, value != 0, &err)) {
-            res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n", "application/json; charset=utf-8");
-            return;
-        }
+        const auto command = parse_stone_use_command(req);
+        if (!command.ok) { send_api_error(command, res); return; }
+        const auto result = set_stone_use(command.value);
+        if (!result.ok) { send_api_error(result, res); return; }
         notify_player_input();
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");

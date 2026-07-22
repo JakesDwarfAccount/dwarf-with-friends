@@ -69,6 +69,14 @@ void restore_overlay_after_stream(DFHack::color_ostream* out) {
         return;
 
     auto& core = DFHack::Core::getInstance();
+    // Core becomes invalid before unloading plugins during process exit. Re-enabling another plugin
+    // while the plugin manager is tearing itself down can deadlock; there is no UI left to
+    // restore anyway. Ordinary capture-stream-stop and manual plugin unload still restore it.
+    if (!core.isValid()) {
+        g_overlay_disabled_by_dwf = false;
+        diagnostics_log("DIAG: skipped DFHack overlay restore during DF shutdown.");
+        return;
+    }
     auto* plugins = core.getPluginManager();
     DFHack::Plugin* overlay = plugins ? plugins->getPluginByName("overlay") : nullptr;
     if (overlay && overlay->can_set_enabled() && !overlay->is_enabled()) {

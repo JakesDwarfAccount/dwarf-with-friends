@@ -361,15 +361,18 @@ section("server: set_player_precise_cursor cannot overwrite placement drag state
 // ---------------------------------------------------------------------------------------
 // (5) Deploy hygiene: the sender fix ships behind a fresh cache buster.
 // ---------------------------------------------------------------------------------------
-section("index.html busts dwf-controls-placement.js with -drag1 and dwf-tiles.js with -drag2", () => {
+section("the -drag1/-drag2 fixes are still shipped (source-pinned, buster-agnostic)", () => {
   // -drag1 must be PRESENT on the controls-placement buster, but need not be the LAST segment --
-  // later fixes (e.g. -sprepaintctl1) legitimately accrete after it, same rule as -drag2 below.
+  // later fixes (e.g. -sprepaintctl1) legitimately accrete after it.
   assert.match(indexHtml, /dwf-controls-placement\.js\?v=[^"]*-drag1(?:-[^"]*)?"/,
     "the -drag1 buster is on the controls-placement script tag");
-  // -drag2 must be PRESENT on the tiles buster, but need not be the LAST segment -- later fixes
-  // (e.g. -wscam1) legitimately accrete after it.
-  assert.match(indexHtml, /dwf-tiles\.js\?v=[^"]*-drag2(?:-[^"]*)?"/,
-    "the -drag2 buster is on the tiles script tag (overlay drag-rect fix)");
+  // The tiles buster abandoned accrete-forever tokens in bf6ad3ec (reset to "8.4.2-automine"),
+  // so a "-drag2" segment can no longer be required on the URL. Pin the FIX itself instead: the
+  // remote drag-rect overlay draw must remain wired into the cursor-overlay pass.
+  assert.match(tiles, /-drag2 \(owner regression follow-up 2026-07-17\)/,
+    "the -drag2 remote drag-rect implementation block is still present in dwf-tiles.js");
+  assert.match(tiles, /drawRemoteDragRects\(octx\)/,
+    "the cursor-overlay pass still draws remote in-progress designation boxes");
 });
 
 // test-the-test: a payload the sender fix must never produce (drag=1 with no anchor coords)

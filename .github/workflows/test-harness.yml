@@ -33,15 +33,7 @@ jobs:
           sudo apt-get install --yes python3-pil
 
       - name: Run Node harness suites
-        shell: bash
-        run: |
-          set -euo pipefail
-          unset DWF_DF_ROOT DFCAPTURE_DF_ROOT DF_ROOT
-          for suite in tools/harness/*_test.mjs; do
-            echo "::group::$suite"
-            node "$suite"
-            echo "::endgroup::"
-          done
+        run: node tools/release/launch_preflight.mjs --stage=suites
 
       - name: Prove the UI drift guard can fail
         run: node tools/harness/ui_drift_guard_test.mjs --selftest

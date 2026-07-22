@@ -70,7 +70,7 @@ check("C++: the burrow rect builder takes NO view window (the clip was the bug)"
 });
 
 check("C++: build_burrows_json never consults effective_capture_viewport_dims", () => {
-  const body = /std::string build_burrows_json\([\s\S]*?\n\}\n/.exec(CPP);
+  const body = /ApiResult<std::string> build_burrows_json\([\s\S]*?\n\}\n/.exec(CPP);
   assert.ok(body, "build_burrows_json must exist");
   assert.doesNotMatch(body[0], /effective_capture_viewport_dims/,
     "DF's native viewport is NOT the browser's window: clipping to it drops the tiles the player " +
@@ -96,9 +96,9 @@ check("C++: same-row runs are merged across block boundaries (payload size, uncl
 check("C++: every mutating burrow route bumps the revision", () => {
   assert.match(CPP, /bump_burrow_seq\(\)/, "the revision bump must exist");
   // Each write path: create / rename / unit / action / symbol / delete / paint.
-  for (const fn of ["do_burrow_create", "do_burrow_rename", "do_burrow_member", "do_burrow_action",
-                    "do_burrow_symbol", "do_burrow_delete", "do_burrow_paint"]) {
-    const body = new RegExp(`(bool|int32_t) ${fn}\\([\\s\\S]*?\\n\\}`).exec(CPP);
+  for (const fn of ["create_burrow", "rename_burrow", "set_burrow_member", "apply_burrow_action",
+                    "set_burrow_symbol", "delete_burrow", "paint_burrow"]) {
+    const body = new RegExp(`ApiResult<[^>]+> ${fn}\\([\\s\\S]*?\\n\\}`).exec(CPP);
     assert.ok(body, `${fn} must exist`);
     assert.match(body[0], /bump_burrow_seq\(\)/,
       `${fn} changes burrow state -- without a bump, other players never learn it changed`);

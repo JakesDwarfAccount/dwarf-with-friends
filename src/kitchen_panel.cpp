@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "kitchen_panel.h"
+#include "api_response.h"
 #include "fort_stock.h"
 #include "interaction.h"
 
@@ -209,17 +210,18 @@ bool is_brew_allowed(df::plant_raw* type) {
         type->material_defs.idx[df::plant_material_def::drink]) < 0;
 }
 
-bool do_kitchen_brew_toggle(int32_t plant_id, bool allow, std::string* err) {
-    return run_kitchen_locked([&]() -> bool {
+ApiResult<bool> set_plant_brew_allowed(int32_t plant_id, bool allow) {
+    ApiError failure;
+    const bool ok = run_kitchen_locked([&]() -> bool {
         auto world = df::global::world;
-        if (!world) { if (err) *err = "world unavailable"; return false; }
+        if (!world) { failure = {503, "world_unavailable", "world unavailable"}; return false; }
         if (plant_id < 0 || plant_id >= static_cast<int32_t>(world->raws.plants.all.size())) {
-            if (err) *err = "invalid plant id";
+            failure = {400, "invalid_plant", "invalid plant id"};
             return false;
         }
         auto* type = world->raws.plants.all[plant_id];
         if (!plant_brew_capable(type)) {
-            if (err) *err = "plant cannot be brewed";
+            failure = {400, "plant_not_brewable", "plant cannot be brewed"};
             return false;
         }
         int16_t mat_type = type->material_defs.type[df::plant_material_def::drink];
@@ -230,17 +232,21 @@ bool do_kitchen_brew_toggle(int32_t plant_id, bool allow, std::string* err) {
             DFHack::Kitchen::addExclusion(brew_exc_type(), df::item_type::PLANT, -1, mat_type, mat_idx);
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 // Kitchen prefs in DF are per-material cook/brew exclusions. The most common
 // fort-management task on this screen is stopping seeds from being cooked so
 // planting stock survives; the Kitchen module exposes a clean per-plant seed
 // cookery toggle (allow/deny + isSeedCookeryAllowed) that we drive directly.
-std::string build_kitchen_json(const std::string& player, std::string* err) {
+ApiResult<std::string> build_kitchen_json(const std::string& player) {
+    ApiError failure;
     std::ostringstream body;
     bool ok = run_kitchen_locked([&]() -> bool {
         auto world = df::global::world;
-        if (!world) { if (err) *err = "world unavailable"; return false; }
+        if (!world) { failure = {503, "world_unavailable", "world unavailable"}; return false; }
         body << "{\"player\":" << json_string(player) << ",\"plants\":[";
         bool first = true;
         int count = 0;
@@ -341,7 +347,7 @@ std::string build_kitchen_json(const std::string& player, std::string* err) {
                 // W1: the two REAL capability bits. `cook_capable` is the material's EDIBLE_COOKED;
                 // `brew_capable` is the plant raw's DRINK (PLANT items only). `brew_allowed` reads
                 // the SAME exclusion key the write path uses -- for PLANT that is the plant's DRINK
-                // material def, NOT the item's own structural material (see do_kitchen_item_toggle).
+                // material def, NOT the item's own structural material (see set_item_kitchen_allowed).
                 agg.cook_capable = material_cook_capable(mat, midx);
                 auto* brew_plant = plant_of_material(mat, midx);
                 agg.brew_capable = item_brew_capable(t, mat, midx);
@@ -388,17 +394,18 @@ std::string build_kitchen_json(const std::string& player, std::string* err) {
         body << "],\"wireBatch\":" << json_string(kWireBatchMarker) << "}\n";
         return true;
     });
-    if (!ok)
-        return "";
-    return body.str();
+    if (!ok) return ApiResult<std::string>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<std::string>::success(body.str());
 }
 
-bool do_kitchen_toggle(int32_t plant_id, bool allow, std::string* err) {
-    return run_kitchen_locked([&]() -> bool {
+ApiResult<bool> set_seed_cook_allowed(int32_t plant_id, bool allow) {
+    ApiError failure;
+    const bool ok = run_kitchen_locked([&]() -> bool {
         auto world = df::global::world;
-        if (!world) { if (err) *err = "world unavailable"; return false; }
+        if (!world) { failure = {503, "world_unavailable", "world unavailable"}; return false; }
         if (plant_id < 0 || plant_id >= static_cast<int32_t>(world->raws.plants.all.size())) {
-            if (err) *err = "invalid plant id";
+            failure = {400, "invalid_plant", "invalid plant id"};
             return false;
         }
         if (allow)
@@ -407,14 +414,19 @@ bool do_kitchen_toggle(int32_t plant_id, bool allow, std::string* err) {
             DFHack::Kitchen::denyPlantSeedCookery(plant_id);
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 // R5: toggle cook/brew for a full-list item addressed by (item_type, material) rather than a
 // plant id. Drives the same exclusion primitives as the plant path, just keyed on the item's
 // type+material (subtype -1, matching how DF stores food exclusions).
-bool do_kitchen_item_toggle(int type, int mat, int mat_index, bool allow, bool brew, std::string* err) {
-    return run_kitchen_locked([&]() -> bool {
-        if (type < 0) { if (err) *err = "invalid item type"; return false; }
+ApiResult<bool> set_item_kitchen_allowed(
+        int type, int mat, int mat_index, bool allow, bool brew) {
+    ApiError failure;
+    const bool ok = run_kitchen_locked([&]() -> bool {
+        if (type < 0) { failure = {400, "invalid_item_type", "invalid item type"}; return false; }
         df::item_type it = static_cast<df::item_type>(type);
         int16_t exc_mat = static_cast<int16_t>(mat);
         int32_t exc_idx = mat_index;
@@ -427,7 +439,7 @@ bool do_kitchen_item_toggle(int type, int mat, int mat_index, bool allow, bool b
             // rather than write a key DF will not honour.
             auto* plant = plant_of_material(exc_mat, exc_idx);
             if (it != df::item_type::PLANT || !plant_brew_capable(plant)) {
-                if (err) *err = "item cannot be brewed";
+                failure = {400, "item_not_brewable", "item cannot be brewed"};
                 return false;
             }
             exc_mat = plant->material_defs.type[df::plant_material_def::drink];
@@ -440,6 +452,9 @@ bool do_kitchen_item_toggle(int type, int mat, int mat_index, bool allow, bool b
             DFHack::Kitchen::addExclusion(exc, it, -1, exc_mat, exc_idx);
         return true;
     });
+    if (!ok) return ApiResult<bool>::failure(
+        failure.status, std::move(failure.code), std::move(failure.message));
+    return ApiResult<bool>::success(true);
 }
 
 } // namespace
@@ -448,10 +463,9 @@ void register_kitchen_routes(httplib::Server& server) {
     // GET /kitchen -> seed-bearing plants + whether their seeds may be cooked.
     server.Get("/kitchen", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
-        std::string err;
-        std::string json = build_kitchen_json(player, &err);
-        if (json.empty()) { json_error(res, 503, err.empty() ? "kitchen unavailable" : err); return; }
-        set_no_store_json(res, json);
+        const auto result = build_kitchen_json(player);
+        if (!result.ok) { send_api_error(result, res); return; }
+        set_no_store_json(res, result.value);
     });
 
     // POST /kitchen-toggle?id=&on=1[&mode=cook|brew] -> allow(1)/deny(0) cookery (default) or
@@ -460,7 +474,6 @@ void register_kitchen_routes(httplib::Server& server) {
     // exclusion); &id= keeps the legacy plant path for regression safety.
     auto toggle_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string mode = req.has_param("mode") ? req.get_param_value("mode") : "cook";
-        std::string err;
         int type = -1;
         if (query_int(req, "type", type)) {
             int on = 1;
@@ -468,10 +481,9 @@ void register_kitchen_routes(httplib::Server& server) {
             int mat = -1, mat_index = -1;
             query_int(req, "mat", mat);
             query_int(req, "matIndex", mat_index);
-            if (!do_kitchen_item_toggle(type, mat, mat_index, on != 0, mode == "brew", &err)) {
-                json_error(res, 400, err);
-                return;
-            }
+            const auto result = set_item_kitchen_allowed(
+                type, mat, mat_index, on != 0, mode == "brew");
+            if (!result.ok) { send_api_error(result, res); return; }
             set_no_store_json(res, "{\"ok\":true}\n");
             return;
         }
@@ -479,9 +491,9 @@ void register_kitchen_routes(httplib::Server& server) {
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
         int on = 1;
         query_int(req, "on", on);
-        bool ok = (mode == "brew") ? do_kitchen_brew_toggle(id, on != 0, &err)
-                                    : do_kitchen_toggle(id, on != 0, &err);
-        if (!ok) { json_error(res, 400, err); return; }
+        const auto result = (mode == "brew") ? set_plant_brew_allowed(id, on != 0)
+                                              : set_seed_cook_allowed(id, on != 0);
+        if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
     server.Get("/kitchen-toggle", toggle_handler);

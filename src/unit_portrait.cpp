@@ -20,22 +20,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "unit_portrait.h"
+#include "render_thread_wait.h"
 
 #include "diagnostics.h"
+#include "save_barrier.h"
 #include "sdl_capture.h"
 #include "modules/DFSDL.h"
 #include "modules/Gui.h"
 
 #include "df/enabler.h"
-#include "df/gamest.h"
 #include "df/global_objects.h"
-#include "df/main_interface.h"
+#include "df/graphic.h"
 #include "df/renderer.h"
 #include "df/unit.h"
 #include "df/unit_flags4.h"
-#include "df/view_sheet_type.h"
-#include "df/view_sheets_context_type.h"
-#include "df/view_sheets_interfacest.h"
 #include "df/viewscreen.h"
 #include "df/widget_unit_portrait.h"
 
@@ -54,10 +52,10 @@
 #include <atomic>
 #include <cstring>
 #include <future>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <sstream>
-#include <unordered_set>
 #include <vector>
 
 namespace dwf {
@@ -93,6 +91,7 @@ using pfn_LockSurface = int (*)(void*);
 using pfn_UnlockSurface = void (*)(void*);
 using pfn_FreeSurface = void (*)(void*);
 
+#ifdef _WIN32
 pfn_CreateTexture p_CreateTexture = nullptr;
 pfn_SetRenderTarget p_SetRenderTarget = nullptr;
 pfn_RenderReadPixels p_RenderReadPixels = nullptr;
@@ -100,6 +99,7 @@ pfn_DestroyTexture p_DestroyTexture = nullptr;
 pfn_GetRendererOutputSize p_GetRendererOutputSize = nullptr;
 pfn_SetRenderDrawColor p_SetRenderDrawColor = nullptr;
 pfn_RenderClear p_RenderClear = nullptr;
+#endif
 pfn_ConvertSurfaceFormat p_ConvertSurfaceFormat = nullptr;
 pfn_LockSurface p_LockSurface = nullptr;
 pfn_UnlockSurface p_UnlockSurface = nullptr;
@@ -108,11 +108,82 @@ pfn_FreeSurface p_FreeSurface = nullptr;
 std::atomic<bool> g_warned_portrait_diag(false);
 std::atomic<bool> g_warned_portrait_widget_success(false);
 std::atomic<bool> g_warned_portrait_widget_fail(false);
-std::atomic<bool> g_warned_portrait_view_sheet_disabled(false);
-std::atomic<int> g_portrait_view_sheet_fault_count(0);
-std::atomic<bool> g_portrait_view_sheet_busy(false);
-std::mutex g_portrait_view_sheet_disabled_mutex;
-std::unordered_set<int32_t> g_portrait_view_sheet_disabled_units;
+
+// ---- native portrait generator (exe-pinned direct call) --------------------------------------
+//
+// Steam DF fills unit->portrait_texpos lazily: every native display site (unit sheet,
+// announcement popups, ...) runs `if (portrait_texpos == 0 || flags4.portrait_must_be_refreshed)
+// generate(unit);` before drawing. That generator is a self-contained one-argument routine: it
+// picks the caste's PORTRAIT-flagged creature-graphics entry, composes the 96x96 bust into a new
+// SDL surface registered with DF's texture handler, invalidates the renderer's cached tiles for
+// any texpos it replaces, and stores the fresh index in unit->portrait_texpos. It never touches
+// view_sheets, the interface grid, or any render target, so calling it cannot flash the host UI.
+// (Binary evidence: rules-ledger entry 0005-unit-portrait-generation.)
+//
+// The call is pinned to the exact game build: both the wrapper and the compositor it invokes
+// must match their recorded prologue bytes at the recorded image offsets, or generation reports
+// itself unavailable and the browser keeps its explicit sprite fallback. Any native fault during
+// a call latches generation off for the rest of the session.
+constexpr uintptr_t NATIVE_PORTRAIT_GEN_RVA = 0x1b9610;         // generate-unit-graphics(unit)
+constexpr uint8_t NATIVE_PORTRAIT_GEN_SIG[32] = {
+    0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x6c, 0x24, 0x18, 0x48, 0x89, 0x74, 0x24, 0x20,
+    0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0x81, 0xec, 0xa0, 0x00, 0x00,
+    0x00, 0x48,
+};
+constexpr uintptr_t NATIVE_PORTRAIT_COMPOSITOR_RVA = 0x71c610;  // bust compositor (5 args)
+constexpr uint8_t NATIVE_PORTRAIT_COMPOSITOR_SIG[32] = {
+    0x48, 0x8b, 0xc4, 0x55, 0x53, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57,
+    0x48, 0x8d, 0xa8, 0xf8, 0xfb, 0xff, 0xff, 0x48, 0x81, 0xec, 0xc8, 0x04, 0x00, 0x00, 0x0f,
+    0x29, 0x70,
+};
+
+std::atomic<bool> g_native_gen_faulted(false);
+std::mutex g_native_gen_resolve_mu;
+bool g_native_gen_resolved = false;
+void* g_native_gen_fn = nullptr;
+std::string g_native_gen_unavailable_reason;
+
+using pfn_native_portrait_gen = void (*)(df::unit*);
+
+bool resolve_native_generator_locked() {
+#ifdef _WIN32
+    HMODULE exe = GetModuleHandleA(nullptr);
+    if (!exe) {
+        g_native_gen_unavailable_reason = "could not resolve the game module";
+        return false;
+    }
+    auto base = reinterpret_cast<const uint8_t*>(exe);
+    if (std::memcmp(base + NATIVE_PORTRAIT_GEN_RVA, NATIVE_PORTRAIT_GEN_SIG,
+                    sizeof(NATIVE_PORTRAIT_GEN_SIG)) != 0 ||
+        std::memcmp(base + NATIVE_PORTRAIT_COMPOSITOR_RVA, NATIVE_PORTRAIT_COMPOSITOR_SIG,
+                    sizeof(NATIVE_PORTRAIT_COMPOSITOR_SIG)) != 0) {
+        g_native_gen_unavailable_reason =
+            "unsupported Dwarf Fortress binary (portrait generator signature mismatch)";
+        diagnostics_log("DIAG portrait native generator UNAVAILABLE: signature mismatch; "
+                        "browser sprite fallback stays active");
+        return false;
+    }
+    g_native_gen_fn = const_cast<uint8_t*>(base) + NATIVE_PORTRAIT_GEN_RVA;
+    // PORTRAIT-NATIVE-DIRECT rva=1b9610 -- unique deploy witness for this mechanism.
+    diagnostics_log("DIAG portrait native generator pinned (PORTRAIT-NATIVE-DIRECT rva=1b9610)");
+    return true;
+#else
+    g_native_gen_unavailable_reason = "native portrait generation is Windows-only";
+    return false;
+#endif
+}
+
+bool native_generator_ready(std::string* why) {
+    std::lock_guard<std::mutex> lock(g_native_gen_resolve_mu);
+    if (!g_native_gen_resolved) {
+        g_native_gen_resolved = true;
+        resolve_native_generator_locked();
+    }
+    if (!g_native_gen_fn && why)
+        *why = g_native_gen_unavailable_reason;
+    return g_native_gen_fn != nullptr;
+}
+
 
 #ifdef _WIN32
 volatile uint32_t g_seh_code = 0;
@@ -133,6 +204,15 @@ constexpr DWORD DWF_INVALID_PARAMETER_EXCEPTION = 0xE0424643u;
 void __cdecl invalid_parameter_handler(const wchar_t*, const wchar_t*,
                                        const wchar_t*, unsigned int, uintptr_t) {
     RaiseException(DWF_INVALID_PARAMETER_EXCEPTION, EXCEPTION_NONCONTINUABLE, 0, nullptr);
+}
+
+int call_native_portrait_generator_seh(void* fn, df::unit* unit) {
+    __try {
+        reinterpret_cast<pfn_native_portrait_gen>(fn)(unit);
+        return 0;
+    } __except (seh_filter(GetExceptionInformation())) {
+        return 1;
+    }
 }
 
 int call_widget_seh(df::widget_unit_portrait* widget) {
@@ -313,6 +393,206 @@ private:
     int h_ = 0;
     bool active_ = false;
 };
+
+// widget_unit_portrait::render() composes the native portrait texture and writes its texpos into
+// DF's interface grid. It does not paint SDL directly, which is why the former temporary-target
+// readback was blank for nearly every unit. Snapshot the small POD grid, let the native widget run,
+// recover only texpos values it added, then restore the host grid byte-for-byte. Unlike the retired
+// recursive sheet generator, this never opens or rewrites the owning sheet interface and never copies an
+// owning DF structure.
+template <typename T>
+struct GridPlaneSnapshot {
+    T* ptr = nullptr;
+    std::vector<T> data;
+
+    bool capture(T* source, size_t count) {
+        if (!source)
+            return false;
+        ptr = source;
+        data.assign(source, source + count);
+        return true;
+    }
+
+    bool same(const T* current) const { return current == ptr; }
+    void restore() const { std::copy(data.begin(), data.end(), ptr); }
+};
+
+class InterfaceGridSnapshot {
+public:
+    explicit InterfaceGridSnapshot(df::graphic* gps) : gps_(gps) {
+        if (!gps_ || gps_->dimx <= 0 || gps_->dimy <= 0)
+            return;
+        dimx_ = gps_->dimx;
+        dimy_ = gps_->dimy;
+        cells_ = static_cast<size_t>(dimx_) * static_cast<size_t>(dimy_);
+        if (!screen_.capture(gps_->screen, cells_ * 8) ||
+            !texpos_.capture(gps_->screentexpos, cells_) ||
+            !texpos_lower_.capture(gps_->screentexpos_lower, cells_) ||
+            !texpos_anchored_.capture(gps_->screentexpos_anchored, cells_) ||
+            !texpos_anchored_x_.capture(gps_->screentexpos_anchored_x, cells_) ||
+            !texpos_anchored_y_.capture(gps_->screentexpos_anchored_y, cells_) ||
+            !texpos_flag_.capture(gps_->screentexpos_flag, cells_))
+            return;
+
+        screenx_ = gps_->screenx;
+        screeny_ = gps_->screeny;
+        screenf_ = gps_->screenf;
+        screenb_ = gps_->screenb;
+        screenbright_ = gps_->screenbright;
+        use_old_16_colors_ = gps_->use_old_16_colors;
+        screen_color_r_ = gps_->screen_color_r;
+        screen_color_g_ = gps_->screen_color_g;
+        screen_color_b_ = gps_->screen_color_b;
+        screen_color_br_ = gps_->screen_color_br;
+        screen_color_bg_ = gps_->screen_color_bg;
+        screen_color_bb_ = gps_->screen_color_bb;
+        top_in_use_ = gps_->top_in_use;
+
+        if (top_in_use_) {
+            if (!(screen_top_.capture(gps_->screen_top, cells_ * 8) &&
+                texpos_top_lower_.capture(gps_->screentexpos_top_lower, cells_) &&
+                texpos_top_anchored_.capture(gps_->screentexpos_top_anchored, cells_) &&
+                texpos_top_.capture(gps_->screentexpos_top, cells_) &&
+                texpos_top_anchored_x_.capture(gps_->screentexpos_top_anchored_x, cells_) &&
+                texpos_top_anchored_y_.capture(gps_->screentexpos_top_anchored_y, cells_) &&
+                texpos_top_flag_.capture(gps_->screentexpos_top_flag, cells_)))
+                return;
+            top_captured_ = true;
+        }
+        valid_ = true;
+    }
+
+    InterfaceGridSnapshot(const InterfaceGridSnapshot&) = delete;
+    InterfaceGridSnapshot& operator=(const InterfaceGridSnapshot&) = delete;
+
+    bool valid() const { return valid_; }
+
+    std::vector<int32_t> added_texpos() const {
+        std::vector<int32_t> out;
+        if (!same_base_grid())
+            return out;
+        collect_changed(texpos_, out);
+        collect_changed(texpos_lower_, out);
+        collect_changed(texpos_anchored_, out);
+        if (top_captured_ && same_top_grid()) {
+            collect_changed(texpos_top_, out);
+            collect_changed(texpos_top_lower_, out);
+            collect_changed(texpos_top_anchored_, out);
+        }
+        return out;
+    }
+
+    void restore() {
+        if (restored_ || !valid_)
+            return;
+        restored_ = true;
+        if (!same_base_grid())
+            return;
+
+        screen_.restore();
+        texpos_.restore();
+        texpos_lower_.restore();
+        texpos_anchored_.restore();
+        texpos_anchored_x_.restore();
+        texpos_anchored_y_.restore();
+        texpos_flag_.restore();
+
+        if (top_captured_ && same_top_grid()) {
+            screen_top_.restore();
+            texpos_top_lower_.restore();
+            texpos_top_anchored_.restore();
+            texpos_top_.restore();
+            texpos_top_anchored_x_.restore();
+            texpos_top_anchored_y_.restore();
+            texpos_top_flag_.restore();
+        }
+
+        gps_->screenx = screenx_;
+        gps_->screeny = screeny_;
+        gps_->screenf = screenf_;
+        gps_->screenb = screenb_;
+        gps_->screenbright = screenbright_;
+        gps_->use_old_16_colors = use_old_16_colors_;
+        gps_->screen_color_r = screen_color_r_;
+        gps_->screen_color_g = screen_color_g_;
+        gps_->screen_color_b = screen_color_b_;
+        gps_->screen_color_br = screen_color_br_;
+        gps_->screen_color_bg = screen_color_bg_;
+        gps_->screen_color_bb = screen_color_bb_;
+        gps_->top_in_use = top_in_use_;
+    }
+
+    ~InterfaceGridSnapshot() { restore(); }
+
+private:
+    bool same_base_grid() const {
+        return gps_ && gps_->dimx == dimx_ && gps_->dimy == dimy_ &&
+               screen_.same(gps_->screen) && texpos_.same(gps_->screentexpos) &&
+               texpos_lower_.same(gps_->screentexpos_lower) &&
+               texpos_anchored_.same(gps_->screentexpos_anchored) &&
+               texpos_anchored_x_.same(gps_->screentexpos_anchored_x) &&
+               texpos_anchored_y_.same(gps_->screentexpos_anchored_y) &&
+               texpos_flag_.same(gps_->screentexpos_flag);
+    }
+
+    bool same_top_grid() const {
+        return gps_ && screen_top_.same(gps_->screen_top) &&
+               texpos_top_lower_.same(gps_->screentexpos_top_lower) &&
+               texpos_top_anchored_.same(gps_->screentexpos_top_anchored) &&
+               texpos_top_.same(gps_->screentexpos_top) &&
+               texpos_top_anchored_x_.same(gps_->screentexpos_top_anchored_x) &&
+               texpos_top_anchored_y_.same(gps_->screentexpos_top_anchored_y) &&
+               texpos_top_flag_.same(gps_->screentexpos_top_flag);
+    }
+
+    void collect_changed(const GridPlaneSnapshot<long>& plane,
+                         std::vector<int32_t>& out) const {
+        for (size_t i = 0; i < cells_; ++i) {
+            const long value = plane.ptr[i];
+            if (value <= 0 || value == plane.data[i] ||
+                value > std::numeric_limits<int32_t>::max())
+                continue;
+            const int32_t texpos = static_cast<int32_t>(value);
+            if (std::find(out.begin(), out.end(), texpos) == out.end())
+                out.push_back(texpos);
+        }
+    }
+
+    df::graphic* gps_ = nullptr;
+    size_t cells_ = 0;
+    int32_t dimx_ = 0;
+    int32_t dimy_ = 0;
+    bool valid_ = false;
+    bool restored_ = false;
+    bool top_captured_ = false;
+    bool top_in_use_ = false;
+    GridPlaneSnapshot<uint8_t> screen_;
+    GridPlaneSnapshot<long> texpos_;
+    GridPlaneSnapshot<long> texpos_lower_;
+    GridPlaneSnapshot<long> texpos_anchored_;
+    GridPlaneSnapshot<long> texpos_anchored_x_;
+    GridPlaneSnapshot<long> texpos_anchored_y_;
+    GridPlaneSnapshot<uint32_t> texpos_flag_;
+    GridPlaneSnapshot<uint8_t> screen_top_;
+    GridPlaneSnapshot<long> texpos_top_lower_;
+    GridPlaneSnapshot<long> texpos_top_anchored_;
+    GridPlaneSnapshot<long> texpos_top_;
+    GridPlaneSnapshot<long> texpos_top_anchored_x_;
+    GridPlaneSnapshot<long> texpos_top_anchored_y_;
+    GridPlaneSnapshot<uint32_t> texpos_top_flag_;
+    int32_t screenx_ = 0;
+    int32_t screeny_ = 0;
+    decltype(df::graphic::screenf) screenf_{};
+    decltype(df::graphic::screenb) screenb_{};
+    bool screenbright_ = false;
+    bool use_old_16_colors_ = false;
+    uint8_t screen_color_r_ = 0;
+    uint8_t screen_color_g_ = 0;
+    uint8_t screen_color_b_ = 0;
+    uint8_t screen_color_br_ = 0;
+    uint8_t screen_color_bg_ = 0;
+    uint8_t screen_color_bb_ = 0;
+};
 #endif
 
 bool copy_sdl_surface_to_frame(void* surface_ptr, CapturedFrame& frame, std::string* err = nullptr) {
@@ -428,7 +708,9 @@ bool copy_texture_to_frame(df::enabler* enabler, int32_t texpos, const std::stri
         last_err = "enabler unavailable";
         return false;
     }
-    if (texpos < 0)
+    // DF's unset sentinel for unit texture fields is 0, not -1 (the constructor zeroes them and
+    // every native display site gates on == 0). texpos 0 would index raws[0], an unrelated tile.
+    if (texpos <= 0)
         return false;
     if (static_cast<size_t>(texpos) >= enabler->textures.raws.size()) {
         last_err = label + " texture out of range";
@@ -492,35 +774,8 @@ bool copy_unit_portrait_candidate(df::unit* unit, df::enabler* enabler,
     return false;
 }
 
-bool portrait_error_is_native_fault(const std::string& err) {
-    return err.find("fault") != std::string::npos ||
-           err.find("0xc0000005") != std::string::npos ||
-           err.find("access=0x") != std::string::npos;
-}
-
-bool portrait_view_sheet_allowed_for_unit(int32_t unit_id) {
-    // FIRST STRIKE disables the generator for the whole session (was 8). A caught native fault
-    // inside DF's view-sheet code means DF was interrupted mid-mutation and the process heap is
-    // suspect from that moment on -- the 2026-07-18 host crash was ntdll heap corruption in the
-    // same second as fault #1. Re-entering the faulting machinery seven more times only multiplies
-    // that risk; portraits fall back to widget/readback + existing textures.
-    if (g_portrait_view_sheet_fault_count.load() >= 1)
-        return false;
-    std::lock_guard<std::mutex> lock(g_portrait_view_sheet_disabled_mutex);
-    return g_portrait_view_sheet_disabled_units.find(unit_id) ==
-           g_portrait_view_sheet_disabled_units.end();
-}
-
-int portrait_disable_view_sheet_for_unit(int32_t unit_id) {
-    {
-        std::lock_guard<std::mutex> lock(g_portrait_view_sheet_disabled_mutex);
-        g_portrait_view_sheet_disabled_units.insert(unit_id);
-    }
-    return ++g_portrait_view_sheet_fault_count;
-}
-
-bool render_viewscreen_isolated(std::string* err = nullptr, int target_w = 0, int target_h = 0) {
 #ifdef _WIN32
+bool render_viewscreen_isolated(std::string* err = nullptr, int target_w = 0, int target_h = 0) {
     auto viewscreen = DFHack::Gui::getCurViewscreen(true);
     if (!viewscreen) {
         if (err) *err = "no current viewscreen";
@@ -545,18 +800,12 @@ bool render_viewscreen_isolated(std::string* err = nullptr, int target_w = 0, in
         return false;
     }
     return true;
-#else
-    (void)target_w; (void)target_h;
-    if (err) *err = "isolated viewscreen rendering is Windows-only";
-    return false;
-#endif
 }
+#endif
 
-bool generate_unit_portrait_with_widget(df::unit* unit, df::enabler* enabler,
-                                        CapturedFrame& frame, int32_t& texpos,
-                                        std::string& source, std::string& last_err,
-                                        bool allow_icon_fallbacks,
-                                        bool allow_readback_fallback) {
+bool capture_unit_icon_with_widget(df::unit* unit, df::enabler* enabler,
+                                   CapturedFrame& frame, int32_t& texpos,
+                                   std::string& source, std::string& last_err) {
 #ifdef _WIN32
     if (!unit) {
         last_err = "unit not found";
@@ -579,21 +828,20 @@ bool generate_unit_portrait_with_widget(df::unit* unit, df::enabler* enabler,
         unit->flags4.bits.portrait_must_be_refreshed = saved_refresh;
     };
 
-    constexpr int PORTRAIT_TARGET = 128;
+    constexpr int ICON_GRID_TILES = 4;
     widget->u = unit;
     widget->rect.x1 = 0;
     widget->rect.y1 = 0;
-    widget->rect.x2 = PORTRAIT_TARGET - 1;
-    widget->rect.y2 = PORTRAIT_TARGET - 1;
-    widget->min_w = PORTRAIT_TARGET;
-    widget->min_h = PORTRAIT_TARGET;
+    widget->rect.x2 = ICON_GRID_TILES - 1;
+    widget->rect.y2 = ICON_GRID_TILES - 1;
+    widget->min_w = ICON_GRID_TILES;
+    widget->min_h = ICON_GRID_TILES;
 
-    TemporaryRenderTarget target;
-    std::string target_err;
-    if (!target.begin(&target_err, PORTRAIT_TARGET, PORTRAIT_TARGET) ||
-        !target.clear(&target_err)) {
+    auto gps = df::global::gps;
+    InterfaceGridSnapshot grid(gps);
+    if (!grid.valid()) {
         restore_refresh();
-        last_err = target_err;
+        last_err = "native interface grid unavailable";
         return false;
     }
 
@@ -615,7 +863,7 @@ bool generate_unit_portrait_with_widget(df::unit* unit, df::enabler* enabler,
     int32_t generated_texpos = -1;
     std::string generated_source;
     if (copy_unit_portrait_candidate(unit, enabler, generated, generated_texpos,
-                                     generated_source, last_err, allow_icon_fallbacks)) {
+                                     generated_source, last_err, true)) {
         restore_refresh();
         frame = std::move(generated);
         texpos = generated_texpos;
@@ -626,206 +874,32 @@ bool generate_unit_portrait_with_widget(df::unit* unit, df::enabler* enabler,
         return true;
     }
 
-    if (allow_readback_fallback) {
-        CapturedFrame target_frame;
-        if (target.read_frame(target_frame, &target_err) &&
-            crop_visible_bounds(target_frame, generated) &&
-            frame_has_visible_pixels(generated)) {
-            restore_refresh();
-            frame = std::move(generated);
-            texpos = unit->portrait_texpos;
-            source = "widget-readback";
-            if (!g_warned_portrait_widget_success.exchange(true))
-                diagnostics_log("DIAG portrait widget generated offscreen readback " +
-                                std::to_string(frame.width) + "x" + std::to_string(frame.height));
-            return true;
-        }
+    // The native widget writes its selected icon into DF's interface grid. Recover that exact
+    // texture before restoring the grid. This is an icon fallback only, never a profile portrait.
+    for (int32_t candidate : grid.added_texpos()) {
+        if (!copy_texture_to_frame(enabler, candidate, "widget-grid", generated, last_err))
+            continue;
+        restore_refresh();
+        frame = std::move(generated);
+        texpos = candidate;
+        source = "widget-grid";
+        if (!g_warned_portrait_widget_success.exchange(true))
+            diagnostics_log("DIAG unit icon widget recovered grid texture texpos=" +
+                            std::to_string(texpos) + " " +
+                            std::to_string(frame.width) + "x" +
+                            std::to_string(frame.height));
+        return true;
     }
 
     restore_refresh();
-    if (!target_err.empty())
-        last_err = target_err;
     if (last_err.empty())
-        last_err = "native unit portrait widget produced no visible pixels";
+        last_err = "native unit portrait widget produced no recoverable texture";
     if (!g_warned_portrait_widget_fail.exchange(true))
         diagnostics_log("DIAG portrait widget failed: " + last_err);
     return false;
 #else
     (void)unit; (void)enabler; (void)frame; (void)texpos; (void)source;
-    (void)allow_icon_fallbacks; (void)allow_readback_fallback;
-    last_err = "native portrait widget rendering is Windows-only";
-    return false;
-#endif
-}
-
-bool generate_unit_portrait_with_view_sheet(df::unit* unit, df::enabler* enabler,
-                                            CapturedFrame& frame, int32_t& texpos,
-                                            std::string& source, std::string& last_err) {
-#ifdef _WIN32
-    if (!unit) {
-        last_err = "unit not found";
-        return false;
-    }
-    auto game = df::global::game;
-    auto viewscreen = DFHack::Gui::getCurViewscreen(true);
-    if (!game || !viewscreen) {
-        last_err = "game/viewscreen unavailable";
-        return false;
-    }
-
-    auto& sheets = game->main_interface.view_sheets;
-    if (sheets.open) {
-        last_err = kPortraitBusyHostSheetOpen;
-        return false;
-    }
-    bool expected = false;
-    if (!g_portrait_view_sheet_busy.compare_exchange_strong(expected, true)) {
-        last_err = kPortraitBusyGeneratorRunning;
-        return false;
-    }
-
-    // ★ CRASH 2026-07-14 14:08 (0xc0000374 double free, WER dump 160108): NEVER save/restore
-    // view_sheets_interfacest BY VALUE. The struct is full of OWNING raw-pointer vectors
-    // (std::vector<std::string*> raw_thought_str/rel_name/personality_raw_str/..., and
-    // std::vector<df::color_text_boxst*> thought_box/...). A whole-struct copy duplicates the
-    // POINTER VALUES; viewscreen->logic() below makes DF rebuild the sheet, which DELETES the
-    // old pointees and allocates fresh ones; copy-assigning the saved struct back then plants
-    // the stale (already-freed) pointers back into DF's owning vectors — and DF's next sheet
-    // rebuild frees them a second time (heap_failure_block_not_busy inside logic(), exactly
-    // the dump's stack). It also leaked everything logic() had just allocated.
-    // Fix: snapshot and restore ONLY the ownership-free identity fields this function writes.
-    // Everything logic() builds inside the sheet stays where DF put it — DF frees it on its
-    // own next rebuild, exactly as in the native lifecycle.
-    struct ViewSheetsIdentitySnapshot {
-        bool open;
-        df::view_sheets_context_type context;
-        df::view_sheet_type active_sheet;
-        int32_t active_id;
-        std::vector<int32_t> viewing_unid;
-        std::vector<int32_t> viewing_itid;
-        int32_t viewing_bldid;
-        std::vector<int32_t> viewing_vermin_combined_id;
-        int32_t viewing_x, viewing_y, viewing_z;
-        int32_t scroll_position;
-        bool scrolling;
-        int32_t active_sub_tab;
-        decltype(df::view_sheets_interfacest::last_tick_update) last_tick_update;
-    } saved;
-    saved.open = sheets.open;
-    saved.context = sheets.context;
-    saved.active_sheet = sheets.active_sheet;
-    saved.active_id = sheets.active_id;
-    saved.viewing_unid = sheets.viewing_unid;
-    saved.viewing_itid = sheets.viewing_itid;
-    saved.viewing_bldid = sheets.viewing_bldid;
-    saved.viewing_vermin_combined_id = sheets.viewing_vermin_combined_id;
-    saved.viewing_x = sheets.viewing_x;
-    saved.viewing_y = sheets.viewing_y;
-    saved.viewing_z = sheets.viewing_z;
-    saved.scroll_position = sheets.scroll_position;
-    saved.scrolling = sheets.scrolling;
-    saved.active_sub_tab = sheets.active_sub_tab;
-    saved.last_tick_update = sheets.last_tick_update;
-
-    bool saved_refresh = unit->flags4.bits.portrait_must_be_refreshed;
-    bool restored = false;
-    auto restore_sheets = [&]() {
-        if (!restored) {
-            unit->flags4.bits.portrait_must_be_refreshed = saved_refresh;
-            sheets.open = saved.open;
-            sheets.context = saved.context;
-            sheets.active_sheet = saved.active_sheet;
-            sheets.active_id = saved.active_id;
-            sheets.viewing_unid = saved.viewing_unid;
-            sheets.viewing_itid = saved.viewing_itid;
-            sheets.viewing_bldid = saved.viewing_bldid;
-            sheets.viewing_vermin_combined_id = saved.viewing_vermin_combined_id;
-            sheets.viewing_x = saved.viewing_x;
-            sheets.viewing_y = saved.viewing_y;
-            sheets.viewing_z = saved.viewing_z;
-            sheets.scroll_position = saved.scroll_position;
-            sheets.scrolling = saved.scrolling;
-            sheets.active_sub_tab = saved.active_sub_tab;
-            sheets.last_tick_update = saved.last_tick_update;
-            g_portrait_view_sheet_busy.store(false);
-            restored = true;
-        }
-    };
-
-    unit->flags4.bits.portrait_must_be_refreshed = true;
-    sheets.open = true;
-    sheets.context = df::view_sheets_context_type::REGULAR_PLAY;
-    sheets.active_sheet = df::view_sheet_type::UNIT;
-    sheets.active_id = unit->id;
-    sheets.viewing_unid.clear();
-    sheets.viewing_unid.push_back(unit->id);
-    sheets.viewing_itid.clear();
-    sheets.viewing_bldid = -1;
-    sheets.viewing_vermin_combined_id.clear();
-    sheets.viewing_x = unit->pos.x;
-    sheets.viewing_y = unit->pos.y;
-    sheets.viewing_z = unit->pos.z;
-    sheets.scroll_position = 0;
-    sheets.scrolling = false;
-    sheets.active_sub_tab = 0;
-    sheets.last_tick_update = 0;
-
-    for (int attempt = 1; attempt <= 3; ++attempt) {
-        unit->flags4.bits.portrait_must_be_refreshed = true;
-        sheets.last_tick_update = 0;
-
-        int logic_fault = call_viewscreen_logic_seh(viewscreen);
-        if (logic_fault != 0) {
-            std::ostringstream ss;
-            ss << "native view-sheet logic fault code=0x" << std::hex << g_seh_code
-               << " at=" << g_seh_at
-               << " access=0x" << reinterpret_cast<uintptr_t>(g_seh_access);
-            last_err = ss.str();
-            restore_sheets();
-            if (!g_warned_portrait_widget_fail.exchange(true))
-                diagnostics_log("DIAG portrait view-sheet failed: " + last_err);
-            return false;
-        }
-
-        std::string render_err;
-        if (!render_viewscreen_isolated(&render_err)) {
-            last_err = "native view-sheet render failed: " + render_err;
-            restore_sheets();
-            if (!g_warned_portrait_widget_fail.exchange(true))
-                diagnostics_log("DIAG portrait view-sheet failed: " + last_err);
-            return false;
-        }
-
-        CapturedFrame generated;
-        int32_t generated_texpos = -1;
-        std::string generated_source;
-        if (copy_unit_portrait_candidate(unit, enabler, generated,
-                                         generated_texpos, generated_source,
-                                         last_err, false)) {
-            restore_sheets();
-            frame = std::move(generated);
-            texpos = generated_texpos;
-            source = "view-sheet-" + generated_source;
-            if (!g_warned_portrait_widget_success.exchange(true))
-                diagnostics_log("DIAG portrait view-sheet generated native texture source=" +
-                                source + " texpos=" + std::to_string(texpos) +
-                                " attempt=" + std::to_string(attempt));
-            return true;
-        }
-    }
-    restore_sheets();
-
-    if (last_err.empty())
-        last_err = "native unit view-sheet did not populate portrait_texpos";
-    if (!g_warned_portrait_widget_fail.exchange(true))
-        diagnostics_log("DIAG portrait view-sheet failed: " + last_err +
-                        " portrait_texpos=" + std::to_string(unit->portrait_texpos) +
-                        " refresh=" +
-                        std::to_string(unit->flags4.bits.portrait_must_be_refreshed ? 1 : 0));
-    return false;
-#else
-    (void)unit; (void)enabler; (void)frame; (void)texpos; (void)source;
-    last_err = "native portrait view-sheet rendering is Windows-only";
+    last_err = "native unit icon widget rendering is Windows-only";
     return false;
 #endif
 }
@@ -833,16 +907,69 @@ bool generate_unit_portrait_with_view_sheet(df::unit* unit, df::enabler* enabler
 struct RenderThreadPortraitRequest {
     int32_t unit_id = -1;
     bool allow_icon_fallbacks = false;
-    bool allow_view_sheet_generation = false;
+    bool generation_requested = false;
     int32_t texpos = -1;
     std::string source;
     CapturedFrame frame;
     std::string err;
-    bool busy_skip = false;
     std::promise<bool> done;
 };
 
 } // namespace
+
+bool unit_portrait_native_generator_available(std::string* why) {
+    return native_generator_ready(why);
+}
+
+bool unit_portrait_native_generator_faulted() {
+    return g_native_gen_faulted.load();
+}
+
+NativePortraitOutcome unit_portrait_generate_native_on_render(df::unit* unit, std::string* err) {
+#ifdef _WIN32
+    if (g_native_gen_faulted.load()) {
+        if (err) *err = "native portrait generation is disabled after an earlier native fault";
+        return NativePortraitOutcome::Faulted;
+    }
+    std::string why;
+    if (!native_generator_ready(&why)) {
+        if (err) *err = why;
+        return NativePortraitOutcome::Unavailable;
+    }
+    if (!unit) {
+        if (err) *err = "unit not found";
+        return NativePortraitOutcome::Blocked;
+    }
+    if (save_barrier_active()) {
+        if (err) *err = "save in progress; portrait generation deferred";
+        return NativePortraitOutcome::Blocked;
+    }
+    if (unit->portrait_texpos > 0 && !unit->flags4.bits.portrait_must_be_refreshed)
+        return NativePortraitOutcome::AlreadyExists;
+
+    const int32_t before = unit->portrait_texpos;
+    if (call_native_portrait_generator_seh(g_native_gen_fn, unit) != 0) {
+        g_native_gen_faulted.store(true);
+        std::ostringstream ss;
+        ss << "DIAG portrait native generator FAULT code=0x" << std::hex << g_seh_code
+           << " at=" << g_seh_at
+           << " access=0x" << reinterpret_cast<uintptr_t>(g_seh_access)
+           << "; generation latched OFF for this session";
+        diagnostics_log(ss.str());
+        if (err) *err = "native portrait generator faulted; generation disabled";
+        return NativePortraitOutcome::Faulted;
+    }
+    if (unit->portrait_texpos > 0)
+        return before > 0 ? NativePortraitOutcome::AlreadyExists   // refresh of an existing bust
+                          : NativePortraitOutcome::Generated;
+    if (err) *err = "DF has no portrait art for this creature";
+    return NativePortraitOutcome::NoPortraitArt;
+#else
+    (void)unit;
+    if (err) *err = "native portrait generation is Windows-only";
+    return NativePortraitOutcome::Unavailable;
+#endif
+}
 
 bool native_viewscreen_logic_render_isolated(std::string* err) {
 #ifdef _WIN32
@@ -873,24 +1000,18 @@ bool native_viewscreen_logic_render_isolated(std::string* err) {
 #endif
 }
 
-const char* const kPortraitBusyHostSheetOpen =
-    "host view sheet is open; skipping native unit-sheet portrait generation";
-const char* const kPortraitBusyGeneratorRunning =
-    "native unit-sheet portrait generation is already running";
-
 bool unit_portrait_on_render_thread(int32_t unit_id,
                                     bool allow_icon_fallbacks,
-                                    bool allow_view_sheet_generation,
+                                    bool generation_requested,
                                     CapturedFrame& frame,
                                     int32_t& texpos,
                                     std::string& source,
-                                    std::string* err,
-                                    bool* busy_skip) {
+                                    std::string* err) {
     std::lock_guard<std::recursive_mutex> render_lock(capture_state_mutex());
     auto request = std::make_shared<RenderThreadPortraitRequest>();
     request->unit_id = unit_id;
     request->allow_icon_fallbacks = allow_icon_fallbacks;
-    request->allow_view_sheet_generation = allow_view_sheet_generation;
+    request->generation_requested = generation_requested;
     auto future = request->done.get_future();
 
     DFHack::runOnRenderThread([request]() {
@@ -915,42 +1036,36 @@ bool unit_portrait_on_render_thread(int32_t unit_id,
             return;
         }
 
-        if (!request->allow_icon_fallbacks && request->allow_view_sheet_generation) {
-            if (portrait_view_sheet_allowed_for_unit(request->unit_id)) {
-                if (generate_unit_portrait_with_view_sheet(unit, enabler, request->frame,
-                                                           request->texpos, request->source,
-                                                           last_err)) {
+        if (!request->allow_icon_fallbacks) {
+            // A portrait endpoint must return a real DF portrait texture or fail. The former
+            // widget-grid fallback was a 32x32 map sprite, but a successful HTTP response caused
+            // the browser and sweep to mislabel it as a generated Steam portrait.
+            if (request->generation_requested) {
+                std::string gen_err;
+                NativePortraitOutcome outcome =
+                    unit_portrait_generate_native_on_render(unit, &gen_err);
+                if ((outcome == NativePortraitOutcome::Generated ||
+                     outcome == NativePortraitOutcome::AlreadyExists) &&
+                    copy_unit_portrait_candidate(unit, enabler, request->frame,
+                                                 request->texpos, request->source, last_err,
+                                                 false)) {
+                    request->source = outcome == NativePortraitOutcome::Generated
+                        ? "native-generated" : request->source;
                     request->done.set_value(true);
                     return;
                 }
-                // Contention (host sheet open / generator already running) is a SKIP, not a
-                // failure: report it so the portrait sweep re-queues without burning a retry.
-                if (last_err == kPortraitBusyHostSheetOpen ||
-                    last_err == kPortraitBusyGeneratorRunning)
-                    request->busy_skip = true;
-                if (portrait_error_is_native_fault(last_err)) {
-                    int faults = portrait_disable_view_sheet_for_unit(request->unit_id);
-                    diagnostics_log("DIAG portrait view-sheet generation disabled for unit " +
-                                    std::to_string(request->unit_id) +
-                                    " after explicit native fault (" +
-                                    std::to_string(faults) + "/1): " + last_err);
-                    if (faults >= 1 && !g_warned_portrait_view_sheet_disabled.exchange(true))
-                        diagnostics_log("DIAG portrait view-sheet generation disabled globally for this session after a native fault; "
-                                        "using widget/readback and existing texture fallbacks only.");
-                }
-            } else if (!g_warned_portrait_view_sheet_disabled.exchange(true)) {
-                diagnostics_log("DIAG explicit portrait view-sheet generation skipped by fault guard; "
-                                "using widget/readback and existing texture fallbacks only.");
+                request->err = gen_err.empty() ? last_err : gen_err;
+                request->done.set_value(false);
+                return;
             }
-        } else if (!request->allow_icon_fallbacks &&
-                   !g_warned_portrait_view_sheet_disabled.exchange(true)) {
-            diagnostics_log("DIAG portrait view-sheet generation requires explicit generate=1; "
-                            "automatic unit-window portrait loads use widget/readback and existing texture fallbacks only.");
+            request->err = "native portrait is not ready";
+            request->done.set_value(false);
+            return;
         }
 
-        if (generate_unit_portrait_with_widget(unit, enabler, request->frame,
-                                               request->texpos, request->source,
-                                               last_err, request->allow_icon_fallbacks, true)) {
+        if (capture_unit_icon_with_widget(unit, enabler, request->frame,
+                                          request->texpos, request->source,
+                                          last_err)) {
             request->done.set_value(true);
             return;
         }
@@ -974,7 +1089,7 @@ bool unit_portrait_on_render_thread(int32_t unit_id,
         request->done.set_value(false);
     });
 
-    bool ok = future.get();
+    bool ok = render_future_ready(future) && future.get();
     if (ok) {
         frame = std::move(request->frame);
         texpos = request->texpos;
@@ -982,8 +1097,6 @@ bool unit_portrait_on_render_thread(int32_t unit_id,
     } else if (err) {
         *err = request->err;
     }
-    if (busy_skip)
-        *busy_skip = request->busy_skip;
     return ok;
 }
 

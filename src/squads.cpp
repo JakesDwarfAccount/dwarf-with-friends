@@ -22,7 +22,9 @@
 #include "squads.h"
 
 #include "Core.h"
+#include "MiscUtils.h"
 #include "client_state.h"
+#include "diagnostics.h"
 #include "http_server.h"
 #include "json_util.h"
 #include "sdl_capture.h"
@@ -32,6 +34,8 @@
 #include "modules/Materials.h"
 #include "modules/Units.h"
 
+#include "df/activity_entry.h"
+#include "df/activity_event.h"
 #include "df/alert_state_infost.h"
 #include "df/building.h"
 #include "df/building_civzonest.h"
@@ -52,8 +56,11 @@
 #include "df/historical_figure.h"
 #include "df/interface_squad_modest.h"
 #include "df/main_interface.h"
+#include "df/histfig_entity_link_former_positionst.h"
+#include "df/histfig_entity_link_former_squadst.h"
 #include "df/histfig_entity_link_positionst.h"
 #include "df/histfig_entity_link_squadst.h"
+#include "df/item.h"
 #include "df/item_type.h"
 #include "df/itemdef_ammost.h"
 #include "df/itemdef_armorst.h"
@@ -1677,7 +1684,7 @@ bool do_squad_order_kill(int32_t squad_id, const std::vector<int32_t>& target_un
 }
 
 // Single-target back-compat overload (unchanged call shape for any existing caller).
-bool do_squad_order_kill(int32_t squad_id, int32_t target_unit_id, std::string* err) {
+[[maybe_unused]] bool do_squad_order_kill(int32_t squad_id, int32_t target_unit_id, std::string* err) {
     return do_squad_order_kill(squad_id, std::vector<int32_t>{ target_unit_id }, err);
 }
 
@@ -2305,6 +2312,96 @@ bool do_squad_equipment_change(int32_t squad_id, int32_t pos_idx, const std::str
 // branch), then unlink the id from fort->squads / world->squads.all and free the squad object.
 // ---------------------------------------------------------------------------
 
+// ---- rules-ledger 0008: the four native disband steps do_squad_delete used to skip ------------
+
+// Gap 1/4 (native 0x1410ea8a0): return one piece of squad equipment to the fort's unassigned
+// pool. plotinfo.equipment.items_assigned/items_unassigned are the native item-assignment
+// indexes -- per item type, sorted by item id (df.plotinfo.xml equip_infost, 'binary'). Without
+// this, the assignment index keeps describing equipment for a position that no longer exists.
+void unassign_equipment_item(int32_t item_id) {
+    auto plotinfo = df::global::plotinfo;
+    if (!plotinfo) return;
+    auto item = df::item::find(item_id);
+    if (!item) return;
+    auto type = item->getType();
+    erase_from_vector(plotinfo->equipment.items_assigned[type], item_id);
+    insert_into_vector(plotinfo->equipment.items_unassigned[type], item_id);
+}
+
+// Gap 2 (native 0x1413c2cd0): clear squad membership off an occupant historical figure that has
+// no live unit on the map (died off-screen, left on a mission). Military::removeFromSquad needs a
+// live unit, and DFHack's own link helpers (Military.cpp remove_soldier/officer_entity_link) are
+// file-static, so this mirrors them: the soldier SQUAD link becomes a former-squad link; a
+// leader's POSITION link is dropped, the noble seat's holder fields are vacated, and a
+// former-position link is filed. Deliberately skipped: the cosmetic remove-link history event the
+// officer path also writes (soldier removal writes none either -- Military.cpp:343).
+void release_offmap_occupant(df::historical_figure* hf, df::squad* squad, bool leader) {
+    if (!hf || !squad) return;
+    const int32_t cur_year = df::global::cur_year ? *df::global::cur_year : 0;
+    if (leader) {
+        if (auto asn = squad_leader_assignment(squad)) {
+            if (asn->histfig == hf->id) { asn->histfig = -1; asn->histfig2 = -1; }
+            for (size_t i = 0; i < hf->entity_links.size(); ++i) {
+                auto link = virtual_cast<df::histfig_entity_link_positionst>(hf->entity_links[i]);
+                if (!link || link->entity_id != squad->entity_id || link->assignment_id != asn->id)
+                    continue;
+                const int32_t start_year = link->start_year;
+                delete hf->entity_links[i];
+                hf->entity_links.erase(hf->entity_links.begin() + i);
+                if (auto former = df::allocate<df::histfig_entity_link_former_positionst>()) {
+                    former->assignment_id = asn->id;
+                    former->entity_id = squad->entity_id;
+                    former->start_year = start_year;
+                    former->end_year = cur_year;
+                    former->link_strength = 100;
+                    hf->entity_links.push_back(former);
+                }
+                break;
+            }
+        }
+    }
+    for (size_t i = 0; i < hf->entity_links.size(); ++i) {
+        auto link = virtual_cast<df::histfig_entity_link_squadst>(hf->entity_links[i]);
+        if (!link || link->squad_id != squad->id) continue;
+        const int32_t start_year = link->start_year;
+        delete hf->entity_links[i];
+        hf->entity_links.erase(hf->entity_links.begin() + i);
+        if (auto former = df::allocate<df::histfig_entity_link_former_squadst>()) {
+            former->squad_id = squad->id;
+            former->entity_id = squad->entity_id;
+            former->start_year = start_year;
+            former->end_year = cur_year;
+            former->link_strength = 100;
+            hf->entity_links.push_back(former);
+        }
+        break;
+    }
+}
+
+// Gap 3 (native 0x1400a1b10): destroy the squad's current training activity outright. Native DF
+// removes the activity object itself, not just the membership. activity_event is a virtual class,
+// so `delete` runs the proper generated destructor for each concrete event type. order_load is
+// DF's has-bad-pointers load buffer (df.activity.xml) -- nulled as the same cheap defense-in-depth
+// purge_ui_caches_for_squad applies to world.squads.order_load.
+void remove_squad_activity(df::squad* squad) {
+    if (!squad || squad->activity == -1) return;
+    auto world = df::global::world;
+    if (world) {
+        auto& all = world->activities.all;
+        for (size_t i = 0; i < all.size(); ++i) {
+            if (!all[i] || all[i]->id != squad->activity) continue;
+            auto entry = all[i];
+            all.erase(all.begin() + i);
+            for (auto& slot : world->activities.order_load)
+                if (slot == entry) slot = nullptr;
+            for (auto ev : entry->events) delete ev;
+            delete entry;
+            break;
+        }
+    }
+    squad->activity = -1;
+}
+
 // Null the dying squad out of a single raw-pointer cache slot.
 inline void null_if_squad(df::squad*& slot, const df::squad* dying) {
     if (slot == dying) slot = nullptr;
@@ -2450,15 +2547,22 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
 
-        // Release every occupied position (leader included).
-        for (auto pos : squad->positions) {
+        // Release every occupied position (leader included). A live unit goes through
+        // Military::removeFromSquad (activities, unit->military, entity links); an occupant with
+        // no live unit gets the same membership/entity-link cleanup directly (0008 gap 2) --
+        // the old fallback left the figure claiming a squad that was about to be freed.
+        for (size_t i = 0; i < squad->positions.size(); ++i) {
+            auto pos = squad->positions[i];
             if (!pos || pos->occupant == -1) continue;
             auto hf = df::historical_figure::find(pos->occupant);
+            bool removed_live = false;
             if (hf && hf->unit_id != -1) {
                 if (auto unit = df::unit::find(hf->unit_id))
-                    DFHack::Military::removeFromSquad(unit->id);
+                    removed_live = DFHack::Military::removeFromSquad(unit->id);
             }
-            pos->occupant = -1; // in case removeFromSquad found no live unit to unlink
+            if (hf && !removed_live)
+                release_offmap_occupant(hf, squad, i == 0);
+            pos->occupant = -1;
         }
 
         // Free the position assignment this squad was tied to (mirrors makeSquad's forward
@@ -2468,8 +2572,12 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         }
 
         // Deep-delete per-position state (own order queue + per-category uniform specs).
+        // First unlink the position's assigned equipment from the fort's item-assignment
+        // indexes (0008 gap 1) -- native does this per position before freeing it.
         for (auto pos : squad->positions) {
             if (!pos) continue;
+            for (int32_t item_id : pos->equipment.assigned_items)
+                unassign_equipment_item(item_id);
             for (auto order : pos->orders) delete order;
             for (int cat = 0; cat <= df::enum_traits<df::uniform_category>::last_item_value; ++cat) {
                 for (auto spec : pos->equipment.uniform[cat]) delete spec;
@@ -2498,6 +2606,20 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
             delete routine;
         }
         squad->schedule.routine.clear();
+
+        // Remove the squad's current training activity outright (0008 gap 3).
+        remove_squad_activity(squad);
+
+        // Squad ammunition (0008 gap 4): unlink every spec's assigned item IDs from the fort's
+        // item-assignment indexes, then delete the specs themselves -- the vector destructor
+        // frees only the pointers, so skipping this leaked every spec allocation.
+        for (auto spec : squad->ammo.ammunition) {
+            if (!spec) continue;
+            for (int32_t item_id : spec->assigned)
+                unassign_equipment_item(item_id);
+            delete spec;
+        }
+        squad->ammo.ammunition.clear();
 
         // Barracks rooms: drop this squad's backref from the building side too (mirrors
         // Military::updateRoomAssignments's own removal branch) before deleting our copy.
@@ -2530,6 +2652,8 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         // Still under run_squad_locked's CoreSuspender.
         purge_ui_caches_for_squad(squad);
         delete squad;
+        diagnostics_log("squad-delete-teardown: full 0008 cleanup for squad " +
+                        std::to_string(squad_id));
         return true;
     });
 }

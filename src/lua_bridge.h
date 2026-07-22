@@ -29,6 +29,15 @@
 
 namespace dwf {
 
+struct LuaBridgeHealth {
+    uint64_t calls = 0;
+    uint64_t successes = 0;
+    uint64_t call_failures = 0;
+    uint64_t signature_failures = 0;
+};
+
+LuaBridgeHealth lua_bridge_health_snapshot();
+
 // B228 (missions): run DFHack's OWN scripts/fix/stuck-squad.lua to bring home squads that DF
 // stranded (an army with controller_id != 0 and a null controller pointer -- dwarves that left on
 // a mission and can never return). We do NOT reimplement the repair: this calls the upstream
@@ -74,6 +83,8 @@ bool stockpile_toggle_item_via_lua(int32_t id, const std::string& cat,
 bool stockpile_toggle_all_via_lua(int32_t id, const std::string& cat,
                                   const std::string& group, bool on,
                                   std::string* err = nullptr);
+bool stockpile_set_preset_via_lua(int32_t id, const std::string& preset,
+                                  const std::string& mode, std::string* err = nullptr);
 
 // B231 -- per-stop DESIRED ITEMS. df::hauling_stop.settings is a df::stockpile_settings (the same
 // struct a pile carries), so these are the five calls above pointed at a route stop instead of a
@@ -90,6 +101,15 @@ bool hauling_stop_toggle_all_via_lua(int32_t route_id, int32_t stop_id, const st
                                      const std::string& group, bool on, std::string* err = nullptr);
 bool hauling_stop_set_preset_via_lua(int32_t route_id, int32_t stop_id, const std::string& preset,
                                      const std::string& mode, std::string* err = nullptr);
+
+// One-shot save healing, run from plugin_onstatechange(SC_WORLD_LOADED): dwf.lua's
+// repair_incomplete_stockpile_settings() grows any missing category material lists (as
+// unselected) across all three settings holders -- stockpile buildings, hauling-route stops,
+// and plotinfo.stockpile.custom_settings. Old saves can carry enabled categories with
+// under-sized lists, which DF's item matching dereferences blind. Returns the number of
+// holders and category lists it had to fix.
+bool repair_stockpile_settings_via_lua(int& out_holders, int& out_categories,
+                                       std::string* err = nullptr);
 
 std::string workshop_info_json_via_lua(int32_t id, std::string* err = nullptr);
 bool workshop_add_job_via_lua(int32_t id, const std::string& task, int32_t unit_id = -1,
