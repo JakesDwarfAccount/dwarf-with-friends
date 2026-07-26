@@ -19,7 +19,7 @@
 // dwf-world3d.js -- WT11 (3D world viewer), the VIEW stage. Browser-only: hand-rolled WebGL2
 // (matching dwf-gl.js's idiom -- no three.js, no external deps, CSP/offline-safe), a
 // full-canvas overlay with a DWFUI header, orbit/pan/zoom, an adjustable z-slab, flat shading + one
-// directional light + z-depth fog.
+// directional light (depth fog was tried and then removed -- 07-25 playtest ask).
 //
 // It composes three stages: DFWorld3DModel (PURE camera + slab state machines), DFVoxelizer (cache
 // -> voxel field) and DFVoxelMesh (field -> mesh, chunked over frames so a rebuild never stalls the
@@ -93,6 +93,11 @@
   function mTranslate(x, y, z) {
     return new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
   }
+  // Same as mTranslate, but scales grid space by (sx,sy,sz) before placing it in the world -- used
+  // to exaggerate the z-axis (see Z_SCALE) without touching the pure voxelizer/mesh grid data.
+  function mScaleTranslate(sx, sy, sz, x, y, z) {
+    return new Float32Array([sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0, x, y, z, 1]);
+  }
   function vSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
   function vCross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
   function vNorm(a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
@@ -110,45 +115,41 @@
   }
 
   // ---- shaders (WebGL2 / GLSL ES 3.00, dwf-gl.js idiom) ----------------------------------
-  // u_mvp = proj * view * model, u_mv = view * model. The MODEL matrix translates the voxel grid to
-  // its WORLD origin, so the camera target is a WORLD coordinate: re-voxelizing around a moved
-  // camera (or a resized slab) shifts the grid origin without moving what you are looking at.
+  // u_mvp = proj * view * model. The MODEL matrix translates the voxel grid to its WORLD origin,
+  // so the camera target is a WORLD coordinate: re-voxelizing around a moved camera (or a resized
+  // slab) shifts the grid origin without moving what you are looking at.
+  // Fog was removed (07-25 playtest ask) -- flat shading + one directional light only. No
+  // view-space depth is needed anymore, so there is no u_mv here either (it existed only to feed
+  // the fog distance).
   var VERT_SRC =
     "#version 300 es\n" +
     "layout(location=0) in vec3 a_pos;\n" +
     "layout(location=1) in vec3 a_normal;\n" +
     "layout(location=2) in vec3 a_color;\n" +
     "uniform mat4 u_mvp;\n" +
-    "uniform mat4 u_mv;\n" +
     "flat out vec3 v_normal;\n" +
     "flat out vec3 v_color;\n" +
-    "out float v_dist;\n" +
     "void main(){\n" +
     "  gl_Position = u_mvp * vec4(a_pos, 1.0);\n" +
     "  v_normal = a_normal;\n" +
     "  v_color = a_color;\n" +
-    "  v_dist = -(u_mv * vec4(a_pos, 1.0)).z;\n" + // view-space depth (positive in front)
     "}\n";
   var FRAG_SRC =
     "#version 300 es\n" +
     "precision highp float;\n" +
     "flat in vec3 v_normal;\n" +
     "flat in vec3 v_color;\n" +
-    "in float v_dist;\n" +
     "uniform vec3 u_lightDir;\n" +   // pre-normalized, pointing FROM surface TO light
     "uniform float u_ambient;\n" +
-    "uniform vec3 u_fogColor;\n" +
-    "uniform vec2 u_fog;\n" +        // (near, far)
     "out vec4 o;\n" +
     "void main(){\n" +
     "  float d = max(dot(normalize(v_normal), u_lightDir), 0.0);\n" +
     "  vec3 lit = v_color * (u_ambient + (1.0 - u_ambient) * d);\n" +
-    "  float fog = clamp((v_dist - u_fog.x) / max(u_fog.y - u_fog.x, 0.001), 0.0, 1.0);\n" +
-    "  o = vec4(mix(lit, u_fogColor, fog), 1.0);\n" +
+    "  o = vec4(lit, 1.0);\n" +
     "}\n";
 
   // ---- module state ---------------------------------------------------------------------------
-  var el = null, canvas = null, statusEl = null, hintEl = null, slabEl = null;
+  var el = null, canvas = null, statusEl = null, hintEl = null, slabEl = null, bgEl = null;
   var gl = null, program = null, vao = null, vboPos = null, vboNorm = null, vboColor = null;
   var uni = null;
   var open = false;
@@ -168,10 +169,52 @@
   // Camera: `goal` is what input writes; `cur` is the smoothed camera actually rendered.
   var goal = null, cur = null, slab = null;
 
-  var FOG_COLOR = [0.055, 0.05, 0.04];
+  // Live playtest feedback (07-25): the near-black clear color read as too dark against the taller
+  // (Z_SCALE) walls, and doubling z-thickness made their already-dark fill (tileColor()'s
+  // deliberate HIDDEN_COLOR/darken() path for natural stone -- see dwf-tiles.js's B281 note) read
+  // as thick black bands between floors. Lightened the background and eased the z-stretch back;
+  // wall/floor material colors themselves are untouched (they must stay byte-identical to the 2D
+  // path -- wt11_voxelizer_test.mjs pins that). Depth fog was removed entirely in a later playtest
+  // pass (see FRAG_SRC's banner) -- this is now purely the GL clear color behind the model.
+  //
+  // Background is now a PICKED preference (07-25 follow-up), not a fixed constant: this is a
+  // viewer-only cosmetic choice with no real DF answer (unlike, say, a burrow's color, which is
+  // read out of DF's own live palette) -- so a small curated swatch row is the honest way to make
+  // it a control, rather than the OS color dialog (R7/ui_drift_guard forbids `<input type=color>`
+  // outright: "the OS colour dialog is not DF chrome"). Persisted in localStorage like every other
+  // client-only preference (see dwf-settings.js's lsGet/lsSet convention).
+  var BG_PRESETS = [
+    { id: "onyx", label: "Onyx", rgb: [0.055, 0.05, 0.04] },
+    { id: "warm", label: "Warm gray", rgb: [0.24, 0.22, 0.19] },
+    { id: "slate", label: "Slate", rgb: [0.14, 0.16, 0.19] },
+    { id: "stone", label: "Stone", rgb: [0.32, 0.30, 0.27] },
+    { id: "sky", label: "Sky", rgb: [0.55, 0.63, 0.72] },
+    { id: "white", label: "White", rgb: [0.92, 0.92, 0.90] },
+  ];
+  var BG_DEFAULT_ID = "warm";
+  var BG_STORE_KEY = "dwf.world3d.bgColor";
+  function lsGet(k) { try { return root.localStorage ? root.localStorage.getItem(k) : null; } catch (_) { return null; } }
+  function lsSet(k, v) { try { if (root.localStorage) root.localStorage.setItem(k, v); } catch (_) {} }
+  function bgPreset(id) {
+    for (var i = 0; i < BG_PRESETS.length; i++) if (BG_PRESETS[i].id === id) return BG_PRESETS[i];
+    return null;
+  }
+  var bgSaved = lsGet(BG_STORE_KEY);
+  var bgId = bgPreset(bgSaved) ? bgSaved : BG_DEFAULT_ID;
+  var BG_COLOR = bgPreset(bgId).rgb;
   var LIGHT_DIR = vNorm([0.5, 0.35, 0.8]);
   var BUILD_BUDGET_MS = 6;   // PERF: main-thread ceiling per FRAME for meshing (< half a 60fps frame)
   var AUTO_DEBOUNCE_MS = 400;
+  // A voxel is a unit cube in grid space (dwf-voxel-mesh.js), so at 1:1 an entire DF z-level is as
+  // thin as one x/y tile -- adjacent floors in an orbit view read as a single striped mass. This is
+  // a DISPLAY-ONLY exaggeration of the z axis (not a claim about DF's real per-level height) so
+  // adjacent layers stay visually legible; it lives entirely in the render stage -- the pure
+  // voxelizer/mesh grid data and their fixtures are untouched. Applied to both the mesh's model
+  // matrix and the camera's eye/target (see stretchZ) so the camera keeps looking at the same spot
+  // on the model whether or not this constant ever changes. Live playtest feedback (07-25): 2x
+  // made walls between floors read as thick black bands (their fill is already dark by design --
+  // see the BG_COLOR note above); eased back to keep layers legible without that bulk.
+  var Z_SCALE = 1.5;
 
   function loaded() { return !!(Vox && Mesh && Model); }
   function now() { return (root.performance && root.performance.now) ? root.performance.now() : Date.now(); }
@@ -192,11 +235,8 @@
     gl.deleteShader(vs); gl.deleteShader(fs);
     uni = {
       mvp: gl.getUniformLocation(program, "u_mvp"),
-      mv: gl.getUniformLocation(program, "u_mv"),
       lightDir: gl.getUniformLocation(program, "u_lightDir"),
       ambient: gl.getUniformLocation(program, "u_ambient"),
-      fogColor: gl.getUniformLocation(program, "u_fogColor"),
-      fog: gl.getUniformLocation(program, "u_fog"),
     };
     vao = gl.createVertexArray();
     vboPos = gl.createBuffer(); vboNorm = gl.createBuffer(); vboColor = gl.createBuffer();
@@ -207,7 +247,8 @@
     gl.bindVertexArray(null);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
-    gl.clearColor(FOG_COLOR[0], FOG_COLOR[1], FOG_COLOR[2], 1);
+    // clearColor is (re)applied every frame in draw() -- BG_COLOR can change live from the
+    // background picker, and a GL clear color does not update itself just because the JS array did.
   }
 
   function uploadMesh(mesh) {
@@ -292,7 +333,7 @@
     autoAt = 0;
 
     if (o.frame || !cur) {
-      goal = Model.cam.frame(goal || Model.cam.create(), field);
+      goal = Model.cam.frame(goal || Model.cam.create(), field, Z_SCALE);
       cur = Model.cam.copy(goal);
     }
     // Start the CHUNKED mesh build -- stepped in the RAF loop so no single frame stalls.
@@ -316,24 +357,26 @@
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; needsRender = true; }
   }
 
+  // Stretch a WORLD-space point's z by Z_SCALE, anchored at `oz` (the field's z origin). Matches
+  // how the model matrix below maps grid z into world z (world.z = oz + grid.z*Z_SCALE), so the
+  // camera looks at the same spot on the model that the mesh actually renders at.
+  function stretchZ(p, oz) { return [p[0], p[1], oz + (p[2] - oz) * Z_SCALE]; }
+
   function draw() {
     resize();
     gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     if (!vertCount || !field || !cur) return;
     var aspect = canvas.width / Math.max(1, canvas.height);
     var proj = mPerspective(50 * Math.PI / 180, aspect, 0.5, 6000);
-    var model = mTranslate(field.ox, field.oy, field.oz); // grid space -> world space
-    var view = mLookAt(Model.cam.eye(cur), cur.target, [0, 0, 1]);
+    var model = mScaleTranslate(1, 1, Z_SCALE, field.ox, field.oy, field.oz); // grid space -> world space (z exaggerated for legibility)
+    var view = mLookAt(stretchZ(Model.cam.eye(cur), field.oz), stretchZ(cur.target, field.oz), [0, 0, 1]);
     var mv = mMul(view, model);
     gl.useProgram(program);
     gl.uniformMatrix4fv(uni.mvp, false, mMul(proj, mv));
-    gl.uniformMatrix4fv(uni.mv, false, mv);
     gl.uniform3fv(uni.lightDir, LIGHT_DIR);
     gl.uniform1f(uni.ambient, 0.35);
-    gl.uniform3fv(uni.fogColor, FOG_COLOR);
-    // Fog spans roughly the far half of the framing distance so depth reads without hiding the model.
-    gl.uniform2f(uni.fog, cur.dist * 0.6, cur.dist * 2.4);
     gl.bindVertexArray(vao);
     gl.drawArrays(gl.TRIANGLES, 0, vertCount);
     gl.bindVertexArray(null);
@@ -443,6 +486,29 @@
     rebuild();
   }
 
+  // Mark the current swatch `active` (DWFUI's artBtnHtml already gives an `.active` chip the
+  // brightened-fill + gold-outline treatment for free -- see dwf.css's `.dwfui-art-btn.active`).
+  function renderBgUI() {
+    if (!bgEl) return;
+    var nodes = bgEl.querySelectorAll("[data-world3d-bg-pick]");
+    for (var i = 0; i < nodes.length; i++) {
+      var isActive = nodes[i].getAttribute("data-world3d-bg-pick") === bgId;
+      nodes[i].classList[isActive ? "add" : "remove"]("active");
+      nodes[i].setAttribute("aria-pressed", isActive ? "true" : "false");
+    }
+  }
+
+  // Pick a background preset: no rebuild needed (it never touches world data), just a redraw.
+  function setBg(id) {
+    var preset = bgPreset(id);
+    if (!preset) return;
+    bgId = id;
+    BG_COLOR = preset.rgb;
+    lsSet(BG_STORE_KEY, id);
+    renderBgUI();
+    needsRender = true;
+  }
+
   // ---- input ----------------------------------------------------------------------------------
   // left = orbit, right/Shift = pan, middle/Ctrl = drag-zoom. Wheel = zoom.
   function onPointerDown(e) {
@@ -516,10 +582,27 @@
       "</span>";
   }
 
+  // The background picker: a small row of flat colour chips through DWFUI's `swatch` channel (the
+  // same one DF's own burrow colour picker uses -- see dwf-control-shell.js's B230 note). No OS
+  // colour dialog, no hand-rolled <input> -- R7/ui_drift_guard forbids both once a module has
+  // adopted DWFUI, and rightly so: a native browser widget floating over this chrome would not
+  // look like it belongs to DF at all.
+  function bgToolsHtml(C) {
+    var chips = BG_PRESETS.map(function (p) {
+      var css = "rgb(" + Math.round(p.rgb[0] * 255) + "," + Math.round(p.rgb[1] * 255) + "," + Math.round(p.rgb[2] * 255) + ")";
+      return C.artBtnHtml({
+        cls: "world3d-bg-swatch", dataset: { world3dBgPick: p.id },
+        swatch: css, ariaLabel: p.label, title: p.label,
+      });
+    }).join("");
+    return '<span class="world3d-bg">' +
+      '<span class="world3d-slab-lbl">Background</span>' + chips + "</span>";
+  }
+
   function headHtml() {
     var C = root.DWFUI;
     if (C && C.headerHtml && C.plaqueBtnHtml) {
-      var tools = slabToolsHtml(C) +
+      var tools = slabToolsHtml(C) + bgToolsHtml(C) +
         C.plaqueBtnHtml({
           label: "Fit", cls: "world3d-fit",
           dataset: { world3dFit: "" }, title: "Re-frame the whole slab (F)",
@@ -582,6 +665,7 @@
     statusEl = copyOf(el.querySelector("[data-world3d-status]"));
     hintEl = copyOf(el.querySelector("[data-world3d-hint]"));
     slabEl = el.querySelector(".world3d-slab");
+    bgEl = el.querySelector(".world3d-bg");
     if (hintEl) hintEl.textContent = HINT;
 
     on("[data-world3d-close]", function () { close(); });
@@ -591,6 +675,8 @@
     on("[data-world3d-up-dec]", function () { applySlab(Model.slab.removeAbove); });
     on("[data-world3d-down-inc]", function () { applySlab(Model.slab.addBelow); });
     on("[data-world3d-down-dec]", function () { applySlab(Model.slab.removeBelow); });
+    onAll("[data-world3d-bg-pick]", function (node) { setBg(node.getAttribute("data-world3d-bg-pick")); });
+    renderBgUI();
 
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
@@ -609,6 +695,17 @@
     var node = el.querySelector(sel);
     if (!node) { try { root.console.warn("world3d: control not found: " + sel); } catch (_) {} return; }
     node.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
+  }
+  // Same as on(), but for a REPEATED control (the background swatches: one node per preset,
+  // not one node per selector) -- fn receives the specific node that was clicked.
+  function onAll(sel, fn) {
+    var nodes = el.querySelectorAll(sel);
+    if (!nodes.length) { try { root.console.warn("world3d: control not found: " + sel); } catch (_) {} return; }
+    for (var i = 0; i < nodes.length; i++) {
+      (function (node) {
+        node.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); fn(node); });
+      })(nodes[i]);
+    }
   }
 
   // ---- open / close ---------------------------------------------------------------------------

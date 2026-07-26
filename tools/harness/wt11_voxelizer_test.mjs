@@ -45,6 +45,12 @@ check("unexplored (hidden) wall is omitted", V.isSolidTile(hiddenWall) === false
 check("void tile (tt<0) is empty", V.isSolidTile(voidTile) === false);
 check("null tile is empty", V.isSolidTile(null) === false);
 guard("a NONE-shape tile is not solid", V.isSolidTile({ tt: 1, shape: "NONE", mat: "STONE" }) === false);
+// dwf-cache.js's decodeTile() "see-down" composite: an open-sky tile borrows the shape/mat of the
+// nearest solid tile BELOW it (purely so the flat 2D view has something to paint through the
+// hole) and marks the result with a truthy `depth`. That borrowed shape must NOT read as solid at
+// the sky z it was requested for -- see the above-ground "green blocks" bug this guards.
+const seeDownComposite = { tt: 5, shape: "FLOOR", mat: "GRASS", depth: 3 };
+check("a see-down composited tile (depth>0) is NOT solid at its queried z", V.isSolidTile(seeDownComposite) === false);
 
 // ---- box fit / cap degrade -------------------------------------------------------------------
 const noDeg = V.fitBox(96, 96, 20, 240000);
@@ -55,6 +61,15 @@ check("degraded box stays within the cap", deg.W * deg.H * deg.D <= 240000, `${d
 check("degrade preserves z-depth when it can", deg.D === 20, `D=${deg.D}`);
 guard("degrade shaves z only after the footprint hits the floor",
   (() => { const r = V.fitBox(8, 8, 100000, 240000); return r.W === 8 && r.H === 8 && r.D < 100000 && r.W * r.H * r.D <= 240000; })());
+// The "area shrinks as you add layers" bug: dwf-world3d-model.js's SLAB.maxLayers caps combined
+// up+down at 48, so the DEFAULT cap must cover the full 96x96x48 slab the UI actually allows, or
+// pushing Above/Below toward that ceiling silently shrinks the footprint (fitBox degrades W/H
+// before D). Uses V.DEFAULT_MAX_VOXELS (what the live viewer's rebuild() actually calls with),
+// not an explicit override, so this pins the real default, not just the fitBox math.
+const fullSlab = V.fitBox(96, 96, 48, V.DEFAULT_MAX_VOXELS);
+check("the full 48-layer slab at the default footprint does not degrade",
+  fullSlab.degraded === false && fullSlab.W === 96 && fullSlab.H === 96 && fullSlab.D === 48,
+  `${fullSlab.W}x${fullSlab.H}x${fullSlab.D} degraded=${fullSlab.degraded}`);
 
 // ---- voxelize a tiny hand-built world --------------------------------------------------------
 // A 3x3 column stack: z=cz (top) is all air; z=cz-1 is a floor plate; below that a wall block at
@@ -100,6 +115,32 @@ guard("a WRONG colorFn changes the stored color (the field really stores colorFn
     const bad = V.voxelize({ readTile, colorFn: () => [1, 2, 3], cx: CX, cy: CY, cz: CZ, boxW: 3, boxH: 3, zDown: 3 });
     return eqRgb(voxelRgbAt(bad, 0, 0, 1), [1, 2, 3]) && !eqRgb(voxelRgbAt(bad, 0, 0, 1), floorExpect);
   })());
+
+// ---- above-ground see-down composite, end-to-end (the "green blocks" bug) --------------------
+// Mirrors what dwf-cache.js's decodeTile() actually hands the voxelizer for a fort with camera
+// resting ON the grass surface and the slab's `up` extended into open sky: the real ground tile
+// at GZ is a genuine grass floor; every z above it is real open sky, but readTile for those z's
+// returns the SAME borrowed grass shape/mat (depth = how many z it descended) instead of null,
+// exactly like the live cache's client-side composite.
+const GX = 500, GY = 500, GZ = 30;
+const skyWorld = new Map();
+const skyKey = (x, y, z) => `${x},${y},${z}`;
+for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) skyWorld.set(skyKey(GX + dx, GY + dy, GZ), { tt: 5, shape: "FLOOR", mat: "GRASS" });
+for (let dz = 1; dz <= 5; dz++) {
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+    skyWorld.set(skyKey(GX + dx, GY + dy, GZ + dz), { tt: 5, shape: "FLOOR", mat: "GRASS", depth: dz });
+  }
+}
+const skyReadTile = (x, y, z) => skyWorld.get(skyKey(x, y, z)) || null;
+const skyField = V.voxelize({
+  readTile: skyReadTile, colorFn: (t) => T.tileColor(t, true),
+  cx: GX, cy: GY, cz: GZ, boxW: 3, boxH: 3, zDown: 1, zUp: 5,
+});
+check("the real grass surface is still solid", V.isSolidAt(skyField, 1, 1, 0));
+let skyAboveIsEmpty = true;
+for (let z = 1; z < skyField.dimZ; z++) if (V.isSolidAt(skyField, 1, 1, z)) skyAboveIsEmpty = false;
+check("open sky above the surface has NO solid voxels (not a green wall up to the view limit)", skyAboveIsEmpty);
+check("only the ground plane counted solid (9), the composited sky above did not", skyField.count === 9, `count=${skyField.count}`);
 
 // ---- cap forces a degrade end-to-end ---------------------------------------------------------
 const capped = V.voxelize({ readTile, colorFn: () => [9, 9, 9], cx: CX, cy: CY, cz: CZ, boxW: 400, boxH: 400, zDown: 40, maxVoxels: 50000 });

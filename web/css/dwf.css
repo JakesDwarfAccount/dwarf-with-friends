@@ -5644,7 +5644,13 @@ body {
    (`.world3d-chrome`). Boxes in a column cannot overlap each other however their text wraps, and the
    bottom-left dock -- which belongs to the client's global floaters -- is left empty at every
    viewport size. The container is content-height and `pointer-events:none`, so it is never the
-   full-screen glass pane that RC-1 was. */
+   full-screen glass pane that RC-1 was.
+
+   ONE PANEL (follow-up): the gold frame + background used to live on `.world3d-head` alone, so the
+   controls and the two readouts BELOW them (still true, unrelated bug) read as three stacked boxes
+   instead of one instrument panel. The frame now lives on `.world3d-chrome` itself -- the header row
+   and the readouts are borderless flow children painted inside that ONE frame, split by a single
+   hairline (`.world3d-readouts`'s border-top) instead of each carrying its own border+background. */
 .world3d-chrome {
   position: absolute;
   top: 8px;
@@ -5653,7 +5659,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  border: 2px solid #d89b27;
+  background: rgba(14, 14, 13, 0.92);
   pointer-events: none; /* the canvas keeps every drag that is not on a real control */
 }
 #world3dScreen .world3d-head {
@@ -5664,9 +5671,7 @@ body {
   gap: 8px;
   height: auto;
   padding: 5px 8px;
-  border: 2px solid #d89b27;
-  background: rgba(14, 14, 13, 0.92);
-  pointer-events: auto; /* ...but the header and everything in it IS clickable */
+  pointer-events: auto; /* ...but the header row IS clickable */
 }
 #world3dScreen .world3d-head .dwfui-head-title,
 #world3dScreen .world3d-title {
@@ -5703,23 +5708,49 @@ body {
 }
 .world3d-step { flex: 0 0 auto; min-width: 24px; }
 .world3d-step:disabled { opacity: 0.35; cursor: default; }
+/* Background picker (07-25): same group shape as .world3d-slab (a label + a run of small chips)
+   -- see dwf-world3d.js's bgToolsHtml. The chips are DWFUI artBtnHtml's `swatch` channel, the same
+   one DF's own burrow colour picker uses (dwf-control-shell.js), sized down for a header row
+   instead of a full sub-screen (.dwfui-art-btn's generic default is 40x40, meant for a big grid). */
+.world3d-bg {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-left: 1px solid #6a5a30;
+  border-right: 1px solid #6a5a30;
+}
+.world3d-bg-swatch {
+  min-width: 18px;
+  min-height: 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid #3a3428;
+}
+.world3d-bg-swatch:hover { border-color: #d89b27; }
 /* B237: the readouts are FLOW children of the chrome column now -- no `position`, no `bottom`. Two
    boxes stacked by flex can never collide, whatever their text does. They shrink-wrap (align-items:
-   flex-start) so a short status line does not paint a full-width bar across the view. */
+   flex-start) so the TEXT itself stays left-aligned and only as wide as its own content -- the
+   panel's shared background (below) is what now spans the full width, deliberately: that is the
+   "one coherent box" look, not something shrink-wrap is trying to avoid here.
+   ONE PANEL: this is now the SAME frame as `.world3d-head` (the border+background moved to
+   `.world3d-chrome`) -- the border-top below is the only seam between the controls row and the
+   readouts, replacing what used to be a whole second (and third) bordered box. */
 .world3d-readouts {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
+  padding: 5px 8px 7px;
+  border-top: 1px solid #6a5a30;
 }
 .world3d-status,
 .world3d-hint {
   display: block;
   max-width: 100%;
-  padding: 5px 10px;
-  border: 1px solid #6a5a30;
-  background: rgba(14, 14, 13, 0.88);
   color: #cbb98f;
   font: 12px ui-monospace, Consolas, monospace;
   /* The readouts sit ON TOP of the canvas. Without this they would eat the drags that land on them
