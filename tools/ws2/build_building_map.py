@@ -819,12 +819,12 @@ def build_machines():
 def parse_bridges():
     """BLD_BRIDGE_{WOOD,STONE,METAL,GLASS}_<suffix> -> {material: {suffix:
     cell}}. <suffix> already encodes orientation+raise-state+part (e.g.
-    "1x1_RAISE_E", "NS_CENTER", "RAISE_N_END_W", "RETRACT_NSWE",
+    "1x1_RAISE_E", "NS_CENTER", "RAISE_N_END_W", "RETRACT_NSW",
     "CONSTRUCTION") so WC-8 indexes by material first instead of
     string-matching across the ~300-entry flat token list."""
     path = os.path.join(GDIR, "graphics_buildings.txt")
     pages = load_pages()
-    # The token class MUST admit lowercase: five of the 81 per-material bridge tokens spell a
+    # The token class MUST admit lowercase: five of the 77 per-material bridge tokens spell a
     # footprint size with a lowercase 'x' (`1x1_RAISE_{N,S,E,W}` and `RETRACT_1x1`, verified
     # against vanilla_buildings_graphics/graphics_buildings.txt L62-65/L123). The old
     # `[A-Z0-9_]+` class silently dropped exactly those five per material -- they still reached

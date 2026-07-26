@@ -3310,6 +3310,18 @@
     return type === "Stockpile" || type === "Civzone";
   }
 
+  // canvas2d-only safety net: when a building blits NO cell (sheet still decoding, tainted
+  // canvas) we stroke a BLD_OUTLINE box so the player sees SOMETHING is there. That is a
+  // transient, and GL deliberately has no equivalent -- so the outline must never become a
+  // building's steady state, or the two renderers visibly disagree. An entry that declares
+  // `blank` paints nothing BY DESIGN (a retracted drawbridge is the first such case: DF opens
+  // the hole and you should see the floor below), so it is suppressed. Pure + module-scope so
+  // the rule is testable without a canvas.
+  function shouldOutlineMissingArt(entry, drewBld) {
+    if (drewBld) return false;
+    return !(entry && entry.blank);
+  }
+
   // OVL1 (ex-B57): building art is not commutative because the authored overhang row lands at
   // y1-1. Native DF paints BACK-TO-FRONT: up-screen buildings first (smaller y1, farther), then
   // down-screen buildings LAST (larger y1, nearer), so the nearer building's overhang covers the
@@ -3701,15 +3713,30 @@
   // what makes the three-role decomposition along that axis (anchor row / interior / free-end
   // row) the only reading that consumes each authored cell exactly once and leaves none over.
   //
-  // DIRECTION is df::building_bridgest.direction, whose df-structures original-name is
-  // `anchor`: Retracting=-1, Left=0, Right=1, Up=2, Down=3 (df.building.xml:1177-1183). That
-  // the field names the ANCHOR is the evidence for `RAISE_<D>` being the D-side row and
-  // `RAISE_<D>_END` the opposite one. `bst` bit0 is gate_flags.raised (original-name UP,
-  // df.building.xml:1167); both fields already ride the WC-6 wire (world_stream.cpp's
-  // fill_building_ds Bridge branch), so this is a pure client change.
+  // DIRECTION is df::building_bridgest.direction, Retracting=-1, Left=0, Right=1, Up=2,
+  // Down=3 (df.building.xml:1177-1183); its df-structures original-name is `anchor`. `bst`
+  // bit0 is gate_flags.raised (original-name UP, df.building.xml:1167). Both already ride the
+  // WC-6 wire (world_stream.cpp's fill_building_ds Bridge branch), so this is a pure client
+  // change.
+  //
+  // WHAT IS EVIDENCE AND WHAT IS INFERENCE (rule 1 -- do not let these blur):
+  //  - VERIFIED from the raws: the token list itself, each family's authored <perp> suffix set
+  //    (N/S families carry W/E, W/E families carry N/S), and the RETRACT mask being exhaustive
+  //    over 4 edges with CENTER = no exposed edge and 1x1 = all four.
+  //  - VERIFIED from df-structures: the direction enum values and that bit0 is `raised`.
+  //  - INFERRED, NOT VERIFIED: that `RAISE_<D>` is the D-side (anchored) row and
+  //    `RAISE_<D>_END` the opposite one, and that Left/Right/Up/Down read as W/E/N/S. The
+  //    `anchor` original-name says what `direction` MEANS; it does not prove which ROW the
+  //    sprite lands on -- that reading comes from the `_END` suffix. A closure argument does
+  //    NOT settle either question: every authored cell is consumed exactly once under the
+  //    mirrored readings too, which is why bridge_raise_state_test.mjs asserts closure as a
+  //    completeness check only and says so. Both inferences affect the LOWERED deck's
+  //    orientation, never whether a raised bridge reads as raised. A native capture of one
+  //    lowered raising bridge per direction is what would settle them.
   const BRIDGE_DIR_COMPASS = { 0: "W", 1: "E", 2: "N", 3: "S" };
-  // STONE first so an unclassifiable material keeps the exact cell the flat `Bridge` default
-  // used before this path existed (the generator picks STONE's NS_CENTER for it).
+  // STONE first so an unclassifiable material keeps the same sheet COLUMN the flat `Bridge`
+  // default used before this path existed (the generator picks STONE's NS_CENTER for it). The
+  // per-tile cell within that column still varies -- only the material reads identically.
   const BRIDGE_MAT_PREF = ["STONE", "WOOD", "METAL", "GLASS"];
   function bridgeMaterialKey(fams, b) {
     const family = matFamilyForItem(b);
@@ -3750,13 +3777,14 @@
     if (raised) return "RAISED_" + d + "_" + perp;
     const depth = vertical ? h : w;                        // tiles along the raise axis
     if (depth === 1) {
-      // DOCUMENTED RESIDUAL: DF authors `1x1_RAISE_<D>` with no perpendicular variants, so a
-      // bridge one tile DEEP but several tiles WIDE has no exact lowered art -- the anchor row
-      // and the free-end row are the same row. A true 1x1 takes the authored cell; a wider one
-      // keeps its perpendicular edge art and takes the ANCHOR row, the more salient of the two
-      // roles collapsed onto it. Needs a native capture to settle; it is not a guess about the
-      // raised state, which is exact.
-      return (perp === "1") ? ("1x1_RAISE_" + d) : ("RAISE_" + d + "_" + perp);
+      // FAIL-CLOSED (rule 1): DF authors `1x1_RAISE_<D>` with NO perpendicular variants, so a
+      // bridge one tile DEEP along its raise axis but several tiles WIDE has no authored
+      // lowered art at all -- the anchor row and the free-end row are the same row, and
+      // picking a winner would be an invention. A true 1x1 takes the authored cell; anything
+      // wider returns null, which bridgeEntry turns into a whole-building decline back to the
+      // previous flat lowered stamp. bridgeEntry also screens this case up front so the
+      // decline can't be confused with a retracted deck's authored emptiness.
+      return (perp === "1") ? ("1x1_RAISE_" + d) : null;
     }
     const anchored = (d === "N" && onN) || (d === "S" && onS) ||
                      (d === "W" && onW) || (d === "E" && onE);
@@ -3782,11 +3810,22 @@
     // Fail-closed for an old DLL that ships no WC-6 direction/state: fall through to the flat
     // `Bridge` key (the previous lowered stamp) rather than guessing an orientation.
     if (typeof b.dir !== "number" || typeof b.bst !== "number") return null;
+    const dir = b.dir, raised = (b.bst & 1) === 1;
+    // An anchor value outside the enum (modded//future DLL, or a non-integer) must reach the
+    // flat stamp too. Screening it HERE and not inside the grid loop matters: an unresolved
+    // token there would build an all-null grid, which is the shape reserved for a retracted
+    // deck -- i.e. the bridge would silently vanish instead of degrading.
+    if (dir !== -1 && !BRIDGE_DIR_COMPASS[dir]) return null;
     const fam = map.bridges[bridgeMaterialKey(map.bridges, b)];
     if (!fam) return null;
     const w = Math.max(1, (b.x2 | 0) - (b.x1 | 0) + 1);
     const h = Math.max(1, (b.y2 | 0) - (b.y1 | 0) + 1);
-    const raised = (b.bst & 1) === 1;
+    // Same screen for the one footprint DF authors no lowered art for (see bridgeCellToken):
+    // decline the whole building rather than invent an anchor-vs-free-end winner.
+    if (dir !== -1 && !raised) {
+      const vert = (dir === 2 || dir === 3);
+      if ((vert ? h : w) === 1 && (vert ? w : h) > 1) return null;
+    }
     const cells = [];
     let sheet = null, requested = 0, resolved = 0;
     for (let ry = 0; ry < h; ry++) {
@@ -3807,7 +3846,16 @@
     // to the flat `Bridge` key.
     if (requested !== resolved) return null;
     if (!sheet) sheet = bridgeFamilySheet(fam);           // fully-empty grid (retracted deck)
-    return sheet ? { sheet: sheet, w: w, h: h, cells: cells } : null;
+    if (!sheet) return null;
+    const e = { sheet: sheet, w: w, h: h, cells: cells };
+    // `blank` = "this building is SUPPOSED to paint nothing", which is a different statement
+    // from "nothing painted". canvas2d strokes a BLD_OUTLINE box whenever a building blits no
+    // cell (the sheet-still-decoding safety net); a retracted deck would otherwise sit under a
+    // permanent orange rectangle instead of showing the floor below -- and GL, which has no
+    // such outline, would disagree with it. Same reason the (8) BUILDINGS loop `continue`s on
+    // Stockpile/Civzone: "no fallback outline either".
+    if (requested === 0) e.blank = true;
+    return e;
   }
 
   // B27a: FARM PLOTS. texsweep emitted a null-cell FarmPlot entry (draw nothing over the crop)
@@ -5657,7 +5705,7 @@
             }
           }
         }
-        if (!drewBld) {
+        if (shouldOutlineMissingArt(e, drewBld)) {
           const bx1 = (b.x1 - ox) * cell, by1 = (b.y1 - oy) * cell;
           const bx2 = (b.x2 - ox + 1) * cell, by2 = (b.y2 - oy + 1) * cell;
           ctx.strokeStyle = BLD_OUTLINE;
@@ -6531,6 +6579,8 @@
     // token grammar) by bridge_raise_state_test.mjs.
     _bridgeEntryForTest: bridgeEntry,         // (b, buildingMap) -> synth entry|null
     _bridgeCellTokenForTest: bridgeCellToken, // (dir, raised, w, h, rx, ry) -> suffix|null
+    // canvas2d-only: (entry, drewBld) -> should the BLD_OUTLINE safety box be stroked?
+    _shouldOutlineMissingArtForTest: shouldOutlineMissingArt,
     _machineAnimPhaseForTest: machineAnimPhase,
     _machineCadenceStepForTest: machineCadenceStep,
     _hasDrawableMachineForTest: hasDrawableMachine,

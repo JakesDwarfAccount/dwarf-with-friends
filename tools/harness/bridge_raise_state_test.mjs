@@ -243,6 +243,22 @@ section("lowered 1x1 raising bridge takes the authored `1x1_RAISE_<D>` cell", ()
       [["1x1_RAISE_" + d]], "1x1 lowered, anchored " + d);
   }
 });
+// DF authors `1x1_RAISE_<D>` with no perpendicular variants, so a bridge one tile DEEP along
+// its raise axis but WIDER than one has no authored lowered art at all: the anchor row and the
+// free-end row are the same row. Rule 1 says fail closed rather than pick a winner, so the
+// whole building declines to the previous flat stamp. The RAISED state of the same footprint
+// is fully authored and must still resolve -- that asymmetry is the point.
+section("lowered, 1 deep and wider than 1: declines (no authored art) instead of guessing", () => {
+  for (const [dir, geom] of [
+    [UP_N, { x1: 0, y1: 0, x2: 4, y2: 0 }], [DOWN_S, { x1: 0, y1: 0, x2: 4, y2: 0 }],
+    [LEFT_W, { x1: 0, y1: 0, x2: 0, y2: 4 }], [RIGHT_E, { x1: 0, y1: 0, x2: 0, y2: 4 }],
+  ]) {
+    assert.equal(Tiles._bridgeEntryForTest(bridge({ ...geom, dir, bst: 0 }), realBuildingMap), null,
+      "lowered 1-deep dir " + dir + " must decline to the flat stamp");
+    assert.ok(Tiles._bridgeEntryForTest(bridge({ ...geom, dir, bst: 1 }), realBuildingMap),
+      "the SAME footprint raised is fully authored and must still resolve (dir " + dir + ")");
+  }
+});
 
 // =============================================================================================
 // (4) RETRACTING BRIDGES. Lowered: an exhaustive 4-bit exposed-edge mask in canonical N,S,W,E
@@ -305,6 +321,21 @@ section("old DLL (no dir/bst): bridgeEntry declines, buildingEntry's flat stamp 
   assert.equal(Tiles._bridgeEntryForTest(bridge({ x1: 0, y1: 0, x2: 2, y2: 2, dir: UP_N }), realBuildingMap), null);
   const flat = Tiles._buildingEntryForTest({ type: "Bridge" });
   assert.ok(flat && flat.sheet === "bridges.png", "the flat Bridge key is still the fallback");
+});
+// An anchor value outside the enum must degrade to the flat stamp. The dangerous wrong answer
+// is an all-null grid: that is the shape a RETRACTED deck uses, so the bridge would silently
+// vanish under GL and (before the `blank` fix) sit under a permanent orange box under canvas2d.
+section("out-of-enum dir declines to the flat stamp, never an all-null (vanished) grid", () => {
+  for (const dir of [4, 7, -2, 2.5, NaN, -1.5]) {
+    const b = bridge({ x1: 0, y1: 0, x2: 2, y2: 2, dir, bst: 0 });
+    assert.equal(Tiles._bridgeEntryForTest(b, realBuildingMap), null, "canvas2d declines dir=" + dir);
+    assert.equal(glBuilder._bridgeEntryForTest(b, realBuildingMap), null, "GL declines dir=" + dir);
+  }
+  // the real enum values must of course still resolve
+  for (const dir of [RETRACT, LEFT_W, RIGHT_E, UP_N, DOWN_S]) {
+    assert.ok(Tiles._bridgeEntryForTest(bridge({ x1: 0, y1: 0, x2: 2, y2: 2, dir, bst: 0 }), realBuildingMap),
+      "control: dir=" + dir + " still resolves");
+  }
 });
 section("non-bridge buildings are untouched by this path", () => {
   for (const type of ["Workshop", "TradeDepot", "Bed", "Well", "Stockpile"]) {
@@ -378,9 +409,16 @@ section("PARITY: the pure token functions agree tile-for-tile over an exhaustive
 });
 
 // =============================================================================================
-// (8) CLOSURE: every token the resolver can emit over that sweep must actually exist in the
-// shipped map, for every material. This is the guard that would have caught the dropped
-// lowercase-'x' cells at authoring time instead of at render time.
+// (8) CLOSURE -- A COMPLETENESS CHECK ONLY, NOT A PROOF OF ORIENTATION.
+//
+// Read this before treating the numbers below as grammar evidence: closure is INVARIANT under
+// the orientation errors that matter. Swapping `RAISE_<D>` with `RAISE_<D>_END`, mirroring the
+// compass (N<->S, E<->W), or inverting the retract mask all still consume 76 of 77 cells with
+// CONSTRUCTION as the sole leftover. What this section actually proves is (a) the resolver
+// never asks for a token the shipped map lacks -- the guard that would have caught the dropped
+// lowercase-'x' cells at authoring time -- and (b) no authored cell besides CONSTRUCTION is
+// dead. Which ROW the anchor sprite lands on is an inference from the `_END` suffix and is
+// settled only by a native capture; see bridgeEntry's banner in dwf-tiles.js.
 // =============================================================================================
 section("closure: every token the resolver can emit exists in all four material families", () => {
   const emitted = new Set();
@@ -452,6 +490,33 @@ section("draw path: buildScene emits the RAISED cells for a raised bridge", () =
   // and the lowered deck's own centre cell must be nowhere in the frame
   const lowered = atlas.resolve("bridges.png", fam.NS_CENTER.col, fam.NS_CENTER.row);
   assert.ok(!inst.some((i) => i.cell === lowered), "a raised bridge must emit no lowered-deck cell");
+});
+// CANVAS2D-ONLY, and the reason this section exists: the GL section above cannot see it.
+// canvas2d strokes a BLD_OUTLINE box whenever a building blits no cell (the sheet-decoding
+// safety net); GL has no such fallback. A retracted deck blits nothing BY DESIGN, so without
+// suppression every retracted drawbridge would sit under a permanent orange rectangle in
+// canvas2d and show clean floor in GL -- exactly the renderer divergence AGENTS.md calls a bug.
+section("canvas2d outline: a retracted deck is `blank` and must NOT be outlined", () => {
+  const retracted = Tiles._bridgeEntryForTest(
+    bridge({ x1: 1, y1: 1, x2: 3, y2: 3, dir: RETRACT, bst: 1 }), realBuildingMap);
+  assert.equal(retracted.blank, true, "a retracted deck declares itself intentionally blank");
+  assert.equal(Tiles._shouldOutlineMissingArtForTest(retracted, false), false,
+    "an intentionally-blank building must not get the orange fallback box");
+  // the safety net must survive for its real case: a normal entry that painted nothing
+  const lowered = Tiles._bridgeEntryForTest(
+    bridge({ x1: 1, y1: 1, x2: 3, y2: 3, dir: RETRACT, bst: 0 }), realBuildingMap);
+  assert.notEqual(lowered.blank, true, "a lowered deck is NOT blank -- it has art to paint");
+  assert.equal(Tiles._shouldOutlineMissingArtForTest(lowered, false), true,
+    "a building that SHOULD have painted but didn't still gets the outline (net intact)");
+  assert.equal(Tiles._shouldOutlineMissingArtForTest(lowered, true), false, "painted -> no outline");
+  assert.equal(Tiles._shouldOutlineMissingArtForTest(retracted, true), false);
+  // and no non-retracted bridge ever claims blankness
+  for (const dir of [LEFT_W, RIGHT_E, UP_N, DOWN_S]) {
+    for (const bst of [0, 1]) {
+      const e = Tiles._bridgeEntryForTest(bridge({ x1: 1, y1: 1, x2: 3, y2: 3, dir, bst }), realBuildingMap);
+      assert.notEqual(e.blank, true, `dir ${dir} bst ${bst} must have art, not blankness`);
+    }
+  }
 });
 section("draw path: a retracted (raised) retracting bridge emits NO building cells at all", () => {
   const geom = { type: "Bridge", z: 100, mat_type: 0, mat_index: -1, x1: 1, y1: 1, x2: 3, y2: 3 };

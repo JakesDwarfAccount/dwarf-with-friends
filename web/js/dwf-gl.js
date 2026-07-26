@@ -2957,7 +2957,9 @@
         : (h === 1 ? "1" : (onN ? "N" : (onS ? "S" : "CENTER")));
       if (raised) return "RAISED_" + d + "_" + perp;
       var depth = vertical ? h : w;
-      if (depth === 1) return (perp === "1") ? ("1x1_RAISE_" + d) : ("RAISE_" + d + "_" + perp);
+      // FAIL-CLOSED: a bridge 1 tile deep along its raise axis but wider than 1 has NO authored
+      // lowered art (`1x1_RAISE_<D>` carries no perpendicular variants). See canvas2d banner.
+      if (depth === 1) return (perp === "1") ? ("1x1_RAISE_" + d) : null;
       var anchored = (d === "N" && onN) || (d === "S" && onS) ||
                      (d === "W" && onW) || (d === "E" && onE);
       if (anchored) return "RAISE_" + d + "_" + perp;
@@ -2977,16 +2979,23 @@
     function bridgeEntryGL(b, map) {
       if (!b || b.type !== "Bridge" || !map || !map.bridges) return null;
       if (typeof b.dir !== "number" || typeof b.bst !== "number") return null;
+      var dir = b.dir, raised = (b.bst & 1) === 1;
+      // An anchor outside the enum must reach the flat stamp, not an all-null grid (which is
+      // the shape reserved for a retracted deck -- the bridge would vanish). See canvas2d.
+      if (dir !== -1 && !BRIDGE_DIR_COMPASS_GL[dir]) return null;
       var fam = map.bridges[bridgeMaterialKeyGL(map.bridges, b)];
       if (!fam) return null;
       var w = Math.max(1, (b.x2 | 0) - (b.x1 | 0) + 1);
       var h = Math.max(1, (b.y2 | 0) - (b.y1 | 0) + 1);
-      var raised = (b.bst & 1) === 1;
+      if (dir !== -1 && !raised) {
+        var vert = (dir === 2 || dir === 3);
+        if ((vert ? h : w) === 1 && (vert ? w : h) > 1) return null;   // no authored lowered art
+      }
       var cells = [], sheet = null, requested = 0, resolved = 0;
       for (var ry = 0; ry < h; ry++) {
         var row = [];
         for (var rx = 0; rx < w; rx++) {
-          var tok = bridgeCellTokenGL(b.dir, raised, w, h, rx, ry);
+          var tok = bridgeCellTokenGL(dir, raised, w, h, rx, ry);
           if (tok === null) { row.push(null); continue; }
           requested++;
           var c = fam[tok];
@@ -2997,7 +3006,13 @@
       }
       if (requested !== resolved) return null;   // all-or-nothing; see the canvas2d banner
       if (!sheet) sheet = bridgeFamilySheetGL(fam);
-      return sheet ? { sheet: sheet, w: w, h: h, cells: cells } : null;
+      if (!sheet) return null;
+      var e = { sheet: sheet, w: w, h: h, cells: cells };
+      // GL paints no BLD_OUTLINE fallback, so `blank` changes nothing here -- it is set purely
+      // to keep the two entries byte-identical for the parity sweep, and because canvas2d's
+      // outline suppression reads it. See the canvas2d banner.
+      if (requested === 0) e.blank = true;
+      return e;
     }
     function farmCropPlansGL(view) {
       var policy = (typeof DwfFarmCrops !== "undefined") ? DwfFarmCrops : null;
