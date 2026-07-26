@@ -30,6 +30,8 @@
 #include "unit_sprites.h"   // WE-3: appearance-hash + span/anchor snapshot
 #include "unit_status.h"    // B222: shared overhead-status st bits (kUStat*/unit_status_bits)
 
+#include "block_sig_hash.h"  // PERF: block_signature() fold primitive (sig_buf/sig_mix)
+
 #include "Core.h"
 #include "DataDefs.h"
 #include "TileTypes.h"
@@ -297,11 +299,17 @@ inline uint32_t sig_scan_bucket(uint64_t key) {
 }
 
 // ---- block signature (§WA-9.1): single-block hash_block, no column fold ------------
+// fnv1a stays the fold primitive for s3_fold/s4/s5 (unit, building, djob, env) -- those
+// folds are unchanged. block_signature() alone moved to sig_buf (below).
 inline uint64_t fnv1a(uint64_t h, const void* data, size_t n) {
     const uint8_t* p = static_cast<const uint8_t*>(data);
     for (size_t i = 0; i < n; ++i) { h ^= p[i]; h *= 1099511628211ull; }
     return h;
 }
+// sig_buf/sig_mix (the block_signature fold primitive) live in block_sig_hash.h so a
+// standalone harness can reach them without DFHack -- see tools/harness/block_sig_hash_test.cpp.
+// That header carries the full rationale for why the hash function is a free choice here.
+// Both resolve as plain dwf::sig_buf from inside this anonymous namespace.
 // WC-17/WC-18: `world`+`bx,by,bz` are needed on top of the block pointer -- grass is
 // still a per-block block_events fold (same as spatter/item_spatter below), but
 // engravings are a world-vector with no per-block storage of their own, so this
@@ -310,9 +318,9 @@ inline uint64_t fnv1a(uint64_t h, const void* data, size_t n) {
 // circuits to 0 (unrevealed/off-map), same as before.
 uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int bz) {
     if (!b) return 0;
-    uint64_t h = 1469598103934665603ull;
-    h = fnv1a(h, &b->tiletype[0][0],    sizeof(b->tiletype));
-    h = fnv1a(h, &b->designation[0][0], sizeof(b->designation));
+    uint64_t h = kBlockSigSeed;
+    h = sig_buf(h, &b->tiletype[0][0],    sizeof(b->tiletype));
+    h = sig_buf(h, &b->designation[0][0], sizeof(b->designation));
     // build-place self-invalidation fix: the block wire (wire_v1.cpp emit) reads ONLY two
     // things out of tile occupancy -- the `dig_marked` (marker-mode), `dig_auto`, and four
     // carve_track_* bits. Folding the WHOLE 32-bit occupancy grid re-signed a block on every
@@ -333,13 +341,23 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
             (uint32_t)df::tile_occupancy::mask_carve_track_south |
             (uint32_t)df::tile_occupancy::mask_carve_track_east |
             (uint32_t)df::tile_occupancy::mask_carve_track_west;
+        // PERF: this was 256 separate 4-byte hash calls. Mask into a stack buffer and fold it
+        // in one pass -- same bytes, same order, same masking semantics, one call.
+        uint32_t masked[16 * 16];
         for (int ox = 0; ox < 16; ++ox)
-            for (int oy = 0; oy < 16; ++oy) {
-                uint32_t masked = b->occupancy[ox][oy].whole & kOccWireMask;
-                h = fnv1a(h, &masked, sizeof(masked));
-            }
+            for (int oy = 0; oy < 16; ++oy)
+                masked[ox * 16 + oy] = b->occupancy[ox][oy].whole & kOccWireMask;
+        h = sig_buf(h, masked, sizeof(masked));
     }
-    size_t ni = b->items.size(); h = fnv1a(h, &ni, sizeof(ni));
+    size_t ni = b->items.size(); h = sig_buf(h, &ni, sizeof(ni));
+    // PERF: hoisted out of the per-item loop below. This was a fresh std::vector constructed
+    // and destroyed for EVERY barrel/bin, in every scanned block, on every push tick -- i.e. a
+    // heap allocation per container per tick with DF parked under CoreSuspender. Point a camera
+    // at a food stockpile and that is hundreds of malloc/free pairs inside the hold. Reused and
+    // explicitly cleared per container instead; capacity survives across calls, so after the
+    // first few blocks the allocation count is zero. Declared here (not at function scope) to
+    // keep it next to its only use.
+    std::vector<df::item*> contained;
     // WC-1: items.size() alone misses flag-only churn (forbid/dump/melt/on_fire toggle
     // without an item count change) -- fold each ground item's (id, flag mask) too, the
     // same fields the ITEM tail now carries (§1.5 "Hash addition").
@@ -354,8 +372,8 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
         if (it->flags.bits.melt)       mv |= 0x08;
         if (it->flags.bits.on_fire)    mv |= 0x10;
         if (it->flags.bits.hidden)     mv |= 0x20;
-        h = fnv1a(h, &iid, sizeof(iid));
-        h = fnv1a(h, &mv, sizeof(mv));
+        h = sig_buf(h, &iid, sizeof(iid));
+        h = sig_buf(h, &mv, sizeof(mv));
         // TX1 CONTAINER_PEEK: storing/removing an item INSIDE a barrel/bin never touches
         // block->items (stored items leave the ground vector), so the (id, flags) fold above
         // cannot see a contents change -- the peek tail would serve stale forever (the same
@@ -364,34 +382,34 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
         // CONTAINER_PEEK tail is derived from (wire_v1.cpp's representative-first pick).
         df::item_type ity = it->getType();
         if (ity == df::item_type::BARREL || ity == df::item_type::BIN) {
-            std::vector<df::item*> contained;
+            contained.clear();   // explicit: do not depend on the callee clearing it
             Items::getContainedItems(it, &contained);
             uint32_t cn = (uint32_t)contained.size();
             int32_t cid = -1;
             for (size_t ci = 0; ci < contained.size(); ++ci)
                 if (contained[ci]) { cid = contained[ci]->id; break; }
-            h = fnv1a(h, &cn, sizeof(cn));
-            h = fnv1a(h, &cid, sizeof(cid));
+            h = sig_buf(h, &cn, sizeof(cn));
+            h = sig_buf(h, &cid, sizeof(cid));
         }
     }
     for (size_t ei = 0; ei < b->block_events.size(); ++ei) {
         STRICT_VIRTUAL_CAST_VAR(sp, df::block_square_event_material_spatterst, b->block_events[ei]);
         if (sp) {
-            h = fnv1a(h, &sp->amount[0][0], sizeof(sp->amount));
+            h = sig_buf(h, &sp->amount[0][0], sizeof(sp->amount));
             // WC-11: amount-grid churn alone misses a same-amount mat/state swap (e.g. a
             // fresh spatter event replacing an old one at the same tile) -- fold the
             // event's (mat_type, mat_index, mat_state) header too (§1.5 "Hash addition").
             int16_t mt = sp->mat_type; int32_t mi = sp->mat_index;
             int16_t st = (int16_t)sp->mat_state;
-            h = fnv1a(h, &mt, sizeof(mt)); h = fnv1a(h, &mi, sizeof(mi)); h = fnv1a(h, &st, sizeof(st));
+            h = sig_buf(h, &mt, sizeof(mt)); h = sig_buf(h, &mi, sizeof(mi)); h = sig_buf(h, &st, sizeof(st));
             continue;
         }
         STRICT_VIRTUAL_CAST_VAR(isp, df::block_square_event_item_spatterst, b->block_events[ei]);
         if (isp) {
             // WC-11: item-spatter (fallen leaves/fruit litter) amount grid + header.
-            h = fnv1a(h, &isp->amount[0][0], sizeof(isp->amount));
+            h = sig_buf(h, &isp->amount[0][0], sizeof(isp->amount));
             int16_t it = (int16_t)isp->item_type; int16_t ist = isp->item_subtype;
-            h = fnv1a(h, &it, sizeof(it)); h = fnv1a(h, &ist, sizeof(ist));
+            h = sig_buf(h, &it, sizeof(it)); h = sig_buf(h, &ist, sizeof(ist));
             continue;
         }
         // WC-17: grass coverage churns as dwarves trample/regrow it -- fold the amount
@@ -399,9 +417,9 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
         // rule WC-11 set above; §1.5 "Hash addition").
         STRICT_VIRTUAL_CAST_VAR(gr, df::block_square_event_grassst, b->block_events[ei]);
         if (gr) {
-            h = fnv1a(h, &gr->amount[0][0], sizeof(gr->amount));
+            h = sig_buf(h, &gr->amount[0][0], sizeof(gr->amount));
             int32_t pid = gr->plant_index;
-            h = fnv1a(h, &pid, sizeof(pid));
+            h = sig_buf(h, &pid, sizeof(pid));
             continue;
         }
         // WC-19: designation priority can change without any other block state changing
@@ -410,7 +428,7 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
         // tiletype/designation grids already folded above).
         STRICT_VIRTUAL_CAST_VAR(dp, df::block_square_event_designation_priorityst, b->block_events[ei]);
         if (dp) {
-            h = fnv1a(h, &dp->priority[0][0], sizeof(dp->priority));
+            h = sig_buf(h, &dp->priority[0][0], sizeof(dp->priority));
         }
     }
     // WC-15: block->flows are volatile (mist/smoke/miasma drift every tick) -- fold count
@@ -426,7 +444,7 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
     // client-visible opacity step re-signs while in-bucket flutter still doesn't.
     {
         size_t nf = b->flows.size();
-        h = fnv1a(h, &nf, sizeof(nf));
+        h = sig_buf(h, &nf, sizeof(nf));
         for (size_t fi = 0; fi < nf; ++fi) {
             df::flow_info* fl = b->flows[fi];
             if (!fl) continue;
@@ -434,10 +452,10 @@ uint64_t block_signature(df::world* world, df::map_block* b, int bx, int by, int
             uint8_t alive = (!fl->flags.bits.DEAD && fl->density > 0) ? 1 : 0;
             uint8_t dq = alive ? (uint8_t)((fl->density > 255 ? 255 : fl->density) >> 3)
                                : (uint8_t)0;
-            h = fnv1a(h, &ft, sizeof(ft));
-            h = fnv1a(h, &alive, sizeof(alive));
-            h = fnv1a(h, &dq, sizeof(dq));
-            h = fnv1a(h, &fl->pos, sizeof(fl->pos));
+            h = sig_buf(h, &ft, sizeof(ft));
+            h = sig_buf(h, &alive, sizeof(alive));
+            h = sig_buf(h, &dq, sizeof(dq));
+            h = sig_buf(h, &fl->pos, sizeof(fl->pos));
         }
     }
     // WC-18: engravings are a world-vector, not part of `b` -- fold via the shared

@@ -121,6 +121,7 @@ dfhack_plugin(dfcapture_public
 target_include_directories(dfcapture_public PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cpp-httplib"
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/xxhash"
     ${SDL2_INCLUDE_DIRS})
 
 target_compile_definitions(dfcapture_public PRIVATE
