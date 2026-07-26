@@ -42,12 +42,16 @@
   var DEFAULT_BOX_H = 96;
   var DEFAULT_Z_DOWN = 20;
   // Perf guardrail (PERF section of the WT11 report): a hard cap on grid CELLS iterated/allocated.
-  // 96*96*20 = 184,320 < this, so the honest default box never degrades; a caller asking for a
-  // bigger box (or a future live-resize) degrades toward this ceiling. Chosen so the dense
-  // Uint8Array allocations (solid: N bytes, color: 3N bytes) and the O(N) scan stay well under a
-  // frame budget even in the synchronous voxelize pass -- the EXPENSIVE stage is meshing, which is
-  // chunked separately (dwf-voxel-mesh.js).
-  var DEFAULT_MAX_VOXELS = 240000;
+  // Must cover the FULL range the slab UI actually offers: dwf-world3d-model.js's SLAB.maxLayers
+  // caps combined up+down at 48, so 96*96*48 = 442,368 has to fit under this cap, or the "Above"/
+  // "Below" buttons silently shrink the footprint out from under the user as they add layers --
+  // the box-fit degrade only shaves z-depth once the horizontal footprint is already at MIN_BOX, so
+  // a too-small cap shrinks the AREA first, not the height, which reads as "the view got smaller"
+  // rather than "you're seeing more layers." Chosen so the dense Uint8Array allocations (solid: N
+  // bytes, color: 3N bytes) and the O(N) scan stay well under a frame budget even in the
+  // synchronous voxelize pass -- the EXPENSIVE stage is meshing, which is chunked separately
+  // (dwf-voxel-mesh.js) and pays per-z-slab regardless of the field's total height.
+  var DEFAULT_MAX_VOXELS = 460000;
   var MIN_BOX = 8;
 
   var FALLBACK_RGB = [110, 110, 116]; // only if colorFn returns null for a solid tile (shouldn't)
@@ -60,13 +64,20 @@
 
   // Solidity decision for ONE tile. Returns false for: void/unloaded (null or tt<0), unexplored
   // (hidden -> "unexplored omitted" per the WT11 brief), open air (EMPTY/NONE/RAMP_TOP or AIR
-  // material). Everything else discovered -- walls, fortifications, floors, ramps, stairs,
-  // boulders, pebbles, tree trunks -- is a solid voxel. Liquids are NOT voxelized in this slice
-  // (a flooded OPEN tile stays empty; a floor UNDER liquid is solid via its own shape). Pure.
+  // material), and a SEE-DOWN COMPOSITE (dwf-cache.js's decodeTile(): a truthy `depth` means the
+  // queried z is actually open sky and this shape/mat was borrowed from the nearest solid tile
+  // BELOW it, purely so the flat 2D view has something to paint through the hole -- see
+  // dwf-cache.js's WA-7 item 2 banner). Voxelizing that borrowed data at the sky z would stack a
+  // solid (grass-colored) layer over every bit of open air above the real ground; the real ground
+  // tile is voxelized correctly anyway once this same readTile is called at its own (lower) z.
+  // Everything else discovered -- walls, fortifications, floors, ramps, stairs, boulders, pebbles,
+  // tree trunks -- is a solid voxel. Liquids are NOT voxelized in this slice (a flooded OPEN tile
+  // stays empty; a floor UNDER liquid is solid via its own shape). Pure.
   function isSolidTile(t) {
     if (!t) return false;
     if (typeof t.tt === "number" && t.tt < 0) return false;
     if (t.hidden) return false;
+    if (t.depth) return false;
     var shape = t.shape || "NONE";
     if (OPEN_SHAPES[shape]) return false;
     if ((t.mat || "") === "AIR") return false;

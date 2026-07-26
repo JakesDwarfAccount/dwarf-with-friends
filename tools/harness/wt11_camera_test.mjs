@@ -162,6 +162,22 @@ console.log("# camera: framing a field centers it in WORLD space");
   check(c.dist > 96, "dist backs off far enough to see the whole footprint");
   check(c.dist <= cam.LIMITS.distMax, "framing respects distMax");
   rejects(near(c.target[0], 48), "framing must not center on the GRID origin (that was the old bug)");
+
+  // Omitting zScale (or passing a bogus one) must behave EXACTLY as before -- every existing
+  // caller/fixture that has never heard of dwf-world3d.js's Z_SCALE keeps today's framing.
+  const cNoScale = cam.frame(cam.create(), field);
+  const cBogus = cam.frame(cam.create(), field, -3);
+  check(near(c.dist, cNoScale.dist) && near(c.dist, cBogus.dist), "no zScale arg == zScale 1 == a bogus zScale (backward compatible)");
+
+  // A field whose UNSCALED height is shorter than its footprint, but whose STRETCHED height (at a
+  // large Z_SCALE) exceeds it -- "Fit" must back off for the stretched height, not the raw one, or
+  // a many-layer slab would clip at the top/bottom of the frustum once the renderer stretches it.
+  const tall = { ox: 0, oy: 0, oz: 0, dimX: 20, dimY: 20, dimZ: 10 };
+  const cFlat = cam.frame(cam.create(), tall, 1);
+  const cStretched = cam.frame(cam.create(), tall, 3);
+  check(near(cFlat.dist, 20 * 1.4), "at zScale 1 (10 unscaled) framing uses the wider footprint, not the height");
+  check(near(cStretched.dist, 10 * 3 * 1.4), "at zScale 3 (height now 30 > footprint) framing backs off for THAT instead");
+  check(cStretched.dist > cFlat.dist, "a bigger zScale never frames CLOSER than an unscaled fit would");
 }
 
 // =================================================================================================

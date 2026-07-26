@@ -256,7 +256,7 @@ function parseHTML(html) {
 }
 
 // ---- stub WebGL2 -------------------------------------------------------------------------------
-const gpu = { mvp: null, mv: null, draws: 0, verts: 0 };
+const gpu = { mvp: null, mv: null, draws: 0, verts: 0, clearColor: null };
 const GL = new Proxy({
   VERTEX_SHADER: 1, FRAGMENT_SHADER: 2, COMPILE_STATUS: 3, LINK_STATUS: 4,
   ARRAY_BUFFER: 5, FLOAT: 6, UNSIGNED_BYTE: 7, STATIC_DRAW: 8, DEPTH_TEST: 9,
@@ -268,7 +268,8 @@ const GL = new Proxy({
   getUniformLocation: (_p, name) => name,
   createVertexArray: () => ({}), createBuffer: () => ({}),
   bindVertexArray() {}, bindBuffer() {}, enableVertexAttribArray() {}, vertexAttribPointer() {},
-  enable() {}, cullFace() {}, frontFace() {}, clearColor() {}, bufferData() {},
+  enable() {}, cullFace() {}, frontFace() {}, bufferData() {},
+  clearColor: (r, g, b, a) => { gpu.clearColor = [r, g, b, a]; },
   viewport() {}, clear() {}, useProgram() {},
   uniformMatrix4fv: (loc, _t, v) => { gpu[loc === "u_mvp" ? "mvp" : "mv"] = Array.from(v); },
   uniform3fv() {}, uniform1f() {}, uniform2f() {},
@@ -308,12 +309,22 @@ const doc = {
 // pumped frame advances the clock by one 60fps tick, so the viewer behaves exactly as it would live.
 let fakeNow = 1000;
 let rafQueue = [];
+// Minimal in-memory localStorage -- just enough for the background-picker persistence test
+// (dwf-world3d.js's lsGet/lsSet wrap every access in try/catch, so even a MISSING localStorage
+// would not crash the module; this lets the test also assert what gets WRITTEN).
+const fakeLocalStorage = {
+  _store: Object.create(null),
+  getItem(k) { return k in this._store ? this._store[k] : null; },
+  setItem(k, v) { this._store[k] = String(v); },
+  removeItem(k) { delete this._store[k]; },
+};
 const win = {
   document: doc, devicePixelRatio: 1, console,
   requestAnimationFrame: fn => { rafQueue.push(fn); return rafQueue.length; },
   cancelAnimationFrame: () => {},
   addEventListener() {},
   performance: { now: () => fakeNow },
+  localStorage: fakeLocalStorage,
 };
 win.window = win;
 const ctx = vm.createContext(win);
@@ -484,6 +495,37 @@ console.log("\n# REFRESH: rebuilds from CURRENT world state, and does not yank t
 }
 
 // =================================================================================================
+console.log("\n# BACKGROUND PICKER: a small swatch row, no OS colour dialog (07-25)");
+// =================================================================================================
+{
+  const bgNodes = $(".world3d-bg").querySelectorAll("[data-world3d-bg-pick]");
+  check(bgNodes.length === 6, `the background picker has one chip per preset (${bgNodes.length})`);
+
+  const isOn = id => bgNodes.find(n => n.attrs["data-world3d-bg-pick"] === id).classList.contains("active");
+  const pressed = id => bgNodes.find(n => n.attrs["data-world3d-bg-pick"] === id).getAttribute("aria-pressed");
+  check(isOn("warm") && pressed("warm") === "true", "the default preset (warm) starts active");
+  check(!isOn("sky") && pressed("sky") === "false", "a non-default preset starts inactive");
+
+  bgNodes.find(n => n.attrs["data-world3d-bg-pick"] === "sky").fire("click");
+  pump(1);
+  check(isOn("sky") && pressed("sky") === "true", "clicking a swatch marks IT active");
+  check(!isOn("warm") && pressed("warm") === "false", "...and the PREVIOUS one is no longer active");
+  check(gpu.clearColor && near1(gpu.clearColor[0], 0.55) && near1(gpu.clearColor[1], 0.63) && near1(gpu.clearColor[2], 0.72),
+    `the GL clear color actually changed to the picked preset's RGB (${gpu.clearColor})`);
+  check(win.localStorage.getItem("dwf.world3d.bgColor") === "sky", "the pick is persisted to localStorage");
+
+  bgNodes.find(n => n.attrs["data-world3d-bg-pick"] === "onyx").fire("click");
+  pump(1);
+  check(gpu.clearColor && near1(gpu.clearColor[0], 0.055), "picking a second preset updates the clear color again");
+  check(win.localStorage.getItem("dwf.world3d.bgColor") === "onyx", "...and overwrites the earlier persisted pick");
+
+  // Restore the default so later sections (which don't care about background) see familiar state.
+  bgNodes.find(n => n.attrs["data-world3d-bg-pick"] === "warm").fire("click");
+  pump(1);
+}
+function near1(a, b) { return Math.abs(a - b) < 1e-3; }
+
+// =================================================================================================
 console.log("\n# WORLD-SPACE CAMERA: the live 2D camera moving must not drag the 3D view with it");
 // =================================================================================================
 {
@@ -594,21 +636,35 @@ console.log("\n# B237: the 3D chrome and the client's chrome must not overlap (r
     const chromeW = W - chromeLeft - (px(chrome.right) ?? 8);
     const gap = px(chrome.gap) ?? 0, rgap = px(readouts.gap) ?? 0;
 
+    // ONE PANEL: the border+padding that used to sit on EACH readout box now sits once on their
+    // shared parent (`.world3d-readouts`) instead -- a shorthand `padding` (1-4 values) plus an
+    // optional `border-top` divider between the controls row and the readouts. Parsed the same
+    // permissive way box() parses padding, so a real geometry change here is still caught.
+    const rPad = (readouts.padding || "0").trim().split(/\s+/).map(px);
+    const rPadTop = rPad[0] || 0;
+    const rPadRight = rPad.length > 1 ? rPad[1] : rPadTop;
+    const rPadLeft = rPad.length > 3 ? rPad[3] : rPadRight;
+    const rBorderTop = px(readouts["border-top"]) || px(readouts.border) || 0;
+
     // A viewer whose chrome is NOT one flow column is laid out from its own absolute offsets --
     // which is exactly the shipped bug, and exactly what this oracle has to be able to express.
     const flow = (chrome.display || "").includes("flex");
     const stDecl = Object.assign({}, st, declsOf(css, ".world3d-status"));
     const hintDecl = Object.assign({}, st, declsOf(css, ".world3d-hint"));
-    const stBox = box(stDecl, STATUS_TEXT, Math.min(chromeW, 860));
-    const hintBox = box(hintDecl, HINT_TEXT, Math.min(chromeW, 860));
-    const headH = (px(head.padding) || 5) * 2 + (px(head.border) || 2) * 2 + 26; // 26px plaque row
+    const readoutsW = Math.max(40, chromeW - rPadLeft - rPadRight);
+    const stBox = box(stDecl, STATUS_TEXT, Math.min(readoutsW, 860));
+    const hintBox = box(hintDecl, HINT_TEXT, Math.min(readoutsW, 860));
+    // ONE PANEL: the frame border lives on `.world3d-chrome` now (not `.world3d-head` -- that rule
+    // has no `border` of its own anymore), so the border term must read the REAL source, not a
+    // `|| 2` fallback that would silently stop tracking a real change to the chrome's border width.
+    const headH = (px(head.padding) || 5) * 2 + (px(chrome.border) || 0) * 2 + 26; // 26px plaque row
 
     out.viewer.head = rect(chromeLeft, chromeTop, chromeW, headH);
     if (flow && !stDecl.bottom && !hintDecl.bottom) {
-      let y = chromeTop + headH + gap;
-      out.viewer.status = rect(chromeLeft, y, stBox.w, stBox.h);
+      let y = chromeTop + headH + gap + rBorderTop + rPadTop;
+      out.viewer.status = rect(chromeLeft + rPadLeft, y, stBox.w, stBox.h);
       y += stBox.h + rgap;
-      out.viewer.hint = rect(chromeLeft, y, hintBox.w, hintBox.h);
+      out.viewer.hint = rect(chromeLeft + rPadLeft, y, hintBox.w, hintBox.h);
     } else { // absolutely docked to the BOTTOM, each with a hardcoded offset (the shipped layout)
       const sB = px(stDecl.bottom) || 0, hB = px(hintDecl.bottom) || 0;
       out.viewer.status = rect(px(stDecl.left) || 8, H - sB - stBox.h, stBox.w, stBox.h);
@@ -686,8 +742,11 @@ console.log("\n# B237: the 3D chrome and the client's chrome must not overlap (r
     "...and it is shown again the moment the mode class comes off");
 
   // ---- test-the-test: seed the SHIPPED geometry back in; the oracle must SEE both collisions -----
+  // The historical shipped rule (pre-B237, and pre-"one panel") carried its OWN padding+border per
+  // readout box (each was independently framed) as well as the absolute/bottom positioning -- both
+  // parts of the regression this guards against, so both are reseeded here.
   const SHIPPED = CSS +
-    "\n.world3d-status,\n.world3d-hint { position: absolute; left: 8px; }" +
+    "\n.world3d-status,\n.world3d-hint { position: absolute; left: 8px; padding: 5px 10px; border: 1px solid #6a5a30; }" +
     "\n.world3d-status { bottom: 34px; }\n.world3d-hint { bottom: 8px; }";
   const shippedHits = collisions(layout(SHIPPED, 1920, 1080, {}));
   rejects(shippedHits.length === 0,

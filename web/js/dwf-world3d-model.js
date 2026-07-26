@@ -116,6 +116,12 @@
 
   // Pan the target across the screen plane; scaled by dist so the world tracks the cursor at any
   // zoom. Dragging right moves the world right (the target moves LEFT), i.e. grab-and-drag.
+  // KNOWN LIMITATION: this moves the target in UNSTRETCHED world space, same as the rest of this
+  // pure module -- it does not know about dwf-world3d.js's Z_SCALE render-only z exaggeration. A
+  // pan with a vertical (z) component therefore renders as slightly FASTER than an equal-sized
+  // horizontal pan (by the Z_SCALE factor), since the renderer stretches only the z axis after the
+  // fact. Low-severity (Z_SCALE is a modest 1.5x) and left alone rather than teaching this pure
+  // camera module a render concept for a feel tweak nobody has actually reported yet.
   function pan(c, dx, dy) {
     var b = basis(c);
     var k = c.dist * PAN_SENS;
@@ -136,15 +142,20 @@
   }
 
   // Frame a voxel field: center the target on the field's WORLD-space middle and back off far
-  // enough to see the whole footprint.
-  function frame(c, field) {
+  // enough to see the whole footprint. `zScale` (default 1) is the renderer's display-only z
+  // exaggeration (dwf-world3d.js's Z_SCALE) -- optional and backward-compatible so callers/fixtures
+  // that never heard of it keep today's exact framing. Without it, a tall (many-layer) slab at a
+  // large zScale could render past the frustum vertically even though this distance "fits" the
+  // UNSTRETCHED field the pure model still reasons in.
+  function frame(c, field, zScale) {
     if (!field) return c;
+    var zs = isNum(zScale) && zScale > 0 ? zScale : 1;
     c.target = [
       field.ox + field.dimX / 2,
       field.oy + field.dimY / 2,
       field.oz + field.dimZ / 2,
     ];
-    c.dist = clamp(Math.max(field.dimX, field.dimY) * 1.4, LIMITS.distMin, LIMITS.distMax);
+    c.dist = clamp(Math.max(field.dimX, field.dimY, field.dimZ * zs) * 1.4, LIMITS.distMin, LIMITS.distMax);
     return c;
   }
 
@@ -181,8 +192,11 @@
     minDown: 1,
     defaultDown: 20,
     defaultUp: 0,
-    maxLayers: 48, // total (up + down). Guards the voxel budget: 96*96*48 is already past the cap,
-                   // so the voxelizer would degrade the footprint -- this keeps the slab honest.
+    // total (up + down). dwf-voxelizer.js's DEFAULT_MAX_VOXELS is sized (96*96*48) specifically to
+    // cover this ceiling without degrading the footprint -- see that constant's own comment. This
+    // is the OTHER half of that contract: raise one, raise the other, or the slab UI starts
+    // promising layers the voxelizer's cap can no longer afford to render at full width.
+    maxLayers: 48,
   };
 
   function slabCreate(opts) {

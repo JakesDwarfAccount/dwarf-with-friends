@@ -32,7 +32,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Dwarf with Friends!</title>
 <link rel="icon" type="image/png" href="/favicon.png">
-<link rel="stylesheet" href="/css/dwf.css?v=6.12.0-b229-b233-b231-b224r2-b237-b226-b236-b232r2-b217r2-b252-b254-b262scroll-n0715c-b285w2-p0716z1-dwfui1-plist1-pos0-sprepaintctl1">
+<link rel="stylesheet" href="/css/dwf.css?v=6.12.0-b229-b233-b231-b224r2-b237-b226-b236-b232r2-b217r2-b252-b254-b262scroll-n0715c-b285w2-p0716z1-dwfui1-plist1-pos0-sprepaintctl1-n0725e">
 <!-- VERSION-MISMATCH GATE: the client's baked build stamp. The server STAMPS this at serve time --
      GET /view replaces the DFCAPTURE_BUILD placeholder token (the quoted value in the script tag
      below) with its own build id (wire CRC + git short hash), so a freshly loaded tab always
@@ -571,10 +571,10 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
 <!-- WT11: 3D world viewer. THREE pure stages (model -> voxelizer -> mesher) + a WebGL2 overlay.
      Loads AFTER dwf-tiles.js (needs DwfTiles.tileColor) and dwf-cache.js
      (windowView + mapDims). The model carries the orbit camera + z-slab state machines. -->
-<script src="/js/dwf-world3d-model.js?v=2.1.0-wt11r-n0715d"></script>
-<script src="/js/dwf-voxelizer.js?v=2.1.0-wt11r-n0715d"></script>
+<script src="/js/dwf-world3d-model.js?v=2.1.0-wt11r-n0715d-n0725a"></script>
+<script src="/js/dwf-voxelizer.js?v=2.1.0-wt11r-n0715d-n0725a"></script>
 <script src="/js/dwf-voxel-mesh.js?v=1.1.0-wt11r-n0715d"></script>
-<script src="/js/dwf-world3d.js?v=2.1.0-wt11r-b237-n0715d-dwfui1"></script>
+<script src="/js/dwf-world3d.js?v=2.1.0-wt11r-b237-n0715d-dwfui1-n0725e"></script>
 <!-- WD-26: DF-styled tooltip + first-time help-popup component. Delegation-based (no
      call-site changes needed anywhere else), so load order relative to the panel scripts
      doesn't matter -- placed here alongside the other chrome helpers. -->
