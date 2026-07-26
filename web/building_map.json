@@ -19234,6 +19234,26 @@
  "_v": 3,
  "bridges": {
   "GLASS": {
+   "1x1_RAISE_E": {
+    "col": 3,
+    "row": 0,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_N": {
+    "col": 3,
+    "row": 2,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_S": {
+    "col": 3,
+    "row": 3,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_W": {
+    "col": 3,
+    "row": 1,
+    "sheet": "bridges.png"
+   },
    "CONSTRUCTION": {
     "col": 3,
     "row": 60,
@@ -19497,6 +19517,11 @@
    "RAISE_W_S": {
     "col": 3,
     "row": 23,
+    "sheet": "bridges.png"
+   },
+   "RETRACT_1x1": {
+    "col": 3,
+    "row": 60,
     "sheet": "bridges.png"
    },
    "RETRACT_CENTER": {
@@ -19596,6 +19621,26 @@
    }
   },
   "METAL": {
+   "1x1_RAISE_E": {
+    "col": 2,
+    "row": 0,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_N": {
+    "col": 2,
+    "row": 2,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_S": {
+    "col": 2,
+    "row": 3,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_W": {
+    "col": 2,
+    "row": 1,
+    "sheet": "bridges.png"
+   },
    "CONSTRUCTION": {
     "col": 2,
     "row": 60,
@@ -19859,6 +19904,11 @@
    "RAISE_W_S": {
     "col": 2,
     "row": 23,
+    "sheet": "bridges.png"
+   },
+   "RETRACT_1x1": {
+    "col": 2,
+    "row": 60,
     "sheet": "bridges.png"
    },
    "RETRACT_CENTER": {
@@ -19958,6 +20008,26 @@
    }
   },
   "STONE": {
+   "1x1_RAISE_E": {
+    "col": 1,
+    "row": 0,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_N": {
+    "col": 1,
+    "row": 2,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_S": {
+    "col": 1,
+    "row": 3,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_W": {
+    "col": 1,
+    "row": 1,
+    "sheet": "bridges.png"
+   },
    "CONSTRUCTION": {
     "col": 1,
     "row": 60,
@@ -20221,6 +20291,11 @@
    "RAISE_W_S": {
     "col": 1,
     "row": 23,
+    "sheet": "bridges.png"
+   },
+   "RETRACT_1x1": {
+    "col": 1,
+    "row": 60,
     "sheet": "bridges.png"
    },
    "RETRACT_CENTER": {
@@ -20320,6 +20395,26 @@
    }
   },
   "WOOD": {
+   "1x1_RAISE_E": {
+    "col": 0,
+    "row": 0,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_N": {
+    "col": 0,
+    "row": 2,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_S": {
+    "col": 0,
+    "row": 3,
+    "sheet": "bridges.png"
+   },
+   "1x1_RAISE_W": {
+    "col": 0,
+    "row": 1,
+    "sheet": "bridges.png"
+   },
    "CONSTRUCTION": {
     "col": 0,
     "row": 60,
@@ -20583,6 +20678,11 @@
    "RAISE_W_S": {
     "col": 0,
     "row": 23,
+    "sheet": "bridges.png"
+   },
+   "RETRACT_1x1": {
+    "col": 0,
+    "row": 60,
     "sheet": "bridges.png"
    },
    "RETRACT_CENTER": {

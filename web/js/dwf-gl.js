@@ -2920,6 +2920,85 @@
       }
       return { sheet: fur[0].sheet, w: w, h: h, cells: cells };
     }
+    // BRIDGES (GL parity): the raise-state + per-footprint-tile art path. The canvas2d
+    // bridgeEntry() banner in dwf-tiles.js carries the full authored-token grammar, the
+    // df-structures citations for `direction` (original-name `anchor`) and gate_flags.raised,
+    // and the one documented residual (a 1-deep, multi-tile-wide lowered bridge). These tables
+    // are deliberately duplicated the same way buildingEntry/buildingEntryGL and
+    // machineEntry/machineEntryGL already are; bridge_raise_state_test.mjs cross-checks both
+    // against the same building_map.json, token for token, to catch divergence.
+    var BRIDGE_DIR_COMPASS_GL = { 0: "W", 1: "E", 2: "N", 3: "S" };
+    var BRIDGE_MAT_PREF_GL = ["STONE", "WOOD", "METAL", "GLASS"];
+    function bridgeMaterialKeyGL(fams, b) {
+      var family = matFamilyForItemGL(b);
+      if (family && fams[family]) return family;
+      for (var i = 0; i < BRIDGE_MAT_PREF_GL.length; i++) {
+        if (fams[BRIDGE_MAT_PREF_GL[i]]) return BRIDGE_MAT_PREF_GL[i];
+      }
+      return Object.keys(fams)[0] || null;
+    }
+    function bridgeCellTokenGL(dir, raised, w, h, rx, ry) {
+      var onW = (rx === 0), onE = (rx === w - 1), onN = (ry === 0), onS = (ry === h - 1);
+      if (dir === -1) {
+        if (raised) return null;   // a retracted deck draws nothing: that IS its "up" look
+        if (onN && onS && onW && onE) return "RETRACT_1x1";
+        var m = "";
+        if (onN) m += "N";
+        if (onS) m += "S";
+        if (onW) m += "W";
+        if (onE) m += "E";
+        return "RETRACT_" + (m || "CENTER");
+      }
+      var d = BRIDGE_DIR_COMPASS_GL[dir];
+      if (!d) return null;
+      var vertical = (d === "N" || d === "S");
+      var perp = vertical
+        ? (w === 1 ? "1" : (onW ? "W" : (onE ? "E" : "CENTER")))
+        : (h === 1 ? "1" : (onN ? "N" : (onS ? "S" : "CENTER")));
+      if (raised) return "RAISED_" + d + "_" + perp;
+      var depth = vertical ? h : w;
+      if (depth === 1) return (perp === "1") ? ("1x1_RAISE_" + d) : ("RAISE_" + d + "_" + perp);
+      var anchored = (d === "N" && onN) || (d === "S" && onS) ||
+                     (d === "W" && onW) || (d === "E" && onE);
+      if (anchored) return "RAISE_" + d + "_" + perp;
+      var free = (d === "N" && onS) || (d === "S" && onN) ||
+                 (d === "W" && onE) || (d === "E" && onW);
+      if (free) return "RAISE_" + d + "_END_" + perp;
+      return (vertical ? "NS_" : "WE_") + perp;
+    }
+    function bridgeFamilySheetGL(fam) {
+      var keys = Object.keys(fam);
+      for (var i = 0; i < keys.length; i++) {
+        var c = fam[keys[i]];
+        if (c && c.sheet) return c.sheet;
+      }
+      return null;
+    }
+    function bridgeEntryGL(b, map) {
+      if (!b || b.type !== "Bridge" || !map || !map.bridges) return null;
+      if (typeof b.dir !== "number" || typeof b.bst !== "number") return null;
+      var fam = map.bridges[bridgeMaterialKeyGL(map.bridges, b)];
+      if (!fam) return null;
+      var w = Math.max(1, (b.x2 | 0) - (b.x1 | 0) + 1);
+      var h = Math.max(1, (b.y2 | 0) - (b.y1 | 0) + 1);
+      var raised = (b.bst & 1) === 1;
+      var cells = [], sheet = null, requested = 0, resolved = 0;
+      for (var ry = 0; ry < h; ry++) {
+        var row = [];
+        for (var rx = 0; rx < w; rx++) {
+          var tok = bridgeCellTokenGL(b.dir, raised, w, h, rx, ry);
+          if (tok === null) { row.push(null); continue; }
+          requested++;
+          var c = fam[tok];
+          if (c && c.sheet) { resolved++; sheet = sheet || c.sheet; row.push({ col: c.col, row: c.row }); }
+          else row.push(null);
+        }
+        cells.push(row);
+      }
+      if (requested !== resolved) return null;   // all-or-nothing; see the canvas2d banner
+      if (!sheet) sheet = bridgeFamilySheetGL(fam);
+      return sheet ? { sheet: sheet, w: w, h: h, cells: cells } : null;
+    }
     function farmCropPlansGL(view) {
       var policy = (typeof DwfFarmCrops !== "undefined") ? DwfFarmCrops : null;
       return policy && typeof policy.collect === "function"
@@ -2966,7 +3045,8 @@
       var bTintRgb = pickBuildingTintRgb(b);
       if (typeof bPalRow !== "number" && bTintRgb) tint = buildingTintRgb(bTintRgb);
       var e = machineEntryGL(b, buildingMap, machineParity) || farmPlotEntryGL(b)
-            || statueEntryGL(b) || buildingEntryGL(b);   // B253: statues are a 3-cell composite
+            || statueEntryGL(b) || bridgeEntryGL(b, buildingMap)   // raise state + per-tile art
+            || buildingEntryGL(b);   // B253: statues are a 3-cell composite
       if (!e || !e.sheet) return;
       // B253: `sheet` defaults to the entry's own, but a statue's SUBJECT cells can sit on a
       // different sheet than its plinth (the 932 creature statues do), so callers may pass one.
@@ -4598,6 +4678,10 @@
       _plannedConstructionEntryForTest: plannedConstructionEntryGL,  // TX17
       _constructionPlannedTokenForTest: CONSTRUCTION_PLANNED_TOKEN,  // TX17
       _machineEntryForTest: machineEntryGL,   // WC-8: (b, buildingMap, frameParity) -> synth entry|null
+      // BRIDGES: raise-state/footprint art, pinned against the canvas2d twin by
+      // bridge_raise_state_test.mjs.
+      _bridgeEntryForTest: bridgeEntryGL,         // (b, buildingMap) -> synth entry|null
+      _bridgeCellTokenForTest: bridgeCellTokenGL, // (dir, raised, w, h, rx, ry) -> suffix|null
       _hasDrawableMachineForTest: hasDrawableMachineGL,
       _machineCadenceStepForTest: machineCadenceStepGL,
       _farmPlotEntryForTest: farmPlotEntryGL,  // B27a: (b) -> furrowed/planted bed entry|null

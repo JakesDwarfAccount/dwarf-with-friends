@@ -824,7 +824,14 @@ def parse_bridges():
     string-matching across the ~300-entry flat token list."""
     path = os.path.join(GDIR, "graphics_buildings.txt")
     pages = load_pages()
-    tg = re.compile(r"\[TILE_GRAPHICS:([A-Za-z0-9_]+):(-?\d+):(-?\d+):(BLD_BRIDGE_[A-Z0-9_]+)\]")
+    # The token class MUST admit lowercase: five of the 81 per-material bridge tokens spell a
+    # footprint size with a lowercase 'x' (`1x1_RAISE_{N,S,E,W}` and `RETRACT_1x1`, verified
+    # against vanilla_buildings_graphics/graphics_buildings.txt L62-65/L123). The old
+    # `[A-Z0-9_]+` class silently dropped exactly those five per material -- they still reached
+    # the FLAT top-level `BLD_BRIDGE_*` keys (TOKEN_RE's `[^\]]+` class matches them), so the
+    # loss was invisible in the emitted file and only showed up as a client lookup miss for
+    # 1x1 bridges. Do not narrow this class again.
+    tg = re.compile(r"\[TILE_GRAPHICS:([A-Za-z0-9_]+):(-?\d+):(-?\d+):(BLD_BRIDGE_[A-Za-z0-9_]+)\]")
     materials = ["WOOD", "STONE", "METAL", "GLASS"]
     bridges = {mat: {} for mat in materials}
     for ln in open(path, "r", encoding="latin-1"):
@@ -839,6 +846,15 @@ def parse_bridges():
                 bridges[mat][token[len(prefix):]] = {"sheet": sheet, "col": int(col), "row": int(row)}
                 break
     assert all(bridges[mat] for mat in materials), "a bridge material had zero cells (raws changed?)"
+    # Every cell the client's bridgeEntry() can ask for must exist, or a bridge silently falls
+    # back to the flat lowered-deck stamp. 77 = 4 (1x1_RAISE_*) + 4 (NS_*) + 4 (WE_*)
+    # + 16 (RAISE_<D>_*) + 16 (RAISE_<D>_END_*) + 16 (RAISED_<D>_*) + 1 (CONSTRUCTION)
+    # + 16 (RETRACT_*, the exhaustive 4-bit edge mask incl. RETRACT_1x1, which shares
+    # CONSTRUCTION's cell in the raws).
+    for mat in materials:
+        assert len(bridges[mat]) == 77, (
+            "bridge material %s has %d cells, expected 77 (raws changed, or the token regex "
+            "dropped some again)" % (mat, len(bridges[mat])))
     return bridges
 
 

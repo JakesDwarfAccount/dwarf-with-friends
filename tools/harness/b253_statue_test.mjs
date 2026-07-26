@@ -262,8 +262,11 @@ async function waitUntil(pred, maxMs) {
   // ---------------------------------------------------------------------------
   console.log("\nB253 (3): dwf-gl.js parity -- same statue composite in the GL path");
   const glSrc = fs.readFileSync(GL_PATH, "utf8");
+  // The point of this check is ORDER -- statues must resolve before the flat-key fallback --
+  // not adjacency. Other resolvers legitimately sit between them in the `||` chain (the bridge
+  // raise-state path does), so match across them rather than pinning the two calls side by side.
   check("gl.js has a statueEntry path", /function\s+statueEntryGL\s*\(/.test(glSrc)
-    && /statueEntryGL\(b\)\s*\|\|\s*buildingEntryGL\(b\)/.test(glSrc));
+    && /statueEntryGL\(b\)(?:\s*\|\|[^;]*?)?\s*\|\|\s*buildingEntryGL\(b\)/.test(glSrc));
   check("gl.js honours overlayTint (the subject is tinted with the plinth)",
     /overlayTint/.test(glSrc));
   check("gl.js honours overhangSheet (creature statue tops are on another sheet)",

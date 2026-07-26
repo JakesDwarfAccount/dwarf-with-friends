@@ -129,7 +129,7 @@
     {
       "order": 12,
       "file": "web/js/dwf-tiles.js",
-      "cacheKey": "v=8.4.3-automine-native",
+      "cacheKey": "v=8.4.4-bridge-raise",
       "provides": [
         "DwfPresence",
         "DwfTiles"
@@ -156,7 +156,7 @@
     {
       "order": 14,
       "file": "web/js/dwf-gl.js",
-      "cacheKey": "v=7.6.2-automine-native",
+      "cacheKey": "v=7.6.3-bridge-raise",
       "provides": [
         "DwfGL"
       ],

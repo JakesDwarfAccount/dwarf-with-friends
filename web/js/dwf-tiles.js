@@ -3674,6 +3674,142 @@
     return { phase, dirty: phase !== lastPhase };
   }
 
+  // ============================================================================
+  // BRIDGES ("a raised drawbridge still renders as a lowered one"). A bridge is the one
+  // building whose art depends on BOTH its raise state and each tile's position in the
+  // footprint, and the client never asked for any of it: buildingEntry() resolved EVERY bridge
+  // -- wood or stone, up or down, retracting or not -- to building_map.json's flat `Bridge`
+  // key, which the generator fills with the STONE `NS_CENTER` lowered-deck cell and the draw
+  // loop pattern-stamps across the whole span (build_building_map.py's _emit_bytype_defaults:
+  // "Bridge: a lowered/flat centre cell (raise-state/orientation = client upgrade)"). The
+  // material tint made that stamp read as plausibly correct, which is why the raised state
+  // looked like a missing sprite rather than a missing code path. This is that upgrade: it
+  // consumes the generated `bridges` family, which carries all 77 authored cells per material.
+  //
+  // GRAMMAR (vanilla_buildings_graphics/graphics_buildings.txt L62-138 per material; the sheet
+  // is one COLUMN per material x one ROW per cell, so all four materials share this layout):
+  //   1x1_RAISE_<D>          a 1x1 raising bridge, lowered (NO perpendicular variants authored)
+  //   NS_<perp> / WE_<perp>  lowered deck INTERIOR, keyed by the raise AXIS (not the direction)
+  //   RAISE_<D>_<perp>       lowered deck, the ANCHORED edge row (the D side)
+  //   RAISE_<D>_END_<perp>   lowered deck, the FREE edge row (opposite D)
+  //   RAISED_<D>_<perp>      the deck standing UP -- the state this whole path exists to draw
+  //   RETRACT_<mask>         a RETRACTING bridge, lowered; exhaustive 4-bit exposed-edge mask
+  //   CONSTRUCTION           unbuilt preview; not selected here (bridges have no planned path)
+  // <perp> is the tile's position along the axis PERPENDICULAR to the raise axis: `1` when the
+  // bridge is a single tile wide there, else the low edge (`W`/`N`), high edge (`E`/`S`), or
+  // `CENTER`. Every RAISE/RAISED family varies ONLY perpendicular to the raise axis, which is
+  // what makes the three-role decomposition along that axis (anchor row / interior / free-end
+  // row) the only reading that consumes each authored cell exactly once and leaves none over.
+  //
+  // DIRECTION is df::building_bridgest.direction, whose df-structures original-name is
+  // `anchor`: Retracting=-1, Left=0, Right=1, Up=2, Down=3 (df.building.xml:1177-1183). That
+  // the field names the ANCHOR is the evidence for `RAISE_<D>` being the D-side row and
+  // `RAISE_<D>_END` the opposite one. `bst` bit0 is gate_flags.raised (original-name UP,
+  // df.building.xml:1167); both fields already ride the WC-6 wire (world_stream.cpp's
+  // fill_building_ds Bridge branch), so this is a pure client change.
+  const BRIDGE_DIR_COMPASS = { 0: "W", 1: "E", 2: "N", 3: "S" };
+  // STONE first so an unclassifiable material keeps the exact cell the flat `Bridge` default
+  // used before this path existed (the generator picks STONE's NS_CENTER for it).
+  const BRIDGE_MAT_PREF = ["STONE", "WOOD", "METAL", "GLASS"];
+  function bridgeMaterialKey(fams, b) {
+    const family = matFamilyForItem(b);
+    if (family && fams[family]) return family;
+    for (let i = 0; i < BRIDGE_MAT_PREF.length; i++) {
+      if (fams[BRIDGE_MAT_PREF[i]]) return BRIDGE_MAT_PREF[i];
+    }
+    return Object.keys(fams)[0] || null;
+  }
+  // Pure: the `bridges[<material>]` cell suffix for ONE footprint tile, or null meaning "draw
+  // nothing here" (a retracted deck). rx/ry are 0-based offsets within the w x h footprint.
+  // Module-scope + pure so canvas2d and GL resolve identically and the node harness can pin the
+  // whole grammar without a canvas.
+  function bridgeCellToken(dir, raised, w, h, rx, ry) {
+    const onW = (rx === 0), onE = (rx === w - 1), onN = (ry === 0), onS = (ry === h - 1);
+    if (dir === -1) {
+      // A retracting bridge never stands up -- it withdraws into its abutments and its tiles
+      // become open space, so a RAISED retracting bridge draws nothing at all. That is the
+      // "up" appearance for this direction, not a missing cell.
+      if (raised) return null;
+      // Exhaustive 4-bit mask over the footprint's OWN exposed edges, canonical order N,S,W,E
+      // (the authored 3-edge tokens are NSE/NSW/NWE/SWE, which pins the order). All four edges
+      // exposed means the bridge is a single tile -> the authored `1x1` cell; none -> CENTER.
+      if (onN && onS && onW && onE) return "RETRACT_1x1";
+      let m = "";
+      if (onN) m += "N";
+      if (onS) m += "S";
+      if (onW) m += "W";
+      if (onE) m += "E";
+      return "RETRACT_" + (m || "CENTER");
+    }
+    const d = BRIDGE_DIR_COMPASS[dir];
+    if (!d) return null;                                   // unknown direction -> caller falls back
+    const vertical = (d === "N" || d === "S");             // raise axis runs north-south
+    const perp = vertical
+      ? (w === 1 ? "1" : (onW ? "W" : (onE ? "E" : "CENTER")))
+      : (h === 1 ? "1" : (onN ? "N" : (onS ? "S" : "CENTER")));
+    if (raised) return "RAISED_" + d + "_" + perp;
+    const depth = vertical ? h : w;                        // tiles along the raise axis
+    if (depth === 1) {
+      // DOCUMENTED RESIDUAL: DF authors `1x1_RAISE_<D>` with no perpendicular variants, so a
+      // bridge one tile DEEP but several tiles WIDE has no exact lowered art -- the anchor row
+      // and the free-end row are the same row. A true 1x1 takes the authored cell; a wider one
+      // keeps its perpendicular edge art and takes the ANCHOR row, the more salient of the two
+      // roles collapsed onto it. Needs a native capture to settle; it is not a guess about the
+      // raised state, which is exact.
+      return (perp === "1") ? ("1x1_RAISE_" + d) : ("RAISE_" + d + "_" + perp);
+    }
+    const anchored = (d === "N" && onN) || (d === "S" && onS) ||
+                     (d === "W" && onW) || (d === "E" && onE);
+    if (anchored) return "RAISE_" + d + "_" + perp;
+    const free = (d === "N" && onS) || (d === "S" && onN) ||
+                 (d === "W" && onE) || (d === "E" && onW);
+    if (free) return "RAISE_" + d + "_END_" + perp;
+    return (vertical ? "NS_" : "WE_") + perp;
+  }
+  function bridgeFamilySheet(fam) {
+    const keys = Object.keys(fam);
+    for (let i = 0; i < keys.length; i++) {
+      const c = fam[keys[i]];
+      if (c && c.sheet) return c.sheet;
+    }
+    return null;
+  }
+  // Synthesize the SAME {sheet,w,h,cells} shape buildingEntry returns, sized to the building's
+  // EXACT footprint, so the existing multi-cell blit loop draws it unchanged (art width ==
+  // footprint width, so B47's centering path is a no-op and no tile edge-clamps).
+  function bridgeEntry(b, map) {
+    if (!b || b.type !== "Bridge" || !map || !map.bridges) return null;
+    // Fail-closed for an old DLL that ships no WC-6 direction/state: fall through to the flat
+    // `Bridge` key (the previous lowered stamp) rather than guessing an orientation.
+    if (typeof b.dir !== "number" || typeof b.bst !== "number") return null;
+    const fam = map.bridges[bridgeMaterialKey(map.bridges, b)];
+    if (!fam) return null;
+    const w = Math.max(1, (b.x2 | 0) - (b.x1 | 0) + 1);
+    const h = Math.max(1, (b.y2 | 0) - (b.y1 | 0) + 1);
+    const raised = (b.bst & 1) === 1;
+    const cells = [];
+    let sheet = null, requested = 0, resolved = 0;
+    for (let ry = 0; ry < h; ry++) {
+      const row = [];
+      for (let rx = 0; rx < w; rx++) {
+        const tok = bridgeCellToken(b.dir, raised, w, h, rx, ry);
+        if (tok === null) { row.push(null); continue; }   // authored empty (retracted deck)
+        requested++;
+        const c = fam[tok];
+        if (c && c.sheet) { resolved++; sheet = sheet || c.sheet; row.push({ col: c.col, row: c.row }); }
+        else row.push(null);
+      }
+      cells.push(row);
+    }
+    // ALL-OR-NOTHING against an older/incomplete `bridges` family: a partly-resolved grid would
+    // be worse than the fallback, because the draw loop edge-clamps a null sub-cell to the last
+    // cell in its row (stamping a neighbour's art), so any miss hands the whole building back
+    // to the flat `Bridge` key.
+    if (requested !== resolved) return null;
+    if (!sheet) sheet = bridgeFamilySheet(fam);           // fully-empty grid (retracted deck)
+    return sheet ? { sheet: sheet, w: w, h: h, cells: cells } : null;
+  }
+
   // B27a: FARM PLOTS. texsweep emitted a null-cell FarmPlot entry (draw nothing over the crop)
   // on the assumption a tilled-soil tiletype + the crop plant already rendered the bed -- but
   // farm-plot tiles carry NO such tiletype, so empty plots vanished entirely (invisible). DF
@@ -5395,7 +5531,8 @@
       ctx.globalAlpha = bAlpha;
       try {
         const e = machineEntry(b, buildingMap, machineFrameParity(worldMs)) || farmPlotEntry(b)
-                || statueEntry(b) || buildingEntry(b);   // B253: statues are a 3-cell composite
+                || statueEntry(b) || bridgeEntry(b, buildingMap)   // raise state + per-tile art
+                || buildingEntry(b);   // B253: statues are a 3-cell composite
         let drewBld = false;
         // MATERIAL COLOR (B273/window #13): DF recolors a building's palette-authored art by its
         // COMPONENT item's STATE_COLOR (b.cpal) ONLY; a
@@ -6390,6 +6527,10 @@
     _drawFlowsForTest: drawFlows,         // B139: drives the haze pass against the init ctx directly
     _machineEntryForTest: machineEntry,   // WC-8: (b, buildingMap, frameParity) -> synth entry|null
     _machineFrameParityForTest: machineFrameParity,
+    // BRIDGES: the raise-state/footprint art path, pinned against GL's twin (and the authored
+    // token grammar) by bridge_raise_state_test.mjs.
+    _bridgeEntryForTest: bridgeEntry,         // (b, buildingMap) -> synth entry|null
+    _bridgeCellTokenForTest: bridgeCellToken, // (dir, raised, w, h, rx, ry) -> suffix|null
     _machineAnimPhaseForTest: machineAnimPhase,
     _machineCadenceStepForTest: machineCadenceStep,
     _hasDrawableMachineForTest: hasDrawableMachine,

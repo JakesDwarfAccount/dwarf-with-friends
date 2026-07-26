@@ -481,12 +481,12 @@ window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", 
      Must load BEFORE the renderers so window.DFAnimClock exists when they first read it. -->
 <script src="/js/dwf-animclock.js?v=1.0.0-b206-n0715d"></script>
 <script src="/js/dwf-farm-crops.js?v=1.0.0-tx4.r26.fx-n0715d"></script>
-<script src="/js/dwf-tiles.js?v=8.4.3-automine-native"></script>
+<script src="/js/dwf-tiles.js?v=8.4.4-bridge-raise"></script>
 <!-- WB-8/WB-9 GL renderer: the instanced-quad atlas packer + the WebGL2 core pipeline. Behind
      the ?renderer=gl seam flag (default stays canvas2d until WB-14). Load BEFORE render.js so
      its gl impl can reference window.DwfGL / window.DwfGLAtlas at init. -->
 <script src="/js/dwf-gl-atlas.js?v=1.0.5-spritefresh.r26.fx-n0715d"></script>
-<script src="/js/dwf-gl.js?v=7.6.2-automine-native"></script>
+<script src="/js/dwf-gl.js?v=7.6.3-bridge-raise"></script>
 <!-- Renderer seam (WB-1): registers canvas2d/gl + selection/fallback. Loads AFTER
      dwf-tiles.js (so window.DwfTiles already exists) and BEFORE core.js. -->
 <script src="/js/dwf-render.js?v=2.3.0-b211-n0715d"></script>
