@@ -2,7 +2,7 @@
 
 Beta 3 started improving stability and making the code easier to read and contribute to.
 Beta 4 carries that forward with a much bigger cleanup, alongside the gameplay and playability
-improvements. There was a lot of slop in here, and a lot of this update has been getting rid of it.
+improvements. I don't have tons of time and resources to continously work on this mod, but I want to get these major changes out to anyone who wants to contribute. 
 
 Levers work. Animals can be
 chained. Siege engines have a real control panel. Work orders include more job types.
@@ -127,12 +127,11 @@ code that ships with this release.
   browser asset hashes and load order. They do not prove that every screen works in a live game.
 
 There is still cleanup to do. This is a much more organized starting point for someone who wants
-to help, but I am not going to pretend the code is suddenly perfect.
+to help.
 
 ## Still beta
 
-Beta 4 has known interface rough edges, including Labor layout and selection styling and occasional long announcement text overflow. No new full live gameplay test pass was performed for this release. If these issues get in your way, [beta 3](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3) remains the more stable fallback. Its Windows and Linux packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2; beta 4 requires Dwarf Fortress 0.53.16 with DFHack 53.16-r1. Follow beta 3’s own setup instructions in a compatible installation. Do not assume a save opened in a newer Dwarf Fortress version can be downgraded.
+Beta 4 has known interface rough edges, including Labor layout and selection styling and occasional long announcement text overflow. If these issues get in your way, [beta 3](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3) remains the more stable fallback. Its Windows and Linux packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2; beta 4 requires Dwarf Fortress 0.53.16 with DFHack 53.16-r1. Follow beta 3’s own setup instructions in a compatible installation. Do not assume a save opened in a newer Dwarf Fortress version can be downgraded.
 
 - Some controls are deliberately disabled and say so when you hover them. There is still much to do.
-- Siege controls have rough layout and no ammunition quantity display.
 - Linux has had less real-world testing than Windows. If you host on Linux, tell us what breaks.
