@@ -1,9 +1,10 @@
 # Dwarf With Friends v1.0.0-beta.4
 
-Beta 3 was about the code underneath: making it readable, making it easy for other people to
-contribute to, and improving stability.
+Beta 3 started improving stability and making the code easier to read and contribute to.
+Beta 4 carries that forward with a much bigger cleanup, alongside the gameplay and playability
+improvements. There was a lot of slop in here, and a lot of this update has been getting rid of it.
 
-Beta 4 is about improving overall functionality and playability. Levers work. Animals can be
+Levers work. Animals can be
 chained. Siege engines have a real control panel. Work orders include more job types.
 Improved menu functionality. And a large number of panels across the whole mod have been rebuilt.
 
@@ -104,6 +105,29 @@ Dwarf With Friends, but we like it :)
 - The viewer supports a wider vertical range than the previous 48-layer slice. A Z-range slider and a fit-to-fort button help navigate it.
 - Water and magma render instead of appearing as a black mass, and the view is no longer mirrored.
 - Textured floors, wall sides, see-under floors, waterfalls, trees and markers.
+
+## For developers and contributors
+
+A lot of work went into making this less painful to work on. These changes are in the source
+code that ships with this release.
+
+- Several giant browser files have been split up by what they actually do. Labor and work orders
+  have their own files now. So do buildings, stockpiles, unit sheets, and the different squad
+  controls. Finding the thing you want to change should involve less digging through unrelated code.
+- The big stylesheet has been broken up too. Panel styles live with their panel family, while
+  shared controls, the main interface, and common colors and sizes have their own files.
+- More duplicated code has been replaced with shared functions. The WebGL and fallback renderers
+  now share more of the decisions about items, constructions, designations, and unit status.
+  Fixing the same thing in two places was not a good system.
+- More panels use the same window and control components. Duplicate helpers and unused code have
+  been removed, including the old separate combat-log panel. Combat reports use the announcement
+  viewer instead.
+- The build instructions and source map have been updated, and the contributor guide lists the
+  small set of offline checks included here. Those cover the wire decoder, generated Lua, and
+  browser asset hashes and load order. They do not prove that every screen works in a live game.
+
+There is still cleanup to do. This is a much more organized starting point for someone who wants
+to help, but I am not going to pretend the code is suddenly perfect.
 
 ## Still beta
 
