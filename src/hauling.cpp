@@ -19,59 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// WD-29 -- Hauling routes panel (docs/superpowers/specs/2026-07-07-WD-ui-parity-spec.md).
-// Ground truth 10-hauling.png: left panel "Add new route" + per-route rows (name, stops,
-// vehicle assignment, status icons). Mutations follow the exact same lock/allocation posture
-// as burrows_panel.cpp (df::global::plotinfo->hauling is well-typed: df::hauling_infost holds
-// routes/next_id; df::hauling_route/df::hauling_stop are plain heap structs with a single
-// shared id counter, same pattern as plotinfo->burrows.next_id).
-//
-// =============================================================================================
-// B231 (hauling depth) -- STRUCTURES CITED, AND THE VEHICLE BUG THIS FILE SHIPPED FOR A WEEK.
-// =============================================================================================
-// df-structures (<DFHACK_ROOT>\library\xml):
-//   df.hauling.xml:51  df::hauling_route   -- id, name, stops, vehicle_ids, vehicle_stops
-//   df.hauling.xml:37  df::hauling_stop    -- id, name, pos, settings, conditions, stockpiles,
-//                                             time_waiting, cart_id
-//   df.hauling.xml:17  df::stop_depart_condition -- timeout, direction, mode, load_percent,
-//                                             flags, guide_path
-//   df.hauling.xml:12  df::stop_leave_condition_flag -- at_most (USE_LESS), desired (DESIRED_ITEMS)
-//   df.hauling.xml:1   df::route_stockpile_link / stop_stockpile_link_flag (take/give)
-//   df.vehicle.xml:47  df::vehicle         -- id, item_id, route_id
-//   df.item.xml:1511   df::item_toolst::vehicle_id  (ref-target='vehicle')
-//   df.item.xml:522    df::item::getVehicleID()     (vmethod)
-//   df.dfhack.xml:620  df::coord_path      -- parallel int16 x/y/z vectors
-//
-// *** THE VEHICLE-ASSIGN WRITE WAS WRONG. *** hauling_route.vehicle_ids is declared
-//     <stl-vector type-name='int32_t' name="vehicle_ids" ref-target='vehicle'/>
-// -- it holds df::vehicle IDs. The original do_vehicle_assign() pushed the *ITEM* id (a
-// different id space entirely), never touched the PARALLEL vector `vehicle_stops`, and never
-// set `vehicle.route_id`. Consequences, all silent:
-//   * DF binsearches world.vehicles.active for vehicle_ids[i] -> finds the wrong cart or none;
-//   * vehicle_ids and vehicle_stops are indexed in lockstep by DF -- growing one and not the
-//     other is exactly the parallel-vector desync we are forbidden to ship;
-//   * nothing hauls, because both DF and DFHack (autolabor/labormanager.cpp:1394,
-//     Items::isRouteVehicle @ library/modules/Items.cpp:2044) key "this cart is on a route" off
-//     vehicle.route_id, which stayed -1 forever.
-// The corrected write set below is DFHack's own, copied field-for-field from its canonical
-// minecart assigner, scripts/assign-minecarts.lua::assign_minecart_to_route():
-//       route.vehicle_ids:insert('#', minecart.id)   -- VEHICLE id, not item id
-//       route.vehicle_stops:insert('#', 0)           -- parallel: index into route.stops
-//       minecart.route_id = route.id
-// and on release / route teardown:  vehicle.route_id = -1  before dropping the id.
-// That script also refuses to assign to a route with NO STOPS, and treats a route as holding a
-// single cart; both are honoured here.
-//
-// WHAT WE DELIBERATELY DO NOT WRITE (no oracle -> no guess; a half-write that desyncs a save is
-// the one unacceptable outcome):
-//   * stop_depart_condition.guide_path -- df-structures annotates it "initialized on first run,
-//     and saved". DF's pathfinder OWNS it. We SERIALIZE it read-only so the player can see the
-//     path their cart actually took, and never author it. See do_stop_condition_add().
-//   * hauling_stop.cart_id / time_waiting -- live runtime state DF maintains per tick.
-//   * df::vehicle allocation -- DF creates the vehicle record when the minecart is built; we
-//     only ever bind an EXISTING free vehicle (route_id == -1) to a route, exactly as
-//     assign-minecarts.lua does.
-// b231_hauling_test.mjs asserts both the write set and these refusals textually.
+// Hauling routes: routes, stops, depart conditions, and minecart binding.
 
 #include "hauling.h"
 
@@ -79,6 +27,8 @@
 #include "client_state.h"
 #include "http_server.h"
 #include "json_util.h"
+#include "panel_http.h"
+#include "route_helpers.h"
 #include "sdl_capture.h"
 #include "write_guards.h"
 
@@ -116,22 +66,7 @@ std::recursive_mutex g_hauling_mutex;
 
 template <typename Fn>
 bool run_hauling_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> hauling_lock(g_hauling_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
-}
-
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
+    return run_panel_locked(g_hauling_mutex, std::forward<Fn>(fn));
 }
 
 df::hauling_route* find_route(int32_t id) {
@@ -160,19 +95,8 @@ int32_t next_hauling_id() {
     return plotinfo ? plotinfo->hauling.next_id++ : -1;
 }
 
-// Same px/py/w/h pixel contract as /designate and /burrow-paint (grid tile index into the
-// client's rendered window, camera-relative) -- see burrows_panel.cpp's banner for the
-// cursor/selection-misalignment history this contract fixed.
-int pixel_to_tile(int pixel, int frame) {
-    if (frame <= 0)
-        return 0;
-    return std::max(0, std::min(frame - 1, pixel));
-}
-
-// A hauling route carries MINECARTS -- df::tool_uses::TRACK_CART. Wheelbarrows
-// (HEAVY_OBJECT_HAULING) were accepted here before B231 and never can be: a wheelbarrow is
-// assigned to a STOCKPILE (building_stockpilest.storage.max_wheelbarrows), it has no df::vehicle
-// record, so item->getVehicleID() is -1 and the id pushed into vehicle_ids was garbage.
+// A hauling route carries MINECARTS (df::tool_uses::TRACK_CART). A wheelbarrow is stockpile
+// equipment: it has no df::vehicle record, and getVehicleID() returns -1.
 bool item_is_minecart(df::item* item) {
     if (!item)
         return false;
@@ -186,9 +110,7 @@ bool item_is_minecart(df::item* item) {
     return false;
 }
 
-// item -> its df::vehicle, via the vmethod df-structures declares for exactly this
-// (df.item.xml:522); DFHack itself resolves a cart the same way in Items::isRouteVehicle
-// (library/modules/Items.cpp:2044-2047). Returns nullptr when the item has no vehicle record.
+// item -> its df::vehicle through DF's own vmethod; nullptr when the item has no vehicle record.
 df::vehicle* vehicle_for_item(df::item* item) {
     if (!item)
         return nullptr;
@@ -198,14 +120,8 @@ df::vehicle* vehicle_for_item(df::item* item) {
     return df::vehicle::find(vid);
 }
 
-// W23 (crash-audit fix): plotinfo.hauling.view_routes / view_stops / view_bad (df.hauling.xml
-// i_route / i_stop / i_stop_flag) are the native Hauling menu's SCREEN CACHES -- parallel
-// vectors of raw pointers into the same route/stop objects the delete paths below free. DF
-// rebuilds them while the menu is open, but a browser-driven delete can land BETWEEN native
-// rebuilds; freeing a route/stop that is still cached leaves the native UI iterating dangling
-// pointers (the exact mechanism family as B34 and the 07-14 portrait double-free). Purge the
-// caches BEFORE any free. view_bad is index-parallel to view_stops, so the two are erased in
-// lockstep or the flags shift onto the wrong stops.
+// plotinfo.hauling.view_routes / view_stops / view_bad are the native menu's caches of raw pointers
+// into these objects, so purge them BEFORE any free. view_bad is index-parallel to view_stops.
 void purge_view_stop(df::plotinfost* plotinfo, df::hauling_stop* stop) {
     auto& vs = plotinfo->hauling.view_stops;
     auto& vb = plotinfo->hauling.view_bad;
@@ -226,8 +142,7 @@ void purge_view_route(df::plotinfost* plotinfo, df::hauling_route* route) {
     }
 }
 
-// Drop every vehicle binding a route holds, releasing each cart back to the free pool. Mirrors
-// the release loop in assign-minecarts.lua (vehicle.route_id = -1, then clear BOTH vectors).
+// Drops every vehicle binding, clearing vehicle.route_id before releasing the cart to the pool.
 void release_route_vehicles(df::hauling_route* route) {
     if (!route)
         return;
@@ -239,21 +154,10 @@ void release_route_vehicles(df::hauling_route* route) {
     route->vehicle_stops.clear();
 }
 
-// ---------------------------------------------------------------------------
-// Serialization
-// ---------------------------------------------------------------------------
+// ---- serialization --------------------------------------------------------
 
-// B231: `flags` and `guide_path` were declared in df-structures and NEVER read or written here,
-// which is why a departure condition did nothing useful:
-//   * stop_leave_condition_flag.desired  (DESIRED_ITEMS) -- "leave once the DESIRED ITEMS (the
-//     stop's `settings` filter) are aboard". Without this bit a load_percent condition is a raw
-//     fullness check that ignores what the player actually asked the stop to carry.
-//   * stop_leave_condition_flag.at_most  (USE_LESS)      -- inverts the comparison: leave when
-//     the cart is at MOST load_percent full (i.e. when it has been EMPTIED), which is how a
-//     "dump here then go back" stop is expressed. There was no way to say that at all.
-//   * guide_path -- READ-ONLY. df-structures annotates it "initialized on first run, and saved":
-//     DF's own pathfinder fills it the first time a dwarf guides the cart off this stop. We show
-//     it (so the player can see the route the cart really takes) and never author it.
+// `desired` gates departure on the stop's own settings filter rather than raw fullness;
+// `at_most` inverts the test to "leave once emptied".
 void append_conditions(std::ostringstream& body, const df::hauling_stop* stop) {
     body << "[";
     for (size_t i = 0; i < stop->conditions.size(); ++i) {
@@ -271,8 +175,8 @@ void append_conditions(std::ostringstream& body, const df::hauling_stop* stop) {
              << ",\"atMost\":" << (c->flags.bits.at_most ? "true" : "false")
              << ",\"desired\":" << (c->flags.bits.desired ? "true" : "false")
              << ",\"guidePath\":[";
-        // Read-only: DF owns guide_path. Parallel int16 x/y/z vectors (df::coord_path,
-        // df.dfhack.xml:620); guard on the shortest in case DF is mid-write.
+        // Read-only: DF owns guide_path. Guard on the shortest of the parallel x/y/z vectors in
+        // case DF is mid-write.
         size_t n = std::min(c->guide_path.x.size(),
                             std::min(c->guide_path.y.size(), c->guide_path.z.size()));
         for (size_t p = 0; p < n; ++p) {
@@ -299,13 +203,8 @@ void append_stockpiles(std::ostringstream& body, const df::hauling_stop* stop) {
     body << "]";
 }
 
-// The 17 group bits of df::hauling_stop.settings (a full df::stockpile_settings -- the SAME type
-// a stockpile carries, which is precisely why DFHack's stockpiles plugin edits a route stop with
-// its stockpile serializer: plugins/stockpiles/stockpiles.cpp:126 get_stop_settings()). This is
-// the stop's DESIRED ITEMS filter -- "what does this stop want loaded" -- and it was previously
-// neither read nor written. The item-level detail (which stones, which meats...) is served by
-// /hauling-stop-settings-snapshot via the same Lua the stockpile editor already uses; here we
-// only summarise which top-level groups are on, so a stop row can say "wants: stone, wood".
+// hauling_stop.settings IS a df::stockpile_settings -- the same struct a stockpile carries. Only
+// the top-level groups are summarised here; item detail rides /hauling-stop-settings-snapshot.
 void append_desired_groups(std::ostringstream& body, const df::hauling_stop* stop) {
     const auto& f = stop->settings.flags.bits;
     auto jb = [](bool v) { return v ? "true" : "false"; };
@@ -335,10 +234,8 @@ void append_stop(std::ostringstream& body, const df::hauling_stop* stop) {
     body << "}";
 }
 
-// Vehicles, told properly. vehicle_ids holds df::vehicle ids (df.hauling.xml:57, ref-target
-// 'vehicle'); vehicle_stops is its PARALLEL vector of indexes into route->stops (the cart's
-// current stop). The client used to make the player TYPE a raw item id into a number box; it now
-// gets the cart's item id (for a name/lookup) and where the cart currently is.
+// vehicle_ids holds df::vehicle ids, and vehicle_stops is its PARALLEL vector of indexes into
+// route->stops. The client gets the cart's item id and the stop it is currently at.
 void append_route_vehicles(std::ostringstream& body, const df::hauling_route* route) {
     body << "[";
     for (size_t i = 0; i < route->vehicle_ids.size(); ++i) {
@@ -378,9 +275,7 @@ void append_route(std::ostringstream& body, const df::hauling_route* route) {
     body << "}";
 }
 
-// Free minecarts -- every df::vehicle with route_id == -1, exactly the pool
-// assign-minecarts.lua::get_free_vehicles() offers (it scans world.vehicles.active). Feeds the
-// client's vehicle PICKER, which replaces the old "type an item id" number box.
+// Free minecarts: every df::vehicle whose route_id is -1. Feeds the client's vehicle picker.
 std::string free_vehicles_json() {
     std::ostringstream body;
     run_hauling_locked([&]() -> bool {
@@ -428,9 +323,7 @@ std::string hauling_list_json(const std::string& player) {
     return body.str();
 }
 
-// ---------------------------------------------------------------------------
-// Mutations (all run under run_hauling_locked -> CoreSuspender)
-// ---------------------------------------------------------------------------
+// ---- mutations (all under run_hauling_locked -> CoreSuspender) -------------
 
 int32_t do_route_create(const std::string& name, std::string* err) {
     int32_t new_id = -1;
@@ -457,24 +350,32 @@ bool do_route_rename(int32_t id, const std::string& name, std::string* err) {
     });
 }
 
+// Same two-step lookup and the same error strings as do_stop_link, so a bad route id and a bad
+// stop id stay distinguishable.
+bool do_stop_rename(int32_t route_id, int32_t stop_id, const std::string& name, std::string* err) {
+    return run_hauling_locked([&]() -> bool {
+        auto route = find_route(route_id);
+        if (!route) { if (err) *err = "route not found"; return false; }
+        auto stop = find_stop(route, stop_id);
+        if (!stop) { if (err) *err = "stop not found"; return false; }
+        stop->name = name;
+        return true;
+    });
+}
+
 bool do_route_remove(int32_t id, std::string* err) {
     return run_hauling_locked([&]() -> bool {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) { if (err) *err = "world unavailable"; return false; }
         auto route = find_route(id);
         if (!route) { if (err) *err = "route not found"; return false; }
-        // B231: release the carts FIRST. Deleting the route while its vehicles still carry
-        // route_id == this id leaves live df::vehicle records pointing at a freed route -- DF's
-        // hauling tick then binsearches plotinfo->hauling.routes for an id that no longer
-        // exists. assign-minecarts.lua sets route_id = -1 before dropping any binding; so do we.
+        // Release the carts FIRST: freeing the route while a vehicle still carries its id leaves
+        // DF's hauling tick binsearching for a route that no longer exists.
         release_route_vehicles(route);
-        // W23: purge the native Hauling menu's pointer caches (view_routes/view_stops) of this
-        // route and every stop of it BEFORE anything is freed -- see purge_view_route above.
+        // Purge the native menu's pointer caches of this route and its stops BEFORE any free.
         purge_view_route(plotinfo, route);
-        // B234: null-guard before walking a stop's children. do_stop_remove already checks;
-        // this path did not, so a null slot in route->stops was a deref-then-free hazard.
-        // (These deletes free objects WE allocated via df::allocate<T>() for this route --
-        //  unlike df::popup_message, which is DF-owned and must never be freed here.)
+        // Null-guard before walking a stop's children -- a null slot is a deref-then-free hazard.
+        // These deletes free objects this module allocated with df::allocate<T>().
         for (auto stop : route->stops) {
             if (!stop) continue;
             for (auto cond : stop->conditions) delete cond;
@@ -490,8 +391,7 @@ bool do_route_remove(int32_t id, std::string* err) {
     });
 }
 
-// POST /hauling-stop-add?route=&px=&py=&w=&h=&name= -> single tile (not a rect, unlike
-// /designate/-paint) converted to a world position the same way, then appended to the route.
+// A single tile, not a rect, converted to a world position the same way the paint routes do.
 int32_t do_stop_add(const Camera& camera, int frame_w, int frame_h, int32_t route_id, int px,
                      int py, const std::string& name, std::string* err) {
     int32_t new_id = -1;
@@ -503,8 +403,8 @@ int32_t do_stop_add(const Camera& camera, int frame_w, int frame_h, int32_t rout
             if (err && err->empty()) *err = "viewport unavailable";
             return false;
         }
-        int tx = pixel_to_tile(px, frame_w);
-        int ty = pixel_to_tile(py, frame_h);
+        int tx = pixel_to_tile_index(px, frame_w);
+        int ty = pixel_to_tile_index(py, frame_h);
         auto stop = df::allocate<df::hauling_stop>();
         if (!stop) { if (err) *err = "allocation failed"; return false; }
         stop->id = next_hauling_id();
@@ -529,20 +429,15 @@ bool do_stop_remove(int32_t route_id, int32_t stop_id, std::string* err) {
         if (it == list.end()) { if (err) *err = "stop not tracked in route"; return false; }
         const int32_t removed_index = static_cast<int32_t>(std::distance(list.begin(), it));
 
-        // W23: purge the native Hauling menu's view_stops/view_bad caches of this stop BEFORE
-        // freeing it (see purge_view_stop above).
+        // Purge the native view_stops/view_bad caches of this stop BEFORE freeing it.
         if (auto plotinfo = df::global::plotinfo) purge_view_stop(plotinfo, stop);
         for (auto cond : stop->conditions) delete cond;
         for (auto link : stop->stockpiles) delete link;
         list.erase(it);
         delete stop;
 
-        // B231: route->vehicle_stops holds INDEXES into route->stops (df.hauling.xml:58,
-        // refers-to '$$._global.stops[$]'), so erasing a stop shifts every later index by one.
-        // The old code deleted the stop and left those indexes stale -- after removing stop 0, a
-        // cart parked at the last stop pointed one past the end. Fix them up, and if the route
-        // has no stops left, release the carts entirely (assign-minecarts.lua will not bind a
-        // cart to a stopless route, so we must not leave one bound to it either).
+        // vehicle_stops holds INDEXES into route->stops, so erasing a stop shifts every later one.
+        // A route left with no stops must release its carts: DF will not bind one to a stopless route.
         if (list.empty()) {
             release_route_vehicles(route);
             return true;
@@ -603,9 +498,8 @@ bool do_stop_link_remove(int32_t route_id, int32_t stop_id, int32_t building_id,
     });
 }
 
-// POST /hauling-stop-conditions?route=&stop=&timeout=&direction=&mode=&load= -> appends a
-// depart (leave) condition. DF's stop editor supports several simultaneous leave conditions
-// (any-of); v1 supports add + index-based remove, no in-place edit (delete + re-add).
+// Appends a depart condition. DF supports several simultaneous leave conditions; this offers add
+// and index-based remove only, so an edit is delete-then-re-add.
 bool do_stop_condition_add(int32_t route_id, int32_t stop_id, int timeout,
                            const std::string& direction, const std::string& mode,
                            int load_percent, bool at_most, bool desired, std::string* err) {
@@ -624,15 +518,12 @@ bool do_stop_condition_add(int32_t route_id, int32_t stop_id, int timeout,
         if (mode == "ride") cond->mode = df::stop_depart_condition::Ride;
         else if (mode == "guide") cond->mode = df::stop_depart_condition::Guide;
         else cond->mode = df::stop_depart_condition::Push;
-        // df-structures pins load_percent: "broken display unless 0, 50 or 100". DF's own stop
-        // editor only offers those three, so we snap to them rather than write a value DF cannot
-        // render back to the player -- a number you cannot read is a number you cannot trust.
+        // DF renders load_percent only at 0, 50 or 100, so snap rather than write a value the
+        // player can never read back.
         cond->load_percent = load_percent <= 25 ? 0 : (load_percent >= 75 ? 100 : 50);
-        cond->flags.bits.at_most = at_most;   // USE_LESS: leave when at MOST load% full
-        cond->flags.bits.desired = desired;   // DESIRED_ITEMS: gate on stop->settings, not bulk
-        // cond->guide_path is DELIBERATELY left empty. df-structures: "initialized on first run,
-        // and saved" -- DF's pathfinder authors it when a dwarf first guides the cart out of this
-        // stop. We have no oracle for DF's own track-pathing and will not fabricate one.
+        cond->flags.bits.at_most = at_most;   // leave when at MOST load% full
+        cond->flags.bits.desired = desired;   // gate on stop->settings, not bulk fullness
+        // guide_path is DELIBERATELY left empty: DF's own pathfinder authors it on the first run.
         stop->conditions.push_back(cond);
         return true;
     });
@@ -654,21 +545,8 @@ bool do_stop_condition_remove(int32_t route_id, int32_t stop_id, int index, std:
     });
 }
 
-// POST /hauling-vehicle-assign?route=&item=&on=1 -> bind/release a MINECART on a route.
-//
-// B231 REWRITE. See the file banner: the previous body pushed the ITEM id into `vehicle_ids`
-// (which holds df::vehicle ids), never grew the parallel `vehicle_stops`, and never set
-// `vehicle.route_id` -- so no cart ever hauled anything and the two lockstep vectors desynced.
-// The write set below is field-for-field DFHack's canonical assigner,
-// scripts/assign-minecarts.lua::assign_minecart_to_route():
-//     route.vehicle_ids  += vehicle.id      (NOT item.id)
-//     route.vehicle_stops += 0              (parallel; index into route.stops)
-//     vehicle.route_id    = route.id
-// and its refusals: no stops -> refuse; cart already on another route -> refuse.
-//
-// `item` stays the parameter (the client picks a minecart from a list of items, and the item id
-// is the stable thing a player sees in stocks); we resolve item -> vehicle here via the vmethod
-// df-structures declares for it.
+// Binds or releases a MINECART. The write set is DFHack's own: vehicle_ids += vehicle.id (never
+// the item id), vehicle_stops += 0 in lockstep, and vehicle.route_id = route.id.
 bool do_vehicle_assign(int32_t route_id, int32_t item_id, bool on, std::string* err) {
     return run_hauling_locked([&]() -> bool {
         auto route = find_route(route_id);
@@ -676,16 +554,14 @@ bool do_vehicle_assign(int32_t route_id, int32_t item_id, bool on, std::string* 
         auto item = df::item::find(item_id);
         if (!item) { if (err) *err = "item not found"; return false; }
         if (!item_is_minecart(item)) {
-            // Wheelbarrows land here on purpose: they are stockpile equipment, not route
-            // vehicles, and have no df::vehicle record to bind.
+            // Wheelbarrows land here on purpose: stockpile equipment, with no vehicle to bind.
             if (err) *err = "only a minecart can be assigned to a hauling route "
                             "(a wheelbarrow is assigned to a stockpile instead)";
             return false;
         }
         auto vehicle = vehicle_for_item(item);
         if (!vehicle) {
-            // DF creates the df::vehicle record for a minecart; we never allocate one. A cart
-            // with no vehicle record is not yet a thing DF can haul.
+            // DF creates a minecart's df::vehicle record; this module never allocates one.
             if (err) *err = "this minecart has no vehicle record yet -- DF creates one when the "
                             "cart is finished and hauled to the map";
             return false;
@@ -708,9 +584,8 @@ bool do_vehicle_assign(int32_t route_id, int32_t item_id, bool on, std::string* 
 
         if (present) return true;        // idempotent
         if (route->stops.empty()) {
-            // assign-minecarts.lua refuses this exact case ("Route %s has no stops defined.
-            // Cannot assign minecart."): vehicle_stops indexes into route.stops, so binding a
-            // cart to a stopless route would store an index into an empty vector.
+            // vehicle_stops indexes into route.stops, so a stopless route would store an index
+            // into an empty vector.
             if (err) *err = "add at least one stop before assigning a minecart to this route";
             return false;
         }
@@ -766,18 +641,30 @@ void register_hauling_routes(httplib::Server& server) {
     server.Get("/hauling-route-rename", route_rename_handler);
     server.Post("/hauling-route-rename", route_rename_handler);
 
+    // POST /hauling-stop-rename?route=&stop=&name=
+    auto stop_rename_handler = [](const httplib::Request& req, httplib::Response& res) {
+        int route_id = -1, stop_id = -1;
+        if (!query_int(req, "route", route_id) || !query_int(req, "stop", stop_id) ||
+            !req.has_param("name")) {
+            json_error(res, 400, "missing route/stop/name");
+            return;
+        }
+        std::string name = req.get_param_value("name");
+        if (name.size() > 64) name.resize(64);
+        std::string err;
+        if (!do_stop_rename(route_id, stop_id, name, &err)) { json_error(res, 400, err); return; }
+        notify_player_input();
+        set_no_store_json(res, "{\"ok\":true}\n");
+    };
+    server.Get("/hauling-stop-rename", stop_rename_handler);
+    server.Post("/hauling-stop-rename", stop_rename_handler);
+
     // POST /hauling-route-remove?id=
     auto route_remove_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
-        // Deleting a hauling route is OPEN TO EVERY AUTHENTICATED PLAYER (owner policy 2026-07-16:
-        // small-group co-op, no anti-griefing gate on destructive play). The old fail-closed
-        // `hauling_route_delete` griefing guard is removed. Safety is retained in do_route_remove
-        // and is why this is fine for everyone: it runs under CoreSuspender (run_hauling_locked),
-        // releases the route's carts first (B231), and purges the native Hauling menu's pointer
-        // caches (view_routes/view_stops) BEFORE freeing the route -- the same purge-before-free
-        // discipline the zone remove path uses. Unauthenticated callers are refused upstream by
-        // join-auth like every other mutation route.
+        // Deleting a hauling route is open to every authenticated player: small-group co-op, no
+        // anti-griefing gate. do_route_remove releases the carts and purges the caches first.
         std::string err;
         if (!do_route_remove(id, &err)) { json_error(res, 400, err); return; }
         notify_player_input();
@@ -819,9 +706,7 @@ void register_hauling_routes(httplib::Server& server) {
             json_error(res, 400, "missing route/stop");
             return;
         }
-        // Same delete family as /hauling-route-remove: open to every authenticated player (owner
-        // policy 2026-07-16). do_stop_remove purges the native view_stops/view_bad caches before
-        // the free and fixes up vehicle_stop indexes, under CoreSuspender. Join-auth still applies.
+        // Same delete family as /hauling-route-remove: open to every authenticated player.
         std::string err;
         if (!do_stop_remove(route_id, stop_id, &err)) { json_error(res, 400, err); return; }
         notify_player_input();
@@ -933,23 +818,15 @@ void register_hauling_routes(httplib::Server& server) {
     server.Get("/hauling-vehicle-assign", vehicle_assign_handler);
     server.Post("/hauling-vehicle-assign", vehicle_assign_handler);
 
-    // GET /hauling-vehicles -> the free-minecart pool (df::vehicle with route_id == -1), so the
-    // client can offer a PICKER. Before B231 the panel made the player type a raw item id into a
-    // number box -- an id they had no way to discover, for a write that was broken anyway.
+    // GET /hauling-vehicles -> the free-minecart pool, so the client can offer a picker instead of
+    // an item id the player has no way to discover.
     server.Get("/hauling-vehicles", [](const httplib::Request& req, httplib::Response& res) {
         (void)req;
         set_no_store_json(res, free_vehicles_json());
     });
 
-    // ------------------------------------------------------------------------------------------
-    // PER-STOP DESIRED ITEMS (B231). df::hauling_stop.settings IS a df::stockpile_settings -- the
-    // very same struct a stockpile carries. DFHack banks on that identity: its stockpiles plugin
-    // edits a route stop by handing get_stop_settings() (plugins/stockpiles/stockpiles.cpp:126)
-    // to the same serializer it uses for piles. We do the same thing one layer up: the four
-    // endpoints below are the /stockpile-* settings editor pointed at a stop instead of a pile,
-    // and they run through the SAME Lua (dwf.lua's SP_CATEGORIES machinery), which only
-    // ever touches `target.settings`. No second copy of the 17-category item filter exists.
-    // ------------------------------------------------------------------------------------------
+    // hauling_stop.settings IS a stockpile_settings, so these four endpoints are the /stockpile-*
+    // settings editor pointed at a stop, through the same Lua. No second copy of the filter exists.
     server.Get("/hauling-stop-settings-snapshot", [](const httplib::Request& req,
                                                      httplib::Response& res) {
         int route_id = -1, stop_id = -1;
@@ -1020,8 +897,7 @@ void register_hauling_routes(httplib::Server& server) {
     server.Get("/hauling-stop-toggle-all", stop_toggle_all_handler);
     server.Post("/hauling-stop-toggle-all", stop_toggle_all_handler);
 
-    // POST /hauling-stop-preset?route=&stop=&preset=&mode= -- the group-level preset (stone,
-    // food, "none", ...), same vocabulary as /stockpile-set.
+    // The group-level preset (stone, food, "none", ...), same vocabulary as /stockpile-set.
     auto stop_preset_handler = [](const httplib::Request& req, httplib::Response& res) {
         int route_id = -1, stop_id = -1;
         if (!query_int(req, "route", route_id) || !query_int(req, "stop", stop_id)) {

@@ -1,0 +1,81 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.trade-depot {
+  .trade-depot-depot-panel .trade-depot-section {
+    padding: 4px 0 6px;
+    border-top: 1px solid var(--dwfui-surface);
+    margin-top: 4px;
+  }
+  .trade-depot-depot-panel .trade-depot-caravan {
+    margin: 3px 10px;
+  }
+  .trade-depot-depot-panel .trade-depot-caravan-name {
+    color: var(--dwfui-text-heading);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .trade-depot-depot-panel .trade-depot-caravan-meta {
+    color: var(--dwfui-text-secondary);
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+    margin-top: 1px;
+  }
+  .trade-depot-depot-panel .trade-depot-badge {
+    display: inline-block;
+    padding: 0 5px;
+    margin-left: 3px;
+    border-radius: 2px;
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-row);
+    font:
+      700 10px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .trade-depot-depot-panel .trade-depot-badge.ok {
+    background: var(--dwfui-slate);
+    color: var(--dwfui-text-good);
+  }
+  .trade-depot-depot-panel .trade-depot-badge.warn {
+    background: var(--dwfui-gold-bevel-mid);
+    color: var(--dwfui-text-danger);
+  }
+  .trade-depot-depot-panel .trade-depot-badge.want {
+    background: var(--dwfui-gold-bevel-mid);
+    color: var(--dwfui-text-numeric);
+  }
+  .trade-depot-depot-panel .trade-depot-trade-status {
+    color: var(--dwfui-text-secondary);
+  }
+  .trade-depot-depot-panel .trade-depot-goods-list {
+    overflow-y: auto;
+    margin: 0 6px;
+  }
+}

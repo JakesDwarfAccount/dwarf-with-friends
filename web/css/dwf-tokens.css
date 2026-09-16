@@ -1,0 +1,181 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+/* Shared values, fonts, art handles, and global design ingredients. */
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer tokens {
+  :root {
+    --dwfui-alert-rail-w: calc(32px * var(--dwfui-interface-scale));
+    --panel-dock-left: calc(var(--dwfui-alert-rail-w) + 2px * var(--dwfui-interface-scale));
+  }
+}
+
+/* Every sprite below is native art extracted 1:1 from DF's own interface_bits_stockpiles.png
+   and interface_bits_shared.png, shipped as data URIs so the client needs no new served asset. */
+
+@layer tokens {
+  :root {
+    --spa-row-green: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASIAAAAnCAYAAACrBEWxAAACoklEQVR4nO3dPWsUQRzH8d/sw+USPRO8YExIY2ElgoqCla9B4jvyFVhYC2IlWmghCHaWsVEsFFGIJpoYzINe7pLs7c5f9i6BbMBuzyny/TQLy8IOW3yZ2SnGzc/PmyStrKxoZmZGY5MT8p86ajy/Wd4GgNq4dkP5w2/KH32Vm2tK2SA/SipPjcfSl6783Ytysavv7QAgKf/4R/nlU3K3Z6UXP6XpManvj4TISW6pK7t/VbZwTr0Hy3w4ALWKkliunPDcOis1I+npqtRuHAmRSXbvkmzhvFwrUtHN6x0BAMSFIkvlWql0fVJyTu7ZWnVpZjempNlx2ctVuYSlGYB6mTcVvb4ib4qnm7IrZ5Std4+FKPPyixvyrzf4RwSgfpGTCpPPCmltV8X2vvILTUVHn0m2CrnF3xLLMgCjUG6SOTe45p1M+eae3K5VZ0Tp974siaVmPJIxAMCh8vePS6PBRlllRmSNslQm+eHePgCMTJmZg9RUQnR4EwD+p2qIACAAQgQgOEIEIDhCBCA4QgQgOEIEIDhCBCA4QgQgOEIEIDhCBCA4QgQgOEIEIDhCBCA4QgQgOEIEIDhCBCA4QgQgOEIEIDhCBCA4QgQgOEIEIDhO8QAQhv0jRC4dnsDIsUIARnvaa3m09EFv/LEQFRv7wzPvyyABQN3sIECFyTr9QYFsIqqGqN/J5JJY8elG7e8HAJUTHW/yW5l8Lx9EKVnaU3L007jlPdlcoWiqIb9e8NUA1MrKCG3uy2eF3His+POuGm861RDp8Q8pSWXXWrK+r3cEAE48v53Jl20ZG0ZobHFHvpUcC9F0Q3qyKu3kKlqECED9XBop+dBT+rYrfyaScjsWorJU7abcq1/SnfYIhgDgJLPxSOm7rtL3PVkrHkSovP8X0fTHXPhnypcAAAAASUVORK5CYII=");
+    --spa-row-red: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAATwAAAAnCAYAAACSY/TqAAADaElEQVR4nO3dv28jRRjG8e/sZuPd2AlyFHFcZAlEBIIgAQ0FFS2HgAYKBJT8B3QUiONqKkRLBwV/QJoTOqRD4hpoQJwU7gQc5E5AcvxwEv9Y77xorLvYQdDE2Bvbz6ey1rbmrR6NZ+Ydu0ajYQzJ4pjv9pvsZqvDj0VEpkYHWMdxgZy3yXkIRwtYGP7QUhSxfbDPBw9vkvz8S3nVioiMIHOOq+0Oz7dzDlLHexV4wIYCL8zstg/3+fjRx3np3rNsfbs9yngiIqUpgLqLqUcRr3WMmhnns2gQeOFn7EebT/Dy2hmSWpU/ivAVEZHp1HaeIk444yJe6BqGHwTe1lNPc25pGVZWeO6zi7zuXLnVioicUEivHsZvRU4vWmAjWuDZvBgE3rnbTVip88znF3nj1cew96+cdCwRkVKFndgYR47R9D2ummfHDwXezvXrrGHsLcYc/mrUyq1XRGTk0FvA4YGbRY8bVhDdfTOrVun+eIPIjA+vXBttJBGRU+DumbuKc2S4QeCZ97g0xZtRz7LyKhQRGUPwhZneUeD1ed9/+OT62v89nohI6Y4HXn+mZzyysVRONSIiEw08g/W1Yw0YIiKzGXg4R6udl1KMiMhkAy88jHToWETmJPDUZCEicxN4YR1PRGQuAk9EZI7W8CZfiIjIuP1rtOlmKBGZi8ALG7TfXAsXJIuIzHjghR3a728dlFONiMhEOy3C1chZPM4xRUROyRqehauiFkspRkRkooHnDTYfTMc6qIjIqdmlXamqtUxE5iTw8t7kCxERGTcdPBaRuaFeWhGZG//RRKY1PBGZi2MpRiVNSilGRGSyrWXA7u+68VhEZjzw+v/WncT88JN6aUVkdtg/A68LJM6x3GxxWGiGJyKzEXRhRyK58/oo8M7i2M1z3m16Ll/6utwqRURGZHeCLhwr3jMjHg68T+hxq9Vm1RxvdXQDqIhMr/7yXLjb0+Cmef7yRT/8jv6A9hW6XEgiXuwa90Uxt73aLURkOoWfsQXGjnkOvacGfFVJBoG3geN8FpLR+qHXOVrmExGZLiHYdryn5T1V4Mt0ka3lbBB4beB+D++kEX/iqR4U5VYsIjLKZoWDFMcXSwmf1lJWC49rNBrHpnKJwV7seHO3edKxREQoU+HgnsK4VK1wuVqhXhg9B38DpEv03iKojYEAAAAASUVORK5CYII=");
+    --spa-row-grey: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASIAAAAnCAYAAACrBEWxAAAChklEQVR42u3dv2sTYQDG8efe970ktcS2tthA0iIVQaVdHdVVBxF0c/aPDULBCjUWA7UE0x/EJmkuuSSXex0CpVccL8Xh+xmTy/IMX+4uwxvUajUvSa1WS5ubmyqFJc1akT58/iQAyNPyvWXV9+tqfDlQ8KAomfnn7uZFRka+PdKLty9lAsNqAHJ1en6qysOK4r1Yvxo/pY2iNE2zIfJnQ736+E67z3ZV36+zGoBcWWtVcAXtPNqRc07Nbw1pvZAN0ev3b7T3fE/FQlGTyYTVAOTKGCN5qWiK2qpuKQgCNb//yIZou7qtlfKKDo8O5z8AgBx57zWejJX6VOXlsqqVqvpX/WyIklmi49axmsdNQgQgd0EQKE1TJUmi3lVPw9FQa6trytQmjmOdtE40noxZDMDCYiRJo3ikQTTQNJlm74j6g76stQpdyFoAFsoaK2edFCh7R2Stlfz8OQ4AFsnLX7fG3PoGAO4cb6QBECIAIEQACBEAECIAhAgACBEAQgQAhAgAIQIAQgSAEAEAIQJAiACAEAEgRABAiAAQIgAgRAAIEQAQIgD/V4g8x3gA0J2dJ/TvEFlr52cNESQACzzPTNL1sfbe+2yIoiiSMUbWWNYCkH+EvJc1Vt57xeNYQRAodGE2RKN4JGusSsUSiwHInTFG3ntFw0iTyUTGGHV7XbmbF3V7Xa2trmlpaUnJIGE1ALlK01TRMFIySxSGoTqXHXXaZ9kQHX09lAudapWaZrMZqwHI1XA0VDJL5KxT57KjP7/P5csuGyJtFNQ8aGg8Hit0IasByJ21VhedC3XPOvL3jZT4WyGaptJ6SSfNYz1++oTFAOQqdKHaZ231Ly7ly1ZK5v+g/QVmSdgSC9Y1rAAAAABJRU5ErkJggg==");
+    --spa-frame-gold: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASIAAAAnCAYAAACrBEWxAAAD6UlEQVR4nO3dXWhbdRzG8eecvLZ060lq4ja7zmFbRK14I4oIKzrwwosJCoOpZdQNJwwqKExvxZtNy1zX6boNlIkXQ+cLBXEsGxXcpMtQtJuWxjHbHrp1My+NJU3NOfnJOeGkJndtY47g84GQF05err78/nn7K62trQIAuq4rEyeflNzMKHxNERgFw7oZigKYJuD1AvaBRETLoKDUENNQsfm+HEKdC0j9uhZJPY2Opx6A0h5XvM7BMn6vHDl0BXs/mFeAefxwokUKZhHxnzzYvcNE4PG09XhERMu2+F1Ijn3igYQNBDJ+dL0wY/fkaN+kWO2BNRFZp/FBzR54poY1OfyST873+yX1TbN92+Ge0jkR0Uo4DUl+rUnsQEAGen0yOVxqjt0eJ0TZWLQiNvHPDjI+RFRz1W1Jn4mI4rxHNH02g5Tug57NY1bfhkgog4kbI9i+L88lGRHVxKn9Qelc343baQ3Ru77CJi0Ird1AOUSX3ingwi8FhJpNbH19zo6P3q/J+esN6Bm8wRgR0aqc3Ltenti8gNbXMnZPvn1Pk+mbKoJ+QHUOmpkMIhxWyxGyWHdoW8yt7tmJiABYLXEiZNnyakYRr+C5t1JKOUS+QBF3twk+erGxYv3WfXwpTEREK1Xdkk/7NHlmS+mD+/LH914PcM+zSUaHiOrij1kV8QuN9uXyRFS0v3ZERFQfHi/Q2FSsDBERUV0JIKUOMURE5D5ORETkPueb1W6/DiL6/+JERESuY4iIyHUMERG5jiEiItcxRETkOoaIiFzHEBGR6xgiInIdQ0RErmOIiMh1DBERuY4hIqL/TojGBtr4w1ciqptjz4fl+wMb7e5wIiIi1zFEROQ6hoiI3KEAzj5C5RCp1h/IEhHVSdFQsJhTK0NkmMC10y1Sva8ZEdG/Ye0dBjoemq8MUWFRxe9TCnZ+nKvYV2hkdzPDRESrVt2SHYNzSjbjRc+jLVIO0YZNeaRSRcTeXTpY79dkKlDaAI2IaDWsllhNca5f/TAsDaqCp7cKFOeP86fPZpDSfdCzeczq2xDRMpi4OYLt+/LceZGIauLU/qB0rutGck6DdueXiDYGsbHLXNrFIxuLVoxNl08f5JKMiGquui2pM5GlpdnM+F/2+fXP/XJoJySZeBML50pj1FAv3yciopVzGpI/F5Jk4g0M9PpkcrjUl1uJwj+WZrEmDL1/G3sGkvZS7OLxZnmwzY9EwoeOrgVcHV0D1cMhiYiWp2gquP+RP5EYa0B7ewFjuoHHdqXtzhzti8rLr4QrN1iUH0u/N5Ppt0V+hsRPrGN5iAi1MjoUEplaI7e+2CATRxpEfnvYbszfGY5wpU5Rd48AAAAASUVORK5CYII=");
+    --spa-plaque-all: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAAAcCAYAAAD1PDaSAAAE2ElEQVR4nM2YXWwUVRiGnzNzZnbb7l+X0tIU5AKTIiRooTQIRkikF3BBlBuTwo0hgXjlpYaYgBeFRGO4IfECxMSEYCJXmmCMYBoMWn5SCdqADfIjbG1TW2D7s3Rn5xxzztJKi9qtqV3ezWYyM+/Meec933zfd0ZURBbpeEQhHdA8xdCA0Sg1su2NBXT1RhgNXKSjUUqDACFEuWWitbZihSMQRvC4Rg65yJ37n6H3Y4efro6TTgj8Cp9CoFGBopy6tQbHc5Ce4OFonrxWJCOV+P0VyI6bgttn7rA0kmRsIOTOb73EEw5e3EOHRdfnXzEIVxAMBwxnFfWLk9TGJT3XbxJdlEbGI4LQ0WzbtY5BdY/jH3YSXxpn2dY6xrOBnZp516w0kYTHr6f6yd3O0rprBQ3xNAf3niIhPWSoNfGYz8GD3/Hqa3nWrtJcG3QIRgKCsbAssa21xnEgV3Csnr6eLj79JkIi5mP0SkNSCOIqx5mTikWr0yxvTTH+oIDjlieoBYL8SMjy1moyFwW9J+8Tj4coJI4GaYwM84rFLy2gdnkV+ZGCvcDE1PSnn+K6SUH/4zMJtyi8pjFGfVOK7N0xbn07hCcoOj0TVEHhSIeWeAvbXt5G+/F2cqkcYT7E9d1J3p41e1j/wnpuZW5REa3g2JfHuBZesy/0hAmlcGaCUxJJOmxp2MK+Pftoeq6JE/tPsCRYYgWrUE3yDp8+TNsHbVzovsDKZ1dSHau2x/VjZasUzkwoyekdK3bQtrWNnft3MpAfYOOyjRx48wDtn7RzVV+dDB2v2rP8G7/fIAxDRsdHn7iXVwJnTpw2gg2MYJmW9PT2kE6l2dS0qRjnj0wyBcmkq6gfxXVdHFPGpkGVwJkT0cOjwyit0ObVBQphwbrU+0fvE3czed2W338ZUczEmYvwqKqsso5sf347mYEMa1avsS7FKmKUA3I25Lp0nXUoFU/Z/emFx0y7+U1MudmarKBNE+aWzpkT0WO5MSJ+hI86PsJLepztPsuGpg2MjI1M4blecdSRhyMEhcBuTRpzXXdWnDmJ6VhlDE96+AXf5uzaRK3dX1i9cApPDSrEoKC5sdmeN1uzrwbVrDhz4nTHxQ481yMQAVJKBrIDnOs6x5XrV6bwdm/ezbpV68j0Z+z5xqWNHGk5QueVTo7+eLRkzkwQ73dt1cff7aNyWWqyjJejs/snmFj3KuVkGY/WVJfm9ER6Mo2M7TfsgkL/tT+N93cQj17aUjgzYVK0cdd0dfa6ac3QEzezWsV/GlTMptU1iwFBUddjsy8nljV954fo7Rxi4aoki5sTPBwKELJ8YaILmmja4+6lLP2X+6iKF3VavVa5o+kbdnnxlZAGBvjl9D38KtdmCptX5/mvCsqOb3QYPUZX37C0Os0ES60E2Wyed/a2Mubf57ND50nWF/CTHiYJlWu55Sc9PFXgcje8/lYzb7dUc+i9r0knQFZVhPi+4PuvfuZBPiA34hAdytHzRQZVMN3bvGvGhoAUjA/lrZ6Oz29Sn87gSYEKNfKH7krcZA2Xuu8RS7ikG9IEgSY/oMqzEp+AEe5HSTcI+vpz3L47SqquxpRUxNLNa7WTLSARNmnYpl4UP46UG9rEp1nkuo6d8bCg7EHRsKBW4wq0SWNP9XexRxCCPwEZUJgtE3vskQAAAABJRU5ErkJggg==");
+    --spa-plaque-none: url("data:image/png;base64,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");
+    --spa-plaque-done: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIIAAAAlCAYAAACOGjGrAAAHDElEQVR4nO2bfYxU1RXAf/d9zMd+784uLMti1K5gu6GxLdUiSAMNtjSNaCX9MPSPxYYUTEhs/2kb0IZgTQpJC9SK1lJqlWi1KLHxA4ltJSa0iKtUVthFYNnOwu7sLuPO7M7ne7e5d2c3BVZDE986dN4vmczMe2fOnffOeeece+57orm5WeJzRREMmLx/socN36xl4/cFVA2Q+iDEO2838u8zNj9/o/p/1ml48k99rjh8R/DR+I7go7ECpoHrAqpSEGMbfYoTKSWONtTHj9VzfgSrTCBMAY7vDMWILIRuG4MKw/ZkDOueJa0Md2UhDcIEx5UIAcKfS3yiSKEiABiGwESQch0GZIp3M+c9Gc/asmAezwx1c6w7TmXYpsyyybuQEVJ7oe8PU4vKzipTB6XAMiCRzaEMUlYeJJbLeucIxw+cY0d/B+GZZZijkq54nCpbUOcI8ioyeDKsz4ehLjxLwpApGc5JWmqqCUVsjkeHuF5MxyuscLlNwBFsvGkhTf2Ctf84QCWj/CAfYkBILM+G9pmMPFAvBTvMNAmrjO2tC0k0max86gXCIROvsKQrqSgLsv7pv7F+7hzmX1XDW13DxJVHShfvhvaZDFWvW4ZBNp1n/nU1nIydZeuBE1SVBXAd7xK1ikIYEmLhUdaePsJXsgZtooxB6eJNferzUai6LC5dbYNXTp3lHjtKbVgZyvK0XrPU7CAN3J61+Hw+QBxJXMiiiwSl1OYwlTMIyTzXYkla0Gnmedb29viLrgRY9s/9fNDXj+M42MEAlm3z/PqN1Bx8m6yUBNTc1uf/v8W86+al2gmuveGz/KltLXvv28Sap/5A5uuLtRO4hQCZl/KC18Udt4v3TyZzOXpKhaJzhOl5Se/xTpx8HpkcIfzGYXbc1cbKX20mf8fXEAhyUmIJccFLNV2UIce5eP9kMpejp1QoutSgrvhAOIxpWRi11QSSaWIdnVgBm/krv8Oh517GFoLEoi/SsngRruOSz2Q4uvsZmqIxHCkxhSBw93eR0qVuVjOGaZJOJC+RGdfzmWVf1WOnkgmO7Np9gUypUHQRwUAg9SoYyFx+rEgsD+ttfe+f1NtTt97C6scfI3biFB3P/4Wq6dP49s7fcK5llm6Pq9/cueHHrLjvp1rmX8/unVRmdOlCrefoi69wcMtWMokRlm/bzNmrGidkSoWic4RJUbWB6+rVN8WqR3+tHaN/959peLeLgw89SvOc2SxYt2bMkZAkhoZIj4xomfojxyeVufu3D2k9oeoqAjMaqaivo+ULn+N7T/5Oy4zXI6VA0aUGFZKFMeafImDrKZNMJHWqaP70HHqAwWgvNdOnkakoIzM8QqihnlwmQ2/HexN6whWVOp1kykPkE2mCkQj5bI6+rhMTMufP9VFVH2H24kUkh4Y4c7idbU/vIdsXY2YhOpUKRecIKi9nkkltNBkbJCNdIjffSCaVYt+WrVQAkZlNWtYeTREUBvHzcexgkIZrr+FMQU8+l9XvwnF1Eejmcvq7qhfGqW0c690f++EGQsLQDTQnYGC5pRMJijY1RCvDXPelG/XVbDbPQCy/lbaHt7Jz1RoqXz+kQ/r+x3ZpWXPu9UQrgjTfMp/hgQE6XtpXaDwJQuXlWgeF6GKFQ/p7ZUP9xFjjelI33UC0upyG9fdyb2c7TXfdqfWosUqFoosIbS/vof90N/2nz3Db5gf0evz2276l87yKDioCxDb9kudiMe74xQNkRkf17/64eh11bx3VUz8VAdr37ce0bIxCJEj3xTjy2t/pfrN94qDH9SzfdL/W4+RybPvGCl13OAU9pULROcK+Bcsu2aauYdXoUU6gUEZKP/IErz/yxIRMXUFm3HjHVv9IvzcW9jeeinJ01bqJA1b5fzI9DRfpKRWKzhE+LBirRs/EZ6Gq/o+W+e/9YpLvl6un5BxBXWuWzq5jmfGTOhXiY5ITlylfrCaXhf+mbDIVhZyl7o0LAi8F8uw1XL6cNVgqg/QLt/jCRQndnDJNGrwqMvw14FJnCoIeL0MbyutUOjSSQX52dSt1n5rB4+4I1cIgV7hRwn8xZedAnXN17pUNlC3uv7pV20YI6e0ytGrmxkczPLhiCbPjFjvf7MEOmUSyqrOmFmF8phLlDBEpcEImh6MJ2ubN5cHWWaza8yLNIe9cwQrbBoGA4PfH3kEmXE6m40RCgoftFDmPvdDnUlT4t6VgwHQZTMf5SdchqgaDWPbYLMcrrMM9SZqo472OOJUhm5ZQhJyEAUsiVAHhM+VIIamQgtoQ9MbSdPeO0FJeT9D18ObV7ac7Uc3YYNgkK136MqM6ChRdy7HESI3f2i4MREAQzSRx9RMP3mC1O/1jTzWpUtWnqFEXaFB4M5ezKrD141U+VwZeLY1bpXqPns+F+KWAj8Z3BB8U/wHWa0VssZudsgAAAABJRU5ErkJggg==");
+    --spa-green-strip: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAAjCAYAAABRhLCJAAAA50lEQVR4nK2RMUoDYRCFv5n/X+PauJpgI6JYKCrBe9jZmBN4DS9iLQhWNp7BxtpGCChRERWCm6AmOyOb3UDAUgcevDfFvDczcnDe8ixAAcQFhVQqoQ5MocyU/kW41aIkoqA28gnJX4yoidB/NO6vlokfPeP1coW9Yhd9uGiy1m+zvggq6QhNPuk9J6iPFTwgqsQQjHcTBh7RreOc4eoNb3Qr053OANu+Q23sxIaQzOdoaAjXp18c7Z8gh2ct96eC79tNogRY2gjkWRctQ5ap00yraZOGzywn8p+n+i2k9KgRhwZz9bN+ALSBSpv6E+VWAAAAAElFTkSuQmCC");
+    --spa-winframe: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAFJUlEQVR4nOWaTWxUVRTHf/e+O5/tTKfttKUfU0BqW6kgREQThSjoQo2iC0lcGl3pxrgx0Rg3mpgYV8a4MJoYV2p040pjRKwlxBAMKFhoMdLvaTvt9GNm2nkf17xXoC0g9msGRn/Jyyzefe+d/7vn3HPePSN237lHU0D2J86zvaKBhx8cp7kjhRKXHucDrPXfX1FgbB0iWJ7hWFcdlg2NbdNYMwIhN+b+otAzoMQ87dVjPHSbj5AMYZngU4KNeqiiwAxNprCJEwlM4jeGaa6I0RoJk7NspBDrvr9obGrQjdXVtEbHeeY+i/bNAWZzYBgbNMfrwHYgEhZ0983x5THJuXScwYkUtbGGK2NUIh6n0Rjg1Zf30LKrEZGPITK/o5NHEEqBtotuuHbfrAARcEherKCpOsaz+zN89uMYiBrMJSaJ5w/U6lde2sb2Jz+G/CD0vAGzv0EgA07RbV/A9aycq0RgC0gNVZAcqmJwMsfXx21OjDRfGgjq/ibFtntfB3UH+d7P8WeOk06GOda1FX8wj3Y2LuBWghCQnzc4+MgAwZgNWUl1/RT+gEPequSBBJwYWRyvKvwG8+HHCPS/i3/2fUYHI/zcuYnctKIuVu7N5/pDbXX4tODo94K9+weprDe92SiL5MibVUSDgWVjlem6ycRXMP8hfacmOHm6lbDjxwxleOfbUQxRXE+SnudoDt+VIH5yMzVtQzRvzWLOGN7smG5kLxUgjAD6wpuQGKP3Qi2ZySApY5JPu6bo/Atw9EJUFQvhHhKbQcbSDTxdHYW27OLpq9xBeZpnz0IW4vUhfJbDR0ezdPZM09Hewnx+A/L9Kgn4FT+c7SWu0rwQlWD/WyJTYXByVFaa+PImNTGBkgbZuTz5pWtWkbAdB2VIaqskPr++oQ8vCHDXeqHJZiWxmE28Lo/lgJQCsQHZcrVIKby6KV6TJ1YlwbzWda6MXX4h2DZYVvGNvh6uHV4evYE519QLXga8NexnJbasqODp/2aa25scJmYEyuCWQlLiSEocSYkjKXEkJY6kxJGUOGqlA6VYyNTe75Lk4harJSFgdk4wmxGEfHh1ymXKQroEBGhornNITUM8qr1C7zIjKVkCAkz44q3MdYuqxKEoNxNJiaNWNMoHh18r49ceeY0LlYYAAX1JSW+/wVRMl2AQA+VBTXmZJhJeLqAkltHEEwuBGivT3IRv/P92EEtuYbS7JaVXKWAlFxULpTRCyRu+5+UxIBYuCvhBGQKttXcUG8fR3rf3+FiQ9FiGWMRB/8PWxHIBjiA95advyK13LMJBH4Zbwd2EnTnLdhhNzWEG90JVEsbPeFuOV6M8l3HcPW2oS2Q4O5xjk6xlX4tDZ3fSPVl0AUiDfW2N7KxKksr5qCmvB/s0WrtecZUAv5KUl1tewRatmKO5fYRDgUY6WmuJdQ17faxirvXS3Q23czx39wwtOx8l3PIUWp4DvsPnFwS8mFgiIJmZ43xPhO270ug8NDTNURW7SKS2iscPRHG0KGp/QKOR5bsZyiTYdPA9gpF6GHkbv1+TmlAMuw08IosCuscnkJ0NBA1joRGtIVhmsaVjdEMa0Wsi3sqWbS9Cvg+Sn2D2f8DAQJTBfoc/UpNAzaKAQjei10TyJzi1zws/FYPB3mp+Od6MEZj2GudLEffs2KEL2YheG9JbcdydcdN0UMoi5+Q48qdJd6oGSy+2mVShG9Frw8HRmpAyOD+bpW80Td6OciYVJzm5vE9c8L8a/K9roZVQ8gL+Bmvk9AmCu2NUAAAAAElFTkSuQmCC");
+  }
+}
+
+@font-face {
+  font-family: "DFCurses";
+  src: url("../fonts/df-curses.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block; /* block, not swap: a flash of the fallback face is the defect this avoids */
+}
+
+@layer tokens {
+  :root[data-dwfui-bitmap-text-status="native"] {
+    --dwfui-text-crisp: none;
+  }
+}
+
+@layer tokens {
+  :root {
+    /* --- the 8x12 text cell. DF's AUTHORING cell. NATIVE. FIXED. Express geometry in CELLS. --- */
+    --dwfui-cell-w: 8px;
+    --dwfui-cell-h: 12px;
+    --dwfui-interface-scale: 1.25; /* THE interface knob: every DWFUI geometry is a native measurement times this */
+    --dwfui-row-icon-gap: calc(10px * var(--dwfui-interface-scale));
+    --dwfui-cell-scale: 2; /* legacy label multiplier ceiling; NOT the DF scale */
+    --dwfui-font-face: "DFCurses", ui-monospace, Consolas, monospace;
+    /* DwfGrid recomputes these onto documentElement.style at runtime and out-specifies this block, so
+     the calc()s here are the pre-boot fallback only. A third writer fails ui_drift_guard R9. */
+    --dwfui-cell-drawn-w: calc(var(--dwfui-cell-w) * var(--dwfui-interface-scale));
+    --dwfui-cell-drawn-h: calc(var(--dwfui-cell-h) * var(--dwfui-interface-scale));
+    /* Published by DwfGrid at runtime. These fallbacks are ledger 0089 R3's minimum legal screen
+     -- grid_x >= 114, grid_y >= 46. */
+    --dwfui-grid-x: 114;
+    --dwfui-grid-y: 46;
+    --dwfui-grid-origin-x: 0px;
+    --dwfui-grid-origin-y: 0px;
+    /* Native fortress chrome geometry from viewscreen_dwarfmodest::render. */
+    --dwf-right-chrome-width: calc(29 * var(--dwfui-cell-drawn-w));
+    --dwf-right-chrome-height: calc(18 * var(--dwfui-cell-drawn-h));
+    --dwf-status-height: calc(4 * var(--dwfui-cell-drawn-h));
+    --dwfui-font-size: var(--dwfui-cell-drawn-h);
+    --dwfui-line-height: var(--dwfui-cell-drawn-h);
+    --dwfui-font: var(--dwfui-font-weight, 400) var(--dwfui-font-size) / var(--dwfui-line-height) var(--dwfui-font-face);
+    /* the 1-bit glyph-mask filter; it needs <filter id="dwfui-crisp"> in the document, else inert */
+    --dwfui-text-crisp: url(#dwfui-crisp);
+
+    /* Tier 1: gps->uccolor defaults; applyPalette() overwrites them and they never paint backgrounds. */
+    --df-c0: #000000; /* ledger 0087: uccolor[0] BLACK; runtime-overwritten; no backgrounds */
+    --df-c1: #207df1; /* ledger 0087: uccolor[1] BLUE; runtime-overwritten; no backgrounds */
+    --df-c2: #a2dc34; /* ledger 0087: uccolor[2] GREEN; runtime-overwritten; no backgrounds */
+    --df-c3: #71bbb0; /* ledger 0087: uccolor[3] CYAN; runtime-overwritten; no backgrounds */
+    --df-c4: #ff113a; /* ledger 0087: uccolor[4] RED; runtime-overwritten; no backgrounds */
+    --df-c5: #a73cd5; /* ledger 0087: uccolor[5] MAGENTA; runtime-overwritten; no backgrounds */
+    --df-c6: #d79b2d; /* ledger 0087: uccolor[6] BROWN; runtime-overwritten; no backgrounds */
+    --df-c7: #c0c0c0; /* ledger 0087: uccolor[7] LGRAY; runtime-overwritten; no backgrounds */
+    --df-c8: #a0a0a0; /* ledger 0087: uccolor[8] DGRAY; runtime-overwritten; no backgrounds */
+    --df-c9: #8c66ff; /* ledger 0087: uccolor[9] LBLUE; runtime-overwritten; no backgrounds */
+    --df-c10: #13fd65; /* ledger 0087: uccolor[10] LGREEN; runtime-overwritten; no backgrounds */
+    --df-c11: #12fecf; /* ledger 0087: uccolor[11] LCYAN; runtime-overwritten; no backgrounds */
+    --df-c12: #ff7111; /* ledger 0087: uccolor[12] LRED; runtime-overwritten; no backgrounds */
+    --df-c13: #e811ff; /* ledger 0087: uccolor[13] LMAGENTA; runtime-overwritten; no backgrounds */
+    --df-c14: #ffe111; /* ledger 0087: uccolor[14] YELLOW; runtime-overwritten; no backgrounds */
+    --df-c15: #ffffff; /* ledger 0087: uccolor[15] WHITE; runtime-overwritten; no backgrounds */
+
+    /* Tier 2: semantic text roles; ledger 0087 L1 requires every role to resolve through Tier 1. */
+    --dwfui-text-title: var(--df-c15); /* ledger 0087: window title uses index 15 */
+    --dwfui-text-heading: var(--df-c15); /* ledger 0087: heading uses index 15 */
+    --dwfui-text-body: var(--df-c15); /* ledger 0087: value/body text uses index 15 */
+    --dwfui-text-prose: var(--df-c7); /* ledger 0087 M3: prose reset is index 7 */
+    --dwfui-text-row: var(--df-c15); /* ledger 0087: row label uses index 15 */
+    --dwfui-text-secondary: var(--df-c7); /* ledger 0087: report/dim body uses index 7 */
+    --dwfui-text-disabled: var(--df-c7); /* ledger 0087: unresolved disabled role aliases secondary */
+    --dwfui-text-warning: var(--df-c12); /* ledger 0087: warning state uses index 12 */
+    --dwfui-text-good: var(--df-c10); /* ledger 0087: positive state uses index 10 */
+    --dwfui-text-danger: var(--df-c12); /* ledger 0087: negative state uses index 12 */
+    --dwfui-text-active: var(--df-c11); /* ledger 0087: job/activity text uses index 11 */
+    --dwfui-text-selected: var(--df-c0); /* ledger 0087 L1: nearest palette index to 0074 glyphOnGold */
+    --dwfui-text-numeric: var(--df-c14); /* ledger 0087 L1: palette role replaces 0074 frame-art tone */
+
+    /* Tier 3: fixed native sprite and surface tones measured in ledger 0074. */
+    --dwfui-surface: #1c1c1c; /* ledger 0074 surface */
+    --dwfui-buildmenu-separator: #60b9c0; /* native-sampled build-menu separator pinned by build_menu_native_visual_test */
+    --dwfui-field-dark: #121212; /* native-sampled build-menu field pinned by build_menu_native_visual_test */
+    --dwfui-hatch: #252525; /* ledger 0074 hatch */
+    --dwfui-gold: #ffbf01; /* ledger 0074 goldNative */
+    --dwfui-gold-bright: #ffc300; /* ledger 0074 goldBrightNative */
+    --dwfui-gold-bevel-mid: #cc8a20; /* ledger 0074 goldBevelMid */
+    --dwfui-plum: #614151; /* ledger 0074 plum */
+    --dwfui-slate: #5c625e; /* ledger 0074 slate */
+    --dwfui-silver: #d8dbe4; /* ledger 0074 silver */
+    --dwfui-slab: #4e474e; /* ledger 0074 slab */
+    --dwfui-destructive: #a61f2e; /* ledger 0074 destructive */
+    --dwfui-row-hatch: repeating-linear-gradient(45deg, var(--dwfui-hatch) 0 2px, transparent 2px 6px);
+
+    /* Tier 4: browser interaction roles with no native sprite/state equivalent. */
+    --dwfui-focus-outline: var(--dwfui-gold-bright); /* browser-only: visible keyboard focus */
+    --dwfui-selection-fill: var(--dwfui-gold); /* browser-only: selected fallback without mounted art */
+    --dwfui-selection-edge: var(--dwfui-gold-bright); /* browser-only: selected fallback contrast edge */
+    --dwfui-control-track: var(--dwfui-hatch); /* browser-only: HTML range/switch track fallback */
+    --dwfui-control-knob: var(--dwfui-slab); /* browser-only: HTML range/switch knob fallback */
+
+    /* THE SHARED DIVIDER, one native pixel times the interface scale -- never the product. Owned by
+     `.dwfui-grid`; no cell may state a border of its own, or a hairline becomes a double rule. */
+    --dwfui-divider: calc(1px * var(--dwfui-interface-scale));
+
+    /* Scrollbar sizes are native cells; DWFUI.mountScrollbarArt() supplies its paint. */
+    --dwfui-sb-w: calc(16px * var(--dwfui-interface-scale));
+    --dwfui-sb-min-thumb: calc(24px * var(--dwfui-interface-scale));
+  }
+}
+
+@property --pf-vstretch {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --pf-vdock-bottom {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@layer tokens {
+  :root {
+    --zone-palette-width: calc(45 * var(--dwfui-cell-drawn-w));
+  }
+}
+
+@layer tokens {
+  :root {
+    --zone-palette-width: calc(55 * var(--dwfui-cell-drawn-w));
+  }
+}

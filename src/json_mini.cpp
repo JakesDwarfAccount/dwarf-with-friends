@@ -6,6 +6,7 @@
 #include "json_mini.h"
 
 #include <cerrno>
+#include <cstdint>
 #include <cmath>
 #include <cstdlib>
 #include <limits>

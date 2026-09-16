@@ -1,0 +1,122 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.console {
+  .console-panel {
+    position: fixed;
+    left: 110px;
+    top: 70px;
+    z-index: 4000;
+    pointer-events: auto;
+    width: min(520px, 86vw);
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold-bevel-mid);
+    border-radius: 4px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.6);
+    color: var(--dwfui-text-body);
+    font-family: inherit;
+  }
+  .console-panel:not(.open) {
+    display: none;
+  }
+  .console-head {
+    padding: 9px 12px 8px;
+    border-bottom: 1px solid var(--dwfui-hatch);
+    color: var(--dwfui-text-heading);
+    font-size: 14px;
+    cursor: move;
+  }
+  .console-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px 14px;
+    overflow: hidden;
+  }
+  .console-warn {
+    flex: 0 0 auto;
+  }
+  .console-search-wrap {
+    flex: 0 0 auto;
+  }
+  .console-cmd-row {
+    cursor: pointer;
+  }
+  .console-cmd-blurb {
+    font-size: 11px;
+    color: var(--dwfui-text-secondary);
+  }
+  .console-runbar {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .console-input {
+    flex: 1 1 auto;
+  }
+  .console-run {
+    flex: 0 0 auto;
+  }
+  .console-section-title {
+    flex: 0 0 auto;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--dwfui-text-numeric);
+    margin: 6px 0 0;
+  }
+  .console-output-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font:
+      12px/1.4 ui-monospace,
+      Consolas,
+      monospace;
+    color: var(--dwfui-text-prose);
+  }
+  .console-empty {
+    padding: 12px 6px;
+    color: var(--dwfui-text-secondary);
+    font-size: 12px;
+  }
+  .console-history {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .console-hist-row {
+    cursor: pointer;
+  }
+}

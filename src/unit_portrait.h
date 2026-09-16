@@ -30,10 +30,8 @@ namespace df { struct unit; }
 
 namespace dwf {
 
-// Run the current native viewscreen's logic and render passes against the portrait module's
-// isolated SDL target. Must be called from a runOnRenderThread callback while the caller owns
-// capture_state_mutex(). Art prose uses this exact established view-sheet rail so DF can page and
-// compose item/engraving descriptions without painting the host window.
+// Runs the current native viewscreen's logic+render against this module's isolated SDL target.
+// Call ONLY from a runOnRenderThread callback while holding capture_state_mutex().
 bool native_viewscreen_logic_render_isolated(std::string* err = nullptr);
 
 bool unit_portrait_on_render_thread(int32_t unit_id,
@@ -44,10 +42,8 @@ bool unit_portrait_on_render_thread(int32_t unit_id,
                                     std::string& source,
                                     std::string* err = nullptr);
 
-// Native portrait generation by calling DF's own one-argument lazy generator directly
-// (the routine every native portrait display site calls when portrait_texpos is 0). The
-// call is pinned to the exact game binary by prologue byte signatures and wrapped in SEH;
-// any fault permanently disables generation for the session.
+// Outcome of calling DF's own lazy portrait generator: the call is pinned to the exact game
+// binary by prologue signatures and SEH-wrapped, and any fault latches generation off for good.
 enum class NativePortraitOutcome {
     Generated,      // DF composed a fresh portrait; unit->portrait_texpos is now set
     AlreadyExists,  // unit->portrait_texpos was already set; nothing was called

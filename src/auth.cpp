@@ -25,11 +25,9 @@
 #include <fstream>
 #include <mutex>
 
-#include "wire_v1.h"   // kSelftestFixtureCrc (wire identity half of the build stamp)
+#include "wire_v1.h"
 
-// Git short hash injected by CMake (target_compile_definitions). Falls back to "dev" for builds
-// where git isn't available (e.g. the git-archive deploy mirror). The literal is stringized by
-// CMake as e.g. -DDFCAPTURE_GIT_HASH=\"23092973d\".
+// defined by CMake at build time (target_compile_definitions)
 #ifndef DFCAPTURE_GIT_HASH
 #define DFCAPTURE_GIT_HASH "dev"
 #endif
@@ -49,9 +47,8 @@ std::string trim(const std::string& s) {
     return s.substr(b, e - b);
 }
 
-// Constant-time equality. Folds the length difference into the accumulator so the only thing a
-// timing side channel can observe is "lengths differ" (acceptable for a shared friends-tier
-// passphrase); the byte comparison itself never short-circuits on the first mismatch.
+// Never short-circuit here: an early return on the first differing byte hands an attacker a
+// timing oracle for the passphrase, one character at a time.
 bool ct_equal(const std::string& a, const std::string& b) {
     unsigned char diff = (unsigned char)((a.size() ^ b.size()) & 0xff);
     // Also fold higher length bits so a 256-vs-1 length delta can't alias to 0.

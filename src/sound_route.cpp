@@ -23,9 +23,8 @@
 
 #include "diagnostics.h"
 #include "httplib.h"
-#include "music_sync.h"  // register_music_route() -- POST /music host control, wired here so
-                         // http_server.cpp (entangled with in-flight agents) needs no edit
-#include "websocket.h"   // peer_ip_is_loopback()
+#include "music_sync.h"
+#include "websocket.h"
 
 #include <chrono>
 #include <fstream>
@@ -36,19 +35,13 @@ namespace dwf {
 namespace sound {
 namespace {
 
-// dfhack-config/dfcapture.json is relative to the DF working directory -- the SAME convention
-// web_assets.cpp uses for the web root and http_server.cpp uses for the /asset mount. The WS4
-// plan (2026-07-04-ws4-hosting.md, Task 1) owns this file; until host_config.cpp lands, this is
-// a self-contained flat scanner (C++ is the only writer, so a full JSON parser is overkill).
+// relative to DF's working directory
 constexpr const char* kConfigPath = "dfhack-config/dfcapture.json";
 
 std::mutex g_cfg_mu;
-bool g_cfg_audio_remote = true;   // DEFAULT ON (2026-07-09) until the config says otherwise
-std::chrono::steady_clock::time_point g_cfg_stamp{};   // default-constructed == "never read"
+bool g_cfg_audio_remote = true;   // DEFAULT ON until the config says otherwise
+std::chrono::steady_clock::time_point g_cfg_stamp{};
 bool g_cfg_have = false;
-
-// scan_audio_remote now lives in sound_route.h as an inline pure function (fixture-tested):
-// DEFAULT ON, only an explicit `"audio_remote": false` disables.
 
 } // namespace
 
@@ -56,18 +49,17 @@ bool audio_remote_enabled() {
     using clock = std::chrono::steady_clock;
     std::lock_guard<std::mutex> lk(g_cfg_mu);
     auto now = clock::now();
-    // 3 s TTL: a host toggle takes effect within 3 s without a plugin reload, and a burst of
-    // /sound GETs re-reads the tiny config at most once every 3 s.
+    // 3 s TTL: a host toggle takes effect without a plugin reload
     if (g_cfg_have &&
         std::chrono::duration_cast<std::chrono::milliseconds>(now - g_cfg_stamp).count() < 3000)
         return g_cfg_audio_remote;
-    bool val = true;   // DEFAULT ON: a MISSING file leaves this true (fresh installs stream audio)
+    bool val = true;   // DEFAULT ON: a MISSING file leaves this true
     try {
         std::ifstream in(kConfigPath, std::ios::binary);
         if (in) {
             std::string text((std::istreambuf_iterator<char>(in)),
                              std::istreambuf_iterator<char>());
-            val = scan_audio_remote(text);   // header inline: default ON, explicit false disables
+            val = scan_audio_remote(text);
         }
     } catch (...) {
         val = true;    // unreadable/corrupt file -> default ON, not off
@@ -80,9 +72,6 @@ bool audio_remote_enabled() {
 
 namespace {
 
-// Read a whole install file into memory. Largest single serving file ~= 20 MB (ambiance songs);
-// typical track 4-8 MB, transient -- the same whole-file-into-RAM model httplib's own mount uses
-// (detail::read_file). Returns false (leaving `out` untouched) when the file is missing.
 bool read_file_bytes(const std::string& path, std::string& out) {
     std::ifstream in(path, std::ios::binary | std::ios::ate);
     if (!in) return false;
@@ -94,10 +83,6 @@ bool read_file_bytes(const std::string& path, std::string& out) {
     return static_cast<bool>(in) || in.eof();
 }
 
-// Tunnel-aware host detection for the licensing gate (see request_is_local_host's banner in the
-// header): loopback peer + no proxy forwarding header + a loopback-ish Host header. cloudflared
-// terminates on the host and dials 127.0.0.1, so a bare loopback-peer test would wave every
-// TUNNELED remote friend through as "the host" (adversarial-review finding #1).
 bool peer_is_host_tab(const httplib::Request& req) {
     return request_has_host_authority(req);
 }
@@ -106,9 +91,6 @@ bool peer_is_host_tab(const httplib::Request& req) {
 } // namespace sound
 
 void register_sound_route(httplib::Server& server) {
-    // GET /sound-info -- capability probe. 200 on this DLL; an OLD DLL has no such route and
-    // 404s, which is exactly how the client detects "host needs a plugin update" and shows the
-    // dormant note instead of erroring. `allowed` = would THIS peer be served audio right now.
     server.Get("/sound-info", [](const httplib::Request& req, httplib::Response& res) {
         bool remote_cfg = sound::audio_remote_enabled();
         bool loopback = sound::peer_is_host_tab(req);
@@ -121,10 +103,6 @@ void register_sound_route(httplib::Server& server) {
                         "application/json; charset=utf-8");
     });
 
-    // GET /sound/(.+) -- serve one install .ogg. Leaves res.status UNSET on success so httplib
-    // emits 200 (full) or 206 (ranged seek) itself and slices the body for the requested range
-    // (httplib.h:3698). Setting res.status here would force 200 and break <audio> seeking -- the
-    // whole reason this is a route, not a set_mount_point("/sound", "data/sound").
     server.Get(R"(/sound/(.+))", [](const httplib::Request& req, httplib::Response& res) {
         std::string capture = req.matches.size() > 1 ? req.matches[1].str() : std::string();
 
@@ -136,8 +114,6 @@ void register_sound_route(httplib::Server& server) {
             return;
         }
 
-        // Licensing gate: a remote peer (incl. a TUNNELED one arriving over loopback -- see
-        // peer_is_host_tab) is served only when the host opted in (audio_remote).
         if (!sound::remote_allowed(sound::peer_is_host_tab(req),
                                    sound::audio_remote_enabled())) {
             res.status = 403;
@@ -155,16 +131,13 @@ void register_sound_route(httplib::Server& server) {
             return;
         }
 
-        // Immutable: install audio never changes within a run, so let the browser keep it for a
-        // year and never re-fetch (350 MB of re-transfers over a tunnel is the cost to avoid).
+        // install audio never changes within a run
         res.set_header("Cache-Control", "max-age=31536000, immutable");
-        // DO NOT set res.status -- httplib computes 200/206 from req.ranges after we return.
+        // DO NOT set res.status, and never make this a set_mount_point: httplib computes 200 vs
+        // 206 from req.ranges after we return, and a forced 200 breaks <audio> seeking.
         res.set_content(std::move(body), "audio/ogg");
     });
 
-    // PARITY V2 correction #1: synced, server-authoritative music. POST /music (host-only) lets
-    // the host drive the ONE canonical track for everyone; the state rides env.music in the aux
-    // stream. Registered here (not http_server.cpp) so the entangled file needs no edit.
     register_music_route(server);
 }
 

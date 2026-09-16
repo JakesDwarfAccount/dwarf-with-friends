@@ -1,15 +1,15 @@
 {
   "schema": 2,
   "dfhack": {
-    "version": "53.15-r2",
-    "manualUrl": "https://github.com/DFHack/dfhack/releases/tag/53.15-r2",
+    "version": "53.16-r1",
+    "manualUrl": "https://github.com/DFHack/dfhack/releases/tag/53.16-r1",
     "windows": {
-      "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r2/dfhack-53.15-r2-Windows-64bit.zip",
-      "sha256": "2be9fbc30b1850e5f7a35869a51c4cc3867aef279c377ffe2675c6107dc79196"
+      "url": "https://github.com/DFHack/dfhack/releases/download/53.16-r1/dfhack-53.16-r1-Windows-64bit.zip",
+      "sha256": "7a0443b1295f23991ef6c9ac5363c20c36e706089b898afd53fe7aa11db21ec6"
     },
     "linux": {
-      "url": "https://github.com/DFHack/dfhack/releases/download/53.15-r2/dfhack-53.15-r2-Linux-64bit.tar.bz2",
-      "sha256": "294b788ab90c4d03f6f93ed30f16601d5f42567eae5528c6d93348c68b05f56c"
+      "url": "https://github.com/DFHack/dfhack/releases/download/53.16-r1/dfhack-53.16-r1-Linux-64bit.tar.bz2",
+      "sha256": "2dfbb62975d07943846ce4ffa11bf87d2eaf4cebf5e75ebf714e726862cfcc5b"
     }
   },
   "cloudflared": {
@@ -25,7 +25,7 @@
     }
   },
   "package": {
-    "version": "1.0.0-beta.2",
+    "version": "1.0.0-beta.4",
     "nodeVersion": "24.16.0",
     "nodeSha256": "b3094d0b49f9ad602262a9921551737bb97637c05dd357a06ae98188d7290aa3"
   }

@@ -25,9 +25,7 @@
 
 namespace dwf {
 
-// WD-29: hauling routes panel. ENDPOINT-ADD /hauling family -- df::global::plotinfo->hauling
-// (df::hauling_infost: routes/stops/next_id) is well-typed in df-structures, same posture as
-// burrows_panel.cpp's plotinfo->burrows.
+// The /hauling route family over df::global::plotinfo->hauling (df::hauling_infost).
 void register_hauling_routes(httplib::Server& server);
 
 } // namespace dwf

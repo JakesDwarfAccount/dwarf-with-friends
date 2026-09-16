@@ -19,471 +19,417 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-  // ===========================================================================================
-  // B232 -- THE FULL ANNOUNCEMENTS / REPORTS SCREEN.
-  //
-  // What this is, and what it is not. The alert stack + the ticker + the box popup
-  // (dwf-unit-hud-notifications.js, dwf-popup.js) are the LIVE surfaces: they tell you
-  // what is happening NOW and they are dismissable. THIS is the HISTORY: every report DF has ever
-  // filed for this fort, filtered, paged, and centre-able. Per-player dismissal (B197) applies to
-  // the live alerts; it does NOT apply here -- a dismissed alert is still a thing that happened, and
-  // the log shows history regardless.
-  //
-  // THREE THINGS CHANGED HERE, AND EACH FIXES A REAL DEFECT:
-  //
-  // 1. SECTIONS ARE REAL NOW. B160 shipped `typeKey === "SIEGE"` and `typeKey === "ARTIFACT_CREATED"`.
-  //    NEITHER TOKEN EXISTS. Checked against BOTH DF's own raws (data/init/announcements.txt, 352
-  //    tokens) and df::announcement_type (356 entries): there is no SIEGE and no ARTIFACT_CREATED,
-  //    and df::announcement_alert_type has no SIEGE either. So those two sections matched exactly
-  //    zero reports and always rendered empty. The taxonomy is now GENERATED from the raws
-  //    (dwf-announce-taxonomy.js / src/announce_taxonomy.gen.h -- one generator, two outputs),
-  //    the server resolves each report's `section` and ships it, and the real artifact tokens
-  //    (MADE_ARTIFACT / NAMED_ARTIFACT / ARTIFACT_BEGUN / STRANGE_MOOD) and the real invasion family
-  //    (every AMBUSH_*, NIGHT_ATTACK_*, MEGABEAST_ARRIVAL, WEREBEAST_ARRIVAL, UNDEAD_ATTACK, ...)
-  //    land where the owner asked for them.
-  //
-  // 2. IT IS THE WHOLE LOG, NOT THE LAST 300 ROWS. The old panel only ever asked for the newest
-  //    page and had no way to ask for an older one, so a year-3 fort's year-1 history was
-  //    unreachable. `before=` walks backward; "Load older" (and scrolling to the top) pages through
-  //    it. `since=` still follows the live tail.
-  //
-  // 3. A MESSAGE IS ONE ROW. DF wraps long lines into a lead report + continuation reports. The
-  //    server now attaches a lead's whole continuation tail, and only a LEAD can start a page -- so
-  //    a page can no longer open mid-sentence on an orphan fragment. That is the rest of TX14's
-  //    "combat is especially bad".
-  //
-  // CAMERA (B216): the camera moves ONLY when the Center button is explicitly clicked. Rendering a
-  // row, opening the panel, switching a chip, and paging older all move nothing. There is
-  // deliberately no click handler on the row itself.
-  // ===========================================================================================
-  DWFUI.require("reports", ["rowHtml", "plaqueBtnHtml", "headerHtml", "scrollHtml", "windowHtml"]);
+// ---- The native chronological Announcements screen. ----
+// Native rows are flat: no icon column, badges, expander, acknowledgement, clear action or footer count.
+if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
+  DWFUI.require("reports",
+    ["artBtnHtml", "listHtml", "rawHtml", "rowHtml", "tabsHtml", "statusHtml", "windowHtml"]);
 
-  const REP_LOG_CAP = 3000;   // rows held in memory; the tail is dropped past this
-  const REP_PAGE = 200;       // messages per request
+const REP_LOG_CAP = 10000; // native report-list bound (ledger 0016 E10)
+const REP_PAGE = 500;      // largest page the existing /reports route accepts
+const REP_AUTO_BACKFILL_ROWS = 30; // a real working set before top-of-list paging takes over
+const REP_FLAG_D_DISPLAY = 2;
+const REP_FLAG_UCR = 64;
+const REP_FLAG_UCR_ACTIVE = 128;
 
-  // WAVE-5 / R7. The row "Center" control and the chips are TEXT controls, so both take native's
-  // TEXT PLAQUE (plaqueBtnHtml) rather than an art tile -- and both keep their pinned
-  // .alerts-action / .rep-chip class names through `cls`, so the existing CSS and the
-  // [data-rep-center] / [data-rep-filter] listeners resolve exactly as before.
-  //
-  // SUPERSET PRESERVED: the chips are OURS. Native DF has no announcements log to filter at all.
-  // The `active` chip keeps its class -- plaqueBtnHtml's `focus` would paint native's gold corner
-  // brackets, but the brackets mean FOCUSED SLOT, not SELECTED FILTER, and borrowing them here would
-  // invent a grammar. Selection stays on the pinned .active class.
-  function repCenterButtonHtml(reportId) {
-    return `<span class="alerts-actions">` + DWFUI.plaqueBtnHtml({
-      label: "Center", cls: "alerts-action", dataset: { repCenter: reportId },
-      title: "Move the camera to this event (nothing else moves it)",
-    }) + `</span>`;
-  }
+let repLog = [];             // oldest -> newest
+let repSinceId = -1;
+let repBeforeId = -1;
+let repReachedOldest = false;
+let repPollTimer = null;
+let repLoading = false;
+let repLoadingOlder = false;
+const REP_TAB_ALL = "All";  // the leading native page, activated on open by 0x1400EEAF0
 
-  let repLog = [];             // oldest -> newest, for the currently selected section
-  let repSinceId = -1;         // highest report id loaded (cursor for the live tail poll)
-  let repBeforeId = -1;        // oldest id examined (cursor for backfill); -1 = start at newest
-  let repSection = "all";      // "all" or a taxonomy section key
-  let repCounts = null;        // {sectionKey: n} from the server, for the chip badges
-  let repSections = [];        // [{id,key,label}] from the server (falls back to the baked table)
-  let repReachedOldest = false;
-  let repTotal = 0;
-  let repPollTimer = null;
-  let repLoading = false;
-  let repLoadingOlder = false;
+let repTab = REP_TAB_ALL;
 
-  function repTaxonomy() {
-    return typeof DwfAnnounceTaxonomy !== "undefined" ? DwfAnnounceTaxonomy : null;
-  }
+function repFormat() {
+  return typeof DwfAnnouncementFormat !== "undefined" ? DwfAnnouncementFormat : null;
+}
 
-  // The section list is SERVED (so a server that grows a section needs no client deploy), but the
-  // baked table is the fallback -- the panel must still section correctly against an older server.
-  function repSectionList(sections = repSections) {
-    if (Array.isArray(sections) && sections.length) return sections;
-    const tax = repTaxonomy();
-    return tax ? tax.SECTIONS.map(s => ({ id: s.id, key: s.key, label: s.label })) : [];
-  }
+function repGroupReports(reports) {
+  const fmt = repFormat();
+  return fmt ? fmt.groupReports(reports) : (Array.isArray(reports) ? reports : []);
+}
 
-  // Prefer what the SERVER said. Fall back to the baked table only when the field is absent (an old
-  // server, or a /notifications payload reused here). Never guess from the report TEXT.
-  function repSectionOf(report) {
-    if (!report) return "misc";
-    if (typeof report.section === "string" && report.section) return report.section;
-    const tax = repTaxonomy();
-    return tax ? tax.sectionKey(report.typeKey, report.alertType) : "misc";
-  }
+function repMessage(report) {
+  const fmt = repFormat();
+  return fmt ? fmt.reportText(report, { repeat: false }) : String(report?.text || "");
+}
 
-  function repSectionLabel(key) {
-    const found = repSectionList().find(s => s.key === key);
-    if (found) return found.label;
-    const tax = repTaxonomy();
-    return tax ? tax.sectionLabel(key) : "Misc";
-  }
+function repTabName(report) {
+  const fmt = repFormat();
+  return fmt ? fmt.alertTab(report?.alertType) : "General";
+}
 
-  // Mirrors the existing notificationsPanelIsOpen() pattern: derive "is my panel actually on
-  // screen" from real DOM state + the shared activeInfoPanel flag, instead of a private bool.
-  // Switching to another toolbar panel overwrites clientPanel wholesale without calling back
-  // into this file, so a private "I'm open" flag would go stale and the poll loop would keep
-  // clobbering whatever panel replaced this one.
-  function reportsPanelIsOpen() {
-    return activeInfoPanel === "reports" &&
-      clientPanel.classList.contains("visible") &&
-      clientPanel.classList.contains("reports-window");
-  }
+// P1: D_DISPLAY and neither combat-log routing mode. `taxonomyFlags` is copied from the same
+// per-type announcements configuration table by the server; no text/category guess is involved.
+function repEligible(report) {
+  const flags = Number(report?.taxonomyFlags);
+  return Number.isInteger(flags) &&
+    (flags & REP_FLAG_D_DISPLAY) !== 0 &&
+    (flags & (REP_FLAG_UCR | REP_FLAG_UCR_ACTIVE)) === 0;
+}
 
-  // One fetch shape for all three jobs (first page / older page / live tail). `section` is a KEY,
-  // not a number, so the URL stays readable and an unknown key degrades to "all" server-side.
-  async function repFetchPage({ since = -1, before = -1, section = "all", counts = false } = {}) {
-    const params = new URLSearchParams();
-    params.set("player", player);
-    params.set("max", String(REP_PAGE));
-    if (since >= 0) params.set("since", String(since));
-    if (before >= 0) params.set("before", String(before));
-    if (section && section !== "all") params.set("section", section);
-    if (counts) params.set("counts", "1");
-    params.set("t", String(Date.now()));
-    const response = await fetch(`/reports?${params.toString()}`, { cache: "no-store" });
-    if (!response.ok) throw new Error("reports failed (" + response.status + ")");
-    return response.json();
-  }
+function repPosition(report, which) {
+  const pos = which === 2 ? report?.pos2 : report?.pos;
+  // Z1 is x-only. The current wire unfortunately nulls positions when zoom_type is NONE; this
+  // predicate intentionally does not add a second, invented zoom-type gate on top of that wire gap.
+  return pos && Number(pos.x) !== -30000 ? pos : null;
+}
 
-  function repAbsorbPage(page) {
-    if (!page) return [];
-    if (Array.isArray(page.sections) && page.sections.length) repSections = page.sections;
-    if (page.counts && typeof page.counts === "object") repCounts = page.counts;
-    if (Number.isFinite(Number(page.totalReports))) repTotal = Number(page.totalReports);
-    return Array.isArray(page.reports) ? page.reports : [];
-  }
+function repLinks(report) {
+  const links = [];
+  if (repPosition(report, 1)) links.push({ index: 1, pos: report.pos });
+  if (repPosition(report, 2)) links.push({ index: 2, pos: report.pos2 });
+  return links;
+}
 
-  async function repLoadInitial() {
-    repLoading = true;
+const REP_MONTHS = ["Granite", "Slate", "Felsite", "Hematite", "Malachite", "Galena",
+                    "Limestone", "Sandstone", "Timber", "Moonstone", "Opal", "Obsidian"];
+
+function repOrdinal(day) {
+  const mod100 = day % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${day}th`;
+  if (day % 10 === 1) return `${day}st`;
+  if (day % 10 === 2) return `${day}nd`;
+  if (day % 10 === 3) return `${day}rd`;
+  return `${day}th`;
+}
+
+function repDate(report) {
+  const year = Number(report?.year) || 0;
+  const time = Number(report?.time);
+  if (!Number.isFinite(time) || time < 0) return `Date: ${year}`;
+  const dayIndex = Math.floor(time / 1200);
+  const day = (dayIndex % 28) + 1;
+  const month = Math.max(0, Math.min(11, Math.floor(dayIndex / 28)));
+  return `Date: ${repOrdinal(day)}, ${REP_MONTHS[month]}, ${year}`;
+}
+
+function repDfColor(report) {
+  const fg = Math.max(0, Math.min(7, Number(report?.color) || 0));
+  return DWFUI.dfColor(fg + (report?.bright ? 8 : 0));
+}
+
+function repUnitButtonHtml(report) {
+  const id = Number(report?.speakerId);
+  if (!Number.isInteger(id) || id < 0) return "";
+  // The widget's legacy face is not identified in the atlas, so this stays an explicit identity gap
+  // rather than borrowing an unrelated "view item" or camera tile.
+  return DWFUI.artBtnHtml({
+    cls: "reports-native-link reports-speaker-link unit-link",
+    dataset: {
+      unitId: id,
+      dfIdentityMissing: "widgets::unit_sheet_button",
+    },
+    placeholder: true,
+    title: "Open unit sheet (native button face not yet identified)",
+    ariaLabel: "Open unit sheet",
+  });
+}
+
+function repRecenterButtonHtml(report, which) {
+  if (!repPosition(report, which)) return "";
+  // The report row owns a 3x2 allocation; CSS gives this button that, not the generic 4x3 action cell.
+  return DWFUI.artBtnHtml({
+    sprite: DWFUI.TOKENS.sprites.recenter,
+    cls: "reports-native-link reports-recenter-link",
+    dataset: { repCenter: report.id, repLink: which },
+    title: "Recenter",
+    ariaLabel: "Recenter",
+  });
+}
+
+function repRowHtml(report) {
+  const message = repMessage(report);
+  const tools = repUnitButtonHtml(report) +
+    repRecenterButtonHtml(report, 1) +
+    repRecenterButtonHtml(report, 2);
+  const rowBody = `<div class="reports-row-main">${tools}` +
+      DWFUI.statusHtml({
+        cls: "reports-message",
+        text: message,
+        columns: 72,
+        dfColor: Math.max(0, Math.min(7, Number(report?.color) || 0)) + (report?.bright ? 8 : 0),
+      }) +
+      `</div>` +
+      DWFUI.statusHtml({ cls: "reports-date", text: repDate(report), dfColor: 15 });
+  return DWFUI.rowHtml({
+    cls: "reports-row",
+    announce: true,
+    dataset: { reportId: report?.id },
+    labelHtml: DWFUI.rawHtml(
+      "The decoded report row composes optional action widgets with two independently styled text lines.",
+      rowBody),
+  });
+}
+
+function repEligibleRows(log) {
+  return repGroupReports(log).filter(repEligible);
+}
+
+function repAvailableTabs(_log) {
+  const fmt = repFormat();
+  return fmt ? fmt.NATIVE_TABS.slice() : [REP_TAB_ALL, "General"];
+}
+
+// Every eligible report appears on All exactly once: native re-parents the SAME row widget rather than
+// building a second copy, so nothing here may double-count it.
+function repRows(log, tab = repTab) {
+  const all = !tab || tab === REP_TAB_ALL;
+  return repEligibleRows(log)
+    .filter(report => all || repTabName(report) === tab)
+    .map(repRowHtml)
+    .join("");
+}
+
+function repTabsHtml(log, active = repTab) {
+  const tabs = repAvailableTabs(log);
+  if (!tabs.length) return "";
+  const selected = tabs.includes(active) ? active : tabs[0];
+  return DWFUI.tabsHtml({
+    level: "primary-short",
+    cls: "reports-tabs",
+    tabCls: "reports-tab",
+    dataAttr: "reports-tab",
+    ariaLabel: "Announcement categories",
+    wrap: true,
+    // promote:false restores parity: this strip's pages come from a PINNED caption table, and promotion
+    // packs against the original order and re-wraps, which moves "All" into the middle of the strip.
+    promote: false,
+    width: "hug",
+    active: selected,
+    tabs: tabs.map(label => ({ key: label, label })),
+  });
+}
+
+function reportsPanelMarkup(state, options = {}) {
+  const log = Array.isArray(state?.log) ? state.log : [];
+  const tabs = repAvailableTabs(log);
+  const selected = tabs.includes(state?.tab) ? state.tab : (tabs[0] || "");
+  const rows = repRows(log, selected);
+  const content = rows || DWFUI.statusHtml({
+    cls: "reports-empty",
+    text: "No announcements.",
+    dfColor: 15,
+  });
+  const shell = options.shell === "default" ? {} : { nativeFrame: "masterChrome" };
+  return DWFUI.windowHtml({
+    cls: "reports-native-window",
+    ...shell,
+    ariaLabel: "Announcements",
+    bodyHtml:
+      `<div class="reports-tabs-host" data-announcement-tabs>${repTabsHtml(log, selected)}</div>` +
+      // listHtml's defaults are what this screen wants: the wheel moves one whole REPORT and the scrollbar
+      // gutter comes out of the window's own width. `key` is what survives the full innerHTML rebuild.
+      DWFUI.listHtml({
+        cls: "reports-list",
+        rows: ".reports-row",
+        key: "reports",
+        ariaLabel: "Announcement reports",
+      }, content),
+  });
+}
+
+function reportsPanelIsOpen() {
+  return activeInfoPanel === "reports" &&
+    clientPanel.classList.contains("visible") &&
+    clientPanel.classList.contains("reports-window");
+}
+
+async function repFetchPage({ since = -1, before = -1 } = {}) {
+  const query = { max: REP_PAGE };
+  if (since >= 0) query.since = since;
+  if (before >= 0) query.before = before;
+  return DwfReportTransport.reportsPage(query);
+}
+
+function repPageRows(page) {
+  return Array.isArray(page?.reports) ? page.reports : [];
+}
+
+async function repLoadInitial() {
+  repLoading = true;
+  repLog = [];
+  repSinceId = -1;
+  repBeforeId = -1;
+  repReachedOldest = false;
+  try {
+    const page = await repFetchPage();
+    repLog = repPageRows(page);
+    repSinceId = Number(page.nextReportId) || -1;
+    repBeforeId = Number.isFinite(Number(page.nextBeforeId)) ? Number(page.nextBeforeId) : -1;
+    repReachedOldest = !!page.reachedOldest;
+  } catch (err) {
+    DwfErr.report("reports.initial-load", err);
     repLog = [];
-    repSinceId = -1;
-    repBeforeId = -1;
-    repReachedOldest = false;
-    try {
-      // counts:1 ONCE, on open -- it is the only O(N) pass and the chips are the only thing that
-      // needs it. The 2s tail poll never asks for it.
-      const page = await repFetchPage({ section: repSection, counts: true });
-      repLog = repAbsorbPage(page);
-      repSinceId = Number(page.nextReportId) || repSinceId;
-      repBeforeId = Number.isFinite(Number(page.nextBeforeId)) ? Number(page.nextBeforeId) : -1;
-      repReachedOldest = !!page.reachedOldest;
-    } catch (_) {
-      repLog = [];
-    } finally {
-      repLoading = false;
-    }
+  } finally {
+    repLoading = false;
   }
+}
 
-  // BACKFILL. `nextBeforeId` is the oldest id the server EXAMINED, not the oldest it MATCHED -- so
-  // a section filter that found nothing in this window still advances the cursor and the next call
-  // makes progress instead of re-scanning the same tail forever.
-  async function repLoadOlder() {
-    if (repLoadingOlder || repReachedOldest || repLoading) return;
-    if (repBeforeId < 0) return;
-    repLoadingOlder = true;
-    try {
-      const page = await repFetchPage({ before: repBeforeId, section: repSection });
-      const older = repAbsorbPage(page);
-      if (older.length) repLog = older.concat(repLog);
-      if (repLog.length > REP_LOG_CAP) repLog = repLog.slice(0, REP_LOG_CAP);
-      const next = Number(page.nextBeforeId);
-      // Guard against a server that cannot advance: without this a stuck cursor would let the
-      // scroll-to-top handler hammer /reports forever.
-      if (Number.isFinite(next) && next >= 0 && next < repBeforeId) repBeforeId = next;
-      else repReachedOldest = true;
-      if (page.reachedOldest) repReachedOldest = true;
-    } catch (_) {
-      repReachedOldest = true; // stop retrying a failing backfill
-    } finally {
-      repLoadingOlder = false;
-      if (reportsPanelIsOpen()) renderReportsPanel({ keepScroll: true });
-    }
-  }
-
-  async function repPoll() {
-    if (!reportsPanelIsOpen() || repLoading) {
-      repStopPolling();
+async function repLoadOlder() {
+  if (repLoadingOlder || repReachedOldest || repLoading || repBeforeId < 0) return;
+  repLoadingOlder = true;
+  try {
+    const page = await repFetchPage({ before: repBeforeId });
+    const older = repPageRows(page);
+    if (older.length) repLog = older.concat(repLog);
+    // The cap is the NEWEST end on both paths: slice(0, CAP) would keep the OLDEST rows and drop the live
+    // tail. Once CAP rows are held, any further "older" page would be discarded by this same trim.
+    if (repLog.length >= REP_LOG_CAP) {
+      repLog = repLog.slice(repLog.length - REP_LOG_CAP);
+      repReachedOldest = true;
       return;
     }
-    try {
-      const page = await repFetchPage({ since: repSinceId, section: repSection });
-      const incoming = repAbsorbPage(page);
-      if (incoming.length) {
-        repLog = repLog.concat(incoming);
-        if (repLog.length > REP_LOG_CAP) repLog = repLog.slice(repLog.length - REP_LOG_CAP);
-      }
-      repSinceId = Number(page.nextReportId) || repSinceId;
-      if (reportsPanelIsOpen()) renderReportsPanel({ append: incoming.length > 0 });
-    } catch (_) {}
+    const next = Number(page.nextBeforeId);
+    if (Number.isFinite(next) && next >= 0 && next < repBeforeId) repBeforeId = next;
+    else repReachedOldest = true;
+    if (page.reachedOldest) repReachedOldest = true;
+  } catch (err) {
+    DwfErr.report("reports.older-load", err);
+    repReachedOldest = true;
+  } finally {
+    repLoadingOlder = false;
+    if (reportsPanelIsOpen()) renderReportsPanel({ keepScroll: true });
   }
+}
 
-  function repStartPolling() {
-    if (repPollTimer) return;
-    repPollTimer = window.setInterval(repPoll, 2000);
+async function repPoll() {
+  if (!reportsPanelIsOpen() || repLoading) {
+    repStopPolling();
+    return;
   }
+  try {
+    const page = await repFetchPage({ since: repSinceId });
+    const incoming = repPageRows(page);
+    repSinceId = Number(page.nextReportId) || repSinceId;
+    // DEF-014: a real append still rebuilds all N rows, and that is not a local fix -- repGroupReports
+    // collapses repeats ACROSS the whole log, so a new report can mutate an existing row, not only add one.
+    if (!incoming.length) return;
+    repLog = repLog.concat(incoming);
+    if (repLog.length > REP_LOG_CAP) repLog = repLog.slice(repLog.length - REP_LOG_CAP);
+    if (reportsPanelIsOpen()) renderReportsPanel({ append: true });
+  } catch { /* the two-second reports poll retries while the panel remains open */ }
+}
 
-  function repStopPolling() {
-    if (repPollTimer) {
-      window.clearInterval(repPollTimer);
-      repPollTimer = null;
-    }
-  }
+function repStartPolling() {
+  if (!repPollTimer) repPollTimer = window.setInterval(repPoll, 2000);
+}
 
-  async function repSetSection(sectionKey) {
-    const next = sectionKey || "all";
-    if (next === repSection) return;
-    repSection = next;
-    clientPanel.querySelector(".rep-list")?.classList.add("rep-loading");
-    await repLoadInitial();
-    if (reportsPanelIsOpen()) renderReportsPanel();
-  }
+function repStopPolling() {
+  if (!repPollTimer) return;
+  window.clearInterval(repPollTimer);
+  repPollTimer = null;
+}
 
-  // ---- rows ---------------------------------------------------------------------------------
+// The one control's host for this panel, and its last arranged geometry. Everything below states
+// the log's position as an ENTRY INDEX; there is no pixel arithmetic left in this file.
+function repListHost() { return clientPanel.querySelector('[data-dwfui-list-key="reports"]'); }
+function repListGeom() { const host = repListHost(); return host ? host.__dwfuiListGeom : null; }
+function repNeedsOlderPage(geom, reachedOldest = repReachedOldest) {
+  // A handful of tall rows can yield a one-position scrollbar: technically scrollable, but it leaves
+  // nearly all history behind a single move event, so fill a modest working set first.
+  return !!geom && !reachedOldest &&
+    (geom.bottomMost <= geom.min || geom.totalItems < REP_AUTO_BACKFILL_ROWS);
+}
 
-  // DF's calendar: 12 months x 28 days x 1200 ticks. `time` is the tick within the year. A bare
-  // "Year 250" cannot order two events inside a year -- which is exactly what you need when you are
-  // reading a siege back afterwards.
-  const REP_MONTHS = ["Granite", "Slate", "Felsite", "Hematite", "Malachite", "Galena",
-                      "Limestone", "Sandstone", "Timber", "Moonstone", "Opal", "Obsidian"];
-  function repDate(report) {
-    const year = Number(report && report.year) || 0;
-    const time = Number(report && report.time);
-    if (!Number.isFinite(time) || time < 0) return `Year ${year}`;
-    const month = Math.min(11, Math.floor(time / 33600));
-    const day = Math.floor((time % 33600) / 1200) + 1;
-    return `${REP_MONTHS[month]} ${day}, ${year}`;
-  }
+function renderReportsPanel(options = {}) {
+  // The control restores its own position across the rebuild; only the three cases a key cannot know are
+  // handled here, each as an INDEX -- end on a fresh open or a new report, shifted down on an older page.
+  const oldGeom = repListGeom();
+  const oldRows = oldGeom ? oldGeom.totalItems : 0;
+  const atEnd = !oldGeom || oldGeom.position >= oldGeom.bottomMost;
 
-  // The two DF behaviour flags worth showing, straight from the raws: BOX ("this one stopped the
-  // game and put a box in your face") and ALERT ("this one lit the alert button"). They are the
-  // reason the row mattered at the time, and a log row without them loses that entirely.
-  function repBadges(report) {
-    const tax = repTaxonomy();
-    const box = report && report.box != null ? !!report.box : !!(tax && report && tax.isBox(report.typeKey));
-    const alert = report && report.alert != null ? !!report.alert : !!(tax && report && tax.isAlert(report.typeKey));
-    let html = "";
-    if (box) html += `<span class="rep-badge rep-badge-box" title="DF paused the game and showed this in a box">PAUSED</span>`;
-    if (alert) html += `<span class="rep-badge rep-badge-alert" title="This lit the alert button">ALERT</span>`;
-    return html;
-  }
+  const tabs = repAvailableTabs(repLog);
+  if (!tabs.includes(repTab)) repTab = tabs[0] || "";
+  clientPanel.className = "visible info-panel alerts-window reports-window";
+  panelContent(clientPanel).innerHTML = reportsPanelMarkup({ log: repLog, tab: repTab });
 
-  function repRowHtml(report) {
-    const target = repZoomTarget(report);
-    const sectionKey = repSectionOf(report);
-    const lines = Number(report.lineCount) || 1;
-    return DWFUI.rowHtml({
-      chassis: "table", cls: `alerts-row rep-row rep-row--${sectionKey}`,
-      dataset: { repId: report.id, repSection: sectionKey },
-      icon: `<span class="alerts-icon" style="${alertIconStyle(Number(report.alertType) || 0)}"></span>`,
-      labelHtml: `<span style="color:${dfTextColor(report)}">${escapeHtml(reportText(report) || report.typeKey || "Report")}</span>`,
-      labelCls: "alerts-title",
-      sub: {
-        html: `${repBadges(report)}<span class="rep-meta">${escapeHtml(repSectionLabel(sectionKey))}` +
-          ` &middot; ${escapeHtml(repCategoryName(report.alertType))}` +
-          ` &middot; ${escapeHtml(repDate(report))}` +
-          `${lines > 1 ? ` &middot; ${lines} lines` : ""}</span>`,
-        cls: "alerts-sub",
-      },
-      trailing: target ? repCenterButtonHtml(report.id) : "",
+  clientPanel.querySelectorAll("[data-rep-tab]").forEach(button => {
+    button.addEventListener("click", () => {
+      repTab = button.dataset.repTab || repTab;
+      renderReportsPanel();
     });
-  }
+  });
 
-  // Signature preserved for tx14_announce_test (repRows(log, filter)). The second argument now only
-  // shapes the empty-state copy: filtering moved SERVER-side, because it has to -- filtering a
-  // 200-row page client-side gives you three siege rows and no way to ask for more.
-  function repRows(sourceLog = repLog, filter = repSection) {
-    const messages = repGroupReports(Array.isArray(sourceLog) ? sourceLog : []);
-    if (!messages.length) {
-      const named = filter != null && filter !== -1 && filter !== "all";
-      return `<div class="info-message">No reports recorded${named ? " in this section" : ""}.</div>`;
-    }
-    return messages.map(repRowHtml).join("");
-  }
-
-  // TX14 shared-format shims. The module (dwf-announcement-format.js) is the single owner of
-  // the 37-entry category table, the continuation-line stitcher and the zoom-target resolver; these
-  // wrappers keep this file working (unchanged behaviour) if it ever loads without the module.
-  function repGroupReports(reports) {
-    const list = Array.isArray(reports) ? reports : [];
-    return typeof DwfAnnouncementFormat !== "undefined"
-      ? DwfAnnouncementFormat.groupReports(list)
-      : list;
-  }
-
-  function repZoomTarget(report) {
-    if (typeof DwfAnnouncementFormat !== "undefined")
-      return DwfAnnouncementFormat.zoomTarget(report);
-    return report && report.pos ? report.pos : null;
-  }
-
-  function repCategoryName(alertType) {
-    if (typeof DwfAnnouncementFormat !== "undefined")
-      return DwfAnnouncementFormat.categoryName(alertType);
-    const i = Number(alertType);
-    if (Number.isFinite(i) && typeof ALERT_NAMES !== "undefined" && ALERT_NAMES[i]) return ALERT_NAMES[i];
-    return "Other";
-  }
-
-  // B160, ACTUALLY DELIVERED. The registry landed this as a filter on `typeKey === "SIEGE"` /
-  // `"ARTIFACT_CREATED"` -- tokens that DO NOT EXIST in DF, so it rendered nothing, ever. It now
-  // keys off the generated SECTION, which is derived from the tokens DF really has. The two
-  // highlight strips pin the things you would otherwise scroll past: an arriving siege, and a
-  // finished artifact.
-  //
-  // These are HIGHLIGHTS, not a re-sectioning of the log. The log itself stays chronological --
-  // grouping a timeline by category is how you lose the timeline. The CHIPS are the sections.
-  function repSpecialSections(reports, sectionKey = repSection) {
-    if (sectionKey && sectionKey !== "all" && sectionKey !== -1) return ""; // already filtered
-    const messages = repGroupReports(Array.isArray(reports) ? reports : []);
-    return ["sieges", "artifacts"].map(key => {
-      const rows = messages.filter(report => repSectionOf(report) === key);
-      if (!rows.length) return "";
-      return `<div class="alerts-section-title">${escapeHtml(repSectionLabel(key))}</div>` +
-        `<div class="alerts-recent rep-highlight">${rows.slice(-6).map(repRowHtml).join("")}</div>`;
-    }).join("");
-  }
-
-  // ---- chips --------------------------------------------------------------------------------
-  // The sections, as filter chips, with the server's per-section totals. `counts` covers the WHOLE
-  // fort log, not the loaded page, so "Sieges 4" means four sieges EVER -- not four in the last 200
-  // rows, which is the only count worth printing on a history screen.
-  function repChips(sections = repSections, active = repSection, counts = repCounts) {
-    const chip = (key, label, count) => DWFUI.plaqueBtnHtml({
-      label: count == null ? label : `${label} ${count}`,
-      cls: `rep-chip${active === key ? " active" : ""}${count === 0 ? " rep-chip-empty" : ""}`,
-      dataset: { repFilter: key },
-      title: active === key ? `Showing ${label}` : `Show only ${label}`,
+  clientPanel.querySelectorAll("[data-rep-center]").forEach(button => {
+    button.addEventListener("click", () => {
+      const report = repGroupReports(repLog)
+        .find(row => String(row.id) === String(button.dataset.repCenter));
+      const target = repPosition(report, Number(button.dataset.repLink));
+      if (target) centerAndFlashMapPos(target);
     });
-    const total = counts ? Object.values(counts).reduce((a, b) => a + (Number(b) || 0), 0) : null;
-    const chips = [chip("all", "All", total)];
-    repSectionList(sections).forEach(s => {
-      chips.push(chip(s.key, s.label, counts ? (Number(counts[s.key]) || 0) : null));
-    });
-    return chips.join("");
+  });
+
+  if (typeof fortBindUnitLinks === "function") fortBindUnitLinks(clientPanel);
+
+  // Mount the control now rather than waiting for DWFUI's DOM observer: the position cases below
+  // need an arranged geometry (a page size, and therefore a bottom-most position) to aim at.
+  DWFUI.mountLists(clientPanel);
+  const host = repListHost();
+  if (!host) return;
+  const geom = host.__dwfuiListGeom;
+  const added = geom ? Math.max(0, geom.totalItems - oldRows) : 0;
+  if (options.keepScroll) DWFUI.setListPosition(host, (oldGeom ? oldGeom.position : 0) + added);
+  else if (!options.append || atEnd) DWFUI.setListPosition(host, "end");
+  // Paging older reports in at the top is DWF-only -- native's log is finite -- so it hangs off the
+  // control's move event rather than being built into it.
+  host.addEventListener("dwfui-list-scroll", event => {
+    if (event.detail && event.detail.position <= event.detail.min) repLoadOlder();
+  });
+  // Filtering can leave fewer eligible rows than one working set while thousands remain server-side, so
+  // keep backfilling to the cap or the server's oldest report.
+  if (repNeedsOlderPage(geom) && !repLoadingOlder && !repLoading)
+    void repLoadOlder();
+}
+
+async function openReportsPanel(seedReportId = null, _seedAlertType = null) {
+  setActiveToolbar("reports");
+  if (typeof clearBuildPlacement === "function") clearBuildPlacement(false);
+  activeInfoPanel = "reports";
+  clientPanel.className = "visible info-panel alerts-window reports-window";
+  panelContent(clientPanel).innerHTML = DWFUI.windowHtml({
+    cls: "reports-native-window",
+    nativeFrame: "masterChrome",   // the ring is the panel's own, so it exists before the rows do
+    ariaLabel: "Announcements loading",
+    bodyHtml: DWFUI.statusHtml({ cls: "reports-empty", text: "Loading reports...", dfColor: 15 }),
+  });
+  await repLoadInitial();
+  if (!reportsPanelIsOpen()) return;
+  const seed = seedReportId == null
+    ? null
+    : repGroupReports(repLog).find(report => String(report.id) === String(seedReportId));
+  // An open never resumes the tab the player last selected: it takes the seed's tab, else the hint, else All.
+  if (seed && repEligible(seed)) repTab = repTabName(seed);
+  else {
+    // Combat-family groups stay on All: those reports are excluded by P1 and can never populate their tabs.
+    const fmt = repFormat();
+    const hinted = fmt && _seedAlertType != null ? fmt.alertTab(_seedAlertType) : "";
+    repTab = hinted && !["Combat", "Sparring", "Hunting"].includes(hinted) &&
+      repAvailableTabs(repLog).includes(hinted) ? hinted : REP_TAB_ALL;
   }
+  renderReportsPanel();
+  repStartPolling();
+}
 
-  // ---- markup -------------------------------------------------------------------------------
-  function reportsPanelMarkup(state) {
-    state = state || {};
-    const log = Array.isArray(state.log) ? state.log : [];
-    const section = typeof state.section === "string" ? state.section : "all";
-    const sections = Array.isArray(state.sections) ? state.sections : [];
-    const counts = state.counts && typeof state.counts === "object" ? state.counts : null;
-    const reachedOldest = !!state.reachedOldest;
-    const total = Number(state.total) || 0;
-    const shown = repGroupReports(log).length;
-
-    // R3: the close drops its `&times;` glyph for headerHtml's DEFAULT native tile
-    // (TOKENS.sprites.close = BUILDING_JOBS_REMOVE). `data: "close-reports"` still emits
-    // data-close-reports and `.info-close` is a CLOSE_SEL member, so PanelFrame is unaffected.
-    //
-    // B232 ROUND 2: the Alerts/Reports tab row is GONE. WD-7 merged Alerts+Reports into one
-    // tabbed window; the reopen un-merged them -- the ALERT button opens the NATIVE ALERT BOX
-    // (dwf-unit-hud-notifications.js alertBoxMarkup, oracle B232-oracle-native.png), and
-    // this screen is reached through that box's log icon or the world map's Reports plaque. A tab
-    // row whose other mode is a modal box would be incoherent, and native has no tabs here.
-    //
-    // UNVERIFIED AGAINST NATIVE: no capture of DF's own full announcements screen is banked yet
-    // (ui-lab reports-log story: "Native full announcements capture still required"). Everything
-    // else on this screen (chips, highlight strips, badges, footer) is the round-1 superset, kept
-    // deliberately until that capture lands -- do NOT "nativize" it by guesswork.
-    const head = DWFUI.headerHtml({
-      cls: "info-header", title: "Announcements", titleCls: "info-title",
-      close: { cls: "info-close", data: "close-reports", title: "Close announcements" },
-    });
-
-    // The backfill control lives INSIDE the scrollbox, at the top -- where the older rows will
-    // appear -- so pressing it does not shove the rows you are already reading.
-    const older = reachedOldest
-      ? `<div class="rep-older rep-older-done">${total ? "Beginning of the log." : ""}</div>`
-      : `<div class="rep-older">` + DWFUI.plaqueBtnHtml({
-          label: "Load older", cls: "rep-older-btn", dataset: { repOlder: "1" },
-          title: "Fetch the previous page of the log",
-        }) + `</div>`;
-
-    // .dwfui-scroll (DWFUI.scrollHtml) is what gives this the NATIVE STYLED SCROLLBAR -- the "the
-    // scroll bar should be styled (along with all other scrollbars)" half of TX14. The rows and the
-    // backfill control both live inside it.
-    const rows = DWFUI.scrollHtml({ cls: "info-body rep-list", ariaLabel: "Announcement reports" },
-      `${older}${repRows(log, section)}`);
-
-    return DWFUI.windowHtml({
-      ariaLabel: "Announcements",
-      bodyHtml: `${head}` +
-        `<div class="rep-toolbar"><div class="rep-chips">${repChips(sections, section, counts)}</div></div>` +
-        `${repSpecialSections(log, section)}${rows}`,
-      footerHtml: `<div>${shown} shown${section !== "all" ? ` &middot; ${escapeHtml(repSectionLabel(section))}` : ""}` +
-        `${total ? ` &middot; ${total} in the log` : ""}</div>`,
-    });
-  }
-
-  function renderReportsPanel(options = {}) {
-    const body = clientPanel.querySelector(".rep-list");
-    const stickBottom = body ? body.scrollTop + body.clientHeight >= body.scrollHeight - 8 : true;
-    const oldScrollTop = body ? body.scrollTop : 0;
-    const oldScrollHeight = body ? body.scrollHeight : 0;
-
-    // WD-7/WD-1.3: shares the alerts-window shell (one announcements system) --
-    // "reports-window" stays too so the existing .reports-window CSS hooks keep working.
-    clientPanel.className = "visible info-panel alerts-window reports-window";
-    panelContent(clientPanel).innerHTML = reportsPanelMarkup({
-      log: repLog, section: repSection, sections: repSections, counts: repCounts,
-      reachedOldest: repReachedOldest, total: repTotal,
-    });
-
-    clientPanel.querySelector("[data-close-reports]")?.addEventListener("click", () => {
-      repStopPolling();
-      closeClientPanel();
-    });
-    clientPanel.querySelectorAll("[data-rep-filter]").forEach(button => {
-      button.addEventListener("click", () => repSetSection(button.dataset.repFilter));
-    });
-    clientPanel.querySelector("[data-rep-older]")?.addEventListener("click", () => repLoadOlder());
-
-    // B216: THE ONLY THING IN THIS FILE THAT MOVES THE CAMERA. There is deliberately no handler on
-    // the ROW -- opening or clicking a log entry must never move the camera by itself.
-    clientPanel.querySelectorAll("[data-rep-center]").forEach(button => {
-      button.addEventListener("click", () => {
-        const report = repGroupReports(repLog).find(r => String(r.id) === String(button.dataset.repCenter));
-        const target = repZoomTarget(report);
-        if (target) centerAndFlashMapPos(target);
-      });
-    });
-
-    const list = clientPanel.querySelector(".rep-list");
-    if (list) {
-      if (options.keepScroll) {
-        // Backfill prepended rows ABOVE the viewport: hold the reader's line by shifting the scroll
-        // position by exactly how much taller the content got.
-        list.scrollTop = oldScrollTop + (list.scrollHeight - oldScrollHeight);
-      } else if (options.append) {
-        list.scrollTop = stickBottom ? list.scrollHeight : oldScrollTop;
-      } else {
-        list.scrollTop = list.scrollHeight;
-      }
-      list.addEventListener("scroll", () => {
-        if (list.scrollTop <= 4) repLoadOlder();
-      });
-    }
-  }
-
-  async function openReportsPanel() {
-    setActiveToolbar("reports");
-    if (typeof clearBuildPlacement === "function") clearBuildPlacement(false);
-    activeInfoPanel = "reports";
-    clientPanel.className = "visible info-panel alerts-window reports-window";
-    panelContent(clientPanel).innerHTML = DWFUI.windowHtml({
-      ariaLabel: "Announcements loading",
-      bodyHtml: `${DWFUI.headerHtml({ cls: "info-header", title: "Announcements", titleCls: "info-title", close: false })}<div class="info-body"><div class="info-message">Loading reports...</div></div>`,
-    });
-    await repLoadInitial();
-    if (!reportsPanelIsOpen()) return; // user switched to a different panel while this awaited
-    renderReportsPanel();
-    repStartPolling();
-  }
-
-  const repMarkupApi = {
-    reportsPanelMarkup, repRows, repChips, repSpecialSections,
-    repSectionOf, repSectionLabel, repDate, repBadges, repRowHtml,
-  };
-  if (typeof window !== "undefined") window.DFReportsMarkup = repMarkupApi;
-  if (typeof module !== "undefined" && module.exports) module.exports = repMarkupApi;
+const repMarkupApi = {
+  REP_TAB_ALL,
+  reportsPanelMarkup,
+  repRows,
+  repTabsHtml,
+  repAvailableTabs,
+  repEligible,
+  repRowHtml,
+  repDate,
+  repLinks,
+  repPosition,
+  repMessage,
+  repTabName,
+  repDfColor,
+  repNeedsOlderPage,
+};
+if (typeof window !== "undefined") window.DFReportsMarkup = repMarkupApi;
+if (typeof module !== "undefined" && module.exports)
+  module.exports = { ...repMarkupApi, repFetchPage };

@@ -21,19 +21,8 @@
 
 #pragma once
 
-// AttributionRegistry (WP-C foundation, wants-WT-spec §1.3).
-//
-// Records "which player created this thing" for the four kinds of web-issued mutations that
-// return a stable DF id: buildings (workshops/furnaces/furniture), stockpiles, zones, and
-// manager work orders. Pure plugin memory behind one mutex -- NO DF reads live in this module.
-// The map exists only to be surfaced by GET /attrib, which the client merges into inspect
-// panels + the work-orders list by id. Attribution is best-effort coordination metadata among
-// cooperating players, NOT security.
-//
-// World-change safety: ids are only unique per world. attrib_note_world(save_dir) is called by
-// each stamp site with the current save directory (read safely by the caller); a different key
-// wipes the map first, so a mid-session world switch can never make a stale id lie across worlds.
-// Persistence is v1 = session-only (cleared on plugin unload / DF restart).
+// Which player created a building, stockpile, zone or work order. Session-only plugin memory
+// behind one mutex; it holds no DF reads, and it is coordination metadata, NOT security.
 
 #include <cstdint>
 #include <string>
@@ -45,15 +34,11 @@ enum class AttribKind { Building, Order, Stockpile, Zone };
 // Record player as the creator of (kind, id). id < 0 is ignored (a failed create never stamps).
 void attrib_stamp(AttribKind kind, int32_t id, const std::string& player);
 
-// Look up the creator of (kind, id). Returns false (and leaves player_out untouched) when unknown.
-bool attrib_lookup(AttribKind kind, int32_t id, std::string& player_out);
-
 // {"world":"...","buildings":{"12":"guest"},"orders":{...},"stockpiles":{...},"zones":{...}}
 std::string attrib_json();
 
-// Reconcile the active world key. If save_dir differs from the last seen key, the whole map is
-// cleared BEFORE the caller's stamp lands (so cross-world id reuse can't alias). Empty save_dir
-// (no world loaded) is treated as "keep current key" -- never wipes on a transient nil.
+// Call before stamping: ids are unique only per world, so a changed save_dir clears the map
+// first. An empty save_dir keeps the current key rather than wiping on a transient nil.
 void attrib_note_world(const std::string& save_dir);
 
 } // namespace dwf

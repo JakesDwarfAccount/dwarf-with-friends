@@ -28,6 +28,7 @@
 #include "http_server.h"
 #include "json_util.h"
 #include "lua_bridge.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "modules/Buildings.h"
@@ -70,6 +71,7 @@
 #include "df/unit.h"
 #include "df/world.h"
 
+#include <cstdint>
 #include <mutex>
 #include <sstream>
 #include <stack>
@@ -84,27 +86,9 @@ namespace {
 
 std::recursive_mutex g_depot_mutex;
 
-// Same lock discipline as fort_admin.cpp / squads.cpp: panel mutex -> capture-state mutex ->
-// CoreSuspender. Reads and mutations share the guard so iterating caravans / jobs / items never
-// races the sim.
 template <typename Fn>
 bool run_depot_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> depot_lock(g_depot_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
-}
-
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
+    return run_panel_locked(g_depot_mutex, std::forward<Fn>(fn));
 }
 
 df::building_tradedepotst* resolve_depot(int32_t id) {
@@ -115,10 +99,8 @@ bool depot_built(df::building* b) {
     return b && b->getBuildStage() >= b->getMaxBuildStage();
 }
 
-// building_tradedepotst::accessible (original name: have_access) is caravan-maintained state,
-// not the live answer shown by DF's depot-access check. In particular, it can remain false when
-// no caravan is present. Mirror DFHack pathable's native-map wagon flood here, but seed it from
-// only the requested depot instead of combining every depot in the fort.
+// building_tradedepotst::accessible is caravan-maintained and stays false while no caravan is
+// present, so depot_accessible_by_wagons recomputes the live answer instead of reading it.
 struct WagonFloodContext {
     uint16_t walk_group;
     std::unordered_set<df::coord> seen;
@@ -236,6 +218,8 @@ bool depot_accessible_by_wagons(df::building_tradedepotst* depot) {
     DFHack::Maps::getTileSize(count_x, count_y, count_z);
     if (!count_x || !count_y)
         return false;
+    // edge_x/edge_y must stay signed: compared against unsigned count_x - 1, a negative tile
+    // coordinate is promoted and wraps to a huge value instead of failing the edge test.
     const int32_t edge_x = static_cast<int32_t>(count_x - 1);
     const int32_t edge_y = static_cast<int32_t>(count_y - 1);
     auto& edge = df::global::plotinfo->map_edge;
@@ -264,9 +248,6 @@ bool depot_accessible_by_wagons(df::building_tradedepotst* depot) {
     return false;
 }
 
-// True iff the depot hosts a live TradeAtDepot job (the broker-comes-to-depot job DF spawns when
-// a trader is requested and a caravan is present). caravan.lua's `leave` reads/removes exactly
-// this job.
 bool depot_has_trade_job(df::building_tradedepotst* depot) {
     for (auto* job : depot->jobs)
         if (job && job->job_type == df::job_type::TradeAtDepot)
@@ -274,9 +255,7 @@ bool depot_has_trade_job(df::building_tradedepotst* depot) {
     return false;
 }
 
-// ---------------------------------------------------------------------------
-// Broker: the fort noble whose position carries the TRADE responsibility.
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------- broker
 struct BrokerInfo {
     bool found = false;
     int32_t unit_id = -1;
@@ -298,7 +277,6 @@ BrokerInfo find_broker() {
         if (!position->responsibilities[df::entity_position_responsibility::TRADE])
             continue;
         out.position = position->name[0].empty() ? std::string("Broker") : position->name[0];
-        // Find the assignment holder for this position.
         int32_t holder_hf = -1;
         for (auto asn : fort->positions.assignments) {
             if (asn && asn->position_id == position->id && asn->histfig != -1) {
@@ -323,7 +301,7 @@ BrokerInfo find_broker() {
                 }
             }
         }
-        break; // one TRADE position (the Broker)
+        break;
     }
     return out;
 }
@@ -337,9 +315,7 @@ std::string broker_json(const BrokerInfo& b) {
     return js.str();
 }
 
-// ---------------------------------------------------------------------------
-// Caravans (plotinfo->caravans). Mirrors caravan.lua state/origin/day math.
-// ---------------------------------------------------------------------------
+// ------------------------------------------- caravans (plotinfo->caravans)
 std::string caravan_origin_name(df::caravan_state* car) {
     auto entity = df::historical_entity::find(car->entity);
     if (!entity)
@@ -402,10 +378,7 @@ void append_caravan_json(std::ostringstream& js, df::caravan_state* car, int idx
     js << "}";
 }
 
-// ---------------------------------------------------------------------------
-// Tradeable-goods enumeration (mirrors movegoods.lua is_tradeable_item, default filters:
-// group off / inside_containers off -> in_inventory items are skipped).
-// ---------------------------------------------------------------------------
+// -------------------------------------------- tradeable-goods enumeration
 bool item_hard_rejected(df::item* item) {
     auto& f = item->flags;
     return f.bits.hostile || f.bits.removed || f.bits.dead_dwarf || f.bits.spider_web ||
@@ -413,7 +386,6 @@ bool item_hard_rejected(df::item* item) {
            f.bits.owned || f.bits.garbage_collect || f.bits.on_fire;
 }
 
-// Does this item already have a BringItemToDepot job (i.e. it is pending / marked for trade)?
 df::job* find_bring_to_depot_job(int32_t item_id) {
     auto world = df::global::world;
     for (df::job_list_link* link = world->jobs.list.next; link; link = link->next) {
@@ -431,31 +403,25 @@ bool item_is_tradeable(df::item* item, df::building_tradedepotst* depot, bool* o
     if (out_pending) *out_pending = false;
     if (!is_fort_stock_item(item, FortItemPurpose::TradeDepot) || item_hard_rejected(item))
         return false;
-    // Skip items inside another creature/container inventory (default movegoods view).
     if (item->flags.bits.in_inventory)
         return false;
     if (item->flags.bits.in_job) {
-        // Busy in a job: tradeable only if that job is a BringItemToDepot (already pending).
         if (find_bring_to_depot_job(item->id)) { if (out_pending) *out_pending = true; return true; }
         return false;
     }
     if (item->flags.bits.in_building) {
-        // Part of a building: tradeable only if it is sitting at THIS depot (already at depot).
         if (DFHack::Items::getHolderBuilding(item) != depot)
             return false;
         if (out_pending) *out_pending = true;
         return true;
     }
-    // Loose item: must be able to walk from the item to the depot centre.
     df::coord ipos = DFHack::Items::getPosition(item);
     if (!ipos.isValid())
         return false;
     return DFHack::Maps::canWalkBetween(ipos, df::coord(depot->centerx, depot->centery, depot->z));
 }
 
-// ---------------------------------------------------------------------------
-// JSON builders
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------- JSON builders
 std::string build_depot_info_json(int32_t id, std::string* err) {
     std::ostringstream js;
     bool ok = run_depot_locked([&]() -> bool {
@@ -463,7 +429,6 @@ std::string build_depot_info_json(int32_t id, std::string* err) {
         if (!depot) { if (err) *err = "not a trade depot"; return false; }
         auto plotinfo = df::global::plotinfo;
 
-        // Count goods physically at the depot + pending haul jobs (cheap scans).
         int at_depot = 0, pending = 0;
         {
             auto world = df::global::world;
@@ -472,8 +437,7 @@ std::string build_depot_info_json(int32_t id, std::string* err) {
                 if (job && job->job_type == df::job_type::BringItemToDepot)
                     ++pending;
             }
-            // TEMP-role contained items are goods sitting at the depot for trade; PERM-role
-            // items are the depot's own construction materials (excluded) -- movegoods parity.
+            // TEMP-role contained items are trade goods; PERM-role are the depot's own materials.
             for (auto* ci : depot->contained_items) {
                 if (ci && ci->item && ci->use_mode == df::building_item_role_type::TEMP)
                     ++at_depot;
@@ -534,7 +498,7 @@ std::string build_depot_goods_json(int32_t id, bool all, std::string* err) {
             bool pending = false;
             if (!item_is_tradeable(item, depot, &pending)) continue;
             int value = DFHack::Items::getValue(item);
-            if (value <= 0) continue;                       // movegoods: no worthless rows
+            if (value <= 0) continue;
             if (!all && emitted >= kCap) { truncated = true; break; }
             df::coord ipos = DFHack::Items::getPosition(item);
             int dist = 0;
@@ -585,7 +549,6 @@ std::string build_trade_status_json(int32_t id, std::string* err) {
                << ",\"caravanGoods\":" << static_cast<int>(tr.good[0].size())
                << ",\"fortGoods\":" << static_cast<int>(tr.good[1].size());
         }
-        // The barter CONFIRM (trade/offer/seize) is host-native -- see /depot-trade.
         js << ",\"confirmHostNative\":true}\n";
         return true;
     });
@@ -594,14 +557,7 @@ std::string build_trade_status_json(int32_t id, std::string* err) {
     return js.str();
 }
 
-// ---------------------------------------------------------------------------
-// Mutations
-// ---------------------------------------------------------------------------
-// Mark / unmark ONE item for trade at this depot. Mirrors movegoods.lua onDismiss exactly:
-//   on=1, item already at depot (holder==depot) -> item.flags.in_building = true
-//   on=1, otherwise -> clear forbid + Items::markForTrade(item, depot)  [creates BringItemToDepot]
-//   on=0, item has a BringItemToDepot job -> Job::removeJob(job)
-//   on=0, item at depot (in_building && holder==depot) -> item.flags.in_building = false
+// ------------------------------------------------------------------ mutations
 int do_depot_mark(int32_t id, int32_t item_id, bool on, std::string* err) {
     int result = 0; // 1 = marked, 2 = at-depot toggled on, -1 unmarked-job, -2 at-depot off, 0 noop
     bool ok = run_depot_locked([&]() -> bool {
@@ -623,7 +579,6 @@ int do_depot_mark(int32_t id, int32_t item_id, bool on, std::string* err) {
             result = 1;
             return true;
         }
-        // unmark
         if (df::job* job = find_bring_to_depot_job(item_id)) {
             DFHack::Job::removeJob(job);
             result = -1;
@@ -634,7 +589,7 @@ int do_depot_mark(int32_t id, int32_t item_id, bool on, std::string* err) {
             result = -2;
             return true;
         }
-        result = 0; // nothing to do
+        result = 0;
         return true;
     });
     if (!ok)
@@ -642,9 +597,6 @@ int do_depot_mark(int32_t id, int32_t item_id, bool on, std::string* err) {
     return result;
 }
 
-// Toggle the depot's trade flags. request: set/clear trader_requested (the exact bit DF's own
-// "Request trader at depot" checkbox writes). When clearing, also remove any live TradeAtDepot
-// job on the depot (caravan.lua `leave` parity). anyone: set/clear anyone_can_trade.
 bool do_depot_broker(int32_t id, bool has_request, bool request, bool has_anyone, bool anyone,
                      std::string* err) {
     return run_depot_locked([&]() -> bool {
@@ -653,7 +605,6 @@ bool do_depot_broker(int32_t id, bool has_request, bool request, bool has_anyone
         if (has_request) {
             depot->trade_flags.bits.trader_requested = request;
             if (!request) {
-                // Recall: drop the broker's TradeAtDepot job (mirrors caravan.lua leave).
                 for (auto* job : depot->jobs) {
                     if (job && job->job_type == df::job_type::TradeAtDepot) {
                         DFHack::Job::removeJob(job);
@@ -671,7 +622,6 @@ bool do_depot_broker(int32_t id, bool has_request, bool request, bool has_anyone
 } // namespace
 
 void register_trade_depot_routes(httplib::Server& server) {
-    // GET /depot-info?id= -> depot state, caravan roster, broker presence, goods counts.
     server.Get("/depot-info", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
@@ -681,7 +631,6 @@ void register_trade_depot_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // GET /depot-goods?id=[&all=1] -> tradeable fort-item rows (capped 400 unless all=1).
     server.Get("/depot-goods", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
@@ -692,7 +641,6 @@ void register_trade_depot_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // POST /depot-mark?id=&item=&on=0|1 -> mark/unmark one item for trade.
     auto mark_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1, item = -1;
         if (!query_int(req, "id", id) || !query_int(req, "item", item)) {
@@ -708,7 +656,6 @@ void register_trade_depot_routes(httplib::Server& server) {
     server.Get("/depot-mark", mark_handler);
     server.Post("/depot-mark", mark_handler);
 
-    // POST /depot-broker?id=[&request=0|1][&anyone=0|1] -> toggle depot trade flags.
     auto broker_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
@@ -727,7 +674,6 @@ void register_trade_depot_routes(httplib::Server& server) {
     server.Get("/depot-broker", broker_handler);
     server.Post("/depot-broker", broker_handler);
 
-    // GET /depot-trade-status?id= -> native trade-screen read (open? who? counts?).
     server.Get("/depot-trade-status", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
@@ -737,26 +683,8 @@ void register_trade_depot_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // B226: /depot-trade -- the browser barter, driven through DF's NATIVE trade screen.
-    //
-    // The barter write-set (item ownership/trader flags, caravan import/export/offer counters,
-    // merchant mood, entity resources, history events) is a native object graph the plugin must
-    // never hand-write -- even DFHack's own trade UI only flips selection bits and leaves the
-    // commit to the native button. So the hw_* Lua engine (dwf.lua HOST-WRITES section):
-    //   * writes SELECTION state only (trade.goodflag[side][idx].selected -- DFHack parity), and
-    //   * delivers the commit through the native viewscreen feed() (interface keys + enabler
-    //     mouse state at the confirm-plugin-pinned button rects, text-asserted before clicking),
-    // so every trade record is written by Dwarf Fortress itself. Risky steps are locked behind
-    // host-side probe flags (dfcapture-hostwrites.json) and return 501 {"guarded":true} until the
-    // orchestrator's live probes verify them -- see
-    // docs/superpowers/specs/2026-07-14-hostwrites-B226-B227.md.
-    //
-    // GET  /depot-trade                  -> full trade-session state (both goods tables,
-    //                                       selection bits, counter-offer, guard flags).
-    // POST /depot-trade?action=select&side=0|1&items=1,2,3&on=0|1
-    // POST /depot-trade?action=trade|offer|seize|counter-accept|counter-decline
-    // POST /depot-trade?action=open&id=<depot>   (guarded: trade_open)
-    // POST /depot-trade?action=close
+    // Never hand-write the barter (trader flags, caravan value counters, history events): the
+    // hw_trade_* Lua path writes goodflag selection bits only and DF's own screen commits.
     server.Get("/depot-trade", [](const httplib::Request& req, httplib::Response& res) {
         (void)req;
         std::string err;

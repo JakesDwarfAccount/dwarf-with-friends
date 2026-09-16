@@ -26,12 +26,7 @@
 
 namespace dwf {
 
-// DF 53.x creates portrait_texpos lazily when it displays a unit sheet. This sweep restores
-// automatic portraits by calling DF's OWN one-argument portrait generator directly on the render
-// thread (exe-pinned and SEH-latched in unit_portrait.cpp). It never opens or impersonates a
-// view sheet, never calls viewscreen logic/render, and never holds renderer or interface state
-// across frames — the rejected mechanisms stay rejected. The sweep itself only paces work (one
-// unit per update tick at most) and keeps honest per-outcome accounting.
+// Paced background generation of the portraits DF creates only lazily; calls unit_portrait.cpp.
 
 // Reset all sweep state when the loaded world changes.
 void portrait_sweep_observe_world(uintptr_t world_identity);

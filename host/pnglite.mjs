@@ -3,17 +3,7 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// host/pnglite.mjs -- W11: minimal PNG decode/encode on node:zlib. ZERO npm deps,
-// no vendored third-party code -- written for this repo so the install-time sprite
-// bake (host/bake_sprites.mjs) can read the host's own DF art and write composites.
-//
-// Decode: 8-bit color types 0 (gray), 2 (RGB), 3 (palette; also bit depths 1/2/4),
-// 4 (gray+alpha), 6 (RGBA), tRNS honored, no interlace. Everything DF's vanilla
-// art uses, verified against the real install. Encode: RGBA8, filter 0.
-//
-// The pixel model everywhere is { width, height, data } with data = Uint8Array
-// of RGBA bytes, row-major, no padding -- the same layout the browser's ImageData
-// uses, so tests can assert on raw bytes.
+// Minimal PNG decode/encode on node:zlib, zero npm deps. Decode: 8-bit color types 0/2/3/4/6,
 
 import zlib from "node:zlib";
 

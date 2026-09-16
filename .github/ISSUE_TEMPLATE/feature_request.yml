@@ -15,6 +15,6 @@ body:
     id: context
     attributes:
       label: Anything else?
-      description: Workarounds you use today, sketches, examples — all optional.
+      description: Workarounds you use today, sketches, and examples are all optional.
     validations:
       required: false

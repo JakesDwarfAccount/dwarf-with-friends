@@ -3,8 +3,7 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// host panel client. Vanilla JS, no deps. Talks to the local node panel's /api/* endpoints.
-// One page, three sections (Status / Friend access / Tunnel & controls) -- no tabs.
+// Host panel client. Vanilla JS, no deps; talks to the local node panel's /api/* endpoints.
 
 const $ = (sel) => document.querySelector(sel);
 const api = {
@@ -35,8 +34,6 @@ async function loadStatus() {
 }
 
 // ---------------- HOSTING + FRIEND LINK ----------------
-// The friend link box reflects BOTH the one-button flow (/api/hosting) and a manually started
-// tunnel (/api/links): whichever knows a URL wins; a confirmed stop paints the link dead.
 let lastHosting = { phase: "idle" };
 let lastStopConfirmed = false;   // set ONLY when the server proves the tunnel process exited
 
@@ -73,8 +70,7 @@ async function loadHosting() {
     h.phase === "error" ? "Try start hosting again" : "Start hosting";
   $("#hosting-message").textContent = h.message || "";
   const error = $("#hosting-error"); error.hidden = !h.error; error.textContent = h.error || "";
-  // NEVER a dead-end spinner: link-stuck (adoption deadlock or wait timeout) surfaces a Retry
-  // and points at the log tail, which loadCloudflaredLog keeps fresh below.
+  // Never a dead-end spinner: link-stuck surfaces a Retry and points at the log tail.
   $("#hosting-stuck").hidden = h.phase !== "link-stuck";
 
   const cf = l.cloudflared;
@@ -103,9 +99,7 @@ $("#retry-link").addEventListener("click", async () => {
 });
 
 // ---------------- JOIN PASSWORD ----------------
-// The security posture is always VISIBLE: either "password is set" with show/copy/change/off, or
-// an explicit "No password — anyone with the link can join" with a Set control. Never a silently
-// empty field. Saves apply LIVE for new joins (server POSTs the plugin's /join-password route).
+// The security posture is always VISIBLE: never a silently empty field. Saves apply LIVE.
 const pw = { value: "", shown: false, editing: false, mode: "set" };
 
 function paintPassword() {
@@ -178,8 +172,7 @@ async function loadCloudflaredLog() {
 $("#cf-log-refresh").addEventListener("click", loadCloudflaredLog);
 
 // ---------------- SERVER ACTIONS ----------------
-// Stop tunnel is special: it must PROVE the process died. The button locks during 'stopping' and
-// the dead-link state only paints when the server confirms stopped:true (process-table verified).
+// Stop tunnel must PROVE the process died: the dead-link state paints only on stopped:true.
 $("#stop-cf").addEventListener("click", async () => {
   const b = $("#stop-cf");
   if (b.dataset.confirm && !window.confirm(b.dataset.confirm)) return;

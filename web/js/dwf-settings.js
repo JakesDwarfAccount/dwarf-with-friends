@@ -19,56 +19,19 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// ============================================================================================
-// CLIENT SETTINGS PANEL (Phase 5): keybind remapping, UI preferences, UI scale (absorbs PDF-B17),
-// and read-only info. All persisted in localStorage. Opened from the Esc menu's "Settings" row
-// (dwf-escmenu.js) -- and dormant-safe: if this file never loads or the panel never opens,
-// the client behaves EXACTLY as before (the keybind resolver below is only consulted when
-// window.DFKeybinds exists AND a user override is present; with zero overrides it is the identity
-// function, so no keypress changes behavior).
-//
-// ARCHITECTURE (why it is surgical):
-//   The client is a SEMANTIC client: it has no raw-keystroke passthrough to DF. Every key maps to
-//   a CLIENT action (openPanel/armDesignation/queueMove/performAction). There are two live keydown
-//   dispatchers:
-//     * dwf-core.js  (capture phase)  -- owns CAMERA keys (arrows/wasd/PageUp-Down/e-c/[-]/
-//       Home). Multi-alias, capture-phase, stopImmediatePropagation. Left FIXED (read-only in the
-//       panel) -- remapping camera keys is the "unsafe" class the brief allows us to keep read-only.
-//     * dwf-controls-placement.js (bubble phase) -- a `switch (event.key)` over DF's
-//       semantic single-key hotkeys (dig/build/panels/pause/display-toggles). THIS is the
-//       remappable surface, and its switch now reads `DFKeybinds.resolve(event)` instead of
-//       `event.key` (one-line touchpoint), falling back to `event.key` if this module is absent.
-//   dwf-keymap.js is pure DOCUMENTATION (the WD-28 audit table + the "?" reference overlay);
-//   it does not dispatch, so it is untouched.
-//
-//   RESOLVER CONTRACT: resolve(event) returns the CANONICAL (default) key string that the switch's
-//   `case` labels already match. Pressing a key that a user has bound to action A returns A's
-//   DEFAULT key -> the existing `case` fires unchanged. A key whose default action was remapped
-//   AWAY (and nothing else now maps to it) returns a sentinel "\u0000" -> the switch's `default:`
-//   branch -> no-op (and no preventDefault, so it passes through cleanly). Keys we do not manage
-//   are returned verbatim. => the two switches need no case rewrites, only the one dispatch-source
-//   swap. Camera/help/diagnostic keys are NOT managed, so they always pass through untouched.
-//
-//   CROSS-DISPATCHER SAFETY: camera keys are RESERVED as remap targets (you cannot bind a fort tool
-//   onto `a`/`w`/arrows/etc.) precisely because core.js's capture handler would swallow them before
-//   the fort-tool switch ever runs. decodeOverrides() drops any override onto a reserved key, and
-//   the rebind UI rejects it -- see the harness counterexample cell.
+// ---- Client settings: keybind remapping, UI preferences, UI scale, persisted in localStorage. ----
+// RESOLVER CONTRACT: resolve(event) returns the CANONICAL default key the dispatchers' `case` labels match.
 
 (function (root) {
   "use strict";
 
-  // ==========================================================================================
-  // PURE CORE (no DOM / no localStorage) -- exported as DFSettings._pure for the Node harness.
-  // ==========================================================================================
+  // ---- Pure core (no DOM, no localStorage), exported as DFSettings._pure for the Node harness. ----
 
   var KEYBINDS_LS_KEY = "dwf.keybinds";
   var UI_SCALE_MIN = 0.7, UI_SCALE_MAX = 1.6;
 
-  // The REMAPPABLE action registry: one entry per DF-semantic single-key hotkey handled by
-  // dwf-controls-placement.js's switch. `default` is the exact `event.key` its `case` label
-  // matches (case-sensitive: an uppercase letter is a Shift+letter chord). Array ORDER is the
-  // deterministic tie-break for a dispatch-time conflict (later entry wins boundBy) -- the panel
-  // warns about the conflict so a user resolves it; this just makes the interim behavior defined.
+  // `default` is the exact `event.key` its `case` label matches -- case-sensitive, so an uppercase letter
+  // is a Shift chord. Array ORDER is the tie-break for a dispatch-time conflict.
   var ACTIONS = [
     // Designations
     { id: "dig",         default: "m", label: "Dig / Mine",            cat: "Designations" },
@@ -104,13 +67,6 @@
     { id: "pause",       default: " ", label: "Pause / Unpause",       cat: "System & display" },
     { id: "rampArrows",  default: "r", label: "Toggle ramp indicators", cat: "System & display" },
     { id: "liquidNums",  default: "f", label: "Toggle liquid numerals", cat: "System & display" },
-    // Saved map-location jumps (B203). Digits 1-9 zoom the camera to the location saved in that
-    // list slot -- global (fire from the map view, panel open or not), the way DF's own hotkeys
-    // work. dwf-hotkeys.js owns the jump (it holds the live slot list); it resolves the
-    // pressed key through DFKeybinds.resolve() exactly like the fort-tool switch, so a remapped
-    // digit still jumps and a digit reassigned to another action stops jumping. Listed LAST so a
-    // location wins the deterministic tie-break if a user also binds another action onto a digit
-    // (the panel banners the conflict so they can resolve it).
     { id: "location1",   default: "1", label: "Jump to location 1",     cat: "Locations" },
     { id: "location2",   default: "2", label: "Jump to location 2",     cat: "Locations" },
     { id: "location3",   default: "3", label: "Jump to location 3",     cat: "Locations" },
@@ -125,12 +81,8 @@
   var DEFAULTS_BY_ID = {};
   for (var i = 0; i < ACTIONS.length; i++) DEFAULTS_BY_ID[ACTIONS[i].id] = ACTIONS[i].default;
 
-  // Keys that may NOT be a remap target (and are shown read-only in the panel). Two groups:
-  //   (a) CAMERA / capture-owned keys -- core.js's capture handler consumes these before the
-  //       fort-tool switch runs, so binding a tool onto one would be dead. (WD-28 already moved
-  //       every fort-tool default OFF these, so none of ACTIONS' defaults collide with this set.)
-  //   (b) STRUCTURAL / reference keys -- Escape (the UI back-out cascade) and the help/diagnostic
-  //       keys (?/F1/F3/H), which the switch/overlay own outside this registry.
+  // Keys that may NOT be a remap target: camera keys, which dwf-core.js's capture handler consumes before
+  // the fort-tool switch runs, and structural keys -- Escape and the help/diagnostic keys.
   var RESERVED_KEYS = new Set([
     // camera pan
     "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
@@ -151,10 +103,8 @@
     return key.length === 1;              // exactly one character (letters/symbols/digits)
   }
 
-  // Parse the persisted override string into a CLEAN {actionId: key} map. Every guard here is the
-  // corrupt-input fallback the harness exercises: bad JSON -> {}, non-object -> {}, unknown action
-  // id -> dropped, invalid/reserved key -> dropped (that action falls back to its default). A single
-  // bad entry never poisons the rest.
+  // Every guard here is a corrupt-input fallback: bad JSON, non-object, unknown action id, invalid or
+  // reserved key. A single bad entry never poisons the rest.
   function decodeOverrides(raw) {
     var obj;
     try { obj = JSON.parse(raw); } catch (_) { return {}; }
@@ -226,7 +176,7 @@
     return out;
   }
 
-  // UI-scale clamp (absorbs PDF-B17's clamp; mirrors dwf-controls-placement.js's DWFUIScale).
+  // UI-scale clamp; mirrors dwf-controls-placement.js's DWFUIScale
   function clampScale(v, min, max) {
     min = (min == null) ? UI_SCALE_MIN : min;
     max = (max == null) ? UI_SCALE_MAX : max;
@@ -265,17 +215,15 @@
     autosaveIntervalLabel: autosaveIntervalLabel,
   };
 
-  // ==========================================================================================
-  // STATEFUL LAYER (localStorage-backed) -- overrides cache + the DFKeybinds.resolve() the two
-  // dispatchers consult. Kept alive even with no DOM so the resolver works headless.
-  // ==========================================================================================
+  // ---- Stateful layer: the overrides cache, plus the DFKeybinds.resolve() that ----
+  // ---- dwf-controls-placement.js and dwf-hotkeys.js call. Alive with no DOM, so it works headless. ----
 
   var overrides = {};        // {actionId: key}
   var _managed = computeManaged({});
   var _boundBy = computeBoundBy({});
 
-  function lsGet(k) { try { return root.localStorage ? root.localStorage.getItem(k) : null; } catch (_) { return null; } }
-  function lsSet(k, v) { try { if (root.localStorage) root.localStorage.setItem(k, v); } catch (_) {} }
+  var DwfUtil = root.DwfUtil || (typeof require === "function" ? require("./dwf-util.js") : null);
+  var lsGet = DwfUtil.lsGet, lsSet = DwfUtil.lsSet, lsRemove = DwfUtil.lsRemove;
 
   function recompute() {
     _managed = computeManaged(overrides);
@@ -317,22 +265,16 @@
 
   loadOverrides();
 
-  // ==========================================================================================
-  // UI (guarded -- skipped entirely with no document, e.g. under the Node harness).
-  // ==========================================================================================
+  // ---- UI, skipped entirely with no document (e.g. under the Node harness). ----
 
   var doc = root.document;
   var hasDom = typeof doc !== "undefined" && !!doc && !!doc.createElement;
 
-  // DWFUI contract -- see dwf-escmenu.js. Declared LAZILY (inside the DOM guard) because the
-  // Node keybind harness loads this file's PURE core with no DWFUI and no document at all.
+  // Declared LAZILY, inside the DOM guard: settings_keybinds_test loads this file's PURE core with
+  // no DWFUI and no document at all.
   if (hasDom && typeof root.DWFUI !== "undefined" && typeof root.DWFUI.require === "function")
     root.DWFUI.require("settings", ["headerHtml", "nonNativeTabsHtml", "plaqueBtnHtml", "switchHtml",
       "rowHtml", "scrollHtml", "bitmapTextHtml", "esc", "TOKENS"]);
-
-  // Was a private escapeHtml shim. DWFUI.esc is the shared escaper. (It does not escape `'`; every
-  // attribute this module writes is double-quoted, so the escape set is equivalent here.)
-  function esc(s) { return root.DWFUI.esc(s); }
 
   // Human label for a key string (Space, Shift+X for a bare uppercase letter, else the key).
   function keyLabel(key) {
@@ -345,77 +287,9 @@
 
   var backdrop = null, panel = null, curTab = "keybinds", rebindingId = null;
 
-  // R1: this block carried 52 HEX LITERALS -- the single largest private palette in the family, and
-  // it was INVISIBLE to the drift guard purely because of its SYNTAX (`.textContent = [...].join("")`
-  // holds no template literal and is not a declaration). Wave 5 widened R1 to see it. Every colour
-  // now resolves through the `--dwfui-*` custom properties (F1's measured native palette) declared
-  // once in dwf.css :root. NO COLOUR IS STATED HERE. Geometry stays: this is the strangler
-  // seam, and CSS consolidation is a later wave.
-  //
-  // R4: `.if-toggle` -- the THIRD copy of the 34x18 gold pill -- IS DELETED, together with its
-  // ::after knob and its two `.on` rules. renderInterface() now emits DWFUI.switchHtml, whose own
-  // `.dwfui-switch-track` / `.dwfui-switch-knob` paint the control. That takes R4 in this family to 0.
-  function ensureStyle() {
-    if (!hasDom || doc.getElementById("dfSettingsStyle")) return;
-    var st = doc.createElement("style");
-    st.id = "dfSettingsStyle";
-    st.textContent = [
-      // Backdrop + centered modal (safe placement: a centered modal never collides with the
-      // fixed HUD clusters -- bottomBar / zone submenus / docked panels / hoverInfo / chat).
-      "#dfSettingsBackdrop{position:fixed;inset:0;z-index:120;display:none;",
-      "background:rgba(0,0,0,.5);align-items:center;justify-content:center;}",
-      "#dfSettingsBackdrop.open{display:flex;}",
-      "#dfSettingsPanel{width:min(720px,94vw);max-height:88vh;display:flex;flex-direction:column;",
-      "background:var(--dwfui-surface);border:2px solid var(--dwfui-gold);color:var(--dwfui-text-body);",
-      "font:12px/1.4 ui-monospace,Consolas,monospace;box-shadow:0 10px 30px rgba(0,0,0,.6);}",
-      "#dfSettingsPanel .dfs-head{display:flex;align-items:center;justify-content:space-between;",
-      "padding:10px 12px;border-bottom:1px solid var(--dwfui-gold-bevel-dark);}",
-      "#dfSettingsPanel .dfs-head h2{margin:0;font-size:14px;color:var(--dwfui-gold);letter-spacing:.5px;}",
-      "#dfSettingsPanel .dfs-x{background:none;border:none;cursor:pointer;line-height:1;}",
-      "#dfSettingsPanel .dfs-body{display:flex;min-height:0;flex:1;}",
-      "#dfSettingsPanel .dfs-nav{flex:0 0 130px;border-right:1px solid var(--dwfui-gold-bevel-dark);padding:8px 0;display:flex;flex-direction:column;}",
-      "#dfSettingsPanel .dfs-tab{background:none;border:none;color:var(--dwfui-text-secondary);text-align:left;padding:8px 14px;cursor:pointer;font:inherit;}",
-      "#dfSettingsPanel .dfs-tab:hover{background:var(--dwfui-hatch);color:var(--dwfui-gold);}",
-      "#dfSettingsPanel .dfs-tab.on{background:var(--dwfui-slab);color:var(--dwfui-gold);border-left:3px solid var(--dwfui-gold);padding-left:11px;}",
-      // .dfs-pane is now DWFUI.scrollHtml's node: the native scrollbar comes from .dwfui-scroll, so
-      // this rule must NOT restate overflow (that is what manufactured the browser-default bar).
-      "#dfSettingsPanel .dfs-pane{flex:1;min-width:0;padding:12px 14px;}",
-      "#dfSettingsPanel h3{margin:14px 0 6px;font-size:12px;color:var(--dwfui-gold);font-weight:700;border-bottom:1px solid var(--dwfui-gold-bevel-dark);padding-bottom:3px;}",
-      "#dfSettingsPanel h3:first-child{margin-top:0;}",
-      "#dfSettingsPanel .dfs-note{color:var(--dwfui-text-secondary);font-size:11px;margin:4px 0 8px;}",
-      // Keybind rows -- now DWFUI.rowHtml({chassis:'table'}); the grid template stays on .kb-row.
-      "#dfSettingsPanel .kb-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 78px;gap:8px;align-items:center;padding:4px 2px;border-bottom:1px solid var(--dwfui-hatch);}",
-      "#dfSettingsPanel .kb-row .dwfui-copy{display:none;}",
-      "#dfSettingsPanel .kb-row.conflict{background:var(--dwfui-destructive);}",
-      "#dfSettingsPanel .kb-row.readonly{opacity:.6;}",
-      "#dfSettingsPanel .kb-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}",
-      // The bind/reset controls are DWFUI plaques now; only the CELL sizing lives here. The plaque's
-      // own native slab art + bitmap label come from .dwfui-plaque (dwf.css) -- one plaque.
-      "#dfSettingsPanel .kb-bind{width:100%;min-width:0;}",
-      "#dfSettingsPanel .kb-bind.listening{animation:dfsPulse 1s infinite;}",
-      "#dfSettingsPanel .kb-reset{width:100%;min-width:0;padding:0 4px;}",
-      "@keyframes dfsPulse{50%{opacity:.55;}}",
-      "#dfSettingsPanel .dfs-banner{background:var(--dwfui-destructive);border:1px solid var(--dwfui-text-warning);color:var(--dwfui-text-title);padding:6px 8px;margin:0 0 8px;font-size:11px;}",
-      "#dfSettingsPanel .dfs-actions{display:flex;gap:8px;margin-top:10px;}",
-      // Interface rows are DWFUI.switchHtml now (R4): no private pill, no ::after knob.
-      "#dfSettingsPanel .if-row{display:flex;align-items:center;gap:10px;padding:6px 2px;border-bottom:1px solid var(--dwfui-hatch);cursor:pointer;}",
-      "#dfSettingsPanel .if-row:hover{background:var(--dwfui-hatch);}",
-      "#dfSettingsPanel .if-scale{display:flex;align-items:center;gap:10px;padding:8px 2px;}",
-      // DECLARED NON-NATIVE CONTROL (see renderInterface): DF has NO continuous-value control, so
-      // there is no native grammar to render. The raw range input stays, unrestyled.
-      "#dfSettingsPanel .if-scale input[type=range]{flex:1;accent-color:var(--dwfui-gold);}",
-      "#dfSettingsPanel .if-scale .val{min-width:44px;text-align:right;color:var(--dwfui-gold);font-variant-numeric:tabular-nums;}",
-      "#dfSettingsPanel .info-row{display:flex;justify-content:space-between;gap:10px;padding:5px 2px;border-bottom:1px solid var(--dwfui-hatch);}",
-      "#dfSettingsPanel .info-row .dwfui-copy{display:none;}",
-      "#dfSettingsPanel .info-row .k{color:var(--dwfui-text-secondary);}",
-      "#dfSettingsPanel .info-row .v{color:var(--dwfui-text-body);text-align:right;}",
-    ].join("");
-    (doc.head || doc.documentElement).appendChild(st);
-  }
-
+  // Panel styling ships in the production stylesheet so the same markup works in every document that loads it.
   function ensurePanel() {
     if (panel) return;
-    ensureStyle();
     backdrop = doc.createElement("div");
     backdrop.id = "dfSettingsBackdrop";
     panel = doc.createElement("div");
@@ -437,11 +311,9 @@
 
   function settingsMarkup(tab) {
     var activeTab = TABS.some(function (t) { return t.id === tab; }) ? tab : "keybinds";
-    // NOT A NATIVE TAB ROW. This Settings panel (Keybinds / Interface / Audio / Info) is a BROWSER-
-    // CLIENT screen -- it configures our web client, and DF has no counterpart to copy. There is no
-    // oracle capture of it and no F3 row for it in the native-component matrix. Giving it a native tab
-    // grammar would be inventing one, so it declares the opt-out instead of hiding it.
-    var navHtml = root.DWFUI.nonNativeTabsHtml({ cls: "dfs-nav", tabCls: "dfs-tab", activeCls: "on", dataAttr: "tab", ariaLabel: "Settings sections", active: activeTab,
+    // NOT a native tab row: this screen configures the web client and DF has no counterpart to copy, so it
+    // declares the opt-out rather than inventing a native tab grammar.
+    var navHtml = root.DWFUI.nonNativeTabsHtml({ cls: "settings-nav", tabCls: "settings-tab", activeCls: "on", dataAttr: "tab", ariaLabel: "Settings sections", active: activeTab,
       reason: "browser-client settings screen; no native DF counterpart and no oracle capture -- no F3 grammar to adopt",
       tabs: TABS.map(function (t) { return { key: t.id, label: t.label }; }) });
     var pane =
@@ -449,14 +321,10 @@
       activeTab === "interface" ? renderInterface() :
       activeTab === "audio" ? renderAudio() :
       renderInfo();
-    // The `glyph: "&times;"` escape hatch is dropped: headerHtml now renders the NATIVE close tile
-    // (BUILDING_JOBS_REMOVE via artBtnHtml). The pinned `.dfs-x` class and the click wire survive.
-    // The pane's raw `overflow:auto` becomes scrollHtml -- the browser-default scrollbar was the
-    // "very important" F5 complaint. `preserveKey` keeps the scroll position across the re-render
-    // that every rebind / toggle triggers (the keybind list is 34 rows and DID jump to the top).
-    return root.DWFUI.headerHtml({ cls: "dfs-head", titleTag: "h2", title: "Settings", titleCls: "dfs-title", close: { cls: "dfs-x", dataset: { dfsClose: "" }, title: "Close" } }) +
-      '<div class="dfs-body">' + navHtml +
-      root.DWFUI.scrollHtml({ cls: "dfs-pane", preserveKey: "settings:" + activeTab }, pane) +
+    // `preserveKey` keeps the scroll position across the re-render that every rebind or toggle triggers.
+    return root.DWFUI.headerHtml({ cls: "settings-head", titleTag: "h2", title: "Settings", titleCls: "settings-title", close: { cls: "settings-x", dataset: { dfsClose: "" }, title: "Close" } }) +
+      '<div class="settings-body">' + navHtml +
+      root.DWFUI.scrollHtml({ cls: "settings-pane", preserveKey: "settings:" + activeTab }, pane) +
       "</div>";
   }
 
@@ -464,7 +332,7 @@
     if (!panel) return;
     panel.innerHTML = settingsMarkup(curTab);
 
-    panel.querySelector(".dfs-x").addEventListener("click", close);
+    panel.querySelector(".settings-x").addEventListener("click", close);
     panel.querySelectorAll("[data-tab]").forEach(function (b) {
       b.addEventListener("click", function () { cancelRebind(); curTab = b.dataset.tab; render(); });
     });
@@ -473,22 +341,8 @@
     else if (curTab === "audio") wireAudio();
   }
 
-  // ---- Keybinds tab -------------------------------------------------------------------------
-  // NON-NATIVE SURFACE, DECLARED. DF has no keybind remapper, so there is no native oracle for this
-  // screen and none is invented. What IS adopted is the GRAMMAR: every control below is a DWFUI
-  // builder, so it speaks the same visual language as the rest of the game (matrix §7.3). The 34
-  // remappable actions are a SUPERSET and every one of them stays -- deleting this screen would kill
-  // every fort-tool hotkey in the client.
-  //
-  // THE `kb-reset` CONTROL, AND WHY IT IS A WORD AND NOT A TILE: it means "revert this binding to its
-  // default", and grep over web/interface_map.json's 1,502 tokens returns ZERO hits for
-  // RESET / UNDO / REVERT / RESTORE / DEFAULT. THERE IS NO NATIVE SPRITE FOR THIS ACTION. It used to
-  // render the clockwise-open-circle-arrow HTML entity (TOKENS.glyphs.repeat's character) -- an
-  // emoji-class glyph, and this file's only R3 violation. The fix is NOT to fabricate a tile, and NOT
-  // to borrow an unrelated one (the gold
-  // BUTTON_CLOSE_LEFT back-arrow was the tempting near-miss): it is to use the grammar DF ITSELF uses
-  // when it has no icon -- a TEXT PLAQUE. So the control now reads "Reset". Zero invented art, zero
-  // emoji, R3 -> 0. The missing sprite is reported as an art gap, not papered over.
+  // ---- Keybinds tab. A non-native surface, declared: DF has no keybind remapper. ----
+  // "Reset" is a TEXT PLAQUE -- interface_map.json has no RESET / UNDO / REVERT / RESTORE / DEFAULT token.
   function renderKeybinds() {
     var conflicts = detectConflicts(overrides);
     var banner = "";
@@ -500,7 +354,7 @@
         }).join(" & ");
         return keyLabel(c.key) + " -> " + names;
       });
-      banner = '<div class="dfs-banner"><b>Key conflict:</b> ' + esc(lines.join("; ")) +
+      banner = '<div class="settings-banner"><b>Key conflict:</b> ' + root.DWFUI.esc(lines.join("; ")) +
         '. The last-listed action wins when pressed.</div>';
     }
     var D = root.DWFUI;
@@ -512,26 +366,22 @@
         var isConflict = conflicts.some(function (c) { return c.key === key; });
         var isOverridden = overrides[a.id] != null;
         var listening = rebindingId === a.id;
-        // The BIND control is a native text plaque showing the currently-bound key. The RESET control
-        // is a native text plaque reading "Reset" -- native has no reset/undo/revert SPRITE (verified
-        // absent from all 1,502 tokens in interface_map.json), and a text plaque is the grammar DF
-        // uses when it has no icon. It is NOT an invented tile and NOT the retired emoji.
         var bind = D.plaqueBtnHtml({
           label: listening ? "Press a key…" : keyLabel(key),
-          tone: "grey", cls: "kb-bind" + (listening ? " listening" : ""),
+          tone: "grey", cls: "keyboard-binding-bind" + (listening ? " listening" : ""),
           dataset: { rebind: a.id }, title: "Click, then press the new key",
         });
         var reset = D.plaqueBtnHtml({
-          label: "Reset", tone: "grey", cls: "kb-reset", dataset: { reset: a.id },
+          label: "Reset", tone: "grey", cls: "keyboard-binding-reset", dataset: { reset: a.id },
           disabled: !isOverridden, title: "Reset to default (" + keyLabel(a.default) + ")",
         });
         return D.rowHtml({
-          chassis: "table", cls: "kb-row" + (isConflict ? " conflict" : ""),
+          chassis: "table", cls: "keyboard-binding-row" + (isConflict ? " conflict" : ""),
           dataset: { action: a.id }, title: a.label,
-          cells: [{ html: esc(a.label), cls: "kb-label" }, { html: bind }, { html: reset }],
+          cells: [{ html: root.DWFUI.esc(a.label), cls: "keyboard-binding-label" }, { html: bind }, { html: reset }],
         });
       }).join("");
-      return "<h3>" + esc(cat) + "</h3>" + rows;
+      return "<h3>" + root.DWFUI.esc(cat) + "</h3>" + rows;
     }).join("");
     // Read-only reference: the FIXED camera + system keys (not remappable -- see file header).
     var fixed = [
@@ -545,20 +395,20 @@
       ["Ctrl + / − / 0, Ctrl+Wheel", "UI scale (see Interface tab)"],
     ].map(function (r) {
       return D.rowHtml({
-        chassis: "table", cls: "kb-row readonly",
+        chassis: "table", cls: "keyboard-binding-row readonly",
         cells: [
-          { html: esc(r[1]), cls: "kb-label" },
-          { html: D.plaqueBtnHtml({ label: r[0], tone: "grey", cls: "kb-bind dim", disabled: true }) },
+          { html: root.DWFUI.esc(r[1]), cls: "keyboard-binding-label" },
+          { html: D.plaqueBtnHtml({ label: r[0], tone: "grey", cls: "keyboard-binding-bind dim", disabled: true }) },
         ],
       });
     }).join("");
     return banner +
-      '<div class="dfs-note">Click a binding, then press the new key. These apply to client ' +
+      '<div class="settings-note">Click a binding, then press the new key. These apply to client ' +
       'shortcuts only. Space and Shift+letter chords are allowed; camera and system keys below ' +
       'are fixed.</div>' +
       body +
-      '<div class="dfs-actions">' +
-      D.plaqueBtnHtml({ label: "Reset all to defaults", tone: "grey", cls: "dfs-btn",
+      '<div class="settings-actions">' +
+      D.plaqueBtnHtml({ label: "Reset all to defaults", tone: "grey", cls: "settings-btn",
         dataset: { resetAll: "" }, title: "Restore every keybind to its default" }) +
       '</div>' +
       '<h3>Fixed controls (not remappable)</h3>' + fixed;
@@ -584,7 +434,8 @@
   function cancelRebind() {
     if (rebindingId == null) return;
     rebindingId = null;
-    try { doc.removeEventListener("keydown", captureRebind, true); } catch (_) {}
+    try { doc.removeEventListener("keydown", captureRebind, true); }
+    catch (err) { DwfErr.report("settings.rebind-listener-remove", err); }
   }
   function captureRebind(ev) {
     ev.preventDefault();
@@ -614,56 +465,79 @@
 
   // ---- Interface tab ------------------------------------------------------------------------
   function panelFrameEnabled() {
-    try { return root.DFPanelFrame ? root.DFPanelFrame.enabled : root.localStorage.getItem("dwf.panelFrame.enabled") !== "0"; }
+    try { return root.DFPanelFrame ? root.DFPanelFrame.enabled : lsGet("dwf.panelFrame.enabled") !== "0"; }
     catch (_) { return true; }
+  }
+
+  // State, persistence and live apply all live in DwfRender; this panel only presents the switch.
+  function smoothMotionEnabled() {
+    try { return !!(root.DwfRender && root.DwfRender.smoothMotion); } catch (_) { return false; }
+  }
+
+  // State, persistence and live apply all live in DwfTiles; this panel only presents the switch.
+  function hiDpiEnabled() {
+    try { return root.DwfTiles ? !!root.DwfTiles.hiDpiEnabled() : true; } catch (_) { return true; }
   }
 
   function renderInterface() {
     var scale = 1;
-    try { if (root.DWFUIScale) scale = root.DWFUIScale.get(); } catch (_) {}
+    try { if (root.DWFUIScale) scale = root.DWFUIScale.get(); }
+    catch (err) { DwfErr.report("settings.ui-scale-read", err); }
     var pct = Math.round(clampScale(scale) * 100);
     var prefsHtml = "";
     var prefs = null;
-    try { if (root.DFClientPrefs) prefs = root.DFClientPrefs.list(); } catch (_) {}
+    try { if (root.DFClientPrefs) prefs = root.DFClientPrefs.list(); }
+    catch (err) { DwfErr.report("settings.client-prefs-list", err); }
     if (prefs && prefs.length) {
-      // R4: this was a hand-rolled `if-row` + `if-toggle` pill -- the THIRD copy of a control DWFUI
-      // already owns. switchHtml renders the SHARED track+knob; [data-pref] (now on the switch root)
-      // is the SAME wire wireInterface() has always read, so every client pref still round-trips.
       prefsHtml = prefs.map(function (p) {
-        var on = false; try { on = !!p.get(); } catch (_) {}
+        var on = false; try { on = !!p.get(); }
+        catch (err) { DwfErr.report("settings.client-pref-read", err); }
         return root.DWFUI.switchHtml({
-          cls: "if-row" + (on ? " on" : ""), checked: on,
+          cls: "interface-option-row" + (on ? " on" : ""), checked: on,
           rootDataset: { pref: p.id }, label: p.label,
         });
       }).join("");
     } else {
-      prefsHtml = '<div class="dfs-note">Interface toggles are provided by the top-bar cog menu ' +
+      prefsHtml = '<div class="settings-note">Interface toggles are provided by the top-bar cog menu ' +
         'on this build.</div>';
     }
     return '<h3>UI scale</h3>' +
-      '<div class="dfs-note">Size of the interface panels and toolbars (the map is never rescaled). ' +
-      'Also Ctrl + mouse wheel, or Ctrl + / − / 0.</div>' +
-      // *** DECLARED NON-NATIVE CONTROL: THE UI-SCALE SLIDER STAYS A RAW RANGE INPUT. ***
-      // DWFUI has no sliderHtml and MUST NOT GROW ONE. DF has NO continuous-value control anywhere:
-      // grepping web/interface_map.json's 1,502 tokens for SLIDER|TRACK|THUMB|VOLUME returns no value
-      // affordance (the one continuous thing DF owns is the SCROLLBAR -- a SCROLL affordance, not a
-      // VALUE one). A sliderHtml would be a DWFUI component with NO NATIVE GRAMMAR TO RENDER, and
-      // inventing DF art for a control DF does not have is exactly what the parity rules forbid.
-      // UI scale is a WIRED SUPERSET (ours, not DF's) -- so the control STAYS: unrestyled, declared,
-      // reported. R7 deliberately does not flag type=range; that is not an oversight.
-      '<div class="if-scale"><input type="range" id="dfsScale" min="' + UI_SCALE_MIN + '" max="' + UI_SCALE_MAX +
+      '<div class="settings-note">Size of the interface panels and toolbars (the map is never rescaled). ' +
+      'Also Ctrl + / − / 0. (Ctrl + mouse wheel zooms the MAP, like DF.)</div>' +
+      // DECLARED NON-NATIVE CONTROL: the UI-scale slider stays a raw range input. DF has no continuous-value
+      // control anywhere, so DWFUI must not grow a sliderHtml -- it would have no native grammar to render.
+      '<div class="interface-option-scale"><input type="range" id="dfsScale" min="' + UI_SCALE_MIN + '" max="' + UI_SCALE_MAX +
       '" step="0.05" value="' + clampScale(scale) + '"><span class="val" id="dfsScaleVal">' + pct + '%</span>' +
-      root.DWFUI.plaqueBtnHtml({ label: "Reset", tone: "grey", cls: "dfs-btn",
+      root.DWFUI.plaqueBtnHtml({ label: "Reset", tone: "grey", cls: "settings-btn",
         dataset: { dfsAct: "scale-reset" }, title: "Reset the UI scale to 100%" }) + '</div>' +
       '<h3>Panels</h3>' +
-      root.DWFUI.switchHtml({ cls: "if-row" + (panelFrameEnabled() ? " on" : ""),
+      root.DWFUI.switchHtml({ cls: "interface-option-row" + (panelFrameEnabled() ? " on" : ""),
         checked: panelFrameEnabled(), rootDataset: { dfsToggle: "panelframe" },
         label: "Movable panels (beta)" }) +
-      '<div class="dfs-note">Lets migrated panels be moved, resized, closed, and remembered in this browser.</div>' +
-      '<div class="dfs-actions">' +
-      root.DWFUI.plaqueBtnHtml({ label: "Reset panel layout", tone: "grey", cls: "dfs-btn",
+      '<div class="settings-note">Lets migrated panels be moved, resized, closed, and remembered in this browser.</div>' +
+      '<div class="settings-actions">' +
+      root.DWFUI.plaqueBtnHtml({ label: "Reset panel layout", tone: "grey", cls: "settings-btn",
         dataset: { dfsAct: "panelframe-reset" },
         title: "Forget every remembered panel position and size" }) + '</div>' +
+      // DECLARED BROWSER-CLIENT CONTROL: this configures our client, not anything DF has.
+      '<h3>Map motion</h3>' +
+      root.DWFUI.switchHtml({ cls: "interface-option-row" + (smoothMotionEnabled() ? " on" : ""),
+        checked: smoothMotionEnabled(), rootDataset: { dfsToggle: "smoothmotion" },
+        label: "Smooth creature motion" }) +
+      '<div class="settings-note">Off by default: creatures step from tile to tile, exactly the way ' +
+      'Dwarf Fortress itself draws them (it never paints a creature part-way between two tiles). ' +
+      'Turn this on to glide them between tiles instead, which looks calmer on a slow connection ' +
+      'but is not how the real game moves. Takes effect immediately.</div>' +
+      // DECLARED BROWSER-CLIENT CONTROL: the escape hatch for the DPR-correct backing store, which costs 4x
+      // the fragment work a weak integrated GPU may not want to spend.
+      '<h3>Map sharpness</h3>' +
+      root.DWFUI.switchHtml({ cls: "interface-option-row" + (hiDpiEnabled() ? " on" : ""),
+        checked: hiDpiEnabled(), rootDataset: { dfsToggle: "hidpi" },
+        label: "Sharp map (match display scale)" }) +
+      '<div class="settings-note">On by default: the map is drawn at your display\'s real pixel ' +
+      'density, so it stays crisp when Windows (or your browser) is set above 100% scale. ' +
+      'Turn it off if the map feels slow on a laptop with weak graphics -- it draws up to four ' +
+      'times fewer pixels, but the map goes soft. Takes effect immediately.</div>' +
       '<h3>Preferences</h3>' + prefsHtml;
   }
 
@@ -672,59 +546,75 @@
     var val = panel.querySelector("#dfsScaleVal");
     if (slider) slider.addEventListener("input", function () {
       var v = clampScale(parseFloat(slider.value));
-      try { if (root.DWFUIScale) root.DWFUIScale.set(v); } catch (_) {}
+      try { if (root.DWFUIScale) root.DWFUIScale.set(v); }
+      catch (err) { DwfErr.report("settings.ui-scale-set", err); }
       if (val) val.textContent = Math.round(v * 100) + "%";
     });
-    // HOOK NOTE: #dfsScaleReset / #dfsPanelFrameReset / #dfsPanelFrameToggle / #dfsOpenAudio were
-    // INTERNAL querySelector handles -- proved by grep to be referenced by no other web/js file, no
-    // CSS rule, no src/ C++ source, no index.html, and no tools/ui-lab story. DWFUI builders take
-    // `cls` + `dataset` hooks (the strangler seam), not ids, so each handle moves to a [data-dfs-*]
-    // attribute. Same element, same handler, same action: the wire is preserved, only its name moved.
+    // DWFUI builders take `cls` and `dataset` hooks, not ids, so every builder-emitted handle below is
+    // a [data-dfs-*] attribute. The raw range input above keeps its id, because nothing built it.
     var reset = panel.querySelector('[data-dfs-act="scale-reset"]');
     if (reset) reset.addEventListener("click", function () {
-      try { if (root.DWFUIScale) root.DWFUIScale.reset(); } catch (_) {}
+      try { if (root.DWFUIScale) root.DWFUIScale.reset(); }
+      catch (err) { DwfErr.report("settings.ui-scale-reset", err); }
       if (slider) slider.value = "1";
       if (val) val.textContent = "100%";
     });
     var panelFrameToggle = panel.querySelector('[data-dfs-toggle="panelframe"]');
     if (panelFrameToggle) {
-      // WTHR-2 (live-fix): the movable-panels switch is the SAME DWFUI.switchHtml chassis as the
-      // [data-pref] rows below -- a <label> wrapping a checkbox -- so a `click` handler on the label
-      // fires TWICE (real click + the click re-dispatched through the checkbox) and cancels its own
-      // `!panelFrameEnabled()` flip out, leaving the setting unchanged while the checkbox toggled once
-      // (looks flipped, isn't). Drive the inner checkbox's `change` (fires once) with `.checked` as
-      // the authoritative new state, then resync the row class + checkbox to what actually applied.
+      // switchHtml is a <label> wrapping a checkbox, so a `click` handler on the label fires TWICE and
+      // cancels its own flip. Drive the inner checkbox's `change` and treat `.checked` as the new state.
       var panelFrameInput = panelFrameToggle.querySelector('input[type="checkbox"]');
       var panelFrameTarget = panelFrameInput || panelFrameToggle;
       panelFrameTarget.addEventListener(panelFrameInput ? "change" : "click", function () {
         var on = panelFrameInput ? panelFrameInput.checked : !panelFrameEnabled();
         try {
           if (root.DFPanelFrame) root.DFPanelFrame.setEnabled(on);
-          else root.localStorage.setItem("dwf.panelFrame.enabled", on ? "1" : "0");
-        } catch (_) {}
+          else lsSet("dwf.panelFrame.enabled", on ? "1" : "0");
+        } catch (err) { DwfErr.report("settings.panel-frame-set", err); }
         var applied = panelFrameEnabled();
         panelFrameToggle.classList.toggle("on", applied);
         if (panelFrameInput) panelFrameInput.checked = applied;
+      });
+    }
+    // Same label-fires-twice hazard as the switch above: drive the inner checkbox's `change`, then resync.
+    var smoothMotionToggle = panel.querySelector('[data-dfs-toggle="smoothmotion"]');
+    if (smoothMotionToggle) {
+      var smoothInput = smoothMotionToggle.querySelector('input[type="checkbox"]');
+      var smoothTarget = smoothInput || smoothMotionToggle;
+      smoothTarget.addEventListener(smoothInput ? "change" : "click", function () {
+        var on = smoothInput ? smoothInput.checked : !smoothMotionEnabled();
+        try { if (root.DwfRender) root.DwfRender.setSmoothMotion(on); }
+        catch (err) { DwfErr.report("settings.smooth-motion-set", err); }
+        var applied = smoothMotionEnabled();
+        smoothMotionToggle.classList.toggle("on", applied);
+        if (smoothInput) smoothInput.checked = applied;
+      });
+    }
+    // Same chassis, same WTHR-2 hazard as the two switches above: drive the inner checkbox's
+    // `change`, then resync the row to the state DwfTiles actually applied.
+    var hiDpiToggle = panel.querySelector('[data-dfs-toggle="hidpi"]');
+    if (hiDpiToggle) {
+      var hiDpiInput = hiDpiToggle.querySelector('input[type="checkbox"]');
+      var hiDpiTarget = hiDpiInput || hiDpiToggle;
+      hiDpiTarget.addEventListener(hiDpiInput ? "change" : "click", function () {
+        var on = hiDpiInput ? hiDpiInput.checked : !hiDpiEnabled();
+        try { if (root.DwfTiles && root.DwfTiles.setHiDpi) root.DwfTiles.setHiDpi(on); }
+        catch (err) { DwfErr.report("settings.hidpi-set", err); }
+        var applied = hiDpiEnabled();
+        hiDpiToggle.classList.toggle("on", applied);
+        if (hiDpiInput) hiDpiInput.checked = applied;
       });
     }
     var panelFrameReset = panel.querySelector('[data-dfs-act="panelframe-reset"]');
     if (panelFrameReset) panelFrameReset.addEventListener("click", function () {
       try {
         if (root.DFPanelFrame) root.DFPanelFrame.resetAll();
-        else root.localStorage.removeItem("dwf.panelLayout.v1");
-      } catch (_) {}
+        else lsRemove("dwf.panelLayout.v1");
+      } catch (err) { DwfErr.report("settings.panel-layout-reset", err); }
     });
     panel.querySelectorAll("[data-pref]").forEach(function (row) {
-      // WTHR-2 (live-fix): DWFUI.switchHtml renders these rows as a label wrapping a checkbox.
-      // A click on the LABEL fires the label's click handler TWICE -- once for the real click and
-      // once for the click the label re-dispatches through its associated checkbox (which bubbles
-      // back up). The old `click` handler flipped `set(id, !get(id))`, so the two fires cancelled
-      // out: the persisted state (and DwfWeather.setEnabled -> the rain draw gate) never changed,
-      // while the native checkbox toggled exactly once -- the switch looked OFF but the overlay kept
-      // drawing and reopening the panel showed it back ON. Wire the inner checkbox's `change` event
-      // instead: it fires exactly ONCE per user toggle and its `.checked` is the authoritative new
-      // state, so UI, persistence, and the live draw gate stay in lockstep. (Direct-call tests
-      // missed this because they never went through the label's DOM click path.)
+      // Same hazard: a click on the label fires twice and cancels a `!get(id)` flip, so the persisted state
+      // never changes while the checkbox toggles once. Wire the checkbox's `change` and trust `.checked`.
       var input = row.querySelector('input[type="checkbox"]');
       var target = input || row;
       var evt = input ? "change" : "click";
@@ -737,7 +627,7 @@
           var applied = !!root.DFClientPrefs.get(id);
           row.classList.toggle("on", applied);
           if (input) input.checked = applied; // resync the checkbox to the state actually applied
-        } catch (_) {}
+        } catch (err) { DwfErr.report("settings.client-pref-set", err); }
       });
     });
   }
@@ -745,10 +635,10 @@
   // ---- Audio tab ----------------------------------------------------------------------------
   function renderAudio() {
     return '<h3>Audio &amp; music</h3>' +
-      '<div class="dfs-note">Audio has its own controls in the top-bar speaker popover: manual ' +
+      '<div class="settings-note">Audio has its own controls in the top-bar speaker popover: manual ' +
       'playlist, per-channel volume/mute, UI click sounds, and announcement stingers.</div>' +
-      '<div class="dfs-actions">' +
-      root.DWFUI.plaqueBtnHtml({ label: "Open audio controls", tone: "green", cls: "dfs-btn",
+      '<div class="settings-actions">' +
+      root.DWFUI.plaqueBtnHtml({ label: "Open audio controls", tone: "green", cls: "settings-btn",
         dataset: { dfsAct: "open-audio" }, title: "Open the audio & music popover" }) +
       '</div>';
   }
@@ -756,7 +646,7 @@
     var b = panel.querySelector('[data-dfs-act="open-audio"]');
     if (b) b.addEventListener("click", function () {
       close();
-      try { doc.getElementById("audioBtn")?.click(); } catch (_) {}
+      try { doc.getElementById("audioBtn")?.click(); } catch (err) { DwfErr.report("settings.audio-open", err); }
     });
   }
 
@@ -765,21 +655,22 @@
     var player = lsGet("dwf.player") || "(unset)";
     var renderer = lsGet("dwf.renderer") || "gl (default)";
     var autosave = null;
-    try { autosave = root.DwfSessionInfo && root.DwfSessionInfo.autosave; } catch (_) {}
+    try { autosave = root.DwfSessionInfo && root.DwfSessionInfo.autosave; }
+    catch (err) { DwfErr.report("settings.autosave-read", err); }
     var D = root.DWFUI;
     // The three read-only key/value lines become DWFUI table rows (the same chassis the keybind list
     // uses). `.info-row` / `.k` / `.v` stay as the pinned class hooks, and #dfsAutosave is preserved.
     var infoRow = function (k, valueHtmlRaw) {
       return D.rowHtml({ chassis: "table", cls: "info-row",
-        cells: [{ html: esc(k), cls: "k" }, { html: valueHtmlRaw, cls: "v" }] });
+        cells: [{ html: root.DWFUI.esc(k), cls: "k" }, { html: valueHtmlRaw, cls: "v" }] });
     };
     return '<h3>Autosave</h3>' +
       infoRow("Autosave interval",
-        '<span id="dfsAutosave">' + esc(autosaveIntervalLabel(autosave)) + '</span>') +
-      '<div class="dfs-note">Reported read-only by the host from Dwarf Fortress\'s autosave setting.</div>' +
+        '<span id="dfsAutosave">' + root.DWFUI.esc(autosaveIntervalLabel(autosave)) + '</span>') +
+      '<div class="settings-note">Reported read-only by the host from Dwarf Fortress\'s autosave setting.</div>' +
       '<h3>Session</h3>' +
-      infoRow("Your name", esc(player)) +
-      infoRow("Renderer", esc(renderer));
+      infoRow("Your name", root.DWFUI.esc(player)) +
+      infoRow("Renderer", root.DWFUI.esc(renderer));
   }
 
   // ---- open / close -------------------------------------------------------------------------
@@ -790,15 +681,16 @@
     render();
     // reflect any pending reject message from a prior rebind attempt
     if (rejectMsg && panel && curTab === "keybinds") {
-      var pane = panel.querySelector(".dfs-pane");
-      if (pane) pane.insertAdjacentHTML("afterbegin", '<div class="dfs-banner">' + esc(rejectMsg) + "</div>");
+      var pane = panel.querySelector(".settings-pane");
+      if (pane) pane.insertAdjacentHTML("afterbegin", '<div class="settings-banner">' + root.DWFUI.esc(rejectMsg) + "</div>");
     }
     backdrop.classList.add("open");
   }
   function close() {
     cancelRebind();
     if (backdrop) backdrop.classList.remove("open");
-    try { doc.getElementById("view")?.focus({ preventScroll: true }); } catch (_) {}
+    try { doc.getElementById("view")?.focus({ preventScroll: true }); }
+    catch (err) { DwfErr.report("settings.map-focus", err); }
   }
   function isOpen() { return !!backdrop && backdrop.classList.contains("open"); }
 
@@ -812,9 +704,7 @@
     }, true);
   }
 
-  // ==========================================================================================
-  // EXPORTS
-  // ==========================================================================================
+  // ---- Exports ----
   root.DFKeybinds = {
     resolve: resolve,
     reload: loadOverrides,
@@ -825,7 +715,7 @@
   root.DFSettings = {
     open: open, close: close, isOpen: isOpen,
     storyMarkup: settingsMarkup,
-    preparePreview: ensureStyle,
+    preparePreview: function () {},
     _pure: PURE,
   };
 

@@ -1,0 +1,1772 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+/* Deliberate screen-specific exceptions to shared DWFUI law. */
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer adaptations {
+  /* The measured whole-row size must come after the shared .dwfui-list flex-fill law. */
+  .squads-sidebar:not(.squads-wide) .squad-body > .squad-root-squad-list {
+    flex: 0 0 var(--squad-root-list-size, auto);
+    height: var(--squad-root-list-size, auto);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .top-button {
+    grid-column: 3;
+    grid-row: 2 / span 3;
+    align-self: start;
+    pointer-events: auto;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-slab);
+    border: 1px solid var(--dwfui-silver);
+    min-height: 24px;
+    padding: 2px 10px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .gold {
+    color: var(--dwfui-text-numeric);
+  }
+  .mood-icon {
+    display: block;
+  }
+  /* The Elevation caption is a DWFUI bitmap-text span, so this rule has to out-rank
+   `.dwfui-bitmap-text` in the later `dwfui` layer for `position` and `color` to hold. */
+  #elevation {
+    position: absolute;
+    left: calc(6 * var(--dwfui-cell-drawn-w));
+    top: calc(16 * var(--dwfui-cell-drawn-h));
+    z-index: 1;
+    height: var(--dwfui-cell-drawn-h);
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    font-weight: 700;
+    color: var(--dwfui-text-row);
+    border: 0;
+  }
+  .lobby-row {
+    min-height: 26px;
+    padding: 2px 4px;
+    gap: 6px;
+  }
+  .lobby-row .lobby-follow-cell {
+    flex: 0 0 auto;
+    display: flex;
+  }
+  .lobby-follow,
+  .lobby-rename {
+    min-height: 22px;
+    height: 22px;
+    padding: 0 8px;
+  }
+
+  .traffic-band input[type="text"] {
+    width: 100%;
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 2px;
+    border: 0;
+    background: #1c1c1c;
+    box-shadow: 0 0 0 1px #ffbf01;
+    color: var(--dwfui-text-body);
+    font:
+      700 calc(1.2 * var(--dwfui-cell-drawn-w))/1 ui-monospace,
+      Consolas,
+      monospace;
+    text-align: center;
+  }
+  .traffic-band input.traffic-cost-rejected {
+    box-shadow: 0 0 0 1px var(--dwfui-destructive);
+    color: var(--dwfui-text-danger);
+  }
+  .stock-paint-accept {
+    flex: 0 0 auto;
+    padding: 5px 14px;
+    color: var(--dwfui-text-selected);
+    background: var(--dwfui-gold);
+    border: 2px solid var(--dwfui-gold-bright);
+    cursor: pointer;
+    font:
+      800 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .stock-paint-accept:hover {
+    background: var(--dwfui-gold-bevel-mid);
+  }
+  .burrow-row.armed .burrow-name {
+    color: var(--dwfui-text-numeric);
+  }
+  .top-button:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+  .farm-panel > .pf-head {
+    display: none;
+  }
+  .farm-head-tools button:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+  }
+  .building-panel .building-head > .building-name,
+  .building-panel .building-head > .dwfui-head-title,
+  .building-panel .building-head > .zone-name-cell,
+  .building-panel .building-head > .workshop-head-titlebox,
+  .building-panel .building-head > .stockpile-panel-titlebox,
+  .building-panel .building-head > .farm-head-title,
+  .building-panel .building-head > .engrave-title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .building-panel .building-status.suspended {
+    color: var(--dwfui-text-warning);
+  }
+  .building-panel .building-status.gate {
+    color: var(--dwfui-text-warning);
+  }
+  .building-panel .building-status.err {
+    color: var(--dwfui-text-danger);
+  }
+  .building-panel .building-removal-section .dwfui-status {
+    padding: 0;
+    font: var(--dwfui-font);
+  }
+  .building-panel .building-removal-cancel.dwfui-plaque {
+    margin-top: 8px;
+    min-width: min(100%, calc(320px * var(--dwfui-interface-scale)));
+    justify-content: flex-start;
+    color: var(--dwfui-text-warning);
+  }
+  .hospital-panel .hospital-supply-ctrl {
+    justify-self: end;
+    gap: 3px;
+    padding: 1px;
+    background: transparent;
+  }
+  .hospital-panel .hospital-supply-ctrl .dwfui-stepper-btn,
+  .hospital-panel .hospital-supply-ctrl .dwfui-stepper-value {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    font-size: 11px;
+  }
+  .building-panel .location-access .location-access-state {
+    margin-left: 12px;
+    color: var(--dwfui-text-good);
+  }
+  .building-panel .location-access .location-access-state.dim {
+    color: var(--dwfui-text-secondary);
+  }
+  .building-panel .location-temple-head .dwfui-head-title-line {
+    display: block;
+  }
+  .building-panel .location-temple-head .dwfui-head-title-line-1,
+  .building-panel .location-temple-head .dwfui-head-title-line-2 {
+    color: var(--dwfui-text-heading);
+  }
+  .building-panel .location-temple-mechanics .location-mechanic {
+    margin: 0;
+    color: var(--dwfui-text-row);
+  }
+  .building-panel .location-temple-mechanics .location-tier {
+    color: var(--dwfui-text-active);
+  }
+  .building-panel .workshop-status.err {
+    color: var(--dwfui-text-danger);
+  }
+  .building-panel .workshop-note.err {
+    color: var(--dwfui-text-danger);
+  }
+  .building-panel .workshop-task-search-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 6px;
+  }
+  .building-panel .workshop-task-search-row .dwfui-search-btn {
+    width: 40px;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--dwfui-slate);
+    border-left: 0;
+    background: var(--dwfui-surface);
+    font-size: 16px;
+  }
+  .building-panel .workshop-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .building-panel .workshop-icon-btn.active {
+    color: var(--dwfui-text-selected);
+    background: var(--dwfui-gold);
+    border-color: var(--dwfui-text-numeric);
+  }
+  .workshop-panel > .pf-content > .dwfui-view-sheet-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .building-panel .workshop-item-ico {
+    width: 44px;
+    height: 44px;
+    background-color: var(--dwfui-surface);
+    background-repeat: no-repeat;
+  }
+  .workshop-links-mount .dwfui-sidewin {
+    position: static;
+  }
+  .workshop-links-mount .workshop-note {
+    color: var(--dwfui-text-secondary);
+    font:
+      700 11px/1.4 ui-monospace,
+      Consolas,
+      monospace;
+    padding: 6px 2px;
+  }
+  .building-panel .zone-unit-row > .zone-animal-copy,
+  .building-panel .zone-unit-row > .dwfui-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* The `:hover` rule above has equal specificity and comes first, so a disabled row action has to
+   cancel it explicitly or the dead control keeps lighting up gold. */
+  .building-panel .zone-unit-act:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .building-panel .dwfui-check.zone-unit-act:disabled {
+    filter: grayscale(1);
+  }
+  .building-panel .zone-unit-meta.dwfui-sub--warning {
+    color: var(--dwfui-text-numeric);
+  }
+  .building-panel.siege-panel .dwfui-bitmap-text {
+    line-height: 18px;
+    vertical-align: top;
+  }
+  .building-panel.siege-panel .dwfui-bitmap-line {
+    display: block;
+    height: 18px;
+  }
+  .building-panel.siege-panel .siege-head .dwfui-head-tools {
+    display: flex;
+    gap: 0;
+    margin-right: 77px;
+    flex: 0 0 auto;
+  }
+  .building-panel.siege-panel .siege-head .dwfui-head-tools > * {
+    width: 48px;
+    height: 52px;
+    margin: 0;
+    padding: 0;
+  }
+  .building-panel.siege-panel .siege-action-band .siege-action-status {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 16px;
+    align-self: flex-start;
+    color: var(--siege-ink);
+  }
+  .building-panel.siege-panel .siege-action-strip .dwfui-art-btn {
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+  .building-panel.siege-panel .siege-facing-strip .dwfui-art-btn {
+    width: 48px;
+    height: 57px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--siege-ground);
+    border: 2px solid var(--dwfui-gold-bevel-mid);
+    box-sizing: border-box;
+  }
+  .building-panel.siege-panel .siege-facing-strip .dwfui-art-btn.active,
+  .building-panel.siege-panel .siege-facing-strip .dwfui-art-btn[aria-pressed="true"] {
+    background: var(--siege-active);
+    border-color: var(--siege-gold);
+  }
+  /* A conditional warning prints under the readouts, inside the blank the captures leave. */
+  .building-panel.siege-panel .siege-body > .zone-note,
+  .building-panel.siege-panel .siege-body > .dwfui-status {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 335px;
+    padding: 0;
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-ico {
+    width: 54px;
+    height: 54px;
+    box-sizing: border-box;
+    display: block;
+    border: 4px solid var(--dwfui-surface);
+    background: var(--dwfui-plum);
+    margin-left: 5px;
+    margin-top: -3px;
+    align-self: flex-start;
+    flex: 0 0 auto;
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-actions {
+    display: flex;
+    gap: 0;
+    flex: 0 0 auto;
+    margin-right: 28px;
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-actions > button.dwfui-gap {
+    margin-left: 36px;
+  }
+  /* `!important` is LOAD-BEARING here: DWFUI.paintSprites() writes the canvas box as an INLINE
+   style, which no stylesheet can outrank by specificity. Scoped to the cell families measured here. */
+  .building-panel.siege-panel .siege-head .siege-head-icon,
+  .building-panel.siege-panel .siege-head .siege-head-icon > canvas {
+    width: 50px !important;
+    height: 54px !important;
+  }
+  .building-panel.siege-panel .siege-head .dwfui-head-tools .dwfui-icon > canvas {
+    width: 48px !important;
+    height: 52px !important;
+  }
+  .building-panel.siege-panel .siege-action-strip .dwfui-icon,
+  .building-panel.siege-panel .siege-item-row .siege-item-actions .dwfui-icon {
+    display: block;
+    width: 34px;
+    height: 36px;
+    overflow: hidden;
+  }
+  .building-panel.siege-panel .siege-action-strip .dwfui-icon > canvas,
+  .building-panel.siege-panel .siege-item-row .siege-item-actions .dwfui-icon > canvas {
+    display: block;
+    width: 34px !important;
+    height: 52px !important;
+    margin-top: -8px;
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-ico > canvas {
+    width: 46px !important;
+    height: 46px !important;
+  }
+  .building-panel.siege-panel .siege-action-strip .dwfui-art-btn.active,
+  .building-panel.siege-panel .siege-facing-strip .dwfui-art-btn.active,
+  .building-panel.siege-panel .siege-item-row .siege-item-actions > button.active {
+    filter: none;
+    outline: none;
+  }
+  .building-panel .zone-squad-row {
+    display: grid;
+    grid-template-columns: 32px minmax(150px, 1fr) repeat(4, 36px);
+    gap: 5px;
+    align-items: center;
+  }
+  .building-panel .zone-squad-row.assigned {
+    background: var(--dwfui-surface);
+  }
+  .building-panel .zone-squad-mode.active {
+    background: var(--dwfui-hatch);
+    border-color: var(--dwfui-gold-bright);
+  }
+  .building-panel .zone-animal-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 30px;
+    flex: 0 0 auto;
+    margin: 0 8px 8px;
+    border: 1px solid var(--dwfui-slate);
+    background: var(--dwfui-surface);
+  }
+  .building-panel .zone-animal-search input {
+    min-width: 0;
+    height: 30px;
+    padding: 3px 7px;
+    color: var(--dwfui-text-body);
+    background: transparent;
+    border: 0;
+    outline: 0;
+    font:
+      400 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .building-panel .zone-animal-search span {
+    display: grid;
+    place-items: center;
+    color: var(--dwfui-text-numeric);
+    border-left: 1px solid var(--dwfui-slate);
+  }
+  .building-panel .zone-mini-btn.assigned {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+    background: var(--dwfui-hatch);
+    cursor: default;
+  }
+  .stockpile-target-row:last-child {
+    border-bottom: 0;
+  }
+  #clientPanel.build-panel > .pf-head {
+    display: none;
+  }
+  .build-page.off {
+    display: none;
+  }
+  /* ICONS_ONLY (R4): the caption goes, the rows stay, the page costs a flat 5 columns. */
+  .build-page.icons-only .build-btn {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0;
+  }
+  .build-notice-line.warning {
+    color: var(--dwfui-text-warning);
+  }
+  .build-notice-line.error .dwfui-bitmap-text {
+    color: var(--dwfui-text-danger);
+  }
+  .build-notice-line.warning .dwfui-bitmap-text {
+    color: var(--dwfui-text-warning);
+  }
+  .build-placement-msg .dwfui-bitmap-text {
+    color: var(--df-c15);
+  }
+  /* Scoped to the group ON PURPOSE: an unscoped `.dwfui-selectcell.active` is declared later in
+   this file at equal specificity and would repaint native's green bar with the plaque slab. */
+  .build-placement-toggle .build-matmode {
+    background: var(--dwfui-slate);
+  }
+  .build-placement-toggle .build-matmode.active {
+    background: var(--dwfui-slate);
+    border: 2px solid var(--dwfui-slate);
+    color: var(--dwfui-text-selected);
+  }
+  .build-placement-toggle .build-matmode .dwfui-bitmap-text,
+  .build-placement-toggle .build-matmode-label {
+    color: var(--dwfui-text-row);
+  }
+  .build-keep-row .dwfui-check.on {
+    background: var(--dwfui-slate);
+    border-color: var(--dwfui-slate);
+  }
+  .build-keep-row .dwfui-check.on::after {
+    content: "";
+    position: absolute;
+    left: 22%;
+    top: 26%;
+    width: 46%;
+    height: 30%;
+    border-left: 2px solid var(--dwfui-slate);
+    border-bottom: 2px solid var(--dwfui-slate);
+    transform: rotate(-45deg);
+    pointer-events: none;
+  }
+  .build-keep-row .dwfui-check {
+    position: relative;
+  }
+  .stock-item-content-row.dwfui-row--table {
+    margin-top: 0;
+    border: 0;
+    border-bottom: 1px solid var(--dwfui-hatch);
+    background-color: transparent;
+  }
+  .stock-item-content-row.dwfui-row--table:hover {
+    border-color: var(--dwfui-hatch);
+    background-color: transparent;
+    background-image: var(--dwfui-row-hatch); /* restore what the legacy shorthand would blank */
+  }
+  .stocks-item-actions .dwfui-gap {
+    margin-left: 8px;
+  }
+  .unit-sheet > :not(.dwfui-window-native-frame) {
+    position: relative;
+    z-index: 1;
+  }
+  .unit-portrait-slot > .unit-portrait-frame {
+    inset: 0 auto auto 0;
+    width: var(--unit-portrait-w, 120px);
+    height: calc(6 * var(--unit-cell-h));
+    z-index: 1;
+  }
+  .unit-nickname-label input {
+    min-width: 0;
+    padding: 7px 8px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 1px solid var(--dwfui-gold);
+    font:
+      700 13px/1 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .unit-nickname-editor .dwfui-plaque {
+    min-height: 31px;
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+  .unit-list-grid.unit-list-grid-unboxed {
+    display: block;
+    gap: 0;
+    background: transparent;
+  }
+  .unit-list-grid.unit-list-grid-unboxed > .dwfui-cell {
+    background: transparent;
+  }
+  .info-window:not(.dwfui-window) {
+    box-shadow: 0 0 0 3px var(--dwfui-gold-bevel-mid) inset;
+  }
+  .info-table-head span:first-child {
+    padding: 0;
+    background: transparent;
+    border-left: 0;
+  }
+  .info-row:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+  .info-place-row > .dwfui-copy {
+    min-width: 0;
+  }
+  .info-place-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    margin-left: 4px;
+    border: 1px solid var(--dwfui-gold);
+    overflow: hidden;
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-numeric);
+    font-weight: 900;
+    background-repeat: no-repeat;
+  }
+  .info-place-icon.zone-icon {
+    background-image: url(/asset/activity_zones.png);
+    background-size: auto;
+  }
+  .creature-row.resident-row {
+    min-height: 42px;
+  }
+  .info-side-list > .labor-add.dwfui-plaque {
+    width: 100%;
+    margin: 0 0 3px;
+  }
+  .labor-name-input:disabled {
+    color: var(--dwfui-text-disabled);
+    border-color: var(--dwfui-slate);
+    opacity: 0.82;
+  }
+  .labor-delete.dwfui-plaque {
+    min-width: 86px;
+  }
+  .labor-row > .dwfui-copy,
+  .labor-row > .labor-skill {
+    justify-self: start;
+    min-width: 0;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .alert-help > span {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .alert-viewer-open-all-host > .alert-viewer-open-all {
+    width: calc(3 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  .alert-viewer-narration-action {
+    display: block;
+    width: calc(80 * var(--dwfui-cell-drawn-w));
+    max-width: calc(100% - 3 * var(--dwfui-cell-drawn-w));
+    height: auto;
+    min-height: 100%;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    text-align: left;
+    font: inherit;
+  }
+  .work-order-order > .work-order-shop-col {
+    flex: 1 1 24%;
+    min-width: calc(170px * var(--dwfui-interface-scale));
+    text-align: left;
+    color: var(--dwfui-text-row);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .work-order-select.wide,
+  .work-order-input.wide {
+    min-width: 210px;
+    flex: 1 1 210px;
+  }
+  .work-order-input.work-order-search-input {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+  }
+  .work-order-btn.danger {
+    background: var(--dwfui-surface);
+    border-color: var(--dwfui-destructive);
+    color: var(--dwfui-text-danger);
+  }
+  .work-order-status.err {
+    color: var(--dwfui-text-danger);
+  }
+  .work-order-input.narrow {
+    width: 56px;
+  }
+  .work-order-condition-row .dwfui-copy {
+    min-width: 0;
+  }
+  .work-order-condition-row .dwfui-label,
+  .work-order-condition-row .dwfui-sub {
+    white-space: normal;
+  }
+  .work-order-condition-row.is-satisfied .dwfui-label,
+  .work-order-condition-row.is-satisfied .dwfui-sub {
+    color: var(--dwfui-text-good);
+  }
+  .work-order-ordercond-picker .dwfui-segmented {
+    margin-bottom: 4px;
+  }
+  .squad-candidate-row.dwfui-row--table,
+  .squad-candidate-remove.dwfui-row--table {
+    width: 100%;
+    min-height: 52px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .squad-position-row.dwfui-row--table {
+    width: 100%;
+    min-height: 52px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    cursor: pointer;
+  }
+  .squad-create-uniform-row.dwfui-row--slab {
+    width: 100%;
+    min-height: 52px;
+    background-image: var(--spa-row-grey);
+  }
+  .squad-create-row.dwfui-row--slab {
+    display: flex;
+    background-color: transparent;
+    border: 0;
+    background-image: var(--spa-row-grey);
+  }
+  .squad-picker-row.dwfui-row--slab {
+    display: flex;
+    width: 100%;
+    min-height: 60px;
+    padding: 0 14px;
+    background: var(--dwfui-row-hatch);
+    border: 0;
+    border-bottom: 1px solid var(--dwfui-hatch);
+  }
+  .squad-burrow-modal .squad-pos-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .squads-sidebar .squad-modal {
+    position: relative;
+    max-height: calc(100% - 60px);
+  }
+  .squad-position-row .dwfui-sub,
+  .squad-candidate-row .dwfui-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .squad-schedule-edit.orange {
+    color: var(--dwfui-text-warning);
+  }
+  /* Monthly schedule grid (native 7.2): months x routines. */
+  .squad-month-grid.squad-month-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-x: auto;
+    background: transparent;
+  }
+
+  .squad-position-row.dwfui-row--table,
+  .squad-candidate-row.dwfui-row--table,
+  .squad-candidate-remove.dwfui-row--table,
+  .squad-create-uniform-row.dwfui-row--slab,
+  .squad-picker-row.dwfui-row--slab,
+  .squad-uassign-matrix-row,
+  .squad-uniform-template-row,
+  .squad-training-member,
+  .squad-patrol-point,
+  .squad-month-cell,
+  .squad-routine-row {
+    box-sizing: border-box;
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    min-height: calc(3 * var(--dwfui-cell-drawn-h));
+    padding-block: 0;
+    overflow: hidden;
+  }
+
+  #clientPanel.reports-window > .pf-head {
+    display: none;
+  }
+  #clientPanel.info-panel > .pf-head {
+    display: none;
+  }
+  #clientPanel.squads-sidebar > .pf-head {
+    display: none;
+  }
+  .reports-row > .dwfui-copy,
+  .reports-row > .dwfui-copy > .dwfui-label {
+    display: contents;
+  }
+  .reports-native-link .dwfui-icon--native-cell,
+  .reports-native-link .dwfui-icon--native-cell > canvas {
+    width: calc(3 * var(--dwfui-cell-drawn-w));
+    height: calc(2 * var(--dwfui-cell-drawn-h));
+  }
+  .justice-interview-state.scheduled {
+    color: var(--dwfui-text-numeric);
+  }
+  .justice-interview-state.interviewed {
+    color: var(--dwfui-text-active);
+  }
+  .fort-row-noble > .fort-cell-main,
+  .fort-row-noble > .fort-cell-who,
+  .fort-row-noble > .fort-cell-sub {
+    min-width: 0;
+  }
+  .fort-row-noble > .fort-cell-who .dwfui-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .kitchen-sort [data-kitchen-sort="cook"] {
+    margin-left: auto;
+  }
+  .kitchen-sort [data-kitchen-sort="cook"],
+  .kitchen-sort [data-kitchen-sort="brew"] {
+    padding: 0;
+    justify-content: center;
+    width: calc(32px * var(--dwfui-interface-scale));
+  }
+  .standing-order-toggle.off {
+    color: var(--df-c0);
+  }
+  .stone-item.dwfui-icon {
+    justify-self: start;
+    box-sizing: border-box;
+    background-color: var(--dwfui-plum);
+    border: 1px solid var(--dwfui-slab);
+  }
+  .help-ref-row .dwfui-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .help-ref-row .dwfui-label {
+    color: var(--dwfui-text-row);
+  }
+  .world-loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--dwfui-text-body);
+    font:
+      14px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .world-error {
+    color: var(--dwfui-text-danger);
+  }
+  .world-hover-line {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .world-hover-site-name {
+    margin-top: 8px;
+    color: var(--dwfui-text-heading);
+  }
+  .world-hover-unserved {
+    color: var(--dwfui-text-disabled);
+    font-style: italic;
+  }
+  .world-reports-unserved {
+    padding: 8px 12px;
+    color: var(--dwfui-text-danger);
+    font-style: italic;
+  }
+
+  #world3dScreen .world3d-head .dwfui-head-title,
+  #world3dScreen .world3d-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--dwfui-text-body);
+    font:
+      700 14px "Josefin Sans",
+      ui-monospace,
+      Consolas,
+      monospace;
+    letter-spacing: 0.02em;
+  }
+  .world3d-zstep {
+    flex: 0 0 auto;
+    min-width: 20px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+  .world3d-zstep:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* Scoped by #id ON PURPOSE: `[data-dwfui-plaques="native"] .dwfui-plaque` sets `outline: 0` at the
+   same specificity and lands LATER in this file, so a bare `.world3d-chip.active` paints nothing. */
+  #world3dScreen .world3d-chip.active {
+    outline: 2px solid var(--dwfui-gold-bright);
+    outline-offset: -2px;
+  }
+  .world3d-bg-swatch {
+    min-width: 18px;
+    min-height: 18px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 2px solid var(--dwfui-hatch);
+  }
+  .world3d-bg-swatch:hover {
+    border-color: var(--dwfui-text-numeric);
+  }
+  .world3d-status,
+  .world3d-hint {
+    display: block;
+    max-width: 100%;
+    color: var(--dwfui-text-secondary);
+    font:
+      12px ui-monospace,
+      Consolas,
+      monospace;
+    pointer-events: none;
+  }
+  .world3d-hint {
+    color: var(--dwfui-text-secondary);
+  }
+  body.world3d-mode #hud,
+  body.world3d-mode #zoneOverlay,
+  body.world3d-mode #selection,
+  body.world3d-mode #clientPanel,
+  body.world3d-mode #hoverInfo,
+  body.world3d-mode #digSelect,
+  body.world3d-mode #tileFlash,
+  body.world3d-mode #alertStack,
+  body.world3d-mode #alertPopup,
+  body.world3d-mode #dfTooltip,
+  body.world3d-mode .world-site-tooltip,
+  body.world3d-mode .activity-panel,
+  body.world3d-mode .console-panel,
+  body.world3d-mode #dfAudioPop {
+    /* `!important` is LOAD-BEARING: #hoverInfo, #tileFlash, #digSelect, #alertStack, #alertPopup and
+   #dfTooltip are shown and hidden with an INLINE `style.display` by their own modules. */
+    display: none !important;
+  }
+  .world-civ-unserved {
+    padding: 6px 8px;
+    color: var(--dwfui-text-danger);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .world-civ-trade-nobroker {
+    padding: 6px 8px;
+    color: var(--dwfui-text-warning);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .world-civ-extension-note {
+    padding: 4px 8px;
+    color: var(--dwfui-text-secondary);
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .world-report-playback-state {
+    padding: 4px 8px;
+    color: var(--dwfui-text-secondary);
+    font-size: 10px;
+  }
+  .world-mission-note {
+    padding: 6px 8px;
+    color: var(--dwfui-text-prose);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .esc-row {
+    padding: 9px 12px;
+    background: var(--dwfui-slab);
+    border: 1px solid var(--dwfui-slate);
+    color: var(--dwfui-text-body);
+    font:
+      13px ui-monospace,
+      Consolas,
+      monospace;
+    text-align: center;
+    cursor: pointer;
+  }
+  .esc-row:hover:not(:disabled) {
+    background: var(--dwfui-slab);
+  }
+  .esc-row-save:not(:disabled) {
+    background: var(--dwfui-slab);
+    border-color: var(--dwfui-gold-bevel-mid);
+    color: var(--dwfui-text-row);
+  }
+  .esc-row-save:hover:not(:disabled) {
+    background: var(--dwfui-slab);
+  }
+  .esc-row-disabled,
+  .esc-row:disabled {
+    color: var(--dwfui-text-disabled);
+    background: var(--dwfui-surface);
+    border-color: var(--dwfui-slab);
+    cursor: not-allowed;
+  }
+  .stockpile-editor-row .stockpile-editor-state.stockpile-editor-tri .stockpile-editor-tri-art {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  /* Sized TOP + BOTTOM rather than by height: `.pf-fill-scroll` stamps `height: auto !important` on
+   whatever node the framework designates, which collapses a top+height box to its content. */
+  .stockpile-panel-linkswin .dwfui-sidewin {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+    padding: 0;
+    background: none;
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+  }
+  .stockpile-panel-linkswin .dwfui-sidewin-body {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(3 * var(--dwfui-cell-drawn-h, 12px));
+    bottom: calc(1 * var(--dwfui-cell-drawn-h, 12px));
+    overflow-y: auto;
+  }
+  .stockpile-panel-linkswin .stockpile-link-row {
+    display: block;
+    width: 100%;
+  }
+  .farm-seed-stock:not(.pf-fill-scroll) {
+    max-height: min(210px, 25vh);
+  }
+  .trade-depot-depot-panel .trade-depot-goods-list:not(.pf-fill-scroll) {
+    max-height: 40vh;
+  }
+  .building-panel .workshop-task-grid:not(.pf-fill-scroll) {
+    max-height: min(240px, 34vh);
+  }
+  .building-panel .workshop-task-list:not(.pf-fill-scroll) {
+    max-height: min(190px, 28vh);
+  }
+  .building-panel .workshop-list.compact:not(.pf-fill-scroll) {
+    max-height: 190px;
+  }
+  .building-panel .zone-unit-list:not(.pf-fill-scroll) {
+    max-height: min(360px, calc(100vh - 240px));
+  }
+  .building-panel .zone-animal-list:not(.pf-fill-scroll) {
+    max-height: min(560px, calc(100vh - 240px));
+  }
+  .stockpile-targets:not(.pf-fill-scroll) {
+    max-height: 170px;
+  }
+  .fort-body:not(.pf-fill-chain):not(.pf-fill-scroll) {
+    max-height: 60vh;
+  }
+  .fort-candidate-list:not(.pf-fill-scroll) {
+    max-height: 220px;
+  }
+  .fort-scroll:not(.pf-fill-scroll) {
+    max-height: 42vh;
+  }
+  .kitchen-scroll:not(.pf-fill-scroll) {
+    max-height: 46vh;
+  }
+  .standing-order-list:not(.pf-fill-scroll),
+  .stone-list:not(.pf-fill-scroll) {
+    max-height: 50vh;
+  }
+  #zonePalette.pf-fill-host,
+  .fort-window .fort-body.pf-fill-chain,
+  .workshop-panel .workshop-body.pf-fill-chain,
+  .farm-panel [data-farm-plot-section].pf-fill-chain {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #zonePalette.pf-fill-host {
+    overflow: hidden;
+  }
+  #selection.occupant-list-panel .pf-content {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .reports-row.dwfui-row--announce {
+    display: block;
+  }
+  .dwfui-text-input.burrow-rename-input {
+    flex: 1;
+    min-width: 0;
+    padding: 3px 6px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    border-radius: 0;
+    font: 700 12px var(--dwfui-font-face);
+  }
+  .unit-sheet .dwfui-head-tools button[data-dwfui-native-art="true"][data-dwfui-self-framed="true"],
+  .unit-sheet .dwfui-head-tools .dwfui-art-btn {
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    width: var(--unit-tool-w, 40px);
+    height: var(--unit-tool-h, 45px);
+    min-width: var(--unit-tool-w, 40px);
+    min-height: var(--unit-tool-h, 45px);
+    padding: 0;
+  }
+  .confirm-armed,
+  .dwfui-art-btn.confirm-armed,
+  button[data-dwfui-native-art="true"][data-dwfui-self-framed="true"].confirm-armed {
+    box-shadow:
+      0 0 0 2px var(--dwfui-destructive),
+      0 0 6px 2px rgba(217, 52, 43, 0.45);
+    background-color: rgba(217, 52, 43, 0.22);
+    outline-offset: 0;
+  }
+  .activity-head .dwfui-head-title {
+    font-weight: 700;
+  }
+  .activity-kind-row .dwfui-copy {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .activity-untracked-row .dwfui-copy {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .console-head .dwfui-head-title {
+    font-weight: 700;
+  }
+  .console-list {
+    flex: 1 1 auto;
+    min-height: 90px;
+    border: 1px solid var(--dwfui-hatch);
+    border-radius: 3px;
+    padding: 2px;
+  }
+  .console-output {
+    flex: 1 1 auto;
+    min-height: 70px;
+    border: 1px solid var(--dwfui-hatch);
+    border-radius: 3px;
+    padding: 4px 6px;
+    background: var(--dwfui-surface);
+  }
+  @media (pointer: coarse) {
+    /* Fortress topbar button (F4 chrome). */
+    .top-button {
+      min-height: 40px;
+    }
+  }
+  @media (pointer: coarse) {
+    .esc-row button,
+    .zone-type-btn {
+      min-height: 40px;
+    }
+  }
+  .trade-screen-head-name {
+    color: var(--dwfui-text-row);
+  }
+  /* group headers: lighter slate bar spanning the pane, checkbox at the right edge */
+  .trade-screen-group-head,
+  .depot-goods-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dwfui-slate);
+    min-height: 36px;
+    padding: 0 4px 0 10px;
+    margin-top: 3px;
+  }
+  .trade-screen-group-head .dwfui-group-label,
+  .depot-goods-group-head .dwfui-group-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--dwfui-text-row);
+  }
+  .trade-screen-group .dwfui-group-rows,
+  .depot-goods-group .dwfui-group-rows {
+    display: block;
+  }
+
+  /* item rows: sprite | name (+contains subline) | value/weight meta | check tile */
+  .trade-screen-row,
+  .depot-goods-row {
+    min-height: 40px;
+    padding: 1px 4px 1px 2px;
+  }
+  .trade-screen-row .dwfui-label,
+  .depot-goods-row .dwfui-label {
+    color: var(--dwfui-text-secondary);
+  }
+  .trade-screen-row.selected .dwfui-label {
+    color: var(--dwfui-text-row);
+  }
+  .trade-screen-row-meta,
+  .depot-goods-row-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 110px;
+  }
+  .trade-screen-meta-value,
+  .depot-goods-meta-value {
+    color: var(--dwfui-text-numeric);
+  }
+  .trade-screen-meta-weight {
+    color: var(--dwfui-text-secondary);
+  }
+  .depot-goods-meta-dist {
+    color: var(--dwfui-text-good);
+  }
+  .trade-screen-empty,
+  .trade-screen-note,
+  .depot-goods-note,
+  .trade-screen-error,
+  .depot-goods-gap-note,
+  .depot-goods-child-note {
+    padding: 8px 12px;
+    color: var(--dwfui-text-secondary);
+  }
+  .trade-screen-error .dwfui-status-copy,
+  .dwfui-status.warning .dwfui-status-copy {
+    color: var(--dwfui-text-warning);
+  }
+  .trade-screen-totals-name {
+    color: var(--dwfui-text-row);
+  }
+  .trade-screen-totals-value,
+  .trade-screen-totals-profit {
+    color: var(--dwfui-text-numeric);
+  }
+  .trade-screen-commit {
+    min-width: 120px;
+    min-height: 34px;
+  }
+  .trade-screen-counter {
+    color: var(--dwfui-text-numeric);
+  }
+  .depot-goods-child-row {
+    min-height: 34px;
+  }
+  .depot-goods-child-row .dwfui-label {
+    color: var(--dwfui-text-secondary);
+  }
+  .building-panel .zone-name-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 6px 9px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-silver);
+    font:
+      700 13px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .building-panel .zone-owner-pick-row.assigned {
+    background: var(--dwfui-surface);
+  }
+  /* palette: every type icon sits in a gold box, native row pitch (Z12-jt-1/3) */
+  .zone-type-btn .zone-type-iconbox {
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-sizing: content-box;
+  }
+  /* ---- Rows 96/99: vermin + planned-engraving view sheets ------------------------------- */
+  .vermin-sheet-window,
+  .planned-engraving-window {
+    --absent-sheet-cell-w: var(--dwfui-cell-drawn-w, 10px);
+    --absent-sheet-cell-h: var(--dwfui-cell-drawn-h, 15px);
+    width: calc(60 * var(--absent-sheet-cell-w));
+    min-height: calc(22 * var(--absent-sheet-cell-h));
+    box-sizing: border-box;
+  }
+  .vermin-portrait-frame {
+    grid-area: 1 / 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  #selection.view-sheet-panel > .pf-content > :not(.dwfui-view-sheet-frame-owner) {
+    z-index: 1;
+  }
+  /* The `:not()` chain must keep naming PanelFrame's grips and edge strips and `.occupant-tabs-wrap`:
+   they are direct children of the host that position themselves absolutely, and lifting them breaks. */
+  #selection.view-sheet-panel
+    > :not(.pf-head):not(.pf-content):not(.dwfui-view-sheet-frame-owner):not(.pf-grip):not(.pf-edge-e):not(
+      .pf-edge-s
+    ):not(.occupant-tabs-wrap) {
+    position: relative;
+    z-index: 1;
+  }
+  /* THE CELL-BOX DISCIPLINE. A box that says "N cells tall" is N cells tall: `--dwf-cell-rows` is the
+   TOTAL in cells and `--dwf-cell-pad-y` is padding taken OUT of it. Enforced by ui_drift_guard R10. */
+  .dwf-cellbox {
+    box-sizing: content-box;
+    --dwf-cell-rows: 1;
+    --dwf-cell-pad-y: 0;
+    --dwf-cellbox-h: calc((var(--dwf-cell-rows) - 2 * var(--dwf-cell-pad-y)) * var(--dwfui-cell-drawn-h));
+    padding-block: calc(var(--dwf-cell-pad-y) * var(--dwfui-cell-drawn-h));
+    height: var(--dwf-cellbox-h);
+    min-height: var(--dwf-cellbox-h);
+    max-height: var(--dwf-cellbox-h);
+    line-height: var(--dwfui-cell-drawn-h);
+    overflow: hidden;
+  }
+  .dwf-cellbox--min {
+    height: auto;
+    max-height: none;
+  }
+  .dwf-cellbox--cols {
+    --dwf-cell-cols: 1;
+    --dwf-cell-pad-x: 0;
+    --dwf-cellbox-w: calc((var(--dwf-cell-cols) - 2 * var(--dwf-cell-pad-x)) * var(--dwfui-cell-drawn-w));
+    padding-inline: calc(var(--dwf-cell-pad-x) * var(--dwfui-cell-drawn-w));
+    width: var(--dwf-cellbox-w);
+    min-width: var(--dwf-cellbox-w);
+    max-width: var(--dwf-cellbox-w);
+  }
+  .justice-master-detail > .justice-case-list,
+  .justice-master-detail > .justice-case-detail {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .unit-sheet .unit-list-row,
+  .unit-sheet .unit-structured-row,
+  .unit-sheet .unit-skill-row,
+  .unit-sheet .unit-knowledge-row,
+  .unit-sheet .unit-wd-row {
+    box-sizing: border-box;
+    height: var(--unit-row-pitch);
+    min-height: var(--unit-row-pitch);
+    max-height: var(--unit-row-pitch);
+    overflow: hidden;
+  }
+  /* UI-DIV-004: the pile shell remains surface-draggable, but native owns no framework title/X. */
+  #selection.stockpile-panel > .pf-head {
+    display: none;
+  }
+  .stockpile-editor-long-cat-label .dwfui-bitmap-fallback {
+    font-size: 80%;
+  }
+
+  .justice-case-list > .justice-case-btn {
+    display: flex;
+    width: 100%;
+  }
+  .justice-intel-tab.dwfui-tab--disabled .dwfui-tab-label {
+    visibility: visible;
+    color: var(--dwfui-text-secondary);
+  }
+  .squad-burrow-layout .squad-burrow-modal {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .squad-uniform-template-row:not(.squad-uniform-template-none) {
+    position: relative;
+    padding-right: calc(5 * var(--dwfui-cell-drawn-w));
+  }
+  .squad-item.dwfui-row--stacked,
+  .squad-item-icons {
+    gap: calc(0.375 * var(--dwfui-cell-drawn-w));
+  }
+  .squad-item.dwfui-row--stacked {
+    --dwf-cell-rows: 10.5;
+    box-sizing: border-box;
+  }
+
+  #worldScreenCanvas {
+    caret-color: transparent;
+    user-select: none;
+  }
+  .world-map-input-owner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .world-civs-panel {
+    top: var(--dwfui-grid-origin-y);
+    right: calc(var(--dwfui-grid-origin-x) + var(--dwfui-cell-drawn-w));
+    bottom: auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: calc(58 * var(--dwfui-cell-drawn-w));
+    height: calc(31 * var(--dwfui-cell-drawn-h));
+    max-height: none;
+    overflow: hidden;
+  }
+  .world-civs-panel > .dwfui-scroll,
+  .world-civs-panel > .world-reports-body,
+  .world-new-mission-goal-list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .world-civs-panel > .dwfui-scroll,
+  .world-new-mission-goal-list {
+    overflow: auto;
+  }
+  .world-missions-panel {
+    width: calc(58 * var(--dwfui-cell-drawn-w));
+    height: calc(31 * var(--dwfui-cell-drawn-h));
+    max-height: none;
+  }
+  .world-mission-detail,
+  .world-new-mission-panel {
+    height: calc(43 * var(--dwfui-cell-drawn-h));
+  }
+  .world-reports-panel {
+    width: calc(59 * var(--dwfui-cell-drawn-w));
+    height: calc((var(--dwfui-grid-y) - 25) * var(--dwfui-cell-drawn-h));
+  }
+  .world-reports-list > .dwfui-scroll {
+    height: 100%;
+  }
+  .world-news-panel[hidden] {
+    display: none;
+  }
+  .world-hover-card {
+    top: var(--dwfui-grid-origin-y);
+    right: calc(var(--dwfui-grid-origin-x) + var(--dwfui-cell-drawn-w));
+    box-sizing: border-box;
+    width: calc(58 * var(--dwfui-cell-drawn-w));
+    height: calc(31 * var(--dwfui-cell-drawn-h));
+    max-height: none;
+  }
+  .world-btn-stack {
+    right: calc(var(--dwfui-grid-origin-x) + var(--dwfui-cell-drawn-w));
+    bottom: var(--dwfui-grid-origin-y);
+    box-sizing: border-box;
+    width: calc(19 * var(--dwfui-cell-drawn-w));
+    height: calc(24 * var(--dwfui-cell-drawn-h));
+    gap: 0;
+  }
+  .world-btn {
+    box-sizing: border-box;
+    flex: 0 0 calc(3 * var(--dwfui-cell-drawn-h));
+    width: 100%;
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    padding: 0 calc(1 * var(--dwfui-cell-drawn-w));
+  }
+  .world-btn[data-world-btn="done"] {
+    align-self: flex-end;
+    width: calc(8 * var(--dwfui-cell-drawn-w));
+  }
+  body:has(#worldScreen.open) #helpPopup.open {
+    background: transparent;
+    pointer-events: auto;
+  }
+  body:has(#worldScreen.open) #helpPopup.open > .df-help-panel {
+    pointer-events: auto;
+  }
+  #helpPopup.open > .dwfui-modal.df-help-panel {
+    position: relative;
+    top: auto;
+    width: min(560px, 90vw);
+    height: auto;
+    display: block;
+    padding: 0;
+  }
+  #helpPopup.open > .df-help-panel > .dwfui-modal-body {
+    display: contents;
+  }
+  #helpPopup .df-help-controls > .dwfui-plaque {
+    min-width: 0;
+    width: 24px;
+    height: 20px;
+    min-height: 20px;
+    padding: 0;
+    display: grid;
+  }
+  #helpPopup .df-help-dontshow > .dwfui-check {
+    flex: 0 0 auto;
+  }
+  #helpPopup .df-help-okay.dwfui-plaque {
+    width: max-content;
+    margin: 0 auto;
+    padding: 6px 26px;
+  }
+  .info-main.info-main--kitchen-host > .kitchen-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  body {
+    --zone-palette-width: calc(55 * var(--dwfui-cell-drawn-w));
+  }
+  .creature-info-list > .info-table {
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .chores-types-list > .chores-types {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .unit-sheet .unit-list-grid.unit-health-status {
+    display: block;
+    gap: 0;
+    background: transparent;
+  }
+  .unit-sheet .unit-list-grid.unit-health-status > .dwfui-cell {
+    background: transparent;
+  }
+  .unit-sheet .unit-list-grid.unit-health-status .unit-list-row {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+  }
+  .squad-nav-row .dwfui-plaque {
+    flex: 1 1 auto;
+  }
+
+  .stocks-search-group .dwfui-group-head {
+    cursor: pointer;
+  }
+  .stocks-search-group.stocks-group-shut .dwfui-group-head {
+    background: var(--dwfui-slate);
+  }
+  .build-btn {
+    font-size: calc(var(--build-cell-w) * 1.375);
+  }
+
+  /* `:not(.resident-row)` is load-bearing: the residents sub-list has its own nine-cell template and
+   this seven-cell one is Pets/Other/Dead's. Both carry two classes, so this later rule would win. */
+  .info-table-head.creature-row,
+  .info-row.creature-row:not(.resident-row) {
+    grid-template-columns:
+      calc(40px * var(--dwfui-interface-scale, 1))
+      minmax(0, 1.1fr)
+      calc(24px * var(--dwfui-interface-scale, 1))
+      max-content
+      minmax(0, 0.5fr)
+      minmax(0, 0.7fr)
+      minmax(0, 1.1fr);
+    column-gap: calc(6px * var(--dwfui-interface-scale, 1));
+  }
+  .info-row.creature-row > * {
+    min-width: 0;
+  }
+  .creature-row .info-row-action,
+  .creature-row .creature-spec,
+  .creature-row .dwfui-icon {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+  .overall-training-bar {
+    min-width: calc(20 * var(--dwfui-cell-drawn-w));
+    min-height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  .training-knowledge-portrait {
+    width: calc(4 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    min-width: 0;
+  }
+
+  #digSubmenu .tool-subgroup,
+  #plantSubmenu .tool-subgroup,
+  #smoothSubmenu .tool-subgroup,
+  #itemDesigSubmenu .tool-subgroup,
+  #eraseSubmenu .tool-subgroup,
+  #trafficSubmenu .tool-subgroup {
+    width: 0;
+    height: 0;
+    background: none;
+    box-shadow: none;
+  }
+  #digSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #plantSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #smoothSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #itemDesigSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #eraseSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #trafficSubmenu .tool-subgroup[data-dwf-cols]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: calc(var(--dwf-group-col) * var(--dwfui-cell-drawn-w));
+    width: calc(var(--dwf-group-cols) * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    /* sampled from the native dig capture: frame #ffbf01, cell bed #1c1c1c */
+    background: #1c1c1c;
+    box-shadow: 0 0 0 1px #ffbf01;
+    pointer-events: none;
+  }
+  #dfcapJoinCard {
+    width: min(360px, 90vw);
+    height: auto;
+    color: var(--dwfui-text-body);
+  }
+  .host-panel-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    cursor: pointer;
+    padding: 6px 3px;
+  }
+  .host-panel-toggle:hover {
+    background: var(--dwfui-hatch);
+  }
+  /* Runtime-mounted panel adaptations */
+  /* Hotkey panel */
+  #dfHotkeysPanel .hotkey-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--dwfui-gold);
+    color: var(--dwfui-text-title);
+  }
+  #dfHotkeysPanel .hotkey-x {
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--dwfui-text-secondary);
+    font:
+      700 14px ui-monospace,
+      monospace;
+  }
+  #dfHotkeysPanel .hotkey-x:hover {
+    color: var(--dwfui-text-danger);
+  }
+  #dfHotkeysPanel .hotkey-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: #000;
+    border: 1px solid var(--dwfui-silver);
+    color: var(--dwfui-text-row);
+    font:
+      400 13px/1.4 ui-monospace,
+      Consolas,
+      monospace;
+    padding: 5px 6px;
+    border-radius: 0;
+  }
+  #dfHotkeysPanel .hotkey-tools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+  }
+  #dfHotkeysPanel .hotkey-tools button {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    line-height: 0;
+    display: block;
+  }
+
+  /* Join panel adaptation */
+  #dfcapJoinBtn .dwfui-plaque {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  /* Host panel adaptations */
+  .host-panel-players .dwfui-row {
+    border-bottom: 1px solid var(--dwfui-hatch);
+    font-variant-numeric: tabular-nums;
+    gap: 6px;
+    padding: 4px 6px;
+  }
+  .host-panel-players .host-panel-head-row .dwfui-cell {
+    color: var(--dwfui-text-secondary);
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .host-panel-players .dwfui-cell {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Diplomacy plaques and meeting mirror */
+  #dfDiploPlaques .dwfui-lightplaque {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    line-height: 0;
+  }
+  #dfDiploPlaques .dwfui-lightplaque:hover,
+  #dfDiploPlaques .dwfui-lightplaque:active {
+    background: transparent;
+    filter: none;
+  }
+  #dfDiploPlaques .dwfui-lightplaque-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    line-height: normal;
+  }
+  #dfDiploPlaques .dwfui-lightplaque-label .dwfui-bitmap-fallback {
+    color: var(--dwfui-text-body);
+    font: var(--dwfui-font);
+  }
+  #dfDiploMirror .diplomacy-screen {
+    position: static;
+    width: min(860px, 94vw);
+    height: auto;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #dfDiploMirror .dwfui-modal-footer {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  #dfDiploMirror .diplomacy-okay[disabled] {
+    opacity: 0.55;
+    pointer-events: auto;
+    cursor: help;
+  }
+
+  /* Settings modal */
+  #dfSettingsPanel .settings-x {
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+  }
+  #dfSettingsPanel .settings-pane {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+  }
+  #dfSettingsPanel .keyboard-binding-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px 78px;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 2px;
+    border-bottom: 1px solid var(--dwfui-hatch);
+  }
+  #dfSettingsPanel .keyboard-binding-row .dwfui-copy {
+    display: none;
+  }
+  #dfSettingsPanel .keyboard-binding-reset {
+    width: 100%;
+    min-width: 0;
+    padding: 0 4px;
+  }
+  #dfSettingsPanel .interface-option-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 2px;
+    border-bottom: 1px solid var(--dwfui-hatch);
+    cursor: pointer;
+  }
+  #dfSettingsPanel .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 2px;
+    border-bottom: 1px solid var(--dwfui-hatch);
+  }
+  #dfSettingsPanel .info-row .dwfui-copy {
+    display: none;
+  }
+
+  /* Chat toggle and panel */
+  #dfChatPanel .chat-close {
+    cursor: pointer;
+    line-height: 1;
+    background: none;
+    border: none;
+    padding: 0 2px;
+  }
+  #dfChatFoot .chat-author-actions button {
+    width: 30px;
+    height: 30px;
+  }
+  #dfChatFoot .chat-author-actions button.active {
+    outline: 1px solid var(--dwfui-gold-bright);
+    outline-offset: -1px;
+    background: var(--dwfui-gold);
+  }
+
+  @media (pointer: coarse) {
+    /* Coarse-pointer floors move with the base family so named-layer precedence cannot defeat them. */
+    html body #dfChatPanel .chat-close {
+      min-width: 40px;
+      min-height: 40px;
+    }
+    html body #dfChatFoot .chat-send {
+      min-width: 56px;
+      min-height: 38px;
+    }
+  }
+}

@@ -3,11 +3,7 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// Linux/macOS twin of the Windows GetModuleHandleA("SDL2.dll")/GetProcAddress lookups:
-// resolve SDL2 render functions from the copy of SDL the game process already loaded.
-// dwarfort links libSDL2 directly, so RTLD_DEFAULT normally finds the symbols; the
-// dlopen fallbacks cover a namespace-local SDL without ever loading a SECOND copy
-// (RTLD_NOLOAD first) unless none is present at all.
+// Linux/macOS SDL2 symbol lookup: resolves render functions from the SDL the game already loaded.
 #pragma once
 
 #ifndef _WIN32

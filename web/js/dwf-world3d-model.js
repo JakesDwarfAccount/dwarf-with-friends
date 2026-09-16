@@ -14,34 +14,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-world3d-model.js -- WT11 (3D world viewer), the MODEL stage. PURE: no DOM, no WebGL.
-// Two state machines the VIEW stage (dwf-world3d.js) drives from input events:
-//
-//   DFWorld3DModel.cam  -- an orbit camera (yaw/pitch/dist around a WORLD-space target) with
-//                          orbit / pan / zoom / framing and hard limits, plus frame-rate-independent
-//                          exponential smoothing toward a goal (calm, never overshoots).
-//   DFWorld3DModel.slab -- the z-window: `down` layers at-and-below the camera z and `up` layers
-//                          above it, clamped to the world's z bounds and a total-layer ceiling.
-//
-// WHY PURE: the WT11 reopen found that every control in the 3D viewer was dead, and the shipped
-// tests could not have caught it -- they grepped the source as a STRING. Camera math and slab
-// clamping now live here, where a node fixture can execute them (wt11_camera_test.mjs).
-//
-// The camera target is WORLD space (not voxel-grid space) on purpose: the renderer applies a model
-// matrix that translates the grid by the field origin, so re-voxelizing around a moved camera (or
-// growing the slab) shifts the field origin WITHOUT yanking the view off the spot you were looking
-// at. That is the root fix for "Refresh jumps my camera".
+// The camera target is stored in ABSOLUTE world coordinates, never field-local, so re-voxelizing
+// around a moved camera cannot yank the view.
 
 (function (root) {
   "use strict";
 
-  // ---- camera -----------------------------------------------------------------------------------
-  // pitch is clamped just inside +/- PI/2 so the view direction is never parallel to the [0,0,1] up
-  // vector -- that degeneracy (not a true gimbal lock, but it reads as one) is what makes hand-rolled
-  // orbit cameras flip over at the poles. Keeping EPS out of the pole makes lookAt's cross products
-  // always well-conditioned.
+  // ---- camera ------------------------------------------------------------------------------------
+  // pitch stays just inside +/- PI/2: at the pole the view direction parallels up and lookAt degenerates.
   var PITCH_EPS = 0.02;
   var LIMITS = {
     pitchMin: -(Math.PI / 2) + PITCH_EPS,
@@ -54,7 +39,7 @@
   var ZOOM_BASE = 1.12;      // dist multiplier per wheel tick
   var DRAG_ZOOM_SENS = 0.01; // wheel-ticks-equivalent per pixel of vertical drag
 
-  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  var clamp = (root.DwfUtil || (typeof module !== "undefined" && module.require ? module.require("./dwf-util.js") : null)).clamp;
   function isNum(n) { return typeof n === "number" && isFinite(n); }
 
   function create(opts) {
@@ -72,7 +57,7 @@
   }
   function copy(c) { return { yaw: c.yaw, pitch: c.pitch, dist: c.dist, target: [c.target[0], c.target[1], c.target[2]] }; }
 
-  // Eye position on the orbit sphere. z is up (DF's world z), matching the renderer's up vector.
+  // Eye position on the orbit sphere; z is up, matching the renderer's up vector.
   function eye(c) {
     var cp = Math.cos(c.pitch), sp = Math.sin(c.pitch);
     return [
@@ -82,15 +67,14 @@
     ];
   }
 
-  // Orbit by a pixel delta. Dragging DOWN tilts the model's top toward you (pitch rises), which is
-  // the "grab the model and pull it" convention the grab cursor promises.
+  // Dragging DOWN raises pitch: the grab-and-pull convention the grab cursor promises.
   function orbit(c, dx, dy) {
     c.yaw -= dx * ORBIT_SENS;
     c.pitch = clamp(c.pitch + dy * ORBIT_SENS, LIMITS.pitchMin, LIMITS.pitchMax);
     return c;
   }
 
-  // Zoom by wheel ticks (positive = away). Exponential so each tick feels the same at any scale.
+  // Zoom by wheel ticks, positive = away. Exponential, so each tick feels the same at any scale.
   function zoom(c, ticks) {
     c.dist = clamp(c.dist * Math.pow(ZOOM_BASE, ticks), LIMITS.distMin, LIMITS.distMax);
     return c;
@@ -98,8 +82,7 @@
   // Drag-zoom (middle-drag / Ctrl-drag): vertical pixels -> ticks. Dragging DOWN zooms OUT.
   function dragZoom(c, dy) { return zoom(c, dy * DRAG_ZOOM_SENS); }
 
-  // The camera's screen-plane basis (right, up), derived from the current orbit angles. Pure -- the
-  // renderer builds its lookAt from the same yaw/pitch, so these agree with what's on screen.
+  // Screen-plane basis from the current orbit angles; the renderer's lookAt uses the same yaw/pitch.
   function basis(c) {
     var e = eye(c);
     var fx = c.target[0] - e[0], fy = c.target[1] - e[1], fz = c.target[2] - e[2];
@@ -129,8 +112,7 @@
     return c;
   }
 
-  // Walk the target along the ground plane (WASD): forward is the view direction flattened to z=0,
-  // so W always goes "into the screen" regardless of pitch.
+  // Walk the target along the ground plane (WASD): forward is the view direction flattened to z=0.
   function walk(c, forward, strafe) {
     var b = basis(c);
     var fl = Math.hypot(b.fwd[0], b.fwd[1]) || 1;
@@ -141,27 +123,18 @@
     return c;
   }
 
-  // Frame a voxel field: center the target on the field's WORLD-space middle and back off far
-  // enough to see the whole footprint. `zScale` (default 1) is the renderer's display-only z
-  // exaggeration (dwf-world3d.js's Z_SCALE) -- optional and backward-compatible so callers/fixtures
-  // that never heard of it keep today's exact framing. Without it, a tall (many-layer) slab at a
-  // large zScale could render past the frustum vertically even though this distance "fits" the
-  // UNSTRETCHED field the pure model still reasons in.
   function frame(c, field, zScale) {
     if (!field) return c;
     var zs = isNum(zScale) && zScale > 0 ? zScale : 1;
     c.target = [
       field.ox + field.dimX / 2,
-      field.oy + field.dimY / 2,
+      -(field.oy + field.dimY / 2),
       field.oz + field.dimZ / 2,
     ];
     c.dist = clamp(Math.max(field.dimX, field.dimY, field.dimZ * zs) * 1.4, LIMITS.distMin, LIMITS.distMax);
     return c;
   }
 
-  // Frame-rate-independent exponential smoothing toward `goal`. alpha = 1 - exp(-rate*dt) makes the
-  // approach identical at 30fps and 144fps. It is a pure decay -- it CANNOT overshoot, which is what
-  // the house style asks for (calm, no springy bounce). Snaps when within epsilon so it settles.
   function smooth(cur, goal, dtMs, rate) {
     var r = isNum(rate) ? rate : 18;
     var a = 1 - Math.exp(-r * Math.max(0, dtMs || 0) / 1000);
@@ -184,19 +157,14 @@
       Math.abs(a.target[2] - b.target[2]) < 1e-3;
   }
 
-  // ---- slab (the z-window) ----------------------------------------------------------------------
-  // `down` counts layers AT AND BELOW the camera z (so down=1 is the camera plane alone, and it can
-  // never be 0 -- there is always something to look at). `up` counts layers strictly ABOVE it.
-  // the #1: before this, `up` did not exist and the box only ever descended from the camera.
+  // ---- slab (the z-window) -------------------------------------------------------------------------
+  // No layer cap: the voxel field is sparse, so the only clamp is the world's real z-extent.
   var SLAB = {
     minDown: 1,
     defaultDown: 20,
     defaultUp: 0,
-    // total (up + down). dwf-voxelizer.js's DEFAULT_MAX_VOXELS is sized (96*96*48) specifically to
-    // cover this ceiling without degrading the footprint -- see that constant's own comment. This
-    // is the OTHER half of that contract: raise one, raise the other, or the slab UI starts
-    // promising layers the voxelizer's cap can no longer afford to render at full width.
-    maxLayers: 48,
+    // Slider travel for the top handle before hello_ack tells us the world's height.
+    unknownHeadroom: 64,
   };
 
   function slabCreate(opts) {
@@ -207,34 +175,82 @@
     };
   }
 
-  // Clamp a slab against the camera z and the world's z-level count. worldZ <= 0 means "unknown"
-  // (pre-hello_ack): then only the floor (z>=0) and the layer ceiling apply.
+  // worldZ <= 0 means the ceiling is unknown (pre-hello_ack): then only the floor (z >= 0) applies.
   function slabClamp(s, cz, worldZ) {
+    if (isNum(s.zBot) && isNum(s.zTop)) {
+      var lo = Math.min(s.zBot | 0, s.zTop | 0), hi = Math.max(s.zBot | 0, s.zTop | 0);
+      var max = isNum(worldZ) && worldZ > 0 ? (worldZ | 0) - 1 : Math.max(hi, (cz | 0) + SLAB.unknownHeadroom - 1);
+      lo = clamp(lo, 0, max); hi = clamp(hi, 0, max);
+      return { zBot: lo, zTop: hi };
+    }
     var down = Math.max(SLAB.minDown, s.down | 0);
     var up = Math.max(0, s.up | 0);
     if (isNum(cz)) {
-      down = Math.min(down, cz + 1);                   // zBot = cz-(down-1) >= 0
-      if (isNum(worldZ) && worldZ > 0) up = Math.min(up, Math.max(0, worldZ - 1 - cz)); // zTop <= worldZ-1
+      down = Math.min(down, cz + 1);
+      if (isNum(worldZ) && worldZ > 0) up = Math.min(up, Math.max(0, worldZ - 1 - cz));
     }
-    down = Math.max(SLAB.minDown, down);
-    // Total ceiling: shave `up` first (the camera plane and what's under it is the point of the view).
-    if (up + down > SLAB.maxLayers) up = Math.max(0, SLAB.maxLayers - down);
-    if (up + down > SLAB.maxLayers) down = Math.max(SLAB.minDown, SLAB.maxLayers - up);
-    return { down: down, up: up };
+    return { down: Math.max(SLAB.minDown, down), up: up };
   }
 
   function slabRange(s, cz) {
+    if (isNum(s.zBot) && isNum(s.zTop)) {
+      var lo = Math.min(s.zBot | 0, s.zTop | 0), hi = Math.max(s.zBot | 0, s.zTop | 0);
+      return { zBot: lo, zTop: hi, count: hi - lo + 1 };
+    }
     var down = Math.max(SLAB.minDown, s.down | 0), up = Math.max(0, s.up | 0);
     return { zBot: (cz | 0) - (down - 1), zTop: (cz | 0) + up, count: down + up };
   }
 
-  // The four controls a playtester asked for. Each returns a NEW clamped slab; a no-op at a bound returns
-  // an equal slab (the view stage compares to decide whether a rebuild is even needed).
-  function slabAddAbove(s, cz, worldZ, n) { return slabClamp({ down: s.down, up: s.up + (n || 1) }, cz, worldZ); }
-  function slabRemoveAbove(s, cz, worldZ, n) { return slabClamp({ down: s.down, up: s.up - (n || 1) }, cz, worldZ); }
-  function slabAddBelow(s, cz, worldZ, n) { return slabClamp({ down: s.down + (n || 1), up: s.up }, cz, worldZ); }
-  function slabRemoveBelow(s, cz, worldZ, n) { return slabClamp({ down: s.down - (n || 1), up: s.up }, cz, worldZ); }
-  function slabEquals(a, b) { return !!a && !!b && a.up === b.up && a.down === b.down; }
+  // ---- the z-window as an ABSOLUTE range (the dual-handle slider's language) -----------------------
+  function slabFromRange(zBot, zTop, cz, worldZ) {
+    var lo = zBot | 0, hi = zTop | 0;
+    if (lo > hi) { var t = lo; lo = hi; hi = t; }
+    return slabClamp({ zBot: lo, zTop: hi }, cz | 0, worldZ);
+  }
+
+  function slabBounds(cz, worldZ) {
+    var c = cz | 0;
+    var known = isNum(worldZ) && worldZ > 0;
+    return { zMin: 0, zMax: known ? (worldZ | 0) - 1 : c + (SLAB.unknownHeadroom - 1) };
+  }
+
+  function slabSpan(zBot, zTop) {
+    var lo = zBot | 0, hi = zTop | 0;
+    if (lo > hi) { var t = lo; lo = hi; hi = t; }
+    return hi - lo + 1;
+  }
+
+  // ---- presets -------------------------------------------------------------------------------------
+  // A preset returns null when it cannot be answered honestly, so the view can DISABLE the chip.
+  var SURFACE_LAYERS = 8;  // "Surface" = the fort's top level and the 7 under it
+  var AROUND_CAMERA = 8;   // "Around camera" = 8 up and 8 down (17 layers)
+
+  function slabPresetRange(id, ctx) {
+    var o = ctx || {};
+    var cz = o.cz | 0;
+    var fort = o.fort && isNum(o.fort.zBot) && isNum(o.fort.zTop) ? o.fort : null;
+    if (id === "camera") return { zBot: cz - AROUND_CAMERA, zTop: cz + AROUND_CAMERA };
+    if (!fort) return null;
+    if (id === "fort") return { zBot: fort.zBot, zTop: fort.zTop };
+    if (id === "surface") return { zBot: fort.zTop - (SURFACE_LAYERS - 1), zTop: fort.zTop };
+    return null;
+  }
+
+  // Each returns a NEW clamped slab; a no-op at a bound returns an equal slab, which the view compares.
+  function slabMoveEdge(s, cz, worldZ, edge, delta) {
+    var r = slabRange(s, cz), n = delta || 1;
+    return slabFromRange(edge === "top" ? r.zBot : Math.min(r.zTop, r.zBot + n),
+      edge === "top" ? Math.max(r.zBot, r.zTop + n) : r.zTop, cz, worldZ);
+  }
+  function slabAddAbove(s, cz, worldZ, n) { return slabMoveEdge(s, cz, worldZ, "top", n || 1); }
+  function slabRemoveAbove(s, cz, worldZ, n) { return slabMoveEdge(s, cz, worldZ, "top", -(n || 1)); }
+  function slabAddBelow(s, cz, worldZ, n) { return slabMoveEdge(s, cz, worldZ, "base", -(n || 1)); }
+  function slabRemoveBelow(s, cz, worldZ, n) { return slabMoveEdge(s, cz, worldZ, "base", n || 1); }
+  function slabEquals(a, b) {
+    if (!a || !b) return false;
+    if (isNum(a.zBot) || isNum(b.zBot)) return a.zBot === b.zBot && a.zTop === b.zTop;
+    return a.up === b.up && a.down === b.down;
+  }
 
   var api = {
     cam: {
@@ -247,10 +263,12 @@
       create: slabCreate, clamp: slabClamp, range: slabRange, equals: slabEquals,
       addAbove: slabAddAbove, removeAbove: slabRemoveAbove,
       addBelow: slabAddBelow, removeBelow: slabRemoveBelow,
+      fromRange: slabFromRange, bounds: slabBounds, span: slabSpan,
+      presetRange: slabPresetRange,
       LIMITS: SLAB,
     },
   };
 
-  try { root.DFWorld3DModel = api; } catch (_) { /* non-browser */ }
+  try { root.DFWorld3DModel = api; } catch { /* Node loads through module.exports below */ }
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : this));

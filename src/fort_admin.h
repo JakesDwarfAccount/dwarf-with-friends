@@ -25,13 +25,7 @@
 
 namespace dwf {
 
-// Fort administration domain: nobles/administrators (positions + holders +
-// requirements + mandates w/ item+material+countdown detail + WD-20 ENDPOINT-ADD
-// /noble-assign + /noble-candidates), justice (crimes/convictions; WD-21
-// ENDPOINT-EXTEND /justice?mode= for the 6 real sub-tabs, plus the /justice-pardon
-// write-action + host-only /justice-convict|/justice-interrogate stubs), and
-// petitions/agreements (list + accept/deny + standing-policy action). One register helper covers all four
-// because they share the fort-entity / historical-figure lookups.
+// Fort administration routes: nobles/administrators, justice, petitions/agreements, hotkeys.
 void register_fort_admin_routes(httplib::Server& server);
 
 } // namespace dwf

@@ -22,8 +22,8 @@
 #include "music_sync.h"
 
 #include "httplib.h"
-#include "sound_route.h"   // request_is_local_host (host gate), shared with the licensing gate
-#include "websocket.h"     // peer_ip_is_loopback
+#include "sound_route.h"
+#include "websocket.h"
 
 #include <chrono>
 #include <mutex>
@@ -35,15 +35,6 @@ namespace {
 std::mutex g_mu;
 State g_state;
 bool g_seeded = false;
-
-// FIRST_YEAR vs SECOND_YEAR_PLUS: DF's music_standard.txt distinguishes the embark year from
-// established years, but there is no ONE cheap global that gives the fort's founding year
-// (plotinfo->fortress_age is "+1 per 10", units undocumented, and unreliable across saves). Rather
-// than ship a wrong guess, the server passes first_year = -1 (unknown) today, so select_auto_track
-// falls through to CONTEXT:MAIN (hill_dwarf) -- byte-for-byte the client's PRIOR unknown-year
-// behavior (autoMusicTrack returned hill_dwarf when ctx.firstYear was null), i.e. NO regression.
-// The seam is fully wired (first_year threads through select_auto_track/frame_json); wiring a
-// real founding-year signal later is a one-line change. Documented, not silently dropped.
 
 } // namespace
 
@@ -59,8 +50,7 @@ std::string frame_json(bool siege, int season, int first_year) {
     int64_t t = now_ms();
     std::string auto_track = select_auto_track(siege, season, first_year);
     if (!g_seeded) {
-        // First frame: adopt the auto selection and start the clock now (avoids a bogus huge
-        // elapsed from the default-constructed start_ms == 0 vs a large steady_clock stamp).
+        // start the clock now, or elapsed is a huge bogus value from start_ms == 0
         g_state = set_auto(auto_track, t);
         g_seeded = true;
     } else {
@@ -85,15 +75,10 @@ void apply_auto(bool siege, int season, int first_year) {
 
 namespace {
 
-// Same tunnel-aware host gate the /sound licensing gate uses (sound_route.h::request_is_local_host):
-// loopback peer + no proxy forwarding header + a loopback-ish Host. A tunneled remote friend must
-// NOT be able to seize the fort's music channel by curling /music.
 bool peer_is_host(const httplib::Request& req) {
     return request_has_host_authority(req);
 }
 
-// Flat body scan -- our own client sends `{"track":"<key>"}` or `{"auto":true}`. Extracts the
-// track key (empty if absent). Never throws; whitespace-tolerant enough for our fixed shape.
 std::string scan_track(const std::string& body) {
     const std::string key = "\"track\"";
     size_t k = body.find(key);
@@ -124,10 +109,6 @@ bool scan_auto_true(const std::string& body) {
 } // namespace music
 
 void register_music_route(httplib::Server& server) {
-    // POST /music -- HOST-ONLY canonical music control. `{"track":"<key>"}` sets a manual override
-    // (everyone hears it, seeked together); `{"auto":true}` hands control back to the trigger
-    // rules. The picked track is emitted as the canonical env.music on the very next aux frame, so
-    // there is no separate broadcast -- the shared aux stream IS the broadcast (late joiners too).
     server.Post("/music", [](const httplib::Request& req, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         if (!music::peer_is_host(req)) {
@@ -137,9 +118,7 @@ void register_music_route(httplib::Server& server) {
             return;
         }
         if (music::scan_auto_true(req.body)) {
-            // Hand back to AUTO. The next frame_json re-derives from live triggers; snap now so the
-            // host UI reflects it immediately (siege/season unknown here -> conservative MAIN, the
-            // frame loop corrects within one tick).
+            // live triggers are unknown on this thread; the next frame_json corrects within a tick
             music::apply_auto(false, 0, -1);
             res.set_content("{\"ok\":true,\"manual\":false}\n",
                             "application/json; charset=utf-8");

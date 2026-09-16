@@ -19,22 +19,17 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-  // WS3 Kitchen / food prefs panel. Lists seed-bearing plants and lets you allow
-  // or forbid cooking their seeds (the classic "stop cooking my planting stock"
-  // control). Reads /kitchen, toggles /kitchen-toggle.
+  // ---- Kitchen / food prefs: allow or forbid cooking seed-bearing plants. Reads /kitchen. ----
   let kitchenData = null;
   let kitchenFilter = "";
-  let kitchenTypeFilter = "";   // W6 `< All >` cycler: "" == All, else an item `category`
+  let kitchenTypeFilter = "";   // `< All >` cycler: "" == All, else an item `category`
   let kitchenSort = "type";     // W7a sort header: the active column key
-  // W8 column mass-toggle: per-column "hide this column's CANNOT (grey) rows". A VIEW filter only --
-  // see kitchenMassToggleHtml. Never sent to the server, never written back onto a row.
+  // Per-column "hide this column's CANNOT rows". A VIEW filter only: never sent to the server.
   let kitchenHideCannot = { cook: false, brew: false };
 
-  // Kitchen is a production DWFUI consumer. The app-level startup contract guarantees these
-  // builders exist before any surface script runs; this declaration also records live usage for
-  // diagnostics without making the offline module fixture depend on a browser window.
-  if (typeof DWFUI !== "undefined") DWFUI.require("labor-kitchen",
-    ["searchHtml", "scrollHtml", "rowHtml", "latchHtml", "iconHtml", "sortHeaderHtml", "artBtnHtml", "cyclerHtml"]);
+  // Records live DWFUI usage for diagnostics without making the offline module fixture need a window.
+  if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function") DWFUI.require("labor-kitchen",
+    ["windowHtml", "searchHtml", "scrollHtml", "rowHtml", "latchHtml", "iconHtml", "sortHeaderHtml", "artBtnHtml", "cyclerHtml"]);
 
   async function openKitchenPanel() {
     setActiveToolbar("kitchen");
@@ -52,21 +47,8 @@
     renderKitchenPanel();
   }
 
-  // ---- WAVE 4 / S3: THE KITCHEN CELL IS A TRI-STATE, NOT A BOOLEAN --------------------------------
-  // the oracle (`Menu Oracle Screenshots/kitchen all three states.png`, native, declared) shows
-  // THREE distinct cells in BOTH the cook and the brew column:
-  //   GREEN  ALLOWED     LABOR_KITCHEN_{COOK,BREW}_ALLOWED     (Prepared cat intestines: cook green)
-  //   RED    RESTRICTED  LABOR_KITCHEN_{COOK,BREW}_RESTRICTED  (the seed rows: cookable, FORBIDDEN by
-  //                                                            the player; Plump helmets: brew red)
-  //   GREY   CANNOT      LABOR_KITCHEN_{COOK,BREW}_CANNOT      (Rope reeds / Rice plants / Pig tails:
-  //                                                            cook IMPOSSIBLE; intestines: brew ditto)
-  // The old code modelled this as `allowed ? "on" : "off"` -- so "you forbade this" and "this is
-  // impossible" were INDISTINGUISHABLE and RESTRICTED was UNRENDERABLE. That is a CONTENT-MODEL bug,
-  // not a paint bug, and it is fixed here by making the state 3-valued at the source.
-  //
-  // The wire now serves both capability booleans. Optional reads remain for compatibility with an
-  // older DLL: absent cookCapable preserves its historical allowed/restricted interpretation,
-  // while an absent/falsy brewCapable remains the honest CANNOT state.
+  // The kitchen cell is a TRI-STATE, not a boolean: ALLOWED / RESTRICTED (the player forbade it) /
+  // CANNOT (impossible). Modelling it as a boolean makes RESTRICTED unrenderable.
   const KITCHEN_CELL_SPRITES = {
     cook: {
       allowed: "LABOR_KITCHEN_COOK_ALLOWED", restricted: "LABOR_KITCHEN_COOK_RESTRICTED",
@@ -90,9 +72,8 @@
       ? !!r.cookAllowed : !!r.seedCookAllowed;
     return allowed ? "allowed" : "restricted";
   }
-  // CANNOT is NOT A CONTROL: native renders a real grey tile you cannot click (and the server
-  // rejects the toggle anyway -- kitchen_panel.cpp:135 "plant cannot be brewed"). It therefore gets
-  // iconHtml and NO data-kitchen-* attribute. ALLOWED/RESTRICTED are the two faces of one latch.
+  // CANNOT is NOT A CONTROL: it gets iconHtml and no data-kitchen-* attribute, and the server rejects
+  // the toggle anyway. ALLOWED and RESTRICTED are the two faces of one latch.
   function kitchenCellHtml(row, kind, dataset) {
     const state = kitchenCellState(row, kind);
     const art = KITCHEN_CELL_SPRITES[kind];
@@ -115,19 +96,13 @@
     });
   }
 
-  // WD-18: per-item cook + brew tiles (the `kitchen all three states.png`) -- one row per
-  // seed-bearing plant. The brew tile is only a CONTROL for plants DF can actually brew
-  // (plant_raw_flags::DRINK, see kitchen_panel.cpp plant_brew_capable); otherwise it is the native
-  // CANNOT tile. Retained data contract: data-kitchen-toggle / -mode / -on.
+  // The brew tile is only a CONTROL for plants DF can actually brew; otherwise it is the CANNOT tile.
+  // Retained data contract: data-kitchen-toggle / -mode / -on.
   function kitchenToggleButton(p, kind) {
     return kitchenCellHtml(p, kind, { kitchenToggle: p.id });
   }
 
-  // R5 (CIM-labor-kitchen.jpg): the native Kitchen screen lists ALL cookable stock (meat, fish,
-  // prepared organs, cheese...) with a per-item count and a cook toggle, not only seed plants.
-  // Server now serves `items:[{type,mat,matIndex,name,count,cookAllowed,category}]` (grouped stock)
-  // alongside the legacy `plants` array. Rows degrade gracefully on an old DLL (no `items` → only
-  // the plant rows render, exactly as before).
+  // Rows degrade gracefully on an old DLL: with no `items` only the plant rows render.
   const KITCHEN_CATEGORY_LABELS = {
     MEAT: "Meat", FISH: "Fish", FISH_RAW: "Raw fish", EGG: "Egg",
     CHEESE: "Cheese", PLANT_GROWTH: "Plant growth", GLOB: "Fat",
@@ -152,9 +127,8 @@
     return Number.isFinite(n) && n > 0
       ? `<span class="dwfui-num kitchen-count">${DWFUI.bitmapTextHtml(String(n))}</span>` : "";
   }
-  // Native shows the ITEM'S OWN sprite in the 48px tile. Kitchen uses the same shared spriteRef
-  // channel as every other item surface; species-specific rows carry identKind+ident so seeds,
-  // plants, and fish resolve from their stable raw token rather than a world-order numeric index.
+  // Species-specific rows carry identKind+ident so seeds, plants and fish resolve from their stable raw
+  // token rather than a world-order numeric index.
   function kitchenItemRowHtml(i) {
     const cat = kitchenPrettyCategory(i.category);
     return DWFUI.rowHtml({
@@ -182,10 +156,7 @@
     });
   }
 
-  // ---- W6 `< All >` type cycler + W7a sort header ------------------------------------------------
-  // The old `.kitchen-paging` was three INERT unicode arrows and the old `.kitchen-head` was two
-  // emoji captions. Both are gone. The cycler is now a real filter over the item `category` the wire
-  // already serves, and the sort header is the native SORT_* radiogroup.
+  // ---- `< All >` type cycler over the served item `category`, plus the native SORT_* sort header. ----
   function kitchenCategories(data) {
     const seen = [];
     (Array.isArray(data?.items) ? data.items : []).forEach(i => {
@@ -202,22 +173,8 @@
       next: { dataset: { kitchenCycle: 1 }, title: "Next item type" },
     });
   }
-  // ---- W8 COLUMN MASS-TOGGLE (the control the owner found MISSING ENTIRELY) -----------------------------
-  // The owner, from his live game: "in the kitchen tab we are missing these blue arrow buttons entirely, if
-  // you click them they filter out all the gray state options, from food or drink respectively."
-  // Native (`kitchen all three states.png`) puts ONE button above the COOK column and ONE above the
-  // BREW column, each with the sort caret beneath it. Clicking one collapses the list to the rows
-  // that column can ACTUALLY act on -- it hides that column's CANNOT (grey) rows, and ONLY that
-  // column's: hiding the un-cookable rows must not hide the un-brewable ones.
-  //
-  // *** IT IS A VIEW FILTER. IT MUST NOT MUTATE GAME STATE. *** There is no /kitchen-toggle here and
-  // no write-back onto a row: it flips one client-side boolean and re-renders. The name is chosen to
-  // say so -- `hideCannot`, not `setCannot`. (A "mass toggle" that ALLOWED every cookable row would
-  // be a mass WRITE, which is not what native does and not what the owner described.)
-  //
-  // The two faces are the two native sprites, and the greyness they filter on is read back through
-  // kitchenCellState -- the SAME function the cells paint with, so the button can never disagree with
-  // the tiles it sits above.
+  // The mass-toggle IS A VIEW FILTER and must not mutate game state: it flips one client boolean and
+  // re-renders. Cook and brew are independent -- hiding un-cookable rows must not hide un-brewable ones.
   const KITCHEN_MASS_COLUMNS = [
     { kind: "cook", noun: "cookable" },
     { kind: "brew", noun: "brewable" },
@@ -244,9 +201,7 @@
       `</div>`;
   }
 
-  // The caret beneath each mass-toggle is native's SORT_DESCENDING for that column -- so cook and brew
-  // are two more columns of the ONE existing sort radiogroup (bare: native gives them no caption).
-  // They are NOT a second header: sortHeaderHtml still owns every caret on this screen.
+  // The carets are two more columns of the ONE sort radiogroup; sortHeaderHtml still owns every caret here.
   const KITCHEN_SORT_COLUMNS = [
     { key: "type", label: "Type", sort: "desc", title: "Sort by item type" },
     { key: "name", label: "Name", sort: "desc", title: "Sort by name" },
@@ -276,9 +231,8 @@
     return copy;
   }
 
-  // The one filter+sort pipeline. Every caller (initial render, search input, cycler, sort header,
-  // W8 mass-toggle, toggle re-render) goes through it, so the list can never disagree with the header
-  // and no narrowing control gets a second, parallel filter path of its own.
+  // The one filter+sort pipeline. Every caller goes through it, so no narrowing control gets a second,
+  // parallel filter path of its own.
   function kitchenVisibleRows(data, opts) {
     const o = opts || {};
     const term = String(o.filter || "");
@@ -288,9 +242,8 @@
     const match = value => !term ? true : (typeof dfTokenMatch === "function"
       ? dfTokenMatch(value, term)
       : term.toLowerCase().split(/\s+/).every(token => String(value || "").toLowerCase().includes(token)));
-    // W8: hide the rows this column CANNOT act on. Greyness is read through kitchenCellState -- the
-    // same function that paints the cell -- so "grey" here means exactly what the player sees grey.
-    // Cook and brew are independent: hiding un-cookable rows must not hide un-brewable ones.
+    // Greyness is read through kitchenCellState -- the same function that paints the cell -- so "grey"
+    // here means exactly what the player sees grey.
     const massOk = row => KITCHEN_MASS_COLUMNS.every(c =>
       !hide[c.kind] || kitchenCellState(row, c.kind) !== "cannot");
     let items = (Array.isArray(data?.items) ? data.items : []).filter(i => match(i.name) && massOk(i));
@@ -319,10 +272,8 @@
     const sort = String(opts.sort != null ? opts.sort : (data?.sort || "type"));
     const hideCannot = opts.hideCannot || {};
     const rows = kitchenRowsMarkup(data, { filter: term, typeFilter, sort, hideCannot });
-    const scroll = DWFUI.scrollHtml({ cls: "kitchen-scroll", ariaLabel: "Kitchen items" }, rows);
-    // PB-09: Kitchen keeps its one wired BODY search (the shell footer is removed for this tab), but
-    // its visuals are the same shared native DWFUI search used by Justice and every information
-    // footer. Consumer hooks may place it; they must never replace the shared input/button classes.
+    const scroll = DWFUI.scrollHtml({ cls: "kitchen-scroll", rows: ".kitchen-item-row, .kitchen-plant-row", ariaLabel: "Kitchen items" }, rows);
+    // Consumers may place this search; they must never replace the shared input and button classes.
     const search = DWFUI.searchHtml({
       cls: "kitchen-search-row",
       id: "kitchenSearch",
@@ -333,23 +284,39 @@
       placement: "footer",
       preserveKey: "kitchen-items",
     });
-    // Native's column header is TWO stacked strips over the cook/brew columns: the W8 mass-toggle
-    // buttons, and the sort carets directly beneath them. `.kitchen-headbar` is that stack. It adds
-    // NO frame of its own -- the buttons are self-framed native cells and own their gold border, and
-    // chrome belongs to the outermost owner (the panel), not to every component we drop in.
+    // `.kitchen-headbar` adds NO frame of its own: the buttons are self-framed native cells that own their
+    // gold border, and chrome belongs to the outermost owner.
     return `${kitchenTypeCycleHtml(data, typeFilter)}` +
       `<div class="kitchen-headbar">${kitchenMassStripHtml(hideCannot)}${kitchenSortHeaderHtml(sort)}</div>` +
-      `<div id="fortStatus" class="info-message fort-status" style="display:none"></div>${scroll}${search}`;
+      `<div id="fortStatus" class="info-message fort-status"></div>${scroll}${search}`;
+  }
+
+  // Standalone Kitchen owns a DWFUI window directly. The Labor tab deliberately does not call
+  // this builder: it contributes kitchenBodyMarkup() to Labor's already-owned shared window.
+  function kitchenStandaloneMarkup(body) {
+    return DWFUI.windowHtml({
+      ariaLabel: "Kitchen",
+      bodyHtml: `<div class="info-header">
+          <div class="info-title">${escapeHtml("Kitchen")}</div>
+          ${fortCloseBtnHtml()}
+        </div>
+        <div class="info-body fort-body">${body || ""}</div>`,
+    });
+  }
+
+  function renderKitchenStandalone(body, onRender) {
+    clientPanel.className = "visible info-panel fort-window";
+    panelContent(clientPanel).innerHTML = kitchenStandaloneMarkup(body);
+    clientPanel.querySelector("[data-fort-close]")?.addEventListener("click", closeClientPanel);
+    fortBindUnitLinks(clientPanel);
+    if (typeof onRender === "function") onRender();
   }
 
   function renderKitchenPanel() {
     if (kitchenData && kitchenData.error) {
-      fortRenderWindow({ title: "Kitchen", body: `<div class="info-message">Kitchen unavailable: ${escapeHtml(kitchenData.error)}</div>` });
+      renderKitchenStandalone(`<div class="info-message">Kitchen unavailable: ${escapeHtml(kitchenData.error)}</div>`);
       return;
     }
-    // WAVE 4 restyle (`kitchen all three states.png`): a REAL `< All >` type cycler over the served
-    // item categories, the native SORT_* column header, DWFUI table rows with the tri-state cook and
-    // brew tiles, and the search field at the BOTTOM (DF's layout), not the top.
     const kitchenBody = kitchenBodyMarkup(kitchenData, kitchenFilter,
       { typeFilter: kitchenTypeFilter, sort: kitchenSort, hideCannot: kitchenHideCannot });
 
@@ -359,11 +326,14 @@
 
     if (isInLaborPanel) {
       // Kitchen owns its native bottom search. Remove the generic Labor footer search so the
-      // composed screen has one search field, not two (parity review 2026-07-11).
+      // composed screen has one search field, not two (parity review).
       clientPanel.querySelector(".info-footer .info-search")?.remove();
       // Render within the labor panel's info-main area
       const main = clientPanel.querySelector(".info-main");
       if (main) {
+        // Kitchen owns an inner DWFUI scroll, so mark the outer node a height-passing host instead of letting
+        // the fill-scroll role cap the item list at the 46vh fallback.
+        main.classList.add("info-main--kitchen-host");
         main.innerHTML = kitchenBody;
       }
       // Mark the Kitchen tab as active
@@ -372,7 +342,7 @@
       bindKitchenPanel();
     } else {
       // Render as a standalone panel
-      fortRenderWindow({ title: "Kitchen", body: kitchenBody, onRender: bindKitchenPanel });
+      renderKitchenStandalone(kitchenBody, bindKitchenPanel);
     }
   }
 
@@ -392,8 +362,6 @@
       kitchenFilter = String(event.target.value || "");
       kitchenRepaintRows();
     });
-    // W6 `< All >` cycler: a REAL filter over the served item categories (the old one was three
-    // inert unicode arrows).
     clientPanel.querySelectorAll("[data-kitchen-cycle]").forEach(b =>
       b.addEventListener("click", () => {
         const cats = ["", ...kitchenCategories(kitchenData)];
@@ -408,8 +376,7 @@
         kitchenSort = String(b.dataset.kitchenSort || "type");
         renderKitchenPanel();
       }));
-    // W8 column mass-toggle. A VIEW filter: it flips one boolean and re-renders. NO fetch, NO
-    // /kitchen-toggle, NO write-back onto a row -- collapsing the list must never cook anything.
+    // A VIEW filter: no fetch and no write-back -- collapsing the list must never cook anything.
     clientPanel.querySelectorAll("[data-kitchen-mass]").forEach(b =>
       b.addEventListener("click", () => {
         const kind = String(b.dataset.kitchenMass || "");
@@ -445,12 +412,13 @@
   }
 
   // Node export for the offline CIM fixture (harmless in the browser: `module` is undefined).
-  // B157: row/toggle renderers exported so the fixture can pin the cook+brew cell contract.
+  // row/toggle renderers exported so the fixture can pin the cook+brew cell contract.
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { kitchenPrettyCategory, kitchenToggleButton, kitchenItemCookButton,
       kitchenPlantRowHtml, kitchenItemRowHtml, kitchenBodyMarkup,
       kitchenCellState, kitchenCellHtml, kitchenCategories, kitchenVisibleRows,
       kitchenMassToggleHtml, kitchenMassStripHtml, kitchenSortHeaderHtml,
+      kitchenStandaloneMarkup,
       KITCHEN_CELL_SPRITES, KITCHEN_MASS_COLUMNS, KITCHEN_SORT_COLUMNS };
   }
 

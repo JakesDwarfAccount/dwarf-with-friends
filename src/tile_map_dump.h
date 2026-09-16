@@ -27,21 +27,12 @@
 
 namespace dwf {
 
-// WS2 map-data pivot (crash-safe). Reads a viewport window via the STABLE map
-// APIs (Maps::getBlock + MapExtras::MapCache + world->units/buildings) -- NEVER
-// the graphic_viewportst render arrays. Produces "wire:1" JSON.
-//
-// This is the deliberate alternative to approach A (render-buffer scraping):
-// it touches only stable simulation structures under the core suspender, so
-// the SIGSEGV fault class that crashed approach A cannot occur here.
+// WS2 map data: a viewport window read through the stable map APIs, emitted as "wire:1" JSON.
 
-// Convenience wrapper for a live per-player fetch: origin = camera.x/y/z.
-// Same crash-safe reader; returns "" + err on failure.
+// live per-player fetch: origin = camera.x/y/z
 std::string build_map_json_for_camera(const Camera& cam, int width, int height, std::string* err);
 
-// Existing command path: builds the CURRENT host viewport window
-// (origin = window_x/y/z) and writes it to <out_dir>/map.json.
-// Returns false + err on failure. Null/edge blocks are skipped, never faulted.
+// the CURRENT host viewport window (origin = window_x/y/z), written to <out_dir>/map.json
 bool dump_map_window(const std::string& out_dir, int width, int height, std::string* err);
 
 } // namespace dwf

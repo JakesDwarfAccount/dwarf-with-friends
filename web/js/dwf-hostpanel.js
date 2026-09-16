@@ -1,132 +1,51 @@
-// dwf - HOST SETTINGS panel (host-only point-and-click for the existing host controls)
+// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
 //
-// A single overlay panel that surfaces the controls only the HOST (the machine running Dwarf
-// Fortress) should touch, making the console-only / URL-only host knobs point-and-click:
-//   1. Pause permissions -- toggle hostUnpauseOnly (GET /pause-config?hostunpause=on|off) and
-//      autopause-on-player-leave (?autopause=on|off), plus the live pause state / who paused.
-//   2. Join password -- set / change / turn off from the UI (POST /join-password, host-only,
-//      loopback-gated server-side). Dormant-graceful: if the route 404s (host not yet updated)
-//      the panel shows the `capture-join-password` console fallback inline.
-//   3. Connected players (read-only, no kick) -- name, connection count, last-activity, ping,
-//      from the /diag payload the client already exposes.
-//   4. Footer -- server build stamp (version gate) + a read-only remote-audio note when the
-//      audio route (/sound-info) is present.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
 //
-// HOST GATING is the SAME signal the pause host-unpause gate uses: DwfWS.isHost(), which
-// tracks the server's per-connection loopback-peer flag from hello_ack (nothing a client can
-// spoof). The entry row is injected into DF's Esc menu ONLY for the host (attachEscMenu below),
-// so a spectator never even sees it. The server ALSO refuses a non-loopback POST /join-password
-// (403) -- UI-hiding is defence-in-depth, not the only guard.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
 //
-// Self-contained: its own injected <style> (no shared-CSS edit), no new polling loop except a
-// light 2 s refresh while the panel is OPEN (torn down on close). Every route is optional --
-// a missing/older DLL degrades to a hint, never a broken panel or console noise.
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// ---- Host settings: pause permissions, join password, connected players, build stamp. ----
+// Gated on DwfWS.isHost(); the server also refuses a non-loopback POST, so hiding is defence in depth.
 (function () {
   "use strict";
 
-  // DWFUI contract -- see dwf-escmenu.js. Presence-guarded, but NOT throw-swallowing.
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
     DWFUI.require("host-panel", ["headerHtml", "switchHtml", "plaqueBtnHtml", "rowHtml",
-      "scrollHtml", "textInputHtml", "esc", "TOKENS"]);
-
-  // Was a private escapeHtml shim. DWFUI.esc IS the shared escaper (it defers to the app's own
-  // escapeHtml at call time and falls back to a local copy); a per-module copy is exactly the
-  // duplication this wave exists to retire.
-  const esc = s => window.DWFUI.esc(s);
-  // The shared measured palette (F1). This module states NO colour of its own.
-  const PAL = window.DWFUI.TOKENS.palette;
+      "scrollHtml", "textInputHtml", "esc"]);
 
   function isHost() {
     try {
       return !!(window.DwfWS && typeof DwfWS.isHost === "function" && DwfWS.isHost());
-    } catch (_) {
+    } catch {
       return false;
     }
   }
 
-  // Same-origin fetch that always carries the dfcap_auth cookie (set by the join flow). Resolves
-  // to { ok, status, json } and NEVER throws -- callers branch on status (404 => host needs an
-  // update; 403 => not the host; anything else => transient) so a dormant/older server can only
-  // degrade the panel, never break it.
+  // Never throws: callers branch on status (404 = host needs an update, 403 = not the host), so a
+  // dormant or older server can only degrade this panel.
   function api(method, path) {
     return fetch(path, { method: method, credentials: "same-origin", cache: "no-store" })
       .then(r => r.text().then(t => {
-        let j = null;
-        try { j = t ? JSON.parse(t) : null; } catch (_) {}
+        let j;
+        try { j = t ? JSON.parse(t) : null; } catch { j = null; }
         return { ok: r.ok, status: r.status, json: j };
       }))
       .catch(() => ({ ok: false, status: 0, json: null }));
-  }
-
-  // ---- styles (injected once) ---------------------------------------------------------------
-  // R1 (drift guard): this block used to carry 49 HARD-CODED HEX LITERALS -- a private palette, and
-  // one built on the SUPERSEDED gold (#d89b27 / #ffd45c) rather than the MEASURED native gold
-  // (--dwfui-gold = #ffbf01, F1). Every colour now resolves through the `--dwfui-*` custom properties
-  // declared once in dwf.css :root, which is the same source TOKENS.palette reads. No colour
-  // is stated here. GEOMETRY stays -- this is the strangler seam (structure first, CSS consolidation
-  // is a later wave); what is deleted is the private COLOUR TABLE, not the layout.
-  //
-  // R4: `.hp-sw` -- the verbatim 34x18 gold pill -- IS DELETED. It was the second copy of a control
-  // DWFUI already owns; switchHtml's own `.dwfui-switch-track` now paints it (pauseSection stops
-  // passing `trackCls`/`knob:false`, so the shared track+knob is what renders). One pill, one place.
-  function ensureStyle() {
-    if (document.getElementById("dfHostPanelStyle")) return;
-    const st = document.createElement("style");
-    st.id = "dfHostPanelStyle";
-    st.textContent = `
-      #hostPanelBackdrop{position:fixed;inset:0;z-index:120;display:none;
-        background:rgba(0,0,0,.5)}
-      #hostPanelBackdrop.open{display:block}
-      #hostPanel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-        width:440px;max-width:calc(100vw - 32px);max-height:calc(100vh - 64px);
-        background:var(--dwfui-surface);border:2px solid var(--dwfui-gold);
-        box-shadow:0 8px 28px rgba(0,0,0,.6);
-        padding:14px 16px;z-index:121;display:flex;flex-direction:column;
-        font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--dwfui-text-body)}
-      #hostPanel .hp-scroll{flex:1 1 auto;min-height:0}
-      #hostPanel h2{margin:0 0 2px;font-size:15px;color:var(--dwfui-gold);font-weight:700;letter-spacing:.5px}
-      #hostPanel .hp-sub{color:var(--dwfui-text-secondary);font-size:11px;margin:0 0 12px}
-      #hostPanel h3{margin:14px 0 6px;font-size:12px;color:var(--dwfui-gold);font-weight:700;
-        border-bottom:1px solid var(--dwfui-gold-bevel-dark);padding-bottom:4px;letter-spacing:.5px}
-      #hostPanel section:first-of-type h3{margin-top:2px}
-      .hp-close{position:absolute;top:10px;right:12px;background:none;border:none;
-        line-height:1;cursor:pointer;padding:2px 6px}
-      .hp-toggle{display:flex;align-items:flex-start;gap:9px;cursor:pointer;padding:6px 3px}
-      .hp-toggle:hover{background:var(--dwfui-hatch)}
-      .hp-toggle.hp-disabled{opacity:.5;cursor:default}
-      .hp-toggle.hp-disabled:hover{background:none}
-      .hp-lbl b{color:var(--dwfui-gold);font-weight:700}
-      .hp-lbl span{display:block;color:var(--dwfui-text-secondary);font-size:11px;margin-top:2px}
-      .hp-state{margin:2px 0 6px;color:var(--dwfui-text-body)}
-      .hp-state .hp-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;
-        vertical-align:middle}
-      .hp-note{color:var(--dwfui-text-secondary);font-size:11px;margin:8px 3px 2px}
-      .hp-pw-row{display:flex;gap:6px;margin:6px 3px 4px;align-items:center}
-      .hp-pw-row input{flex:1 1 auto;min-width:0;background:var(--dwfui-ink);
-        border:1px solid var(--dwfui-gold-bevel-dark);
-        border-radius:0;box-sizing:content-box;color:var(--dwfui-text-body);padding:5px 7px;
-        font:12px ui-monospace,Consolas,monospace}
-      .hp-pw-row input:focus{outline:none;border-color:var(--dwfui-gold)}
-      .hp-msg{font-size:11px;margin:4px 3px 0;min-height:14px}
-      .hp-msg.ok{color:var(--dwfui-text-good)}
-      .hp-msg.err{color:var(--dwfui-text-warning)}
-      .hp-fallback{margin:6px 3px 0;padding:8px;border:1px dashed var(--dwfui-gold-bevel-dark);
-        background:var(--dwfui-ink);color:var(--dwfui-text-secondary);font-size:11px}
-      .hp-fallback code{color:var(--dwfui-gold);background:var(--dwfui-surface);padding:1px 4px}
-      .hp-players{width:100%;margin:4px 0 2px;display:flex;flex-direction:column}
-      .hp-players .dwfui-row{border-bottom:1px solid var(--dwfui-hatch);
-        font-variant-numeric:tabular-nums;gap:6px;padding:4px 6px}
-      .hp-players .hp-head-row .dwfui-cell{color:var(--dwfui-text-secondary);font-weight:700;font-size:11px}
-      .hp-players .dwfui-cell{flex:1 1 0;min-width:0}
-      .hp-players .hp-num{text-align:right;flex:0 0 68px}
-      .hp-players .hp-hidden-copy{display:none}
-      .hp-players-empty{color:var(--dwfui-text-secondary);font-size:11px;padding:6px 3px}
-      .hp-you{color:var(--dwfui-text-secondary);font-weight:400}
-      .hp-foot{margin-top:14px;padding-top:8px;border-top:1px solid var(--dwfui-hatch);
-        color:var(--dwfui-text-secondary);
-        font-size:10px;line-height:1.5;word-break:break-all}
-      .hp-foot b{color:var(--dwfui-text-secondary);font-weight:400}`;
-    (document.head || document.documentElement).appendChild(st);
   }
 
   // ---- element scaffold ---------------------------------------------------------------------
@@ -134,7 +53,6 @@
 
   function ensureEls() {
     if (panel) return;
-    ensureStyle();
     backdrop = document.getElementById("hostPanelBackdrop");
     if (!backdrop) {
       backdrop = document.createElement("div");
@@ -164,25 +82,21 @@
   function pauseSection(state) {
     const cfg = (state && state.pauseCfg) || pauseCfg || {};
     const paused = cfg.paused === true;
-    const by = esc(cfg.by || "host");
-    // Colours come from the ONE palette (F1), never from a literal in this file.
-    const stateColor = paused ? PAL.textWarning : PAL.textGood;
+    const by = window.DWFUI.esc(cfg.by || "host");
     const stateText = paused ? `Paused by ${by}` : "Running";
     const huo = cfg.hostUnpauseOnly === true;
     const ap = cfg.autopause === true;
-    // R4: `trackCls: "hp-sw"` + `knob: false` OVERRODE the shared pill with this module's private
-    // copy of it -- the markup was migrated but the CONTROL still rendered from local CSS. Dropping
-    // both keys lets DWFUI's own `.dwfui-switch-track` / `.dwfui-switch-knob` paint it. Same wire
-    // ([data-hp-toggle] on the root, read by wire()), one pill.
-    const hostSwitch = window.DWFUI.switchHtml({ cls: `hp-toggle${huo ? " on" : ""}`, checked: huo, rootDataset: { hpToggle: "hostunpause" }, copyCls: "hp-lbl", labelTag: "b", label: "Only the host can unpause", sub: "Anyone can pause, but only you (the host machine) can resume. Keeps a spectator from unpausing your world." });
-    const autoSwitch = window.DWFUI.switchHtml({ cls: `hp-toggle${ap ? " on" : ""}`, checked: ap, rootDataset: { hpToggle: "autopause" }, copyCls: "hp-lbl", labelTag: "b", label: "Auto-pause when a player leaves", sub: "Pause automatically a few seconds after the last connection of a player drops, so nothing runs unattended." });
+    // No `trackCls` or `knob` overrides here: they made this module render its private copy of the pill
+    // instead of DWFUI's shared one. [data-hp-toggle] on the root is the wire.
+    const hostSwitch = window.DWFUI.switchHtml({ cls: `host-panel-toggle${huo ? " on" : ""}`, checked: huo, rootDataset: { hpToggle: "hostunpause" }, copyCls: "host-panel-lbl", labelTag: "b", label: "Only the host can unpause", sub: "Anyone can pause, but only you (the host machine) can resume. Keeps a spectator from unpausing your world." });
+    const autoSwitch = window.DWFUI.switchHtml({ cls: `host-panel-toggle${ap ? " on" : ""}`, checked: ap, rootDataset: { hpToggle: "autopause" }, copyCls: "host-panel-lbl", labelTag: "b", label: "Auto-pause when a player leaves", sub: "Pause automatically a few seconds after the last connection of a player drops, so nothing runs unattended." });
     return `
       <section>
         <h3>Pause &amp; permissions</h3>
-        <div class="hp-state"><span class="hp-dot" style="background:${stateColor}"></span>${esc(stateText)}</div>
+        <div class="host-panel-state"><span class="host-panel-dot ${paused ? "host-panel-dot-warning" : "host-panel-dot-good"}"></span>${window.DWFUI.esc(stateText)}</div>
         ${hostSwitch}
         ${autoSwitch}
-        <div class="hp-note">These apply immediately. With an updated host they persist across restarts; on an older host they reset when Dwarf Fortress restarts.</div>
+        <div class="host-panel-note">These apply immediately. With an updated host they persist across restarts; on an older host they reset when Dwarf Fortress restarts.</div>
       </section>`;
   }
 
@@ -192,16 +106,14 @@
     const known = version != null;
     const on = known && version.authRequired === true;
     const status = !known
-      ? `<span style="color:${PAL.textSecondary}">checking…</span>`
-      : (on ? `<span class="hp-dot" style="background:${PAL.textGood}"></span>On &mdash; a password is required to join`
-            : `<span class="hp-dot" style="background:${PAL.textWarning}"></span>Off &mdash; anyone who can reach the port can join`);
+      ? `<span class="host-panel-checking">checking…</span>`
+      : (on ? `<span class="host-panel-dot host-panel-dot-good"></span>On &mdash; a password is required to join`
+            : `<span class="host-panel-dot host-panel-dot-warning"></span>Off &mdash; anyone who can reach the port can join`);
     const fallback = routeMissing ? `
-      <div class="hp-fallback">This host build can't change the password from the browser yet.
+      <div class="host-panel-fallback">This host build can't change the password from the browser yet.
         In the Dwarf Fortress console (DFHack), run <code>capture-join-password &lt;passphrase&gt;</code>
         to set one, or <code>capture-join-password off</code> to turn it off.</div>` : "";
-    // The passphrase stays a real DOM text input for caret/selection/IME behavior, but DWFUI owns
-    // its editable-field structure. Its id, browser editing attributes, placeholder, and wire stay
-    // unchanged; the pinned host-panel CSS preserves the existing square 1 px field appearance.
+    // A real DOM text input for caret, selection and IME behaviour, but DWFUI owns its field structure.
     const passwordInput = window.DWFUI.textInputHtml({
       id: "hpPw", autocomplete: "off", spellcheck: false,
       placeholder: on ? "New passphrase" : "Set a passphrase",
@@ -209,39 +121,36 @@
     // The two ACTIONS are native text plaques -- grey to set/change, RED for the destructive
     // "turn off". The [data-hp-act] wire is byte-identical.
     const setBtn = window.DWFUI.plaqueBtnHtml({
-      label: on ? "Change" : "Set", tone: "grey", cls: "hp-btn",
+      label: on ? "Change" : "Set", tone: "grey", cls: "host-panel-btn",
       dataset: { hpAct: "pw-set" }, title: on ? "Change the join password" : "Set a join password",
     });
     const offBtn = window.DWFUI.plaqueBtnHtml({
-      label: "Turn off password", tone: "red", cls: "hp-btn hp-danger",
+      label: "Turn off password", tone: "red", cls: "host-panel-btn host-panel-danger",
       dataset: { hpAct: "pw-off" }, disabled: !on,
       title: "Remove the join password -- anyone who can reach the port will be able to join",
     });
     return `
       <section>
         <h3>Join password</h3>
-        <div class="hp-state">${status}</div>
-        <div class="hp-pw-row">
+        <div class="host-panel-state">${status}</div>
+        <div class="host-panel-pw-row">
           ${passwordInput}
           ${setBtn}
         </div>
-        <div class="hp-pw-row" style="justify-content:flex-end">${offBtn}</div>
-        <div class="hp-msg" id="hpPwMsg"></div>
+        <div class="host-panel-pw-row host-panel-pw-row-end">${offBtn}</div>
+        <div class="host-panel-msg" id="hpPwMsg"></div>
         ${fallback}
       </section>`;
   }
 
-  // W23: the DFHack-console host setting. It is the ONE remaining write-guard flag and the only one
-  // the host may flip from here (POST /console-config, host-tab-only server-side). Every probe guard
-  // has been retired (the last, squad_pos0, was verified live 2026-07-17 and removed), so the panel
-  // shows just this policy switch.
+  // The DFHack-console setting is the ONLY write-guard flag left, and the only one the host flips here.
   function guardsSection(state) {
     const cc = state && Object.prototype.hasOwnProperty.call(state, "consoleCfg") ? state.consoleCfg : consoleCfg;
     if (cc == null) return "";   // old DLL without the route: show nothing rather than a dead switch
     const on = cc.enabled === true;
     const consoleSwitch = window.DWFUI.switchHtml({
-      cls: `hp-toggle${on ? " on" : ""}`, checked: on, rootDataset: { hpToggle: "console" },
-      copyCls: "hp-lbl", labelTag: "b",
+      cls: `host-panel-toggle${on ? " on" : ""}`, checked: on, rootDataset: { hpToggle: "console" },
+      copyCls: "host-panel-lbl", labelTag: "b",
       label: "Let players run DFHack commands on my PC (advanced)",
       sub: "Opens the in-browser DFHack console for every joined player. Commands run on YOUR " +
            "machine and can affect your game and files (a blocklist stops the worst, not " +
@@ -267,32 +176,31 @@
     const playerRows = state && Array.isArray(state.players) ? state.players : players;
     let rows;
     if (playerRows == null) {
-      rows = `<div class="hp-players-empty">loading…</div>`;
+      rows = `<div class="host-panel-players-empty">loading…</div>`;
     } else if (!playerRows.length) {
-      rows = `<div class="hp-players-empty">No players connected</div>`;
+      rows = `<div class="host-panel-players-empty">No players connected</div>`;
     } else {
-      const self = state && typeof state.self === "string" ? state.self : (function () { try { return window.player || ""; } catch (_) { return ""; } })();
-      // The raw <table> becomes DWFUI's TABLE-chassis row (rowHtml({chassis:'table', cells})) --
-      // the multi-column native list grammar. Cells are RAW html because the name cell carries the
-      // "(you)" marker; every user-supplied value in them is still esc()'d.
+      const self = state && typeof state.self === "string" ? state.self : (function () { try { return window.player || ""; } catch { return ""; } })();
+      // Cells are RAW html because the name cell carries the "(you)" marker; every user-supplied value in
+      // them still goes through DWFUI.esc.
       const R = window.DWFUI.rowHtml;
       const cell = (html, cls) => ({ html: html, cls: cls });
-      const head = R({ chassis: "table", cls: "hp-head-row", copyCls: "hp-hidden-copy",
-        cells: [cell("Player"), cell("Conns", "hp-num"), cell("Ping", "hp-num"),
-          cell("Last seen", "hp-num")] });
+      const head = R({ chassis: "table", cls: "host-panel-head-row", copyCls: "host-panel-hidden-copy",
+        cells: [cell("Player"), cell("Conns", "host-panel-num"), cell("Ping", "host-panel-num"),
+          cell("Last seen", "host-panel-num")] });
       const body = playerRows.slice().sort((a, b) =>
         String(a && a.player).localeCompare(String(b && b.player))).map(p => {
-        const name = esc(p.player);
-        const you = p.player === self ? ' <span class="hp-you">(you)</span>' : "";
+        const name = window.DWFUI.esc(p.player);
+        const you = p.player === self ? ' <span class="host-panel-you">(you)</span>' : "";
         const conns = (typeof p.connections === "number") ? p.connections : "&mdash;";
         const ping = (typeof p.rttMs === "number" && p.rttMs >= 0) ? p.rttMs + " ms" : "&mdash;";
         const seen = fmtAge(p.lastInboundAgeMs);
-        return R({ chassis: "table", copyCls: "hp-hidden-copy",
+        return R({ chassis: "table", copyCls: "host-panel-hidden-copy",
           dataset: { hpPlayer: p.player == null ? "" : String(p.player) },
-          cells: [cell(name + you), cell(String(conns), "hp-num"), cell(String(ping), "hp-num"),
-            cell(seen, "hp-num")] });
+          cells: [cell(name + you), cell(String(conns), "host-panel-num"), cell(String(ping), "host-panel-num"),
+            cell(seen, "host-panel-num")] });
       }).join("");
-      rows = `<div class="hp-players">${head}${body}</div>`;
+      rows = `<div class="host-panel-players">${head}${body}</div>`;
     }
     const count = playerRows == null ? "" : ` &mdash; ${playerRows.length}`;
     return `
@@ -305,37 +213,31 @@
   function footer(state) {
     const version = state && state.versionInfo ? state.versionInfo : versionInfo;
     const audioState = state && Object.prototype.hasOwnProperty.call(state, "audioInfo") ? state.audioInfo : audioInfo;
-    const build = esc((version && version.build) || window.DFCAPTURE_BUILD || "unknown");
+    const build = window.DWFUI.esc((version && version.build) || window.DFCAPTURE_BUILD || "unknown");
     let audio = "";
     if (audioState) {
       audio = audioState.remote
         ? `<div>Remote game audio: <b>shared with remote players</b> (set in dfhack-config/dfcapture.json).</div>`
         : `<div>Remote game audio: <b>local host only</b> (enable <b>audio_remote</b> in dfhack-config/dfcapture.json to share, then restart).</div>`;
     }
-    return `<div class="hp-foot"><div>Build ${build}</div>${audio}</div>`;
+    return `<div class="host-panel-foot"><div>Build ${build}</div>${audio}</div>`;
   }
 
   function hostPanelMarkup(state) {
-    // `close: { glyph: "&times;" }` ROUTED AROUND artBtnHtml and emitted a raw button element whose
-    // only content was the &times; character -- a Unicode stand-in for art we already own. Dropping
-    // that one key is the whole fix (it is the family-wide escape hatch): headerHtml now
-    // renders the NATIVE close tile (BUILDING_JOBS_REMOVE, self-framed) through artBtnHtml, keeps the
-    // pinned `.hp-close` class, and keeps the [data-hp-act="close"] wire.
+    // No `close: { glyph }` here: headerHtml renders the NATIVE close tile through artBtnHtml, keeping the
+    // pinned `.host-panel-close` class and the [data-hp-act="close"] wire.
     const head = window.DWFUI.headerHtml({
-      cls: "hp-head", titleTag: "h2", title: "Host settings", titleCls: "hp-title",
-      close: { cls: "hp-close", dataset: { hpAct: "close" }, title: "Close" },
+      cls: "host-panel-head", titleTag: "h2", title: "Host settings", titleCls: "host-panel-title",
+      close: { cls: "host-panel-close", dataset: { hpAct: "close" }, title: "Close" },
     });
-    // #hostPanel's raw `overflow:auto` rendered the BROWSER-DEFAULT scrollbar -- the "very important"
-    // F5 complaint. scrollHtml puts the region on the shared native bar. `preserveKey` keeps the
-    // player's scroll position across the panel's 2 s refresh re-render (which previously threw them
-    // back to the top of a long player list every two seconds).
-    const body = `<div class="hp-sub">Controls only you, the host, can change.</div>
+    // `preserveKey` keeps the player's scroll position across the panel's 2 s refresh re-render.
+    const body = `<div class="host-panel-sub">Controls only you, the host, can change.</div>
        ${pauseSection(state)}
        ${joinSection(state)}
        ${guardsSection(state)}
        ${playersSection(state)}
        ${footer(state)}`;
-    return head + window.DWFUI.scrollHtml({ cls: "hp-scroll", preserveKey: "hostpanel" }, body);
+    return head + window.DWFUI.scrollHtml({ cls: "host-panel-scroll", preserveKey: "hostpanel" }, body);
   }
 
   function render() {
@@ -393,7 +295,7 @@
 
   function pwMsg(text, cls) {
     const el = panel && panel.querySelector("#hpPwMsg");
-    if (el) { el.textContent = text; el.className = "hp-msg" + (cls ? " " + cls : ""); }
+    if (el) { el.textContent = text; el.className = "host-panel-msg" + (cls ? " " + cls : ""); }
   }
 
   function postJoinPassword(body) {
@@ -404,7 +306,7 @@
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body,
     }).then(r => r.text().then(t => {
-      let j = null; try { j = t ? JSON.parse(t) : null; } catch (_) {}
+      let j; try { j = t ? JSON.parse(t) : null; } catch { j = null; }
       return { ok: r.ok, status: r.status, json: j };
     })).catch(() => ({ ok: false, status: 0, json: null }));
   }
@@ -493,19 +395,14 @@
 
   function toggle() { if (isOpen()) close(); else open(); }
 
-  document.addEventListener("keydown", ev => {
-    if (ev.key === "Escape" && isOpen()) { ev.preventDefault(); ev.stopPropagation(); close(); }
-  }, true);
+  try { window.DwfModeStack?.register({
+    id: "host-settings", flow: "global-overlays", depth: 80,
+    active: isOpen,
+    pop: () => { close(); return true; },
+  }); } catch (err) { DwfErr.report("mode-stack.register", err); }
 
-  // ---- Esc-menu entry (host only) -----------------------------------------------------------
-  // Called from dwf-escmenu.js's openEscMenu (one-line hook). Injects a "Host settings" row
-  // into the menu's row list -- but ONLY for the host, so a spectator's Esc menu is unchanged.
-  // *** THIS FUNCTION AND dwf-escmenu.js MOVE TOGETHER. *** It used to hand-build a
-  // a raw `.esc-row` button element with createElement -- so migrating the Esc menu's seven rows to native
-  // plaques WITHOUT touching this would have left ONE hand-built web button sitting among seven
-  // native slabs, re-injected on every repaint. It now asks the Esc menu for its OWN row grammar
-  // (DwfEscMenu.rowHtml -> DWFUI.plaqueBtnHtml), so there is exactly one definition of what an
-  // Esc-menu row IS. The fallback keeps this module dormant-safe if escmenu.js never loaded.
+  // ---- Esc-menu entry, host only. ----
+  // Asks the Esc menu for its OWN row grammar, so there is exactly one definition of what a row is.
   function escRowNode() {
     const holder = document.createElement("div");
     const cfg = {
@@ -534,11 +431,14 @@
       rows.insertBefore(btn, settingsRow || null);
       btn.addEventListener("click", ev => {
         ev.preventDefault();
-        try { if (typeof window.closeEscMenu === "function") window.closeEscMenu(); } catch (_) {}
+        try { if (typeof window.closeEscMenu === "function") window.closeEscMenu(); }
+        catch (err) { DwfErr.report("host-panel.esc-close", err); }
         open();
       });
-    } catch (_) {}
+    } catch (err) { DwfErr.report("host-panel.esc-attach", err); }
   }
 
-  window.DwfHostPanel = { open, close, toggle, isOpen, attachEscMenu, isHost, storyMarkup: hostPanelMarkup, preparePreview: ensureStyle };
+  window.DwfHostPanel = { open, close, toggle, isOpen, attachEscMenu, isHost,
+    storyMarkup: hostPanelMarkup,
+    preparePreview: function () {} };
 })();

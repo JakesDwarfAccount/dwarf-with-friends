@@ -23,22 +23,15 @@
 #include <string>
 namespace dwf {
 
-// Options for the render-buffer feasibility dumps (§6.6 agent, 2026-07-06).
-// Defaults reproduce the original T0 behaviour exactly.
 struct TileDumpOptions {
     bool have_camera = false;   // false -> host camera (read_host_camera)
     int x = 0, y = 0, z = 0;    // explicit camera when have_camera
-    bool with_atlas = true;     // atlas is ~129k files; skip for repeated/sweep dumps
+    bool with_atlas = true;     // the atlas is huge; skip it for repeated/sweep dumps
     bool with_ground_truth = true;  // skip the PNG encode for fast sweep dumps
 };
 
-// Dumps one live frame's 26 tile-layer arrays + the full texpos->SDL_Surface atlas to
-// <out_dir>/frame.bin, <out_dir>/atlas/*, and a JPEG-path ground_truth.png for the same tick.
-// Runs the DF reads on the render thread. Returns false + err on failure.
-bool dump_tile_frame(const std::string& out_dir, std::string* err);
-
-// Extended variant: arbitrary camera, optional atlas/ground-truth, and a meta.json sidecar
-// (camera, dims, sim tick, capture ms) so sweep drivers can index dumps.
+// Dumps one live frame's 26 tile-layer arrays + the texpos->SDL_Surface atlas to <out_dir> as
+// frame.bin, atlas/*, ground_truth.png and meta.json. The DF reads run on the render thread.
 bool dump_tile_frame_ex(const std::string& out_dir, const TileDumpOptions& opt, std::string* err);
 
 } // namespace dwf

@@ -40,11 +40,8 @@ struct Camera {
     int build_w = 0;
     int build_h = 0;
 
-    // Smooth sub-tile cursor (Figma-style), fed by WebSocket {"type":"cursor"} messages.
-    // Stored as WORLD coords: integer tile (cur_x,cur_y,cur_z) + fractional in-tile offset
-    // (cur_fx,cur_fy in 0..1), so it is camera-independent and every viewer can place it in
-    // its own window. cur_active_ms == 0 => this player has no smooth cursor yet; a separate
-    // (shorter) staleness window than presence ages it out when the pointer stops moving.
+    // Smooth sub-tile cursor in WORLD coords -- integer tile plus a fractional in-tile offset
+    // (cur_fx/cur_fy in 0..1) -- so it is camera-independent. cur_active_ms == 0 means no cursor.
     int cur_x = 0;
     int cur_y = 0;
     int cur_z = 0;
@@ -53,8 +50,7 @@ struct Camera {
     int cur_drag = 0;
     long long cur_active_ms = 0;
 
-    // Multiplayer presence: monotonic ms of this player's last cursor/camera activity,
-    // so /mapdata can drop stale (disconnected) cursors. 0 == never stamped.
+    // monotonic ms of this player's last cursor/camera activity; 0 == never stamped
     long long last_active_ms = 0;
 };
 

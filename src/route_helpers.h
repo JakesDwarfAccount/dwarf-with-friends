@@ -21,19 +21,27 @@
 
 #pragma once
 
-// Tiny cross-route helpers shared by the register_*_routes() modules (split out of
-// http_server.cpp's anonymous namespace by B212, 2026-07-13 -- bodies and banners verbatim).
-// Header-only so the split adds no link surface.
+// Tiny cross-route helpers shared by the register_*_routes() modules.
 
 #include "camera.h"
+#include "fnv.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <sstream>
+#include <string>
 
 namespace dwf {
 
-// Clamp a client-requested tile-window dimension. The tile client (FIX 1) asks for a
-// window sized to its browser canvas (~1 tile / 24px); bound it so a wild value can
-// never make the reader allocate/loop unreasonably (build_map_json_impl also caps 512).
+// A 304 must only ever mean byte-identical content, so hash the whole body, never a cheaper proxy.
+inline std::string content_etag(const std::string& body) {
+    uint64_t h = fnv1a(kFnvOffsetBasis, body.data(), body.size());
+    std::ostringstream o;
+    o << '"' << std::hex << h << '"';
+    return o.str();
+}
+
+// Bound the client-requested window: an unbounded value makes the map reader allocate and loop.
 constexpr int kMinWindowTiles = 1;
 constexpr int kMaxWindowTiles = 200;
 inline int clamp_window_dim(int v) {
@@ -58,11 +66,7 @@ inline int clamp_window_dim(int v) {
 // nothing here should ever consult the DF-native viewport size for that purpose again.
 inline void normalize_frame_to_viewport(const Camera&, int&, int&) {}
 
-// Same grid-index -> tile mapping placement.cpp/lua_bridge.cpp/burrows_panel.cpp each keep
-// their own copy of; used by /zone-repaint to resolve its erase/extend rect to world tiles
-// before handing off to building_zone.cpp's plan/finish pair. `frame` is the client's real
-// rendered-window tile count (see the bugfix note above) -- px is already grid-relative to it,
-// so this is just a defensive clamp, never a rescale.
+// `pixel` is ALREADY a grid index into the client's rendered window, so this clamps, never rescales.
 inline int pixel_to_tile_index(int pixel, int frame) {
     if (frame <= 0)
         return 0;

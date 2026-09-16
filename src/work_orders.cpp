@@ -24,6 +24,7 @@
 #include "attribution.h"
 #include "json_util.h"
 #include "lua_bridge.h"
+#include "panel_http.h"
 
 #include "df/global_objects.h"
 #include "df/world.h"
@@ -34,11 +35,6 @@
 
 namespace dwf {
 namespace {
-
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
 
 void text_error(httplib::Response& res, int status, const std::string& message) {
     res.status = status;
@@ -92,7 +88,7 @@ void register_work_order_routes(httplib::Server& server) {
             text_error(res, 400, "create order failed: " + err);
             return;
         }
-        // WP-C (WT06): stamp each newly-created manager order with the requesting player. A
+        // Stamp each newly-created manager order with the requesting player. A
         // failed create returns above without a stamp; a legality-gate rejection likewise.
         std::string player = query_player(req);
         auto world = df::global::world;
@@ -178,10 +174,6 @@ void register_work_order_routes(httplib::Server& server) {
     server.Get("/order-condition-item-add", order_cond_item_handler);
     server.Post("/order-condition-item-add", order_cond_item_handler);
 
-    // B285 wave-2: edit a stock condition IN PLACE. The request carries the condition's FULL new
-    // state; nothing is defaulted here -- a defaulted compare/value would silently rewrite DF
-    // memory the caller never asked to change. Validation happens in lua against DF's real enums
-    // (NO permission gate -- the friends-trust decision; strictness below is data correctness).
     auto order_cond_item_edit_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         int idx = -1;
@@ -250,6 +242,29 @@ void register_work_order_routes(httplib::Server& server) {
     };
     server.Get("/order-condition-order-add", order_cond_order_handler);
     server.Post("/order-condition-order-add", order_cond_order_handler);
+
+    // Edits the row IN PLACE: a remove-then-add through the routes above re-appends the condition
+    // at the END of the order's list, a reordering native never performs.
+    auto order_cond_order_edit_handler = [](const httplib::Request& req, httplib::Response& res) {
+        int id = -1;
+        int idx = -1;
+        if (!query_int(req, "id", id) || !query_int(req, "idx", idx)) {
+            text_error(res, 400, "missing id/idx");
+            return;
+        }
+        if (!req.has_param("type")) {
+            text_error(res, 400, "missing type");
+            return;
+        }
+        std::string err;
+        if (!edit_order_condition_via_lua(id, idx, req.get_param_value("type"), &err)) {
+            text_error(res, 400, "edit dependency failed: " + err);
+            return;
+        }
+        set_no_store_json(res, "{\"ok\":true}\n");
+    };
+    server.Get("/order-condition-order-edit", order_cond_order_edit_handler);
+    server.Post("/order-condition-order-edit", order_cond_order_edit_handler);
 
     auto order_cond_remove_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;

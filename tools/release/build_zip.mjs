@@ -9,12 +9,13 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
-  closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeSync,
+  closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, lstatSync, statSync, writeSync,
 } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
+import { readDoc, requireDoc } from "../lib/docpath.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const ZIP_ROOT = "DwarfWithFriends";
@@ -70,12 +71,26 @@ function sourceCommit(explicit) {
   catch { fail("source commit is unavailable; pass --source-commit"); }
 }
 
+// The staged release/web tree is a copy of the repository's web/, so a gitignored asset or scratch
+// file left there is on disk at packaging time; only the tracked set is publishable.
+function trackedPayloadFiles() {
+  let listed;
+  try { listed = execFileSync("git", ["ls-files", "-z", "--", "web", "host"], { cwd: ROOT, encoding: "utf8" }); }
+  catch (error) { fail(`cannot list the git-tracked payload files (${error.message}); packaging requires git so untracked files stay out of the release`); }
+  const tracked = new Set(listed.split("\0").filter(Boolean));
+  if (!["web/", "host/"].every(prefix => [...tracked].some(file => file.startsWith(prefix)))) {
+    fail("git must list both web/ and host/ files; refusing to package an unverifiable payload");
+  }
+  return tracked;
+}
+
 function walkFiles(root, relative = "") {
   const result = [];
   const dir = path.join(root, relative);
   for (const name of readdirSync(dir).sort()) {
     const rel = path.join(relative, name);
-    const stat = statSync(path.join(root, rel));
+    const stat = lstatSync(path.join(root, rel));
+    if (stat.isSymbolicLink()) fail(`payload symlinks are not allowed: ${rel}`);
     if (stat.isDirectory()) result.push(...walkFiles(root, rel));
     else if (stat.isFile()) result.push(rel.split(path.sep).join("/"));
   }
@@ -87,7 +102,7 @@ function requireLayout(hostDir, releaseDir, platform) {
     if (!existsSync(path.join(hostDir, rel))) fail(`host tree is missing ${rel}`);
   }
   for (const rel of requiredReleaseFiles(platform)) {
-    if (!existsSync(path.join(releaseDir, rel))) fail(`release tree is missing ${rel} (build only after W9)`);
+    if (!existsSync(path.join(releaseDir, rel))) fail(`release tree is missing ${rel}`);
   }
   const web = path.join(releaseDir, "web");
   if (!existsSync(web) || !statSync(web).isDirectory()) fail("release tree is missing web/");
@@ -133,16 +148,26 @@ function readme(version, platform) {
   return Buffer.from([
     `Dwarf With Friends v${version}`,
     "",
+    "Requires Dwarf Fortress 0.53.16 and DFHack 53.16-r1. Dwarf Fortress is not included.",
+    "Close Dwarf Fortress before installing or updating the mod.",
+    "",
     p.unpackLine,
     `2. ${p.setupCommand}`,
     "3. Follow the setup page that opens in your browser.",
     "   If no page opens, the address is printed in the console window (http://127.0.0.1:<port>).",
     "The console window is the engine log; minimize it, but leave it open.",
-    "After setup, use the Dwarf With Friends shortcut to host again.",
-    "Friends need only the link and password shown in the host panel.",
-    `Re-run ${platform === "linux" ? "dwf-setup.sh" : "DWF Setup.cmd"} at any time to verify or repair the installation.`,
-    "Dwarf Fortress is required and is not included.",
+    platform === "linux"
+      ? "To host again, open Dwarf With Friends from your applications menu or run ./dwarf-with-friends.sh in this folder."
+      : "To host again, open the Dwarf With Friends shortcut or Dwarf With Friends.cmd in this folder.",
+    ...(platform === "linux" ? ["For Steam hosting, set Dwarf Fortress Launch Options to: sh -c 'exec \"./dfhack\"' %command%"] : []),
+    "Friends open the link shown in the host panel and enter the join password if you set one.",
+    `Close Dwarf Fortress, then re-run ${platform === "linux" ? "./dwf-setup.sh" : "DWF Setup.cmd"} to verify or repair the installation.`,
     "DFHack (the modding engine Dwarf With Friends runs on) is installed automatically by setup if it is missing.",
+    "",
+    "Beta 4 has known interface issues, including Labor layout and selection styling, and occasional long announcement text overflow. No new full live gameplay test pass was performed for this release.",
+    "",
+    "Beta 3 remains the more stable fallback: https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3",
+    "Both beta 3 packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2. Follow that release's setup instructions in a compatible installation. Do not assume saves opened in a newer Dwarf Fortress version can be downgraded.",
     "",
     "Something not working? See TROUBLESHOOTING.md in this folder.",
     "Installing by hand, or want Tailscale instead of the default tunnel? See MANUAL-INSTALL.md.",
@@ -263,16 +288,27 @@ export function buildReleaseZip(options) {
     if (!validSha(manifestItem(name).sha256)) fail(`refusing to package: ${name} SHA-256 is not baked for ${platform}`);
   }
 
+  const tracked = trackedPayloadFiles();
+  const untrackedWeb = walkFiles(releaseDir).filter((rel) => rel.startsWith("web/") && !tracked.has(rel));
+
+  const untrackedHost = walkFiles(hostDir).filter(rel => !tracked.has(`host/${rel}`));
+  if (untrackedHost.length) fail(`host tree contains unapproved files: ${untrackedHost.join(", ")}`);
+  const releaseAllowed = new Set([...requiredReleaseFiles(platform), "VERSION.txt", plat.excludedPluginBinary]);
+  const unexpectedRelease = walkFiles(releaseDir).filter(rel => !rel.startsWith("web/") && !releaseAllowed.has(rel));
+  if (unexpectedRelease.length) fail(`release tree contains unapproved files: ${unexpectedRelease.join(", ")}`);
+
   const entries = new Map();
   addTree(entries, hostDir, "host", new Set(["download-manifest.json"]));
-  addTree(entries, releaseDir, "release", new Set(["VERSION.txt", plat.excludedPluginBinary]));
+  addTree(entries, releaseDir, "release",
+          new Set(["VERSION.txt", plat.excludedPluginBinary, ...untrackedWeb]));
   entries.set(`${ZIP_ROOT}/host/download-manifest.json`, Buffer.from(manifestText));
   entries.set(`${ZIP_ROOT}/release/VERSION.txt`, Buffer.from(`v${version}\n`));
   entries.set(`${ZIP_ROOT}/${plat.nodeEntry}`, readFileSync(nodeExe));
+  const executables = new Set([`${ZIP_ROOT}/${plat.nodeEntry}`]);
+  if (platform === "linux") executables.add(`${ZIP_ROOT}/release/${plat.pluginBinary}`);
   entries.set(`${ZIP_ROOT}/NODE-LICENSE.txt`, nodeLicenseBytes);
   entries.set(`${ZIP_ROOT}/LICENSE`, readFileSync(path.join(ROOT, "LICENSE")));
   entries.set(`${ZIP_ROOT}/NOTICE`, readFileSync(path.join(ROOT, "NOTICE")));
-  const executables = new Set([`${ZIP_ROOT}/${plat.nodeEntry}`]);
   for (const [name, script] of plat.launchers) {
     entries.set(`${ZIP_ROOT}/${name}`, launcher(script, platform));
     executables.add(`${ZIP_ROOT}/${name}`);
@@ -282,25 +318,64 @@ export function buildReleaseZip(options) {
   // ship here too, not just in source control. ALL of them land at the zip ROOT (owner call,
   // beta.2): a player browsing the unzipped folder should see TROUBLESHOOTING next to the
   // launchers, not tucked in docs/. The repo keeps its docs/ layout, so the inter-doc relative
-  // links ("docs/X.md" from root, "../TROUBLESHOOTING.md" from docs/) are rewritten to flat
-  // siblings in the bundled copies only.
+  // links ("docs/guides/X.md" from the root, "../../TROUBLESHOOTING.md" from docs/guides/) are
+  // rewritten to flat siblings in the bundled copies only.
+  //
+  // This strips the WHOLE path down to the basename rather than peeling one known prefix. The two
+  // `replaceAll`s it replaces ("](docs/" -> "](", "](../" -> "](") only ever handled a single
+  // segment of nesting, so the 2026-07-30 docs/ regrouping silently re-broke every link it used to
+  // fix: "](docs/guides/MANUAL-INSTALL.md)" became "](guides/MANUAL-INSTALL.md)" and
+  // "](../../TROUBLESHOOTING.md)" became "](../TROUBLESHOOTING.md)", neither of which resolves in a
+  // zip where every doc is a root sibling. Depth-independent now, so the next docs/ move cannot.
+  // Only .md/.html targets match, which leaves anchors ("](#section)"), images, and absolute URLs
+  // alone -- "https://" cannot match because ":" and "//" are outside the segment character class.
   const flattenDocLinks = (text) => String(text)
-    .replaceAll("](docs/", "](")
-    .replaceAll("](../", "](");
-  for (const rel of ["TROUBLESHOOTING.md", "docs/MANUAL-INSTALL.md", "docs/REPORTING-BUGS.md", "docs/CONFIG.md"]) {
+    .replace(/\]\((?:\.\.\/)*(?:[\w.-]+\/)*([\w.-]+\.(?:md|html))((?:#[^)\s]*)?)\)/g, "]($1$2)");
+  // Resolved through findDoc because the public tree flattens docs/guides/ into docs/: the owner
+  // builds these archives FROM the merged public tree (PUBLISH-PROCEDURE step 17), where a bare
+  // readFileSync on the private path throws.
+  const playerDocs = ["TROUBLESHOOTING.md", "docs/guides/MANUAL-INSTALL.md", "docs/guides/REPORTING-BUGS.md", "docs/guides/CONFIG.md"];
+  for (const rel of playerDocs) {
     const base = rel.split("/").pop();
-    entries.set(`${ZIP_ROOT}/${base}`, Buffer.from(flattenDocLinks(readFileSync(path.join(ROOT, rel), "utf8")), "utf8"));
+    entries.set(`${ZIP_ROOT}/${base}`, Buffer.from(flattenDocLinks(readDoc(ROOT, rel)), "utf8"));
+  }
+
+  const packageSourceCommit = sourceCommit(options.sourceCommit);
+  const copiedSources = new Map();
+  for (const name of entries.keys()) {
+    const relative = name.slice(`${ZIP_ROOT}/`.length);
+    if (relative.startsWith("host/")) copiedSources.set(relative, name);
+    else if (relative.startsWith("release/web/")) copiedSources.set(relative.slice("release/".length), name);
+  }
+  const sourceDestinations = new Map([...copiedSources,
+    ["LICENSE", `${ZIP_ROOT}/LICENSE`], ["NOTICE", `${ZIP_ROOT}/NOTICE`],
+    ...playerDocs.map(rel => [path.relative(ROOT, requireDoc(ROOT, rel)).split(path.sep).join("/"), `${ZIP_ROOT}/${path.posix.basename(rel)}`]),
+  ]);
+  for (const [source, destination] of copiedSources) {
+    if (!source.endsWith(".md")) continue;
+    const text = entries.get(destination).toString("utf8").replace(/\]\(([^)\s]+)\)/g, (link, target) => {
+      if (/^(?:[a-z][a-z0-9+.-]*:|#|\/)/i.test(target)) return link;
+      const [file, fragment] = target.split("#", 2);
+      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(source), file));
+      if (resolved.startsWith("../") || !existsSync(path.join(ROOT, resolved))) fail(`unresolved packaged documentation link: ${source} -> ${target}`);
+      const bundled = sourceDestinations.get(resolved);
+      const url = bundled
+        ? path.posix.relative(path.posix.dirname(destination), bundled)
+        : `https://github.com/JakesDwarfAccount/dwarf-with-friends/blob/${packageSourceCommit}/${resolved.split("/").map(encodeURIComponent).join("/")}`;
+      return `](${url}${fragment === undefined ? "" : `#${fragment}`})`;
+    });
+    entries.set(destination, Buffer.from(text));
   }
 
   // Immutable inventory of the candidate payload. The manifest deliberately excludes itself (a
   // file cannot contain its own hash); the independently returned packageSha256 closes the outer
-  // zip. Install/release checks can therefore prove every DLL, Lua, web, host, legal, and Node byte.
+  // zip. Install/release checks can therefore prove every DLL/.so, Lua, web, host, legal, and Node byte.
   const releaseManifest = {
     schemaVersion: 1,
-    sourceCommit: sourceCommit(options.sourceCommit),
+    sourceCommit: packageSourceCommit,
     releaseVersion: version,
     platform,
-    dfhackVersion: manifest.dfhack.version,
+    dfhackVersion: manifestItem("dfhack").version || manifest.dfhack?.version,
     node: { version: nodeVersion, sha256: actualNodeSha },
     manifestSelfExcluded: true,
     files: [...entries].sort(([a], [b]) => a.localeCompare(b)).map(([name, bytes]) => ({
@@ -312,8 +387,7 @@ export function buildReleaseZip(options) {
 
   const output = path.join(outputDir, `DwarfWithFriends-v${version}${plat.suffix}.zip`);
   writeZip(output, entries, executables);
-  return { output, version, nodeVersion, nodeSha256: actualNodeSha,
-           platform,
+  return { output, version, nodeVersion, nodeSha256: actualNodeSha, platform, untrackedWeb,
            packageSha256: sha256(readFileSync(output)), releaseManifest,
            files: [...entries.keys()].sort() };
 }
@@ -325,9 +399,8 @@ function parseArgs(argv) {
     ["--node-license", "nodeLicense"],
     ["--node-sha256", "nodeSha256"], ["--dfhack-sha256", "dfhackSha256"],
     ["--cloudflared-sha256", "cloudflaredSha256"], ["--host", "hostDir"],
-    ["--release", "releaseDir"], ["--output-dir", "outputDir"],
+    ["--release", "releaseDir"], ["--output-dir", "outputDir"], ["--platform", "platform"],
     ["--source-commit", "sourceCommit"],
-    ["--platform", "platform"],
   ]);
   for (let i = 0; i < argv.length; i++) {
     const key = names.get(argv[i]);
@@ -343,6 +416,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     const result = buildReleaseZip(parseArgs(process.argv.slice(2)));
     console.log(`built ${result.output}`);
+    for (const rel of result.untrackedWeb) console.log(`left out (not tracked in git): release/${rel}`);
     console.log(`Node v${result.nodeVersion} SHA-256 ${result.nodeSha256}`);
     console.log(`Package SHA-256 ${result.packageSha256}`);
   } catch (error) {

@@ -21,17 +21,19 @@
 
 #include "interaction.h"
 
-#include "art_desc.h"        // B246/B289: DF-sourced statue/figurine/slab art descriptions
-#include "building_zone.h"   // B224: zone_icon_cell for /tile-occupants occupant art
+#include "art_desc.h"        // DF-sourced statue/figurine/slab art descriptions
+#include "building_zone.h"   // zone_icon_cell for /tile-occupants occupant art
 #include "client_state.h"
-#include "info_panel.h"      // B224: building_icon_key for /tile-occupants occupant art
+#include "info_panel.h"      // building_icon_key for /tile-occupants occupant art
 #include "interaction_route.h"
 #include "route_helpers.h"
+#include "unit_status.h"     // unit_is_map_present -- the shared "DF draws this unit" rule
 #include <vector>
 
 #include "Core.h"
 #include "TileTypes.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "modules/Buildings.h"
@@ -50,6 +52,8 @@
 #include "df/building_stockpilest.h"
 #include "df/building_civzonest.h"
 #include "df/building_type.h"
+#include "df/caste_raw.h"
+#include "df/creature_raw.h"
 #include "df/engraving.h"
 #include "df/event_handlerst.h"
 #include "df/global_objects.h"
@@ -62,6 +66,9 @@
 #include "df/item_actual.h"
 #include "df/item_plant_growthst.h"
 #include "df/item_type.h"
+#include "df/job.h"
+#include "df/job_list_link.h"
+#include "df/job_type.h"
 #include "df/map_block.h"
 #include "df/map_block_column.h"
 #include "df/nemesis_offload.h"
@@ -73,6 +80,7 @@
 #include "df/plant_raw.h"
 #include "df/tiletype.h"
 #include "df/unit.h"
+#include "df/vermin.h"
 #include "df/world.h"
 
 #include <algorithm>
@@ -114,11 +122,7 @@ std::string readable_unit_name(df::unit* unit) {
     return name;
 }
 
-// B07: is this item a storage container the DF UI opens a contents window for? Covers the
-// stockpile-relevant carriers (bin/barrel/bag(BOX)/bucket/flask) plus the other item types DF
-// treats as containers (cage/animal trap/quiver/backpack). Detection is by item type rather than
-// by "has contained items" so an EMPTY container is still recognized as a container (the whole
-// point of B07's graceful-empty case).
+// Container by ITEM TYPE, never by "has contained items", so an EMPTY container is still one.
 bool is_container_item(df::item* item) {
     if (!item)
         return false;
@@ -182,19 +186,8 @@ std::string item_wear_name(int16_t wear) {
     }
 }
 
-// B236 (DLL-GATED HALF) -- native's description sentence, composed as the oracles show it:
-//   "This is a superior quality apricot wood bed."   (ITEMSHEET-oracle-native.png, quality 3)
-//   "This is a finely-crafted Fish Barrel <date palm wood> <#6>."  (steam barrel-bin sheet, q2)
-//   "This is a tower-cap splint."                    (steam single-item sheet.png, no quality)
-//   "This is pig tail cloth."                        (item sheet flags active.png, mass noun)
-// = "This is " + ARTICLE + [quality adjective + " "] + the UNdecorated display name + ".".
-// The ARTICLE is DF'S OWN -- the item vmethod getItemDescriptionPrefix (add_article_to_string,
-// df.item.xml:897-900), which is how "pig tail cloth" takes none while "tower-cap splint" takes
-// "a". We never guess it. Books and artifacts are excluded: their native prose is not this
-// sentence, so they keep the getReadableDescription path in the caller.
-// KNOWN GAPS (uncaptured, not guessed -- screenshots requested in the B236 closeout): native's
-// extra sentences for material colour and coatings ("The material is gray. It is coated with
-// water." -- the flags-active oracle) and the exact sentence for a stack ("... [N]").
+// "This is " + DF's OWN article (getItemDescriptionPrefix) + an optional quality adjective + the
+// UNdecorated display name. Books and artifacts keep the getReadableDescription path instead.
 std::string item_native_prose(df::item* item) {
     if (!item)
         return "";
@@ -215,8 +208,8 @@ std::string item_native_prose(df::item* item) {
     std::string article;
     item->getItemDescriptionPrefix(&article, df::article_type::INDEFINITE);
     if (adjective && !article.empty()) {
-        // DF derived "a"/"an" from the NAME's first sound; the adjective now leads the noun
-        // phrase, so re-derive from the adjective ("an exceptional...", never "a exceptional").
+        // The adjective now leads the noun phrase, so re-derive the article from it
+        // ("an exceptional...", never "a exceptional").
         article = (adjective[0] == 'e') ? "an " : "a ";
     }
     return "This is " + article + (adjective ? adjective : "") + name + ".";
@@ -237,13 +230,8 @@ std::string item_weight_text(df::item* item) {
     return "";
 }
 
-// W3 -- the STOCKPILE tile on the item sheet's location row (`steam single-item sheet.png`).
-// A stockpile is a BUILDING, so it has no item sprite; native paints one of DF's own
-// STOCKPILE_ICON_* interface cells (all 40 are already in web/interface_map.json). DF derives that
-// icon from which item GROUPS the pile accepts -- df::stockpile_group_set, the 17-bit set in
-// building_stockpilest.settings.flags (df/stockpile_group_set.h:10-27). One group enabled == that
-// group's icon; every group == ALL; several == CUSTOM; none == BLANK. Pure bit reads on a struct
-// we already hold: no scan, no extra suspension.
+// A stockpile is a BUILDING and has no item sprite: DF picks a STOCKPILE_ICON_* cell from which
+// item groups the pile accepts. One group = that icon, all = ALL, several = CUSTOM, none = BLANK.
 std::string stockpile_icon_token(df::building_stockpilest* pile) {
     if (!pile)
         return "";
@@ -278,9 +266,7 @@ std::string stockpile_icon_token(df::building_stockpilest* pile) {
     return "STOCKPILE_ICON_CUSTOM";
 }
 
-// B236: the location row's pile name, exactly as native prints it -- DF's own building name
-// ("Food Stockpile #6", or a custom name) with the numbered fallback stockpile_panel.cpp already
-// uses for a pile whose vmethod yields nothing.
+// DF's own building name, with the same numbered fallback stockpile_panel.cpp uses.
 std::string stockpile_location_label(df::building_stockpilest* pile) {
     if (!pile)
         return "";
@@ -305,15 +291,13 @@ void resolve_stock_item_location(df::item* item, StockItemActionResult& result) 
     if (auto pile = building ? virtual_cast<df::building_stockpilest>(building) : nullptr) {
         result.location_id = building->id;
         result.location_sprite_token = stockpile_icon_token(pile);
-        // B236: native prints the BARE pile name on the location row (`Stockpile #1`,
-        // `Food Stockpile #6` -- never "In Stockpile #1"), so the pile branch names itself here
-        // and never falls through to the "In <building>" fallback below.
+        // Native prints the BARE pile name on the location row, never "In Stockpile #1", so this
+        // branch names itself and never reaches the "In <building>" fallback below.
         result.location = stockpile_location_label(pile);
     }
 
-    // W3: when the location is a CONTAINER, the tile is that container's own item sprite -- the
-    // ordinary item channel, identical in shape to the sheet's own `spriteRef`. This is the half
-    // of the location row the client can already paint today.
+    // A CONTAINER location uses that container's own item sprite -- the ordinary item channel,
+    // identical in shape to the sheet's own spriteRef.
     if (outer && outer != item) {
         result.location_sprite_type = DFHack::enum_item_key(outer->getType());
         result.location_sprite_subtype = outer->getSubtype();
@@ -340,18 +324,8 @@ void resolve_stock_item_location(df::item* item, StockItemActionResult& result) 
     if (!valid_map_pos(pos) && building)
         pos = building_center_pos(building);
 
-    // B236 (DLL-GATED HALF) -- THE STOCKPILE ROW'S MISSING DATA. An item LYING ON a stockpile tile
-    // carries NO BUILDING_HOLDER ref: DF tracks pile membership POSITIONALLY (dfhack
-    // Buildings.h:202-219, StockpileIterator -- "the block's items are checked for anything on the
-    // ground within that stockpile"). So getHolderBuilding returns null for exactly the item the
-    // B236 pair shows: native attributes the bed to `Stockpile #1`; our wire said "On map". Resolve
-    // the pile by tile -- same z, footprint contains the item (room extents respected by
-    // Buildings::containsTile). Click-time read over the STOCKPILE vector; not a per-frame path.
-    // The unit-held case is excluded on purpose: a hauled item is WITH the unit, not in the pile
-    // its carrier is standing on. The in-container case is excluded too -- the container is the
-    // NEARER location (the row keeps its item-ref art channel and "In <container>" name; the
-    // W4 invariant that the two art channels never both apply stays true). The pile row renders
-    // on the CONTAINER'S own sheet, which is exactly what the barrel-bin oracle shows.
+    // An item lying ON a stockpile tile carries NO building holder: DF tracks pile membership
+    // POSITIONALLY, so resolve the pile by tile. Held and contained items are excluded on purpose.
     if (result.location_id < 0 && !holder && !(outer && outer != item) && valid_map_pos(pos)) {
         if (auto world = df::global::world) {
             for (auto pile : world->buildings.other.STOCKPILE) {
@@ -415,13 +389,16 @@ std::vector<df::unit*> find_units_for_tile_click(const df::coord& pos) {
     if (!world)
         return {};
 
-    // Native selection is exact-tile. Keep the historical 3x3 forgiveness only when the
-    // clicked tile is empty, and keep every equally-near fallback in a deterministic order so
-    // the unit-sheet cycle stays within this click's resolution set.
+    // Native selection is exact-tile, so exact units are the first result set and the 3x3
+    // candidates are only a fallback, in deterministic order.
     std::vector<df::unit*> exact;
     std::vector<std::pair<int, df::unit*>> fallback;
     for (auto unit : world->units.active) {
-        if (!unit || unit->pos.z != pos.z || (Units::isDead(unit) && !Units::isGhost(unit)))
+        // Filter BEFORE the dx/dy computation so a caged unit can enter neither set: clicking the
+        // trap tile must not select the creature DF stopped drawing there.
+        if (!unit_is_map_present(unit))
+            continue;
+        if (unit->pos.z != pos.z || (Units::isDead(unit) && !Units::isGhost(unit)))
             continue;
         int dx = std::abs(unit->pos.x - pos.x);
         int dy = std::abs(unit->pos.y - pos.y);
@@ -456,17 +433,71 @@ df::unit* find_unit_near_tile(const df::coord& pos, std::vector<int32_t>* cycle_
     return candidates.empty() ? nullptr : candidates.front();
 }
 
-// BUGFIX (cursor/selection misalignment, "one of the biggest bugs ... persistent since the
-// original multidwarf"): this used to scale+clamp `p` against `dim` (DF's own native
-// gps->main_viewport tile dims, via effective_capture_viewport_dims -- a small, zoom-driven
-// quantity that has NOTHING to do with the browser client's rendered window). Since FIX 1
-// (http_server.cpp's /mapdata comment), the wire's documented contract is `world = camera +
-// grid_index`: px/py arriving here are ALREADY a tile-grid index into the client's own
-// rendered window (0..frame-1), not a raw screen/capture pixel needing rescaling into DF's
-// viewport tile count. Treating them as the latter silently CLAMPED every click whose grid
-// index exceeded the (much smaller) native viewport to that viewport's edge tile -- i.e. any
-// click past roughly the top-left quarter of a normally-sized/zoomed browser window resolved
-// to the same wrong tile. `dim` is gone; clamp against the caller's own frame instead.
+
+// Click-time surfaces, not stream scans: the caller already holds CoreSuspender.
+df::vermin* visible_vermin_at(const df::coord& pos) {
+    auto world = df::global::world;
+    if (!world)
+        return nullptr;
+    auto at = [&](const std::vector<df::vermin*>& entries) -> df::vermin* {
+        for (auto vermin : entries) {
+            if (vermin && vermin->visible && vermin->pos.x == pos.x && vermin->pos.y == pos.y &&
+                vermin->pos.z == pos.z)
+                return vermin;
+        }
+        return nullptr;
+    };
+    if (auto vermin = at(world->event.vermin))
+        return vermin;
+    return at(world->event.vermin_colonies);
+}
+
+bool fill_vermin_sheet(const df::coord& pos, InspectResult& result) {
+    auto world = df::global::world;
+    auto vermin = visible_vermin_at(pos);
+    if (!world || !vermin || vermin->race < 0 ||
+        vermin->race >= static_cast<int32_t>(world->raws.creatures.all.size()))
+        return false;
+    auto creature = world->raws.creatures.all[vermin->race];
+    if (!creature)
+        return false;
+    df::caste_raw* caste = nullptr;
+    if (vermin->caste >= 0 && vermin->caste < static_cast<int32_t>(creature->caste.size()))
+        caste = creature->caste[vermin->caste];
+
+    result.kind = "vermin";
+    result.vermin_token = creature->creature_id;
+    result.vermin_caste_token = caste ? caste->caste_id : std::string();
+    result.title = caste && !caste->caste_name[0].empty() ? caste->caste_name[0] : creature->name[0];
+    if (result.title.empty())
+        result.title = creature->creature_id;
+    if (caste)
+        result.description = caste->description;
+    return true;
+}
+
+bool planned_engraving_at(const df::coord& pos) {
+    auto world = df::global::world;
+    if (!world)
+        return false;
+    if (auto block = Maps::getTileBlock(pos)) {
+        // smooth==2 is the unclaimed engrave designation. Once claimed DF clears it and the live
+        // DetailWall/DetailFloor job below becomes the authoritative marker.
+        if (block->designation[pos.x & 15][pos.y & 15].bits.smooth == 2)
+            return true;
+    }
+    for (df::job_list_link* node = world->jobs.list.next; node; node = node->next) {
+        auto job = node->item;
+        if (!job || job->pos.x != pos.x || job->pos.y != pos.y || job->pos.z != pos.z)
+            continue;
+        if (job->job_type == df::job_type::DetailWall || job->job_type == df::job_type::DetailFloor)
+            return true;
+    }
+    return false;
+}
+
+// px/py are ALREADY a tile-grid index into the client's own rendered window (world = camera +
+// grid_index), so clamp against the caller's frame -- never against DF's native viewport dims.
 int pixel_to_tile_coord(int p, int frame) {
     if (frame <= 0)
         return 0;
@@ -483,7 +514,7 @@ bool pixel_to_map_pos(const Camera& camera,
                       int& tile_py,
                       std::string* err) {
     if (frame_w <= 0 || frame_h <= 0) {
-        if (err) *err = "bad frame dimensions";
+        if (err) *err = "inspect exact-tile-empty-fallback-v1: bad frame dimensions";
         return false;
     }
 
@@ -491,9 +522,8 @@ bool pixel_to_map_pos(const Camera& camera,
     int tile_y = pixel_to_tile_coord(py, frame_h);
     pos = df::coord(camera.x + tile_x, camera.y + tile_y, camera.z);
 
-    // tile_px/tile_py are informational only (the JSON `tileSize` field; no client code path
-    // reads it for correctness) -- best-effort from the real DF viewport, but never block the
-    // actual tile resolution above on it being available.
+    // tile_px/tile_py are informational only (the JSON tileSize field), so never block the real
+    // tile resolution on the DF viewport being available.
     int view_w = 0, view_h = 0;
     if (effective_capture_viewport_dims(camera, view_w, view_h, nullptr) && view_w > 0 && view_h > 0) {
         tile_px = std::max(1, view_w / frame_w);
@@ -505,15 +535,11 @@ bool pixel_to_map_pos(const Camera& camera,
     return true;
 }
 
-// B246: defined below with the hover helpers (it predates this wave -- B24 added it for the hover's
-// "Engraved " terrain qualifier). Forward-declared here so the SELECTION chain can use the very same
-// lookup the HOVER already trusted, rather than growing a second, drifting one.
+// Forward-declared so the SELECTION chain uses the very same lookup the HOVER already trusts.
 bool engraving_at_tile(const df::coord& pos);
 
-// B289 routing: B253's statue renderer puts the subject TOP one screen row above the 1x1 building
-// footprint (world y1 - 1). Buildings::findAtTile() correctly returns null there because the cell is
-// authored art, not footprint. Exact-tile buildings always win; only an empty clicked cell is mapped
-// down one row, and only when that footprint is actually a Statue.
+// The statue renderer paints the subject one screen row above the 1x1 footprint, where
+// findAtTile() returns null. Only an empty clicked cell maps down, and only onto a Statue.
 df::building* find_click_building(const df::coord& pos) {
     if (auto building = Buildings::findAtTile(pos))
         return building;
@@ -559,7 +585,10 @@ bool inspect_at_pixel(const Camera& camera,
         }
     }
 
-    if (auto unit = find_unit_near_tile(pos, &result.unit_cycle_ids)) {
+    std::vector<int32_t> nearby_unit_cycle_ids;
+    df::unit* nearby_unit = find_unit_near_tile(pos, &nearby_unit_cycle_ids);
+    auto select_unit = [&](df::unit* unit) {
+        result.unit_cycle_ids = nearby_unit_cycle_ids;
         result.kind = "unit";
         result.title = readable_unit_name(unit);
         result.unit = build_unit_sheet(unit);
@@ -569,14 +598,14 @@ bool inspect_at_pixel(const Camera& camera,
                                std::to_string(unit->pos.y) + "," + std::to_string(unit->pos.z));
         result.lines.push_back("Unit id: " + std::to_string(unit->id));
         return true;
-    }
+    };
+    if (nearby_unit && nearby_unit->pos.x == pos.x && nearby_unit->pos.y == pos.y &&
+        nearby_unit->pos.z == pos.z)
+        return select_unit(nearby_unit);
 
     if (auto building = find_click_building(pos)) {
-        // B07: a stockpile is a floor designation that items (bins/barrels/loose items) sit ON.
-        // DF's own client selects the ITEM under the cursor -- not the stockpile -- when a
-        // stockpile tile holds one, so its container-contents window can open. Prefer a ground
-        // item here; fall through to selecting the stockpile itself only for empty pile floor.
-        // (Non-stockpile buildings keep taking precedence over ground items, as before.)
+        // DF selects the ITEM under the cursor rather than the stockpile when a pile tile holds
+        // one. Non-stockpile buildings still take precedence over ground items.
         if (building->getType() == df::building_type::Stockpile) {
             if (auto item = find_ground_item_at_tile(pos)) {
                 result.kind = "item";
@@ -596,16 +625,14 @@ bool inspect_at_pixel(const Camera& camera,
         result.title = Buildings::getName(building);
         if (result.title.empty())
             result.title = "Building";
-        // B289: a statue BUILDING has only an unused statue_flag; its full DF-generated title and
-        // prose live on the contained item_statuest. Put both on the real click response, then the
-        // building-info route supplies the same fields during the panel refresh.
+        // A statue BUILDING holds only an unused statue_flag; its title and prose live on the
+        // contained item_statuest.
         if (building->getType() == df::building_type::Statue) {
             ItemArt art = building_art(building);
             if (!art.title.empty())
                 result.title = art.title;
-            // Keep the base-name fallback out of the prose channel. openBuildingPanel merges this
-            // field into artDescription during mixed deploys, so sending the subject/name here
-            // would recreate the exact "name presented as body" defect when the image is unresolved.
+            // Keep the base-name fallback out of the prose channel: the client merges this field
+            // into artDescription, so a name sent here would be served as body text.
             result.description = art.description;
         }
         result.lines.push_back("Position: " + std::to_string(pos.x) + "," +
@@ -625,19 +652,21 @@ bool inspect_at_pixel(const Camera& camera,
         return true;
     }
 
-    // B246 (07-14): "Engravings I cannot click on." The click ALWAYS resolved -- it just
-    // resolved to `kind:"tile"`, whose generic panel (dwf-core.js showSelection's fallback)
-    // renders the tiletype name and the coordinates and NOTHING ELSE. An engraving is not an item and
-    // not a building; it is a TILE PROPERTY (df::engraving in world->event.engravings, keyed on pos
-    // -- df.event.xml:15-27), so it never appeared in any occupant list and the selection chain had
-    // nowhere to put it. The fix is a real selectable KIND at the end of the same chain: everything
-    // that stands ON the tile still wins (a dwarf standing on an engraved floor still selects the
-    // dwarf, exactly as in DF), and the engraving is what the tile itself resolves to.
-    // B288-1/B288-2 show a standalone native engraving click-info sheet, not a zone sheet with an
-    // art appendix. Resolve the tile-level engraving before the passive civzone overlay. The crops
-    // do not establish whether their tiles were in civzones; the owner should still confirm that exact
-    // overlap, but this preserves the native-observed standalone art surface and makes engraved
-    // dining/bedroom/statue-garden floors reachable.
+    // Native reaches vermin after every unit/building/item occupant. The tail wire carries only
+    // raws indices, so /inspect adds the DF caste name and body rather than let the browser guess.
+    if (fill_vermin_sheet(pos, result))
+        return true;
+
+    // The tiny planned-engraving sheet, reachable from both the map designation bit and a claimed
+    // DetailWall/DetailFloor job.
+    if (planned_engraving_at(pos)) {
+        result.kind = "planned-engraving";
+        result.title = "Planned engraving";
+        return true;
+    }
+
+    // An engraving is a TILE PROPERTY, not an occupant, so it resolves LAST: anything standing on
+    // the tile still wins, and the engraving is what the bare tile resolves to.
     EngravingArt engraving;
     bool has_engraving = engraving_art_at(pos, engraving);
     std::vector<df::building_civzonest*> zones;
@@ -662,6 +691,10 @@ bool inspect_at_pixel(const Camera& camera,
         return true;
     }
     case SurfaceClickRoute::Tile:
+        // UI-DIV-016: the one-tile unit forgiveness is a browser divergence, allowed only after
+        // every exact-tile occupant route above has declined the click.
+        if (nearby_unit)
+            return select_unit(nearby_unit);
         result.kind = "tile";
         if (auto tt = Maps::getTileType(pos))
             result.title = tileName(*tt);
@@ -674,12 +707,8 @@ bool inspect_at_pixel(const Camera& camera,
     return false;
 }
 
-// B24: hover lines mirror DF's own tooltip box: ONE ENTRY PER LINE, each tagged with its
-// category for the client's per-category colors. Capitalization follows DF's observed quirks
-// (native-window captures, tools/harness/results/b24_native_compare/): qualifier tokens and
-// terrain FORM words are capitalized ("rock salt Pebbles", "Muddy loam Cavern Floor", "Dense
-// carpetgrass"), items/species stay lowercase ("guava seeds", "finger lime tree trunk"),
-// growth-spatter and spatter sentences lead capitalized ("Finger limes", "A dusting of mud").
+// Hover lines mirror DF's own tooltip: ONE ENTRY PER LINE, each tagged with its category. DF's
+// capitalization quirks are preserved -- qualifiers and form words up, items and species down.
 constexpr size_t HOVER_SEGMENT_CAP = 40;
 
 std::string hover_capitalize(std::string s) {
@@ -688,8 +717,7 @@ std::string hover_capitalize(std::string s) {
     return s;
 }
 
-// dedupe=false: DF lists every ground item individually (18 loose seed bags = 18 lines --
-// verified against the native tooltip on the live fort's Food Stockpile #8 barrel tile).
+// dedupe=false: DF lists every ground item individually (18 loose seed bags = 18 lines).
 void hover_push(HoverResult& out,
                 const char* kind,
                 const std::string& seg,
@@ -705,8 +733,7 @@ void hover_push(HoverResult& out,
     out.kinds.push_back(kind);
 }
 
-// B24: DF's display FORM word for the tiletype shape, capitalized exactly as the native
-// tooltip shows ("rock salt Pebbles", "Muddy loam Cavern Floor", "Murky Pool Upward Slope").
+// DF's display FORM word for the tiletype shape, capitalized exactly as the native tooltip shows.
 const char* hover_shape_suffix(df::tiletype_shape shape) {
     using df::tiletype_shape;
     switch (shape) {
@@ -718,16 +745,14 @@ const char* hover_shape_suffix(df::tiletype_shape shape) {
     case tiletype_shape::STAIR_UP:      return " Upward Staircase";
     case tiletype_shape::STAIR_DOWN:    return " Downward Staircase";
     case tiletype_shape::STAIR_UPDOWN:  return " Up/Down Staircase";
-    // df-structures distinguishes the upward ramp body (RAMP) from its one-z-above
-    // downward-facing proxy (RAMP_TOP). Native exposes that distinction in hover text.
+    // RAMP is the upward ramp body; RAMP_TOP is its one-z-above proxy, and native distinguishes them.
     case tiletype_shape::RAMP:          return " Upward Slope";
     case tiletype_shape::BROOK_BED:     return " Brook Bed";
     default:                            return "";
     }
 }
 
-// B24: is there an engraving on this exact tile? (world->event.engravings in this structures
-// version -- world->engravings does not exist; verified live via dfhack-run lua.)
+// world->event.engravings is the vector in this structures version -- there is no world->engravings.
 bool engraving_at_tile(const df::coord& pos) {
     auto world = df::global::world;
     if (!world)
@@ -739,12 +764,8 @@ bool engraving_at_tile(const df::coord& pos) {
     return false;
 }
 
-// B24: the terrain line ("Muddy loam Cavern Floor", "rock salt Pebbles", "Murky Pool Upward Slope"
-// -- all three verbatim from native-window captures of this fort). Material name resolved
-// through MapCache (layer stone / soil / MINERAL veins / constructions via staticMaterialAt),
-// plus DF's capitalized form word, "Cavern" for subterranean natural tiles, "Muddy" when mud
-// spatter coats the tile, Smooth/Engraved qualifiers. Grass and plant-material tiles are
-// named by their own sections, not here.
+// The terrain line: material through MapCache (layer stone / soil / veins / constructions), DF's
+// capitalized form word, "Cavern" underground, "Muddy" under mud. Grass and plants name themselves.
 std::string hover_terrain_segment(const df::coord& pos,
                                   df::tiletype tt,
                                   bool subterranean,
@@ -781,8 +802,8 @@ std::string hover_terrain_segment(const df::coord& pos,
         return muddy_prefix + "River" + hover_shape_suffix(shape);
     case tiletype_material::BROOK:
         return muddy_prefix + "Brook" + hover_shape_suffix(shape);
-    // Grass is enumerated by name from the grass block events; standing plants (shrub/
-    // sapling/tree parts) are named by the plant section with species names.
+    // Grass is enumerated by name from the grass block events; standing plants are named by the
+    // plant section instead.
     case tiletype_material::GRASS_LIGHT:
     case tiletype_material::GRASS_DARK:
     case tiletype_material::GRASS_DRY:
@@ -796,8 +817,8 @@ std::string hover_terrain_segment(const df::coord& pos,
         break;
     }
 
-    // Material name: staticMaterialAt resolves constructions to the built material and
-    // otherwise falls through to base (layer stone / soil / vein / lava stone / feature).
+    // staticMaterialAt resolves a construction to its built material, otherwise the base layer,
+    // soil, vein, lava stone or feature.
     std::string mat;
     if (auto* b = mc.BlockAtTile(pos)) {
         df::coord2d rel(pos.x & 15, pos.y & 15);
@@ -815,8 +836,8 @@ std::string hover_terrain_segment(const df::coord& pos,
     std::string prefix = muddy_prefix;
     if (special == tiletype_special::SMOOTH || special == tiletype_special::SMOOTH_DEAD)
         prefix += engraving_at_tile(pos) ? "Engraved " : "Smooth ";
-    // "Cavern" sits between the material and the form word for natural subterranean tiles
-    // ("loam Cavern Floor" -- observed; constructions don't get it).
+    // "Cavern" sits between the material and the form word for natural subterranean tiles;
+    // constructions never get it.
     std::string cavern =
         (subterranean && tmat != tiletype_material::CONSTRUCTION) ? " Cavern" : "";
     if (special == tiletype_special::TRACK)
@@ -824,10 +845,8 @@ std::string hover_terrain_segment(const df::coord& pos,
     return prefix + mat + cavern + hover_shape_suffix(shape);
 }
 
-// B24: the species line for a standing plant occupying the tile, via Maps::getPlantAtTile
-// (which, unlike an exact pos match, also resolves the multi-tile extent of grown trees).
-// Casing per the native captures: "Dead Guava tree Sapling" (qualifier + species + form
-// capitalized) vs "finger lime tree trunk" (tree parts all-lowercase -- DF's own quirk).
+// Species line via Maps::getPlantAtTile, which also resolves a grown tree's multi-tile extent.
+// Casing follows DF's own quirk: "Dead Guava tree Sapling" but "finger lime tree trunk".
 std::string hover_plant_segment(df::tiletype tt, df::plant_raw* pr) {
     using namespace df::enums;
     if (!pr || pr->name.empty())
@@ -854,9 +873,8 @@ std::string hover_plant_segment(df::tiletype tt, df::plant_raw* pr) {
     return dead + pr->name;
 }
 
-// B24: DF phrases material spatter as a sentence -- "A dusting of mud", "A smear of gray
-// langur blood" (both verbatim from native captures). Verb by matter state + amount; only
-// the two observed pairings are byte-confirmed, the rest follow DF's size ladder.
+// DF phrases material spatter as a sentence ("A dusting of mud"), with the verb chosen by matter
+// state and amount.
 std::string material_spatter_sentence(df::block_square_event_material_spatterst* sp, int amt) {
     if (!sp)
         return "";
@@ -869,8 +887,7 @@ std::string material_spatter_sentence(df::block_square_event_material_spatterst*
     // DF names frozen water spatter "snow".
     if (smi.isBuiltin() && name == "water" && sp->mat_state == df::matter_state::Powder)
         name = "snow";
-    // Ladder calibrated on the live fort: gray langur blood amt=98 (liquid) reads "A smear
-    // of" natively and mud amt=25 (solid) reads "A dusting of" -- boundary sits at 100.
+    // The liquid/solid verb boundary sits at amount 100.
     bool liquid = sp->mat_state == df::matter_state::Liquid;
     const char* verb;
     if (liquid)
@@ -880,12 +897,8 @@ std::string material_spatter_sentence(df::block_square_event_material_spatterst*
     return hover_capitalize(verb + name);
 }
 
-// B24 ROOT CAUSE of the "Finger limes" gap: fallen growths (fruit dropped by trees, fallen
-// leaves -- B05's "pomegranate leaves, pomegranate" too) are not items and not material
-// spatter; they are ITEM SPATTER block events (block_square_event_item_spatterst), which the
-// hover never enumerated. Verified live: tile 6,20,161 carries item_spatter PLANT_GROWTH
-// mat="finger lime tree fruit" amt=10000. DF names them with the growth's plural ("finger
-// limes"); seeds use the plant's seed_plural.
+// Fallen growths are neither items nor material spatter -- they are item-spatter block events.
+// DF names them with the growth's plural; seeds use the plant's seed_plural.
 std::string item_spatter_name(df::block_square_event_item_spatterst* sp) {
     if (!sp)
         return "";
@@ -938,16 +951,14 @@ std::string item_display_name_impl(df::item* item, int type, bool decorate) {
     return decorated;
 }
 
-// B05/B24: coverage qualifier DF prefixes to a grass name from the per-tile grass amount
-// (0..100). "Dense carpetgrass" verbatim-confirmed via native capture; DF's exact wording for
-// lighter coverage isn't confirmed side-by-side, so lighter grass is named plainly rather
-// than inventing an unverified adjective. Threshold ~2/3 coverage.
+// Coverage qualifier from the per-tile grass amount. Only "Dense" is confirmed against native, so
+// lighter coverage is named plainly rather than given an invented adjective.
 const char* grass_density_prefix(int amount) {
     return amount >= 67 ? "Dense " : "";
 }
 
-// DF's df::flow_type enum is the authoritative vocabulary. Unknown future values deliberately
-// return empty so hover fails open instead of inventing a player-facing label.
+// Unknown future flow types deliberately return empty, so hover fails open instead of inventing
+// a player-facing label.
 const char* hover_flow_name(df::flow_type type) {
     using df::flow_type;
     switch (type) {
@@ -969,14 +980,8 @@ const char* hover_flow_name(df::flow_type type) {
     }
 }
 
-// B24 COMPLETENESS PARITY: enumerate EVERYTHING DF's own hover tooltip shows for a tile, in
-// DF's observed order (native-window captures of the live fort, evidence in
-// tools/harness/results/b24_native_compare/):
-//   units -> ground items (each individually, DF-decorated) -> building -> standing plant
-//   -> terrain (grass / shape-formed material) -> liquid -> fallen-growth ITEM spatter
-//   -> contaminant MATERIAL spatter sentences.
-// Hidden (unrevealed) tiles report nothing -- DF shows nothing under fog, and anything else
-// leaks map knowledge to remote players.
+// DF's own hover order: units -> ground items -> building -> standing plant -> terrain -> liquid
+// -> item spatter -> material spatter. A hidden tile reports nothing, or it leaks map knowledge.
 bool hover_at_pixel(const Camera& camera,
                     int px,
                     int py,
@@ -1007,8 +1012,7 @@ bool hover_at_pixel(const Camera& camera,
 
     df::tiletype tt = block->tiletype[lx][ly];
 
-    // Mud spatter on the tile becomes the terrain's "Muddy" qualifier ("Muddy loam Cavern
-    // Floor" -- observed) IN ADDITION to its own "A dusting of mud" line.
+    // Mud spatter also becomes the terrain's "Muddy" qualifier, on top of its own spatter line.
     bool muddy = false;
     for (size_t ei = 0; ei < block->block_events.size(); ++ei) {
         auto sp = virtual_cast<df::block_square_event_material_spatterst>(block->block_events[ei]);
@@ -1022,21 +1026,20 @@ bool hover_at_pixel(const Camera& camera,
         }
     }
 
-    // (1) UNITS on the tile, first -- exactly where DF puts them (skip ambush-hidden units;
-    // DF doesn't reveal them either).
+    // (1) UNITS. unit_is_map_present also drops caged units, whose pos is frozen at the trap tile
+    // -- hovering the trap must not list a creature DF draws nowhere.
     for (auto unit : world->units.active) {
-        if (!unit || unit->pos.x != pos.x || unit->pos.y != pos.y || unit->pos.z != pos.z)
+        if (!unit_is_map_present(unit))
+            continue;
+        if (unit->pos.x != pos.x || unit->pos.y != pos.y || unit->pos.z != pos.z)
             continue;
         if (Units::isHidden(unit))
             continue;
         hover_push(out, "unit", readable_unit_name(unit));
     }
 
-    // (2) GROUND ITEMS -- every loose item individually, NO dedupe (DF lists 18 seed bags as
-    // 18 lines), with DF's own decorations via getDescription(decorate=true): (foreign),
-    // {forbidden}, wear x/X/XX, quality marks. Contained items are NOT listed (the native
-    // tooltip on a full spice barrel shows only the barrel -- its contents belong to the
-    // click window). in_inventory items (hauled/contained) track this pos but are not ON it.
+    // (2) GROUND ITEMS, each one individually and carrying DF's own decorations. Contained items
+    // are NOT listed: the native tooltip on a full barrel shows only the barrel.
     for (int32_t id : block->items) {
         if (out.lines.size() >= HOVER_SEGMENT_CAP)
             break;
@@ -1053,16 +1056,15 @@ bool hover_at_pixel(const Camera& camera,
     if (auto building = Buildings::findAtTile(pos))
         hover_push(out, "building", Buildings::getName(building));
 
-    // (4) STANDING PLANT -- species-named shrub/sapling/tree part. The native tooltip shows
-    // ONLY the part line ("finger lime tree trunk"), no attached-growth lines -- the growth
-    // names players see ("pomegranate leaves") are FALLEN growths, i.e. item spatter below.
+    // (4) STANDING PLANT -- the part line only. The growth names players see are FALLEN growths,
+    // i.e. the item spatter below.
     if (df::plant* pl = Maps::getPlantAtTile(pos)) {
         if (df::plant_raw* pr = df::plant_raw::find(pl->material))
             hover_push(out, "plant", hover_plant_segment(tt, pr));
     }
 
-    // (5) TERRAIN. Grass floors are named by their grass ("Dense carpetgrass"), densest
-    // first; everything else gets the shape-formed material name ("rock salt Pebbles").
+    // (5) TERRAIN. Grass floors are named by their grass, densest first; everything else gets the
+    // shape-formed material name.
     {
         auto tmat = tileMaterial(tt);
         bool grass_tile = tmat == df::tiletype_material::GRASS_LIGHT ||
@@ -1102,8 +1104,7 @@ bool hover_at_pixel(const Camera& camera,
         }
     }
 
-    // (6) LIQUID -- after the terrain line, DF-observed ("Murky Pool Upward Slope" then "Stagnant
-    // water [7/7]").
+    // (6) LIQUID, after the terrain line, in DF's own order.
     if (des.bits.flow_size > 0) {
         bool magma = des.bits.liquid_type == df::tile_liquid::Magma;
         std::string liq = magma ? "magma" : (des.bits.water_stagnant ? "Stagnant water"
@@ -1112,9 +1113,8 @@ bool hover_at_pixel(const Camera& camera,
             liq + " [" + std::to_string((int)des.bits.flow_size) + "/7]"));
     }
 
-    // (7) FLOW CLOUD -- block->flows is separate from terrain/liquid and was therefore absent
-    // from the old hover path even though the same record already rides the tile wire. Match the
-    // renderer's densest-live-flow rule; expired slots remain in this vector with DEAD set.
+    // (7) FLOW CLOUD, on the renderer's densest-live-flow rule. Expired slots stay in this vector
+    // with DEAD set.
     df::flow_info* hover_flow = nullptr;
     for (auto flow : block->flows) {
         if (!flow || flow->flags.bits.DEAD || flow->density <= 0 || flow->pos != pos)
@@ -1125,8 +1125,7 @@ bool hover_at_pixel(const Camera& camera,
     if (hover_flow)
         hover_push(out, "flow", hover_flow_name(hover_flow->type));
 
-    // (8) FALLEN-GROWTH ITEM SPATTER -- the B24 root cause (see item_spatter_name). Newest
-    // events first (matches the native ordering observed for the two-fruit tile).
+    // (8) FALLEN-GROWTH ITEM SPATTER, newest events first.
     for (size_t ei = block->block_events.size(); ei-- > 0;) {
         auto sp = virtual_cast<df::block_square_event_item_spatterst>(block->block_events[ei]);
         if (!sp || sp->amount[lx][ly] <= 0)
@@ -1142,9 +1141,8 @@ bool hover_at_pixel(const Camera& camera,
         hover_push(out, "spatter", material_spatter_sentence(sp, sp->amount[lx][ly]));
     }
 
-    // Legacy `material` footer intentionally left empty: the terrain line now lives in
-    // `lines`/`kinds` (an old client shows lines-only; the new client only consults
-    // `material` when talking to an old server).
+    // The legacy `material` footer stays empty: the terrain line lives in lines/kinds now, and a
+    // new client consults `material` only when talking to an old server.
     out.material.clear();
     return true;
 }
@@ -1178,17 +1176,8 @@ bool action_on_core_thread(const std::string& action, std::string* err) {
     });
 }
 
-// Web host-save (SAVE-ONLY, never exits): the exact autosave-request pathway DFHack's
-// quicksave.lua uses -- set plotinfo.main.autosave_request plus the save_progress reset that
-// script discovered from reverse-engineering. We only SET the flags here (on the core thread via
-// run_suspended); DF's own main loop performs the world write on a later frame. That write BLOCKS
-// world_stream_tick, which the WP-B busy watchdog (pause_arbiter) already detects and broadcasts as
-// {"type":"busy"} -- so the existing saving banner appears with NO duplicate progress UI here.
-//
-// Guards (see the /save route's matrix): refuses when the map/world isn't loaded or we're not in
-// fortress mode (world-absent / wrong-mode cells), and when a save is already queued or running
-// (autosave_request already set) -- so double-fire, or a click during an in-flight autosave, can't
-// stack a second world write. Never triggers a load; there is no load path.
+// Save only, never exits: it sets DF's own autosave-request flags on the core thread and DF's main
+// loop performs the world write. Refuses with no world, outside fortress mode, or mid-save.
 bool save_world_on_core_thread(std::string* err) {
     return run_suspended([&]() -> bool {
         if (!DFHack::Maps::IsValid()) {
@@ -1209,7 +1198,7 @@ bool save_world_on_core_thread(std::string* err) {
             if (err) *err = "save already in progress";
             return false;
         }
-        // Mirror quicksave.lua exactly (these fields were discovered from rev-eng there).
+        // Mirror DFHack's own quicksave script exactly.
         m.autosave_request = true;
         m.autosave_timer = 5;
         m.save_progress.substage = df::save_substage::Initializing;  // 0
@@ -1234,19 +1223,13 @@ bool stock_item_action_on_core_thread(int32_t item_id,
             return false;
         }
 
-        // Decorated descriptions are DF's own item text: quality/wear wrappers and artifact
-        // proper names must stay visible in the stock detail sheet and its tooltips.
+        // Decorated descriptions are DF's own item text: quality/wear wrappers and artifact proper
+        // names must stay visible in the stock detail sheet.
         result.title = item_display_name(item, 0, true);
         if (result.title.empty())
             result.title = "Item " + std::to_string(item_id);
-        // B236: the description is native's PROSE SENTENCE, not the decorated name again.
-        // getReadableDescription (dfhack Items.cpp:750-774) is the decorated display name for
-        // ordinary items -- i.e. the title, which is what rendered `*apricot wood bed*` as the
-        // "description" in ITEMSHEET-broken-ours.png. Books/artifacts (where it genuinely
-        // diverges) keep it as the fallback, as does anything the prose composer declines.
-        // B246/B289: a STATUE body is composed from its DF subject + resolved art image; a FIGURINE
-        // or SLAB carries stored text. item_native_prose() never looked at those channels, so a
-        // statue clicked AS AN ITEM printed only the generic "This is a limestone statue."
+        // The description is native's PROSE SENTENCE, not the decorated name again --
+        // getReadableDescription IS the title for ordinary items, so it stays only as a fallback.
         if (ItemArt art = item_art(item); !art.description.empty())
             result.description = art.description;
         if (result.description.empty())
@@ -1258,9 +1241,6 @@ bool stock_item_action_on_core_thread(int32_t item_id,
 
         resolve_stock_item_location(item, result);
 
-        // W2: "unfollow" is the explicit release of the follow latch. It is a pure state change
-        // (the caller clears the player's FollowTarget) and must NOT move the camera, so it lands
-        // here as a no-op rather than falling through to "unsupported item action".
         if (action == "zoom" || action == "view" || action == "follow") {
             if (result.has_map_pos) {
                 int half_w = 40;
@@ -1273,7 +1253,7 @@ bool stock_item_action_on_core_thread(int32_t item_id,
                 result.has_camera = true;
             }
         } else if (action == "info" || action == "unfollow") {
-            // Read-only: report current state.
+            // Read-only. `unfollow` releases the latch and must NOT move the camera.
         } else if (action == "forbid") {
             item->flags.bits.forbid = !item->flags.bits.forbid;
         } else if (action == "dump") {
@@ -1383,6 +1363,8 @@ std::string inspect_json(const std::string& player, const InspectResult& result)
          << "\"kind\":" << json_string(result.kind) << ","
          << "\"title\":" << json_string(result.title) << ","
          << "\"description\":" << json_string(result.description) << ","
+         << "\"verminToken\":" << json_string(result.vermin_token) << ","
+         << "\"verminCasteToken\":" << json_string(result.vermin_caste_token) << ","
          << "\"buildingId\":" << result.building_id << ","
          << "\"itemId\":" << result.item_id << ","
          << "\"camera\":{\"x\":" << result.camera.x
@@ -1419,7 +1401,7 @@ std::string hover_json(const std::string& player, const HoverResult& h) {
          << "\"material\":" << json_string(h.material) << ","
          << "\"lines\":";
     append_json_string_array(body, h.lines);
-    // B24: per-line categories (parallel to lines) for DF-style per-category colors.
+    // per-line categories (parallel to lines) for DF-style per-category colors.
     body << ",\"kinds\":";
     append_json_string_array(body, h.kinds);
     body << "}\n";
@@ -1439,9 +1421,8 @@ std::string stock_item_action_json(int32_t item_id, const StockItemActionResult&
          << ",\"materialType\":" << result.material_type
          << ",\"materialIndex\":" << result.material_index << "},"
          << "\"locationId\":" << result.location_id << ","
-         // W3: the location row's two art channels. `locationSpriteRef` is an ITEM ref (a container)
-         // and is null when the location is not an item; `locationSpriteToken` is an INTERFACE token
-         // (STOCKPILE_ICON_*) and is "" when the location is not a stockpile. They never both apply.
+         // locationSpriteRef is an ITEM ref (a container), locationSpriteToken an INTERFACE token
+         // (STOCKPILE_ICON_*). They never both apply.
          << "\"locationSpriteRef\":";
     if (!result.location_sprite_type.empty()) {
         body << "{\"itemType\":" << json_string(result.location_sprite_type)
@@ -1452,7 +1433,7 @@ std::string stock_item_action_json(int32_t item_id, const StockItemActionResult&
         body << "null";
     }
     body << ",\"locationSpriteToken\":" << json_string(result.location_sprite_token) << ","
-         // W2: does THIS player's camera follow this item? Drives UNIT_SHEET_CAMERA_ACTIVE.
+         // does THIS player's camera follow this item? Drives UNIT_SHEET_CAMERA_ACTIVE.
          << "\"following\":" << (result.following ? "true" : "false") << ","
          << "\"wireBatch\":" << json_string(kWireBatchMarker) << ","
          << "\"forbidden\":" << (result.forbidden ? "true" : "false") << ","
@@ -1511,22 +1492,14 @@ std::string stock_item_action_json(int32_t item_id, const StockItemActionResult&
     return body.str();
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// ---- interaction HTTP routes --------------------------------------------------------------------
 void register_interaction_routes(httplib::Server& server) {
-    // B80: exact-tile occupant identities for the chooser. This deliberately reads only stable
-    // sim structures (world units, Buildings/Maps, and map-block item ids), never render arrays.
-    // Its order is the native display traversal: visible units, physical/zone buildings, then
-    // each loose ground item in the map block's stored order. This is a click-time read, not a
-    // stream field, so it adds no per-tick AUX payload or polling pressure.
+    // Exact-tile occupant identities for the chooser, in native display order: visible units, then
+    // buildings, then each loose ground item in the block's stored order. A click-time read only.
     server.Get("/tile-occupants", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         int px = 0, py = 0, frame_w = 0, frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-            !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+        if (!parse_frame_point(req, px, py, frame_w, frame_h)) {
             res.status = 400;
             res.set_content("missing px/py/w/h\n", "text/plain; charset=utf-8");
             return;
@@ -1554,15 +1527,8 @@ void register_interaction_routes(httplib::Server& server) {
             << ",\"tile\":{\"x\":" << pos.x << ",\"y\":" << pos.y
             << ",\"z\":" << pos.z << "},\"occupants\":[";
         bool first = true;
-        // B224: `art` is an optional pre-serialized JSON fragment carrying the occupant's icon
-        // identity, one field per kind (the client's occupant rail resolves each through the art
-        // channel its sheet already uses -- dwf-unitcycle.js occupantIconHtml):
-        //   item      -> "spriteRef":{itemType,itemSubtype,materialType,materialIndex}
-        //   stockpile -> "spriteToken":"STOCKPILE_ICON_*"        (stockpile_icon_token, W3)
-        //   zone      -> "icon":{"sheet":"zone","x":N,"y":N}     (zone_icon_cell, activity_zones.png)
-        //   building/workshop -> "icon":{"sheet":"building","key":"..."} (building_icon_key)
-        // Units carry none: the client paints /unit-portrait?mode=icon. Absent fields degrade on
-        // the client (label-keyword fallback for buildings, then the fail-loud empty tile).
+        // `art` is an optional pre-serialized JSON fragment carrying the occupant's icon identity,
+        // one field per kind. Units carry none: the client paints /unit-portrait?mode=icon.
         auto append = [&](const char* kind, int32_t id, const std::string& name,
                           const std::string& art = std::string()) {
             if (!first) out << ",";
@@ -1573,7 +1539,7 @@ void register_interaction_routes(httplib::Server& server) {
             out << "}";
         };
 
-        // Match interaction.cpp's proven lock order: capture-state mutex before CoreSuspender.
+        // Lock order: capture_state_mutex() before CoreSuspender.
         {
             using namespace DFHack;
             std::lock_guard<std::recursive_mutex> lock(capture_state_mutex());
@@ -1587,7 +1553,10 @@ void register_interaction_routes(httplib::Server& server) {
             }
 
             for (auto unit : world->units.active) {
-                if (!unit || unit->pos.x != pos.x || unit->pos.y != pos.y || unit->pos.z != pos.z ||
+                // unit_is_map_present drops caged (frozen pos) and ambush-hidden units.
+                if (!unit_is_map_present(unit))
+                    continue;
+                if (unit->pos.x != pos.x || unit->pos.y != pos.y || unit->pos.z != pos.z ||
                     (Units::isDead(unit) && !Units::isGhost(unit)) || Units::isHidden(unit))
                     continue;
                 std::string name = Units::getReadableName(unit);
@@ -1611,7 +1580,7 @@ void register_interaction_routes(httplib::Server& server) {
                 }
                 std::string name = Buildings::getName(building);
                 if (name.empty()) name = std::string(kind) + " " + std::to_string(building->id);
-                // B224: per-kind icon identity (see the `append` contract above).
+                // Per-kind icon identity (see the `append` contract above).
                 std::string art;
                 if (building->getType() == df::building_type::Stockpile) {
                     std::string token =
@@ -1642,7 +1611,7 @@ void register_interaction_routes(httplib::Server& server) {
                         continue;
                     std::string name = item_display_name(item, 0, true);
                     if (name.empty()) name = "Item " + std::to_string(item->id);
-                    // B224: the same four-field spriteRef the item sheet's wire ships (B184/W3);
+                    // The same four-field spriteRef the item sheet's wire ships;
                     // DWFUI.iconHtml({item}) + paintSprites resolve it through the raws sheets.
                     std::string art =
                         "\"spriteRef\":{\"itemType\":" +
@@ -1654,15 +1623,21 @@ void register_interaction_routes(httplib::Server& server) {
                 }
             }
 
-            // B246: the engraving is the LAST occupant, after everything that stands on the tile --
-            // the same precedence the click chain uses (inspect_at_pixel), so the rail's order and
-            // the direct-click winner never disagree. Without this row an engraved floor under a
-            // dwarf or a statue was UNREACHABLE even through the chooser: the chooser only ever
-            // listed units, buildings and ground items, and an engraving is none of the three.
-            // It carries no id of its own (df::engraving has no id field -- df.event.xml:15-27), so
-            // the client addresses it by the TILE, which this response already carries at the top.
-            // Use the resolved DF artwork title when available, and the existing native engraving
-            // designation sprite for the generic rail icon channel.
+            // The two id-less occupants keep their art on this authoritative rail, so switching
+            // tabs never depends on a stale map-tail snapshot.
+            InspectResult vermin_sheet;
+            if (fill_vermin_sheet(pos, vermin_sheet)) {
+                append("vermin", -1, vermin_sheet.title,
+                       "\"creatureToken\":" + json_string(vermin_sheet.vermin_token) +
+                       ",\"casteToken\":" + json_string(vermin_sheet.vermin_caste_token) +
+                       ",\"description\":" + json_string(vermin_sheet.description));
+            }
+            if (planned_engraving_at(pos))
+                append("planned-engraving", -1, "Planned engraving",
+                       "\"spriteToken\":\"DESIGNATION_ENGRAVE\"");
+
+            // The engraving is the LAST occupant, the same precedence the click chain uses.
+            // df::engraving has no id, so the client addresses it by the TILE carried above.
             EngravingArt engraving;
             if (engraving_art_at(pos, engraving)) {
                 std::string name = engraving.title.empty() ? "Engraving" : engraving.title;
@@ -1687,9 +1662,8 @@ void register_interaction_routes(httplib::Server& server) {
 
         StockItemActionResult result;
         const std::string action = req.get_param_value("action");
-        // The item sheet's first read is also an art-prose cache trigger. Do this before
-        // stock_item_action_on_core_thread acquires CoreSuspender; its later item_art() call then
-        // sees either resident prose or the freshly banked native view-sheet composition.
+        // The item sheet's first read also primes the art-prose bank, before the action path takes
+        // CoreSuspender; its later item_art() then sees resident or freshly banked prose.
         if (action == "info") {
             ItemArt art;
             {
@@ -1715,11 +1689,8 @@ void register_interaction_routes(httplib::Server& server) {
             }
         }
 
-        // W2: the camera tool on the item sheet is a native LATCH, not a one-shot button (`item
-        // sheet flags active.png` shows the green UNIT_SHEET_CAMERA_ACTIVE face). `follow` toggles
-        // this player's FollowTarget -- and it must run AFTER the block above, because that block
-        // calls set_player_camera(), which is the very thing that CLEARS a follow (a pan breaks the
-        // lock). Ordering it the other way round would cancel the latch on the click that sets it.
+        // The camera tool is a native LATCH, not a one-shot. `follow` must run AFTER the block
+        // above, which calls set_player_camera() -- and a pan is exactly what CLEARS a follow.
         if (action == "follow") {
             if (player_is_following(player, "item", item_id))
                 forget_player_follow(player);
@@ -1742,8 +1713,7 @@ void register_interaction_routes(httplib::Server& server) {
         int py = 0;
         int frame_w = 0;
         int frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-            !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+        if (!parse_frame_point(req, px, py, frame_w, frame_h)) {
             res.status = 400;
             res.set_content("missing px/py/w/h\n", "text/plain; charset=utf-8");
             return;
@@ -1775,8 +1745,7 @@ void register_interaction_routes(httplib::Server& server) {
         int py = 0;
         int frame_w = 0;
         int frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-            !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+        if (!parse_frame_point(req, px, py, frame_w, frame_h)) {
             res.status = 400;
             res.set_content("missing px/py/w/h\n", "text/plain; charset=utf-8");
             return;

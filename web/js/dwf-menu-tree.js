@@ -1,26 +1,30 @@
-// dwf-menu-tree.js -- TRUEMENU WP-1 client-side forge menu-tree helpers.
+// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
 //
-// Pure logic (no DOM) for the workshop add-task DRILL-DOWN: category -> metal -> leaf, matching
-// DF's native forge menu (interface_category_building rows + per-metal material_selector rows +
-// new_job leaves). The server (dfcapture.lua forge_task_tree) sends the nested `taskTree`; this
-// module composes the self-describing `t:` task key the server's add_tree_task parses back, and
-// exposes small selectors the panel renders. Kept separate + exported so the harness unit test
-// (tools/harness/truemenu_client_test.mjs) can exercise composeTaskKey without a browser -- the
-// same convention as dwf-adjacency.js.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
 //
-// Task-key GRAMMAR (must stay in lock-step with dfcapture.lua parse_tree_task_key):
-//   t:<JobType>[|it:<ItemType>][|st:<subtype>][|mat:<matType>:<matIndex>][|rc:<reactionCode>][|b:<batch>]
-// e.g.  t:MakeWeapon|it:WEAPON|st:1|mat:0:0            (Forge iron battle axe)
-//       t:ConstructTable|mat:0:12                       (Make gold table)
-//       t:MakeAmmo|it:AMMO|st:0|mat:0:0|b:25            (Forge twenty-five iron bolts)
-//       t:CustomReaction|rc:MAKE_ENT291 INP2_BODY       (an instrument-piece reaction)
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// ---- Pure workshop menu-tree helpers: the category -> metal -> leaf drill-down, no DOM. ----
+// The task-key grammar must stay in lock-step with the lua parse_tree_task_key that reads it back.
 (function (root) {
   "use strict";
 
-  // Compose the queue key for a leaf selected under a given container node (a forge metal, or a
-  // Craftsdwarf material-selector submenu -- both carry matType/matIndex). `metal` may be null for a
-  // reaction (materials come from the reaction) or for a root leaf that pins its OWN material (a
-  // Smelter "Smelt hematite ore" carries matType/matIndex directly).
+  // `metal` may be null for a reaction, or for a root leaf that pins its OWN material.
   function composeTaskKey(leaf, metal) {
     if (!leaf) return null;
     // Reaction leaf: reuse the reaction code; the server matches it to the real getJobs def.
@@ -43,16 +47,13 @@
     return key;
   }
 
-  // A forge tree: every root row is a category / custom_category (the two forges). Kept for the
-  // WP-1 forge callers + the existing forge unit test.
+  // A forge tree: every root row is a category or custom_category.
   function isForgeTree(taskTree) {
     return Array.isArray(taskTree) && taskTree.length > 0 &&
       taskTree.every(c => c && (c.kind === "category" || c.kind === "custom_category"));
   }
 
-  // A menu tree: any non-empty `taskTree` whose rows are typed nodes -- covers the forge tree AND the
-  // flat-shop trees (Smelter/Kennels leaf-at-root, Craftsdwarf mixed root). A flat legacy task list
-  // ({key,name} objects, no `kind`) is NOT a menu tree, so the panel keeps its flat picker for it.
+  // A flat legacy task list ({key,name}, no `kind`) is NOT a menu tree, so the panel keeps its flat picker.
   function isMenuTree(taskTree) {
     return Array.isArray(taskTree) && taskTree.length > 0 &&
       taskTree.every(n => n && typeof n.kind === "string");
@@ -71,17 +72,15 @@
     return (cat && cat.label ? cat.label : "Category") + " (opens menu)";
   }
 
-  // Navigate the tree by a path of indices [containerIdx, metalIdx]. Returns {level, rows, node}.
-  //   level 0 -> root rows (may MIX containers + leaves: Craftsdwarf); 1 -> metals of a forge
-  //   category; 2 -> leaves (of a forge metal, or a leaf-holding container drilled one level).
+  // Returns {level, rows, node}: level 0 root rows, which may MIX containers and leaves; 1 metals; 2 leaves.
   function levelAt(taskTree, path) {
     path = Array.isArray(path) ? path : [];
     if (!isMenuTree(taskTree)) return { level: 0, rows: [], node: null };
     if (path.length === 0) return { level: 0, rows: taskTree, node: null };
     const cat = taskTree[path[0]];
     if (!cat) return { level: 0, rows: taskTree, node: null };
-    // Container that holds leaves directly (instrument custom category B41; Craftsdwarf material
-    // selector): drilling one level lands straight on the leaves. The node carries the material pin.
+    // A container holding leaves directly: drilling one level lands on the leaves, and the node carries
+    // the material pin.
     if (Array.isArray(cat.leaves) && cat.leaves.length && !(cat.metals && cat.metals.length)) {
       return { level: 2, rows: cat.leaves, node: cat, category: cat };
     }
@@ -91,20 +90,11 @@
     return { level: 2, rows: metal.leaves || [], node: metal, category: cat };
   }
 
-  // ---- B144: every "make X" ITEM list sorts alphabetically. ----------------------------
-  // NATIVE DIVERGENCE, deliberate: DF's own menus keep category/raw order (forge root: Weapons
-  // and ammunition -> Armor -> Furniture...; metals: iron, silver, copper...; and even leaf
-  // lists put "Forge twenty-five iron bolts" LAST -- see the metalsmithing oracle screenshots).
-  // The owner asked for alphabetical, so queueable item rows sort A->Z; navigation rows (categories /
-  // metals / material-selector submenus) keep DF's native order so the drill-down still reads
-  // like DF's menu. Both helpers are PURE (new arrays, inputs untouched) and exported for the
-  // harness (truemenu_client_test.mjs B144 cells).
+  // ---- every "make X" item list sorts alphabetically -----------------------------------
   function rowSortLabel(node) {
     return String((node && (node.label || node.name)) || "").toLowerCase();
   }
-  // Tree-picker order for one level's rows. Returns [{node, idx}] (idx = ORIGINAL index, so the
-  // panel's data-ws-tree-cat / data-ws-tree-metal drill attributes keep addressing the served
-  // tree): containers first in native order, then leaves A->Z (original order breaks ties).
+  // idx is the ORIGINAL index, so the panel's drill attributes keep addressing the served tree.
   function orderRowsAlpha(rows) {
     const containers = [];
     const leaves = [];
@@ -141,6 +131,6 @@
 
   const api = { composeTaskKey, isForgeTree, isMenuTree, rowIsContainer, categoryRowLabel, levelAt,
     orderRowsAlpha, sortTasksAlpha };
-  try { root.DwfMenuTree = api; } catch (_) { /* non-browser context */ }
+  try { root.DwfMenuTree = api; } catch { /* Node loads through module.exports below */ }
   if (typeof module === "object" && module && module.exports) module.exports = api;
 })(typeof self !== "undefined" ? self : this);

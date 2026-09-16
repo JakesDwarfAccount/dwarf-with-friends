@@ -32,6 +32,7 @@
 #endif
 
 #include "DataDefs.h"
+#include "fnv.h"
 #include "json_util.h"
 #include "modules/Gui.h"
 
@@ -106,11 +107,7 @@ void fail(SliceMeta& meta, SliceStatus status, const char* reason) {
 }
 
 void fnv_bytes(uint64_t& hash, const void* data, size_t size) {
-    const auto* bytes = static_cast<const uint8_t*>(data);
-    for (size_t i = 0; i < size; ++i) {
-        hash ^= bytes[i];
-        hash *= 1099511628211ULL;
-    }
+    hash = fnv1a(hash, data, size);
 }
 
 void fnv_i32(uint64_t& hash, int32_t value) {
@@ -168,7 +165,7 @@ df::abstract_building* find_site_location(int32_t site_id, int32_t location_id) 
 }
 
 uint64_t make_route_stamp(const State& state) {
-    uint64_t hash = 1469598103934665603ULL;
+    uint64_t hash = kFnvOffsetBasis;
     for (const auto& value : state.route.focus)
         fnv_string(hash, value);
     for (const auto& value : state.route.surface_families)
@@ -1353,6 +1350,7 @@ void capture_render(State& state, const std::vector<std::string>& focus, uint64_
         any_matches(focus, "dwarfmode/AssignUniform"))
         add_family(state.route, "squads");
     if (any_matches(focus, "world")) add_family(state.route, "world");
+    if (any_matches(focus, "dwarfmode/Info/JUSTICE")) add_family(state.route, "justice");
     if (any_matches(focus, "dwarfmode/Designate") || any_matches(focus, "dwarfmode/Building") ||
         any_matches(focus, "dwarfmode/Zone") || any_matches(focus, "dwarfmode/Stockpile") ||
         any_matches(focus, "dwarfmode/Burrow") || any_matches(focus, "dwarfmode/Hauling"))
@@ -1374,6 +1372,10 @@ void capture_render(State& state, const std::vector<std::string>& focus, uint64_
     capture_world(state);
     capture_palette(state, ui);
     capture_route_primary(state);
+    if (state.route.primary_kind == "unmatched" &&
+        std::find(state.route.surface_families.begin(), state.route.surface_families.end(), "justice") !=
+            state.route.surface_families.end())
+        state.route.primary_kind = "justice";
     state.route.route_stamp = make_route_stamp(state);
 }
 

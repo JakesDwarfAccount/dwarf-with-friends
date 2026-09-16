@@ -48,20 +48,8 @@ namespace {
 std::mutex g_client_mutex;
 std::unordered_map<std::string, Camera> g_player_cameras;
 
-// W2: per-player follow target (see FollowTarget in client_state.h). Guarded by the same mutex as
-// the cameras because set_player_camera clears it -- one lock, no ordering to get wrong.
 std::unordered_map<std::string, FollowTarget> g_player_follow;
 
-// Host-camera cache (crash fix 2026-07-09). camera_for_player's unknown-player fallback
-// used to marshal read_host_camera() onto the render thread from the v1 push loop and the
-// per-conn writers. When that first marshaled read lands behind render-thread work stalled
-// on capture_mu / the v1 CoreSuspender bursts, it times out (3s), is retried EVERY tick
-// (failure is never cached), and the repeated main-thread park/unpark churn while captures
-// mutate DF window state ends in DF's own renderer AVing -- observed twice at the identical
-// DF.exe offset on the sprite-range world (~300 suspender-ms/s), reproduced in seconds by
-// any camera-less proto1 join; the same join with a pre-set camera streams flawlessly.
-// The cache is warmed from world_stream_tick's suspended section and capture_shifted (both
-// already hold safe DF access), so the fallback below almost never touches DF at all.
 std::mutex g_host_cam_mutex;
 Camera g_host_cam;
 bool g_host_cam_valid = false;
@@ -126,8 +114,6 @@ bool camera_for_player(const std::string& player, Camera& camera, std::string* e
         }
     }
 
-    // A player who has never moved gets an embark-oriented camera. Existing entries above
-    // remain authoritative, so reconnecting players keep their independently saved view.
     if (!seed_first_join_camera(camera)) {
         bool have_host = false;
         {
@@ -138,9 +124,8 @@ bool camera_for_player(const std::string& player, Camera& camera, std::string* e
             }
         }
         if (!have_host) {
-            // Cold cache: no v1 tick or capture has run yet this world (e.g. GET /camera right
-            // after plugin start). A single marshaled read is acceptable here -- the wedge above
-            // needs the repeated-per-tick retry loop, which the cache now prevents.
+            // Cold cache: no v1 tick or capture has run yet this world. One marshaled read only --
+            // a per-tick retry loop here park/unparks the render thread until DF's renderer faults.
             if (!read_host_camera(camera, err))
                 return false;
             note_host_camera(camera);
@@ -184,8 +169,6 @@ void rename_player_state(const std::string& oldName, const std::string& newName)
     std::lock_guard<std::mutex> lock(g_client_mutex);
     auto camIt = g_player_cameras.find(oldName);
     if (camIt != g_player_cameras.end()) {
-        // Carry the whole Camera (position, zoom_factor, placement + smooth-cursor fields, and the
-        // last_active_ms presence heartbeat) so the renamed player keeps their exact view.
         g_player_cameras[newName] = camIt->second;
         g_player_cameras.erase(camIt);
     }
@@ -196,8 +179,7 @@ void rename_player_state(const std::string& oldName, const std::string& newName)
     }
 }
 
-// W2: follow-target store. All four are O(1) hash lookups under the existing mutex -- they never
-// touch DF, so they are safe to call from any HTTP worker thread without a CoreSuspender.
+// follow-target store. These never touch DF, so any HTTP worker may call them uncore-suspended.
 void set_player_follow(const std::string& player, const std::string& kind, int32_t id) {
     std::lock_guard<std::mutex> lock(g_client_mutex);
     if (id < 0 || (kind != "unit" && kind != "item")) {

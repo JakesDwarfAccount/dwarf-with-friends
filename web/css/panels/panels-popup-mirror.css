@@ -1,0 +1,46 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.popup-mirror {
+  /* Blocking popup mirror */
+  #dfPopupMirror {
+    position: fixed;
+    inset: 0;
+    z-index: 8980;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+  }
+  #dfPopupMirror.show {
+    display: flex;
+  }
+  /* UI-DIV-004: the persistent wrapper is a positionable identity and paints no chrome of its own. */
+  #dfPopupBox {
+    position: fixed;
+    left: var(--df-popup-left, 0);
+    top: var(--df-popup-top, 0);
+  }
+}

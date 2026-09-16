@@ -91,18 +91,6 @@ void attrib_stamp(AttribKind kind, int32_t id, const std::string& player) {
     map_for(kind)[id] = player;
 }
 
-bool attrib_lookup(AttribKind kind, int32_t id, std::string& player_out) {
-    if (id < 0)
-        return false;
-    std::lock_guard<std::mutex> lock(g_attrib_mutex);
-    const auto& m = map_for(kind);
-    auto it = m.find(id);
-    if (it == m.end())
-        return false;
-    player_out = it->second;
-    return true;
-}
-
 std::string attrib_json() {
     std::lock_guard<std::mutex> lock(g_attrib_mutex);
     std::ostringstream body;

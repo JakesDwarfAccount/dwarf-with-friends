@@ -1,88 +1,44 @@
 // dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
 // Copyright (C) 2026 Gabriel Rios
 // Copyright (C) 2026 Jake Taplin
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// Assemble arbitrary labels from the player's own 8x12 CP437 atlas at runtime. The atlas is loaded
-// once; rendered labels use a bounded LRU cache. Real DOM text remains as the accessible, fail-open
-// layer and is hidden visually only after a complete bitmap label has rendered successfully.
-//
-// ===================================================================================================
-// THE INTERFACE SCALE -- WHY THIS FILE NO LONGER ASSUMES 1x NEAREST-NEIGHBOUR.
-//
-// The foundation's D1 font contract asserted that DF "INTEGER SCALEs ONLY -- never sub-sample", and
-// so this renderer drew every label at exactly 8x12 with imageSmoothingEnabled = false. MEASURED
-// against the lossless oracle (Menu Oracle Screenshots/unit profiles/Steam relations.png), by
-// least-squares fitting DF's OWN source cells back onto the capture, that assertion is FALSE:
-//
-//   fitted scale      what was fitted                                     source
-//   -------------     ---------------------------------------------      ---------------------
-//   1.245 / 1.245 / 1.240   tab labels "Military" / "Thoughts" / "Groups"  curses_640x300.png cells
-//   1.230             SHORT_TAB tab art (40x24)                            interface_bits.png
-//   1.260 / 1.240 / 1.240   UNIT_SHEET_VIEW_REPORTS / _CUSTOMIZE /
-//                     _CAMERA_INACTIVE toolbar icons (32x36 -> 40x45)      interface_bits_*.png
-//
-// Two facts fall out, and they are the whole design of this module:
-//   1. DF draws its interface at a NON-INTEGER scale WITH FILTERING. Its glyph edges carry partial
-//      alpha in a LOSSLESS PNG; a nearest-neighbour blit cannot produce that.
-//   2. DF draws its SPRITE ART and its TEXT at THE SAME SCALE, on ONE grid. Art and text fit the
-//      same factor to within 1%. DF's interface art is authored on this very 8x12 text cell
-//      (SHORT_TAB is 40x24 = 5x2 cells; TAB is 40x36 = 5x3 cells), so this is not a coincidence:
-//      the text cell and the art cell ARE the same cell.
-//
-// So the text scale is NOT a constant -- DF rescales its whole interface with the window and the
-// display, and the oracle's ~1.245 belongs to the oracle's DF window, nothing more. Hard-coding it
-// would be right on one screenshot and wrong on every other. The scale is DERIVED, from fact 2:
-//
-//      interfaceScale(document) = drawnPixels / nativePixels of the DF sprite art on that document
-//
-// i.e. exactly the scale DFChrome is already painting the surrounding interface art at. Text then
-// tracks the art for free, on any window size, forever. See interfaceScale() below.
-//
-// ---------------------------------------------------------------------------------------------------
-// THE SOFTENING (after reviewing a rendered 0% / 35% / 50% / 70% / 100% ladder): 50%.
-//
-// Full bilinear (100%) was judged TOO SOFT, "especially on straight vertical/horizontal strokes";
-// pure nearest (0%) was too hard. The shipped glyph is therefore a LINEAR BLEND of the two:
-//
-//      glyph = (1 - SOFTEN) * nearest(cell, s)  +  SOFTEN * bilinear(cell, s)          SOFTEN = 0.5
-//
-// The blend CANNOT be baked into the 8x12 atlas -- it is scale-dependent (at s == 1 the two
-// operands are byte-identical, so an atlas-baked blend would be the identity). It IS baked ONCE PER
-// SCALE, into a PRE-SCALED ATLAS built the moment a new interface scale first appears (bakeAtlas()).
-// Everything downstream of that is a 1:1 nearest blit:
-//
-//      atlas load  ->  padded 8x12 atlas (once)
-//      scale seen  ->  PRE-SCALED, PRE-BLENDED atlas at cw x ch  (once per scale; 512 blits)
-//      cache miss  ->  ONE nearest drawImage per glyph, out of the pre-scaled atlas
-//      draw path   ->  ONE drawImage per label, of the LRU-cached label canvas.  ZERO getImageData.
-//
-// So the draw path carries no filtering cost at all, and the per-label draw-call count is EXACTLY
-// what the 6.8ms-p95 benchmark measured. SOFTEN is the one tunable; it is exported on the API.
-// ===================================================================================================
+// The real DOM text is the fail-open layer: dwf-dwfui.css hides it only under .dwfui-bitmap-text--ready,
+// added once a bitmap label has painted. Hiding it up front loses every label when the atlas 404s.
 (function (root) {
   "use strict";
 
+  const DwfUtil = root.DwfUtil || (typeof module === "object" && module.require
+    ? module.require("./dwf-util.js") : null);
   const CELL_W = 8, CELL_H = 12, CACHE_LIMIT = 256;
-  // the decision, off a rendered ladder. 0 = pure nearest (today, and what the D1 contract assumed
-  // DF did); 1 = pure bilinear (what DF's edges look closest to, but reads too soft on straight
-  // stems). This is the ONLY taste number in this file and it is meant to be turned.
+  // 0 = pure nearest, 1 = pure bilinear. The only taste number in this file.
   const SOFTEN = 0.5;
   const SCALED_ATLAS_LIMIT = 4;   // one per live interface scale; a resize churns at most a few
   const MAX_LIVE_CANVASES = 50;
   const MAX_DIRTY_ROOTS_PER_FRAME = 25;
   const PREFETCH_MARGIN = 96;
-  // Padded atlas: each 8x12 cell gets a 1px fully-transparent gutter, so the cell pitch is 10x14.
-  // This exists ONLY because we now sample the atlas with bilinear filtering at non-integer scales.
-  // A filtered drawImage of a tight 8x12 sub-rect bleeds the NEIGHBOURING glyph's ink in along the
-  // shared edge; with a transparent gutter the filter blends toward alpha 0 instead, which is the
-  // correct boundary condition and is what DF's own per-glyph quads do. Built ONCE at atlas load.
+  // A 1px fully transparent gutter per cell, so the pitch is 10x14: bakeAtlas's soften pass reads with
+  // smoothing ON, and a filtered read of a tight 8x12 sub-rect bleeds the neighbouring glyph's ink.
   const PAD = 1, PITCH_W = CELL_W + PAD * 2, PITCH_H = CELL_H + PAD * 2;
   const MIN_SCALE = 0.5, MAX_SCALE = 8;
-  // The query is deliberately versioned. The bytes still come from the player's own DF install;
-  // no Bay 12 art is copied into this repository. Both the plugin and Studio routes ignore the
-  // query while the browser gets an explicit cache identity for this renderer contract.
-  const ATLAS_URL = "/dfart/curses_640x300.png?v=dwfui-bitmap-v1";
+  // The bytes come from the player's DF install, not this repo, so no content hash can bust this URL.
+  const ATLAS_URL = "/dfart/curses_640x300.png";
   const CP437 = [
     0x0000,0x263a,0x263b,0x2665,0x2666,0x2663,0x2660,0x2022,0x25d8,0x25cb,0x25d9,0x2642,0x2640,0x266a,0x266b,0x263c,
     0x25ba,0x25c4,0x2195,0x203c,0x00b6,0x00a7,0x25ac,0x21a8,0x2191,0x2193,0x2192,0x2190,0x221f,0x2194,0x25b2,0x25bc,
@@ -102,15 +58,28 @@
     0x2261,0x00b1,0x2265,0x2264,0x2320,0x2321,0x00f7,0x2248,0x00b0,0x2219,0x00b7,0x221a,0x207f,0x00b2,0x25a0,0x00a0,
   ];
   const unicodeToCell = new Map(CP437.map((cp, cell) => [cp, cell]));
+  // ---- CP437 case fold --------------------------------------------------------------------------
+  for (let cell = 0; cell < CP437.length; cell++) {
+    const lower = String.fromCodePoint(CP437[cell]);
+    const upper = lower.toUpperCase();
+    if (upper === lower || Array.from(upper).length !== 1) continue;
+    const cp = upper.codePointAt(0);
+    if (!unicodeToCell.has(cp)) unicodeToCell.set(cp, cell);
+  }
   const cache = new Map();
   const scaledAtlases = new Map();       // "1.2450" -> { canvas, cw, ch }  -- the pre-blended bakes
   const documentStates = new WeakMap();
   let atlas = null, loadPromise = null, loadError = null;
   let loadMilliseconds = null, cacheHits = 0, cacheMisses = 0;
-  const MAX_REVIEW_CANVASES = 120;       // Studio only: one visible fidelity board, never the game
   let budgetDeferrals = 0, canvasEvictions = 0, scheduledBatches = 0;
   let liveCanvases = 0, liveCanvasBytes = 0, unchangedSkips = 0;
   let atlasBakes = 0, atlasBakeMilliseconds = 0;
+
+  // Keep cached canvases in the module document so removing a child iframe cannot invalidate them.
+  function backingDocument(doc) {
+    const stable = root && root.document;
+    return stable && typeof stable.createElement === "function" ? stable : doc;
+  }
 
   function cellsFor(text) {
     const cells = [];
@@ -135,7 +104,7 @@
         try {
           if (image.naturalWidth !== 128 || image.naturalHeight !== 192)
             throw new Error(`unexpected DF glyph atlas size ${image.naturalWidth}x${image.naturalHeight}`);
-          const canvas = doc.createElement("canvas");
+          const canvas = backingDocument(doc).createElement("canvas");
           canvas.width = 128; canvas.height = 192;
           const ctx = canvas.getContext("2d", { willReadFrequently: true });
           ctx.imageSmoothingEnabled = false;
@@ -148,10 +117,8 @@
             pixels.data[p + 3] = on ? 255 : 0;
           }
           ctx.putImageData(pixels, 0, 0);
-          // ONCE, at load: re-lay the 256 cells onto the gutter-padded pitch. This is the ONLY
-          // readback/blit pass in the module and it never runs again -- no getImageData and no
-          // per-glyph work ever happens on the draw path.
-          const padded = doc.createElement("canvas");
+          // ONCE, at load: re-lay the 256 cells onto the gutter-padded pitch. The only readback/blit pass.
+          const padded = backingDocument(doc).createElement("canvas");
           padded.width = 16 * PITCH_W; padded.height = 16 * PITCH_H;
           const pctx = padded.getContext("2d");
           pctx.imageSmoothingEnabled = false;
@@ -182,14 +149,15 @@
   function clampScale(value) {
     const n = Number(value);
     if (!Number.isFinite(n) || n <= 0) return 1;
-    return Math.max(MIN_SCALE, Math.min(MAX_SCALE, n));
+    return DwfUtil.clamp(n, MIN_SCALE, MAX_SCALE);
   }
   function isIntegral(s) { return Math.abs(s - Math.round(s)) < 1e-6; }
+  // THE ONE CELL FORMULA. bakeAtlas, render() and measure() all step by it, so a measurement can
+  // never disagree with the raster it is measuring.
+  function cellPx(base, s) { return Math.max(1, Math.round(base * s)); }
 
-  // The scale DFChrome is ACTUALLY painting DF's interface art at, on this document. A sprite canvas
-  // is sized rec.w x rec.h times the scale DFChrome chose, so drawn/native IS that scale, read back
-  // off the DOM -- no new source of truth, no constant, and it moves when DF's window moves. Cropped
-  // blits (data-dwfui-sprite-crop) are sub-rects of a cell, not scaled cells, so they are not samples.
+  // The scale DFChrome is ACTUALLY painting DF's interface art at, read back off the DOM -- never a
+  // constant. Cropped blits (data-dwfui-sprite-crop) are sub-rects of a cell, so they are not samples.
   function measureSpriteScale(doc) {
     const chrome = root && root.DFChrome;
     if (!doc || !doc.querySelectorAll || !chrome || !chrome.getCell) return null;
@@ -208,24 +176,12 @@
     return null;
   }
 
-  // Precedence: an explicit document override (the interface owner's ONE knob, and the only place a
-  // number may be stated) beats the measurement; the measurement beats a 1:1 fail-open. Memoised per
-  // document, and retried only while the art has not painted yet, so this costs one querySelectorAll
-  // per paint PASS -- never per label, never per glyph.
-  // ---- THE IN-CLIENT UI-SCALE SLIDER ------------------------------------------------------------
-  // dwf.css applies `zoom: var(--ui-scale)` to #hud/#clientPanel/... -- so whatever we hand the
-  // browser gets RESAMPLED by the slider on top of DF's interface scale. Rasterising at 1x and then
-  // zooming is the worst case for sharpness (it is a plain bilinear upscale of a finished bitmap).
-  // So we rasterise the label at interfaceScale x zoom into the canvas BACKING STORE and pin its CSS
-  // box to the unzoomed size: the zoom then scales a box we already drew at its target density --
-  // the same trick a HiDPI canvas plays with devicePixelRatio. The slider gets CRISPER, not blurrier,
-  // and it still MULTIPLIES cleanly on top of the base interface scale.
   function zoomFor(doc) {
     const view = doc && doc.defaultView;
     const el = doc && doc.documentElement;
     if (!view || !el || typeof view.getComputedStyle !== "function") return 1;
-    let raw = null;
-    try { raw = view.getComputedStyle(el).getPropertyValue("--ui-scale"); } catch (_) { return 1; }
+    let raw;
+    try { raw = view.getComputedStyle(el).getPropertyValue("--ui-scale"); } catch { return 1; }
     const n = Number(String(raw == null ? "" : raw).trim());
     return Number.isFinite(n) && n > 0 ? clampScale(n) : 1;
   }
@@ -244,36 +200,21 @@
     return (state.scale = measured);
   }
 
-  // ---- THE BAKE. Once per interface scale; NEVER on the draw path. ------------------------------
-  // A 16x16 grid of cells already AT the target size and already carrying the 50% blend, so every
-  // later glyph blit is a 1:1 nearest copy of a finished cell.
-  //
-  // The blend is a TRUE LINEAR interpolation: both layers are drawn with globalCompositeOperation
-  // "lighter" (additive on PREMULTIPLIED pixels) at complementary alphas, which yields exactly
-  //     (1 - SOFTEN) * nearest(cell, s)  +  SOFTEN * bilinear(cell, s)
-  // in colour AND in alpha. Drawing the soft layer over the hard one with plain source-over would
-  // NOT be that: source-over can only ADD coverage, never remove it, so it produces a HALOED nearest
-  // glyph instead of the blend the owner reviewed on the ladder. The atlas is pre-tinted pure white, so the
-  // additive pass can neither overflow nor fringe.
-  //
-  // AT AN INTEGER SCALE THERE IS NO BLEND: nearest and bilinear are the same image there, and we
-  // never invent softness DF does not have. That is what keeps the approved 1x FONT card exact.
+  // ---- THE BAKE. Once per interface scale; NEVER on the draw path. -------------------------------
+  // Both layers composite with "lighter" at complementary alphas; source-over only ADDS coverage and haloes.
   function bakeAtlas(doc, s) {
     const key = s.toFixed(4);
     const hit = scaledAtlases.get(key);
     if (hit) { scaledAtlases.delete(key); scaledAtlases.set(key, hit); return hit; }
     const clock = root.performance && root.performance.now ? root.performance : Date;
     const started = clock.now();
-    const cw = Math.max(1, Math.round(CELL_W * s)), ch = Math.max(1, Math.round(CELL_H * s));
-    const canvas = doc.createElement("canvas");
+    const cw = cellPx(CELL_W, s), ch = cellPx(CELL_H, s);
+    const canvas = backingDocument(doc).createElement("canvas");
     canvas.width = 16 * cw; canvas.height = 16 * ch;
     const ctx = canvas.getContext("2d");
     const soften = isIntegral(s) ? 0 : SOFTEN;
     ctx.globalCompositeOperation = "lighter";
     for (let cell = 0; cell < 256; cell++) {
-      // Source out of the GUTTER-PADDED atlas: a FILTERED read of a tight 8x12 sub-rect bleeds the
-      // neighbouring glyph's ink in along the shared edge. The transparent gutter makes the filter
-      // blend toward alpha 0 instead -- the correct boundary, and what DF's own per-glyph quads do.
       const sx = (cell % 16) * PITCH_W + PAD, sy = Math.floor(cell / 16) * PITCH_H + PAD;
       const dx = (cell % 16) * cw, dy = Math.floor(cell / 16) * ch;
       ctx.imageSmoothingEnabled = false;
@@ -294,33 +235,55 @@
     return baked;
   }
 
+  // ---- MEASUREMENT ---------------------------------------------------------------------------------
+  function glyphCell(doc, scale, ifaceScale) {
+    const mul = Math.max(1, Math.min(4, Math.round(Number(scale) || 1)));
+    const s = clampScale(mul * (ifaceScale == null ? interfaceScale(doc) : clampScale(ifaceScale)));
+    return { mul, scale: s, cw: cellPx(CELL_W, s), ch: cellPx(CELL_H, s) };
+  }
+
+  function measure(text, opts) {
+    const o = opts || {};
+    const doc = o.doc || (root && root.document) || null;
+    const value = String(text == null ? "" : text);
+    const chars = Array.from(value).length;
+    const iface = o.interfaceScale == null ? (doc ? interfaceScale(doc) : 1) : clampScale(o.interfaceScale);
+    const zoom = o.zoom == null ? (doc ? zoomFor(doc) : 1) : clampScale(o.zoom);
+    const raster = clampScale(iface * zoom);
+    const cell = glyphCell(doc, o.scale, raster);
+    return { text: value, cells: chars, renderable: !!cellsFor(value),
+      labelScale: cell.mul, scale: cell.scale, interfaceScale: iface, zoom,
+      cellW: cell.cw, cellH: cell.ch,
+      width: chars * cell.cw, height: cell.ch,
+      cssWidth: (chars * cell.cw) / zoom, cssHeight: cell.ch / zoom };
+  }
+
+  // The inverse: how many whole CP437 cells fit in a pixel box at this document's raster.
+  function cellsInPx(pixels, opts) {
+    const m = measure("", opts);
+    const n = Math.floor(Number(pixels) / m.cellW);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
   function render(doc, text, color, scale, ifaceScale) {
     const cells = cellsFor(text);
     if (!cells || !atlas) return null;
-    // The attribute scale stays exactly what it always was: an INTEGER label multiplier (a 2x
-    // header). DF's interface scale multiplies it. Neither is a magic number; both are derived.
-    const mul = Math.max(1, Math.min(4, Math.round(Number(scale) || 1)));
-    const s = clampScale(mul * (ifaceScale == null ? interfaceScale(doc) : clampScale(ifaceScale)));
+    const s = glyphCell(doc, scale, ifaceScale).scale;
     const key = `${s}\u0000${color}\u0000${text}`;
     if (cache.has(key)) { cacheHits++; return touch(key, cache.get(key)); }
     cacheMisses++;
     const baked = bakeAtlas(doc, s);
-    const canvas = doc.createElement("canvas");
-    // DF's cell IS the advance: one integer step per glyph, exactly as a fixed-cell grid works, and
-    // at the oracle's scale it lands on the measured 10x15 cell. Stepping by a FRACTIONAL advance
-    // instead would leave glyphs on half-pixels and re-blur what the bake just fixed.
+    const canvas = backingDocument(doc).createElement("canvas");
+    // DF's cell IS the advance: one integer step per glyph. A fractional advance would re-blur the bake.
     canvas.width = Math.max(1, cells.length * baked.cw);
     canvas.height = baked.ch;
     const ctx = canvas.getContext("2d");
-    // 1:1 out of the PRE-SCALED, PRE-BLENDED atlas -- NO resampling happens here, at any scale. All
-    // of the filtering cost, and the 50% blend, was paid once in bakeAtlas().
+    // 1:1 out of the PRE-SCALED, PRE-BLENDED atlas -- no resampling happens here, at any scale.
     ctx.imageSmoothingEnabled = false;
     cells.forEach((cell, i) => ctx.drawImage(baked.canvas,
       (cell % 16) * baked.cw, Math.floor(cell / 16) * baked.ch, baked.cw, baked.ch,
       i * baked.cw, 0, baked.cw, baked.ch));
-    // source-in keeps the (now partial) alpha and replaces only RGB, so a blended edge pixel emerges
-    // as the ink colour at partial coverage -- exactly what DF composites. COLOUR IS NOT THE BUG and
-    // is NOT touched: native tab labels are pure #ffffff and so are ours, before and after.
+    // source-in keeps the partial alpha and replaces only RGB, so a blended edge is ink at partial coverage.
     ctx.globalCompositeOperation = "source-in";
     ctx.fillStyle = color || "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -362,27 +325,7 @@
       rect.top <= height + PREFETCH_MARGIN && rect.left <= width + PREFETCH_MARGIN;
   }
 
-  // ---- THE INFINITE REPAINT LOOP (idempotent deferral writes) ----------------------------------
-  // MEASURED on an IDLE page: long tasks doubling 361 -> 1,654 -> 3,639 -> 7,287 -> 23,138 ms,
-  // Runtime.evaluate timing out, and 180,720 MutationObserver records in 10 seconds -- ALL of them
-  // `class`, ALL with IDENTICAL old and new values. A JS busy-loop, not a raster problem.
-  //
-  // THE MECHANISM. A label we DEFER -- because it is over the 50-canvas budget, or merely SCROLLED
-  // OFFSCREEN -- used to be marked unconditionally:
-  //     node.classList.remove("dwfui-bitmap-text--ready");        // even when the token is ABSENT
-  //     node.setAttribute("data-dwfui-bitmap-fallback", reason);  // even when the value is UNCHANGED
-  // `DOMTokenList.remove()` RE-SERIALISES the `class` attribute even when the token was not there,
-  // and setAttribute fires a record even when the value does not change. DWFUI's document-wide
-  // MutationObserver watches `class`, so: defer a label -> rewrite its class -> the observer
-  // repaints it -> it defers again -> forever. The deferral path runs on EVERY pass, so every
-  // frame re-armed the loop.
-  //
-  // THIS IS NOT A STUDIO-ONLY BUG. Any bitmap label scrolled below the fold in the live game takes
-  // exactly this path, so ANY SCROLLABLE LIST COULD WEDGE THE PLAYER'S TAB.
-  //
-  // THE FIX: the deferral writes are IDEMPOTENT. Touch the DOM only when the DOM would actually
-  // change. (mountDom's observer additionally drops no-op attribute records -- belt and braces.)
-  // Measured after: scheduledBatches 163,844 -> 11.
+  // ---- deferral writes -------------------------------------------------------------------------
   function markFallback(node, reason) {
     if (!node) return;
     if (node.classList && node.classList.contains &&
@@ -406,21 +349,21 @@
     markFallback(node, reason);
   }
 
-  function prune(state, doc, keepOffscreen) {
+  function prune(state, doc) {
     for (const [node] of state.live) {
       if (!isConnected(node)) noteCanvasRemoved(node, state, null);
       else if (!node.querySelector("canvas.dwfui-bitmap-canvas")) state.live.delete(node);
-      else if (!keepOffscreen && !isNearViewport(node, doc)) noteCanvasRemoved(node, state, "offscreen-deferred");
+      else if (!isNearViewport(node, doc)) noteCanvasRemoved(node, state, "offscreen-deferred");
     }
   }
 
-  function reserve(node, state, doc, limit) {
+  function reserve(node, state, doc) {
     if (state.live.has(node)) {
       state.live.delete(node); state.live.set(node, true);
       return true;
     }
-    const ceiling = limit == null ? state.maxLive : limit;
-    prune(state, doc, ceiling === Infinity);
+    const ceiling = state.maxLive;
+    prune(state, doc);
     if (state.live.size >= ceiling) {
       for (const [candidate] of state.live) {
         if (!isNearViewport(candidate, doc)) {
@@ -431,8 +374,8 @@
     }
     if (state.live.size >= ceiling) {
       budgetDeferrals++;
-      // IDEMPOTENT (see markFallback): this runs on EVERY pass for every over-budget label, so an
-      // unconditional class rewrite here is the same infinite-repaint loop by another door.
+      // IDEMPOTENT (see markFallback): this runs on EVERY pass, so an unconditional class rewrite here
+      // is the same infinite-repaint loop by another door.
       markFallback(node, "canvas-budget-deferred");
       return false;
     }
@@ -441,7 +384,8 @@
   }
 
   function observeNodes(nodes, state, doc) {
-    const IO = root && root.IntersectionObserver;
+    const view = (doc && doc.defaultView) || root;
+    const IO = view && view.IntersectionObserver;
     if (!IO) return;
     if (!state.observer) {
       state.observer = new IO(entries => entries.forEach(entry => {
@@ -463,101 +407,95 @@
     }
   }
 
-  function paint(rootNode, options) {
-    const doc = (rootNode && rootNode.ownerDocument) ||
+  function docFor(rootNode) {
+    return (rootNode && rootNode.ownerDocument) ||
       (rootNode && rootNode.nodeType === 9 ? rootNode : root.document);
+  }
+
+  function paintNow(doc, nodes, state) {
+    reportStatus(doc, true);
+    // ONCE per paint pass, not per label: a document has one interface scale, exactly as DF does.
+    const iface = interfaceScale(doc);
+    const zoom = zoomFor(doc);
+    const raster = clampScale(iface * zoom);
+    let painted = 0;
+    for (const node of nodes) {
+      if (!isConnected(node)) continue;
+      if (!isNearViewport(node, doc)) {
+        noteCanvasRemoved(node, state, "offscreen-deferred");
+        continue;
+      }
+      const text = node.getAttribute("data-dwfui-bitmap-text") || "";
+      const mul = node.getAttribute("data-dwfui-bitmap-scale") || "1";
+      // The dirty key tracks the EFFECTIVE RASTER scale, so a window resize or slider nudge invalidates it.
+      const scale = `${mul}@${raster.toFixed(4)}`;
+      if (!cellsFor(text)) {
+        markFallback(node, "unsupported-character");   // IDEMPOTENT -- runs on every pass
+        continue;
+      }
+      const view = (doc && doc.defaultView) || root;
+      const style = view && view.getComputedStyle ? view.getComputedStyle(node) : null;
+      const color = style ? style.color : "#fff";
+      const key = `${scale}\u0000${color}\u0000${text}`;
+      if (node.__dwfuiBitmapKey === key && node.querySelector("canvas.dwfui-bitmap-canvas")) {
+        unchangedSkips++;
+        reserve(node, state, doc);
+        continue;
+      }
+      if (!reserve(node, state, doc)) continue;
+      const source = render(doc, text, color, mul, raster);
+      if (!source) continue;
+      let target = node.querySelector("canvas.dwfui-bitmap-canvas");
+      if (!target) {
+        target = doc.createElement("canvas");
+        target.className = "dwfui-bitmap-canvas";
+        target.setAttribute("aria-hidden", "true");
+        node.appendChild(target);
+        liveCanvases++;
+      } else {
+        liveCanvasBytes = Math.max(0, liveCanvasBytes - target.width * target.height * 4);
+      }
+      target.width = source.width; target.height = source.height;
+      liveCanvasBytes += target.width * target.height * 4;
+      // Pin the CSS box to the UNZOOMED size, so the slider's zoom scales a canvas already at that density.
+      if (target.style && typeof target.style.setProperty === "function" &&
+          typeof target.style.removeProperty === "function") {
+        if (zoom === 1) {
+          target.style.removeProperty("--dwf-bitmap-css-w");
+          target.style.removeProperty("--dwf-bitmap-css-h");
+        } else {
+          target.style.setProperty("--dwf-bitmap-css-w", `${source.width / zoom}px`);
+          target.style.setProperty("--dwf-bitmap-css-h", `${source.height / zoom}px`);
+        }
+      }
+      const ctx = target.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, target.width, target.height);
+      ctx.drawImage(source, 0, 0);
+      node.__dwfuiBitmapKey = key;
+      node.removeAttribute("data-dwfui-bitmap-fallback");
+      node.classList.add("dwfui-bitmap-text--ready");
+      painted++;
+    }
+    return painted;
+  }
+
+  function paint(rootNode) {
+    const doc = docFor(rootNode);
     const nodes = nodesWithin(rootNode || doc);
     if (!nodes.length) return Promise.resolve(0);
     const state = stateFor(doc);
-    const unbounded = !!(options && options.unboundedBenchmark);
-    if (!unbounded) observeNodes(nodes, state, doc);
-    return load(doc).then(() => {
-      reportStatus(doc, true);
-      // ONCE per paint pass -- not per label. Everything on a document shares DF's one interface
-      // scale, exactly as DF itself does. The slider's zoom is read once here too.
-      const iface = interfaceScale(doc);
-      const zoom = zoomFor(doc);
-      const raster = clampScale(iface * zoom);
-      let painted = 0;
-      for (const node of nodes) {
-        if (!isConnected(node)) continue;
-        if (!unbounded && !isNearViewport(node, doc)) {
-          noteCanvasRemoved(node, state, "offscreen-deferred");
-          continue;
-        }
-        const text = node.getAttribute("data-dwfui-bitmap-text") || "";
-        const mul = node.getAttribute("data-dwfui-bitmap-scale") || "1";
-        // The dirty key tracks the EFFECTIVE RASTER scale. If it tracked only the label multiplier, a
-        // DF window resize -- or a nudge of the UI-scale slider -- would change every glyph's size and
-        // leave every cached label stale.
-        const scale = `${mul}@${raster.toFixed(4)}`;
-        if (!cellsFor(text)) {
-          markFallback(node, "unsupported-character");   // IDEMPOTENT -- runs on every pass
-          continue;
-        }
-        const style = root.getComputedStyle ? root.getComputedStyle(node) : null;
-        const color = style ? style.color : "#fff";
-        const key = `${scale}\u0000${color}\u0000${text}`;
-        if (node.__dwfuiBitmapKey === key && node.querySelector("canvas.dwfui-bitmap-canvas")) {
-          unchangedSkips++;
-          reserve(node, state, doc, unbounded ? Infinity : null);
-          continue;
-        }
-        if (!reserve(node, state, doc, unbounded ? Infinity : null)) continue;
-        const source = render(doc, text, color, mul, raster);
-        if (!source) continue;
-        let target = node.querySelector("canvas.dwfui-bitmap-canvas");
-        if (!target) {
-          target = doc.createElement("canvas");
-          target.className = "dwfui-bitmap-canvas";
-          target.setAttribute("aria-hidden", "true");
-          node.appendChild(target);
-          liveCanvases++;
-        } else {
-          liveCanvasBytes = Math.max(0, liveCanvasBytes - target.width * target.height * 4);
-        }
-        target.width = source.width; target.height = source.height;
-        liveCanvasBytes += target.width * target.height * 4;
-        // Pin the CSS box to the UNZOOMED size so the slider's `zoom` scales a canvas we already
-        // rasterised at its target density. With zoom == 1 the box is the backing store, exactly as
-        // before -- no layout change on the default path.
-        if (target.style) {
-          target.style.width = zoom === 1 ? "" : `${source.width / zoom}px`;
-          target.style.height = zoom === 1 ? "" : `${source.height / zoom}px`;
-        }
-        const ctx = target.getContext("2d");
-        ctx.imageSmoothingEnabled = false;
-        ctx.clearRect(0, 0, target.width, target.height);
-        ctx.drawImage(source, 0, 0);
-        node.__dwfuiBitmapKey = key;
-        node.removeAttribute("data-dwfui-bitmap-fallback");
-        node.classList.add("dwfui-bitmap-text--ready");
-        painted++;
-      }
-      return painted;
-    }).catch(error => {
+    observeNodes(nodes, state, doc);
+    return load(doc).then(() => paintNow(doc, nodes, state)).catch(error => {
       reportStatus(doc, false, error);
       nodes.forEach(node => markFallback(node, "atlas-unavailable"));   // IDEMPOTENT
       return 0;
     });
   }
 
-  // The decision lab intentionally measures hostile 500/1,200-canvas cases. Keep that bypass
-  // impossible on a production page: it requires both the Studio pathname and its dedicated stage.
-  function paintBenchmark(rootNode) {
-    const doc = rootNode && rootNode.ownerDocument;
-    const pathname = String(doc && doc.location && doc.location.pathname || "");
-    const isStage = rootNode && rootNode.hasAttribute && rootNode.hasAttribute("data-fnd-benchmark-stage");
-    if (!isStage || !/\/tools\/ui-lab\//.test(pathname))
-      return Promise.reject(new Error("unbounded bitmap painting is restricted to the Parity Studio benchmark stage"));
-    return paint(rootNode, { unboundedBenchmark: true });
-  }
-
-  // Coalesce DOM mutation bursts into one paint pass per animation frame. Direct paint() remains
-  // available for deterministic tests and explicit callers; production DWFUI uses schedule().
+  // Coalesce DOM mutation bursts into one paint pass per frame; production DWFUI uses schedule().
   function schedule(rootNode) {
-    const doc = (rootNode && rootNode.ownerDocument) ||
-      (rootNode && rootNode.nodeType === 9 ? rootNode : root.document);
+    const doc = docFor(rootNode);
     if (!doc) return Promise.resolve(0);
     const state = stateFor(doc);
     state.pending.add(rootNode || doc);
@@ -567,17 +505,29 @@
       const request = run => {
         const raf = (doc.defaultView && doc.defaultView.requestAnimationFrame) || root.requestAnimationFrame;
         if (typeof raf === "function") state.frame = raf(run);
-        else { state.frame = 1; Promise.resolve().then(run); }
+        else { state.frame = 1; root.setTimeout(run, 0); }
       };
       const run = async () => {
         state.frame = 0; scheduledBatches++;
         const pending = [...state.pending].slice(0, MAX_DIRTY_ROOTS_PER_FRAME);
         pending.forEach(node => state.pending.delete(node));
         let count = 0;
+        // ONE DOM PASS PER FRAME: collect every dirty root's labels, await the atlas ONCE, then write.
+        const batches = [];
+        for (const node of pending) {
+          const nodes = nodesWithin(node || doc);
+          if (!nodes.length) continue;
+          observeNodes(nodes, state, doc);
+          batches.push(nodes);
+        }
         try {
-          for (const node of pending) count += await paint(node);
+          if (batches.length) {
+            await load(doc);
+            for (const nodes of batches) count += paintNow(doc, nodes, state);
+          }
         } catch (error) {
           reportStatus(doc, false, error);
+          batches.forEach(nodes => nodes.forEach(node => markFallback(node, "atlas-unavailable")));
         }
         if (state.pending.size) {
           request(run);
@@ -593,13 +543,11 @@
   function configure(doc, options) {
     const state = stateFor(doc);
     const requested = Number(options && options.maxLiveCanvases);
-    const pathname = String(doc && doc.location && doc.location.pathname || "");
-    const ceiling = /\/tools\/ui-lab\//.test(pathname) ? MAX_REVIEW_CANVASES : MAX_LIVE_CANVASES;
-    state.maxLive = Number.isFinite(requested) ? Math.max(1, Math.min(ceiling, Math.floor(requested))) : MAX_LIVE_CANVASES;
+    state.maxLive = Number.isFinite(requested) ? Math.max(1, Math.min(MAX_LIVE_CANVASES, Math.floor(requested))) : MAX_LIVE_CANVASES;
     // An explicit interface scale, or `null` to drop the memo and re-measure the art next pass.
     if (options && "interfaceScale" in options)
       state.scale = options.interfaceScale == null ? null : clampScale(options.interfaceScale);
-    prune(state, doc, false);
+    prune(state, doc);
     return state.maxLive;
   }
 
@@ -615,8 +563,7 @@
       scaledAtlases: [...scaledAtlases.values()].map(a => `${a.scale}:${a.cw}x${a.ch}`),
       interfaceScale: d ? interfaceScale(d) : 1, uiZoom: d ? zoomFor(d) : 1 };
   }
-  // The scaled atlases are a function of the ATLAS and the scale, not of the label set, so a label
-  // cache clear must drop them too or a test that reseeds the atlas keeps blitting the stale bake.
+  // A label-cache clear must drop the scaled atlases too, or a reseeded atlas keeps blitting the old bake.
   function clearCache() {
     cache.clear(); scaledAtlases.clear();
     cacheHits = 0; cacheMisses = 0;
@@ -632,10 +579,11 @@
     for (let i = 0; i < count; i++) render(doc, `Dwarf ${i % unique} current task`, "rgb(255,255,255)", 1);
     return { count, unique, milliseconds: clock.now() - start, cacheSize: cache.size, cacheLimit: CACHE_LIMIT };
   }
-  const api = { CELL_W, CELL_H, CACHE_LIMIT, MAX_LIVE_CANVASES, MAX_REVIEW_CANVASES, MAX_DIRTY_ROOTS_PER_FRAME,
+  const api = { CELL_W, CELL_H, CACHE_LIMIT, MAX_LIVE_CANVASES, MAX_DIRTY_ROOTS_PER_FRAME,
     PREFETCH_MARGIN, ATLAS_URL, PAD, PITCH_W, PITCH_H, MIN_SCALE, MAX_SCALE, SOFTEN,
-    CP437, cellsFor, load, render, paint, paintBenchmark, schedule, configure, benchmark, stats,
-    clearCache, interfaceScale, measureSpriteScale, zoomFor, bakeAtlas };
+    CP437, cellsFor, load, render, paint, schedule, configure, benchmark, stats,
+    clearCache, interfaceScale, measureSpriteScale, zoomFor, bakeAtlas,
+    cellPx, glyphCell, measure, cellsInPx };
   root.DFBitmapText = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : this));

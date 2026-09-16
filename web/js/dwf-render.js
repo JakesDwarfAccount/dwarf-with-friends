@@ -19,36 +19,31 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-render.js -- RENDERER SEAM (WB-1, docs/superpowers/specs/
-// 2026-07-07-WB-renderer-spec.md §1.1). Establishes window.DwfRender: the registry +
-// selection layer choosing between "canvas2d" (dwf-tiles.js, wrapped with ZERO behavior
-// change of its own) and "gl" (the real WebGL2 instanced pipeline, dwf-gl.js, WB-8/9..15).
-//
-// canvas2d's init() here is a pure pass-through to the already-live window.DwfTiles
-// (self-booted standalone, or booted by dwf-core.js's init() call), never a re-boot --
-// canvas2d keeps drawing underneath the GL canvas always, so any GL failure/demotion is a
-// display toggle back to an already-rendering map, never a black screen.
-//
-// WB-14 (this item) flips the default: selection precedence is ?renderer=gl|canvas2d URL param
-// -> localStorage['dwf.renderer'] -> default 'gl' (was 'canvas2d' through WB-1..13 --
-// see requestedRenderer()'s own banner for the flip's gate evidence). Auto-fallback triggers on
-// any init() throw (webgl2 unavailable), OR later via onDemote (context loss twice / atlas
-// full, §1.1) -- both paths always land on canvas2d, which never itself fails to init.
-
 (function () {
   "use strict";
 
   const params = new URLSearchParams(location.search);
 
-  // F5 (perf audit §2/F5): where the resolved renderer choice came from, so select() can
-  // decide whether to PERSIST it (never from a one-off ?renderer= URL param) and the F3
-  // overlay can attribute the active renderer. "url" | "stored" | "default".
+  // select() persists the resolved renderer only when this is not "url": a one-off ?renderer= param
+  // must never become the stored default.
   let requestedSource = "default";
   let requestedName = null;   // the renderer select() actually asked impls for (pre-fallback)
 
   function readStoredRenderer() {
-    try { return localStorage.getItem("dwf.renderer"); } catch (_) { return null; }
+    return window.DwfUtil.lsGet("dwf.renderer");
   }
+
+  // ---- creature motion mode: native snap is the DEFAULT, as DF never draws a sub-tile offset ------
+  const SMOOTH_MOTION_LS_KEY = "dwf.smoothMotion";
+
+  function initialSmoothMotion() {
+    const q = params.get("nolerp");
+    if (q === "1") return false;
+    if (q === "0") return true;
+    return window.DwfUtil.lsGet(SMOOTH_MOTION_LS_KEY) === "1";
+  }
+
+  let smoothMotion = initialSmoothMotion();
 
   function requestedRenderer() {
     const q = params.get("renderer");
@@ -56,40 +51,9 @@
     const stored = readStoredRenderer();
     if (stored === "gl" || stored === "canvas2d") { requestedSource = "stored"; return stored; }
     requestedSource = "default";
-    // WB-14 default-flip (docs/superpowers/specs/2026-07-07-WB-renderer-spec.md, "Overlays,
-    // final 2D split, and the default-flip decision"): every prior WB item's gate stayed
-    // green (WB-8..13 dense terrain/liquids/hidden/walls/shadows/buildings/units, this item's
-    // own designation+presence overlay port) and the WB-14 acceptance sweep (S1/U1/U2 raw-
-    // oracle parity + gate_perf.py, both re-run before AND after this flip) was green in the
-    // same session -- see the flip commit message for the evidence. `?renderer=canvas2d` /
-    // `localStorage['dwf.renderer']='canvas2d'` still opt back in at any time, and the
-    // auto-fallback (webgl2 unavailable / context loss twice / atlas full, §1.1) still demotes
-    // to canvas2d automatically -- this is the wave's designed safety property (Rollback: one
-    // revert of this line restores the pre-flip default).
     return "gl";
   }
 
-  // =========================================================================================
-  // WB-9 GL controller. The gl impl's init() creates a WebGL2 canvas STACKED OVER the map
-  // canvas (pointer-events:none, so input still lands on canvas2d, whose geometry the gates +
-  // smooth-cursor overlay read), builds WB-8's atlas + WB-9's instanced pipeline
-  // (dwf-gl.js), fetches the sprite/token/shadow maps, and runs a rAF loop that
-  // scene-builds from dwf-tiles.js's decoded window (getLatest) ONLY when it changes
-  // (spec §1.7 -- never per frame), redrawing terrain every frame. Because canvas2d keeps
-  // drawing underneath, GL context loss (twice, spec §1.1) / atlas-full / init failure simply
-  // hides the GL canvas -> the live canvas2d map shows through instantly: the auto-fallback is
-  // a display toggle, never a black screen. WB-14 made "gl" the default (requestedRenderer()'s
-  // own banner has the gate evidence); `?renderer=canvas2d` / `localStorage['dwf.
-  // renderer']='canvas2d'` still select this whole path off entirely.
-  // =========================================================================================
-  // F3 (perf audit §2/F3): the DATA component of the GL rebuild key. Prefers the cache's real
-  // window CONTENT VERSION (latest.contentVersion) so the scene rebuilds only when a window-
-  // intersecting terrain block ACTUALLY changed -- invariant to the ~30/s fresh-`latest` churn
-  // that unit/AUX updates cause. Falls back to the identity seq for the poll/legacy path that
-  // carries no version (still updates there, just per-frame -- rare, 2/s). Pure + exported as a
-  // test hook (_dataKeyComponentForTest) so the both-directions regression test can assert:
-  // unit-only churn (same contentVersion, new object) => same key => NO rebuild; a designation
-  // (bumped contentVersion) => different key => rebuild (B29 stays covered).
   function dataKeyComponent(latest, fallbackSeq) {
     return (latest && typeof latest.contentVersion === "number")
       ? ("v" + latest.contentVersion)
@@ -97,29 +61,93 @@
   }
 
   function terrainKeyComponent(renderer, latest, fallbackSeq) {
-    return renderer && renderer.usesChunkPatching ? "r2" : dataKeyComponent(latest, fallbackSeq);
+    if (renderer && renderer.usesChunkPatching) {
+      // contentVersion deliberately stays out of this key: terrain arrives through cacheReader.onDirty().
+      // A cold snapshot can carry the same world_seq for every block, so the chunk fingerprint covers it.
+      return (latest && typeof latest.coverageVersion === "number")
+        ? "r2c" + latest.coverageVersion
+        : "r2";
+    }
+    return dataKeyComponent(latest, fallbackSeq);
+  }
+
+  // Cold snapshots install asynchronously, so a dirty notification can race the first retained scene
+  // and strand a placeholder on screen. Reconcile the retained scene a few times after completion.
+  const COLD_RECONCILE_DELAYS_MS = [100, 500, 1500, 4000, 8000];
+  function coldReconcileStage(nowMs, armedAt, completedStage) {
+    if (!(armedAt > 0) || !(nowMs >= armedAt)) return completedStage;
+    let dueStage = 0;
+    const elapsed = nowMs - armedAt;
+    for (let i = 0; i < COLD_RECONCILE_DELAYS_MS.length; i++) {
+      if (elapsed >= COLD_RECONCILE_DELAYS_MS[i]) dueStage = i + 1;
+    }
+    return Math.max(completedStage, dueStage);
   }
 
   function createGLController() {
     let glCanvas = null, gl = null, atlas = null, renderer = null, rafId = 0;
     let started = false, disposed = false, lossCount = 0;
+    let glVisible = false, mapsSettled = false, mapsSettledAt = 0;
     let maps = { spriteMap: null, tokenMap: null, shadowCellMap: null };
     let lastLatest = null, lastKey = "", dataSeq = 0;
-    let lastItemDefTokens = null; // T1d: last itemDefTokens map forwarded to GL (see maybeRebuild)
-    let lastItemTypeNames = null; // B256: last item_type numeric->string table forwarded to GL
-    // benchpan (spec §1.7 / WB-16 hook): scripted pan/zoom via uniform-only scroll (no rebuild)
-    // to prove pure pan/zoom is a uniform update. Frame deltas recorded into a ring for p95.
+    let lastItemDefTokens = null;  // last itemDefTokens map forwarded to GL (see maybeRebuild)
+    let lastItemTypeNames = null; // last item_type numeric->string table forwarded to GL
+    let coldReconcileArmedAt = 0, coldSocketOpens = -1;
+    let coldReconcileStageDone = 0, coldReconcileBuildCount = 0;
+    // benchpan: scripted pan/zoom by uniform-only scroll, frame deltas recorded into a ring for p95.
     let bench = { on: params.get("benchpan") === "1", phase: 0, frames: [], last: 0 };
     let onDemote = null;
 
     function makeCanvas() {
       const c = document.createElement("canvas");
       c.id = "dwf-gl";
-      c.style.cssText = "position:fixed;left:0;top:0;width:100vw;height:100vh;" +
-        "pointer-events:none;z-index:1;";
+      c.className = "dwf-gl-canvas";
       c.width = window.innerWidth; c.height = window.innerHeight;
       document.body.appendChild(c);
       return c;
+    }
+
+    // ---- COLD-LOAD reveal gate: GL occludes canvas2d only on maybeReveal()'s terms ----------------
+    function setGLVisible(on) {
+      if (glVisible === on) return;
+      glVisible = on;
+      if (glCanvas) glCanvas.classList.toggle("is-visible", on);
+      try { window.__dfcGLVisible = on; } catch { /* the local glVisible gate remains authoritative */ }
+      // canvas2d's paint gate reads __dfcGLVisible; force one full repaint when GL steps aside.
+      if (!on) {
+        try { if (window.DwfTiles && typeof DwfTiles.draw === "function") DwfTiles.draw(); }
+        catch { /* canvas2d remains eligible for its next scheduled paint */ }
+      }
+    }
+
+    let revealResolvedFraction = 0.80;   // tunable; pinned by coldload_boot_test.mjs
+    let revealCeilingMs = 20000;         // hard ceiling from mapsSettled (see _revealTuningForTest)
+
+    function maybeReveal() {
+      if (glVisible || !mapsSettled || !renderer || !atlas) return;
+      let sheetsLoaded, gs;
+      try { sheetsLoaded = (atlas.getStats() || {}).sheetsLoaded || 0; } catch { return; }
+      try { gs = renderer.getStats() || {}; } catch { return; }
+      const instances = gs.instanceCount || 0;
+      // A renderer that does not report the split falls back to the weaker meaning: fail-open, never fail-dark.
+      const hasSplit = typeof gs.staticInstanceCount === "number";
+      const staticInstances = hasSplit ? gs.staticInstanceCount : instances;
+      const resolved = typeof gs.staticResolvedFraction === "number" ? gs.staticResolvedFraction : 1;
+      // A tt<0 placeholder hatch is a resolved static instance too, so require source-backed terrain:
+      // neither units nor a hatch-only frame may satisfy the reveal.
+      const hasTerrainEvidence =
+        typeof gs.terrainSourceTiles === "number" && gs.terrainSourceTiles > 0;
+
+      // Ceiling: something is genuinely stuck, so show the map we have rather than sit on canvas2d.
+      if (mapsSettledAt && Date.now() - mapsSettledAt >= revealCeilingMs && hasTerrainEvidence) {
+        try { if (window.DwfBoot) window.DwfBoot.note("gl-reveal-ceiling",
+          "GL revealed on the " + (revealCeilingMs / 1000) + "s ceiling at resolved=" + resolved.toFixed(2)); }
+        catch { /* revealing the available map is the fallback */ }
+        setGLVisible(true);
+        return;
+      }
+      if (sheetsLoaded > 0 && hasTerrainEvidence && staticInstances > 0 && resolved >= revealResolvedFraction)
+        setGLVisible(true);
     }
 
     function init() {
@@ -141,26 +169,14 @@
       renderer = window.DwfGL.create(gl, {
         atlas,
         adjacency: window.DwfAdjacency || null,
-        // WB-10: the SAME public read API (getChunk/chunkKeyFor) the WA-7 canvas2d bridge
-        // already uses -- read-only, no coupling to dwf-cache.js internals. Absent
-        // (older page, script load-order issue) simply disables the multi-z descent, same as
-        // any other optional map (spec: "must land green in transitional mode alone").
         cacheReader: window.DwfCache || null,
-        // WB-13 Rollback note: `?nolerp=1` is a pure view-side kill-switch for the unit
-        // interpolation lerp (snap-to-latest instead of gliding), revert-safe by construction.
-        nolerp: params.get("nolerp") === "1",
-        // WB-15: `?freezeAnim=1` pins the GL animation clock at t=0 -- REQUIRED by every
-        // parity gate from here on (spec: two captures of the "same" scene must be pixel-
-        // identical, which a moving clock would break). Revert-safe view-side flag, same
-        // convention as nolerp above.
+        // Default false is native snap-to-tile; runtime-switchable via setSmoothMotion(), with no reload.
+        smoothMotion: smoothMotion,
         freezeAnim: params.get("freezeAnim") === "1",
-        // QA-only kill switch (window-capture parity scoring, M1 closure): `?nofog=1` forces
-        // the measured see-down fog off (dwf-gl.js's create() zeroes the UBO fields +
-        // its FOG_DISABLED flag) so gate_parity.py --oracle window can A/B whether the fog
-        // IMPROVES or WORSENS parity against the real composited window. canvas2d reads the
-        // same URL param directly (dwf-tiles.js's own FOG_DISABLED), so this one flag
-        // covers both renderers regardless of which is active for a given gate run.
+        // ?nofog=1 forces the measured see-down fog off in BOTH renderers, for window-capture parity A/B.
         nofog: params.get("nofog") === "1",
+        // Permits getStats(true) to read the uploaded static VBO back; absent unless ?colddiag is present.
+        diagnosticReadback: params.has("colddiag"),
       });
       loadMaps();
       start();
@@ -174,37 +190,20 @@
 
     async function loadMaps() {
       async function j(url) {
-        try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? await r.json() : null; }
-        catch (_) { return null; }
+        try {
+          if (window.DwfJson && typeof window.DwfJson.get === "function") return await window.DwfJson.get(url);
+          const r = await fetch(url, { cache: "no-cache" });
+          return r.ok ? await r.json() : null;
+        } catch { return null; }
       }
       const [sm, tm, scm, ttm, im, pm, trm, spm, mm, bm, cm, gcm] = await Promise.all([
         j("/sprites/map.json"), j("/tiletype_token_map.json"), j("/shadow_cell_map.json"),
-        // WB-10: the SAME session meta table the WA-7 canvas2d bridge resolves tt->ttname/
-        // shape/mat from (WA-5, §0.7) -- dwf-gl.js keeps its OWN copy rather than
-        // reaching into dwf-cache.js's private table (no cross-file coupling, same
-        // convention as its already-duplicated colour tables). Needed only for the multi-z
-        // descent; absent/failed fetch just means descent stays off (tiletypeMeta null).
         j("/tiletype_meta.json"),
-        // WB-11: the SAME committed sparse-layer maps dwf-tiles.js's boot sequence
-        // already fetches for the canvas2d path -- dwf-gl.js keeps its own copy (no
-        // cross-file coupling; a failed/absent fetch just disables that one sparse layer,
-        // same "layer falls back, never throws" convention as every other optional map here).
         j("/item_map.json"), j("/plant_map.json"), j("/tree_map.json"), j("/spatter_map.json"),
-        // T1a/T1c/T1d: the SAME committed web/material_map.json dwf-tiles.js loads --
-        // gives GL items their exact inorganic identity + palette-swap rows (absent => pre-T1).
-        j("/material_map.json?v=w9"),
-        // WB-12: the SAME committed web/building_map.json dwf-tiles.js already loads for
-        // the canvas2d building pass -- a failed/absent fetch just means every building falls
-        // back to MISSING_BUILDING (same convention as every other optional map here).
+        // the SAME committed material_map.json dwf-tiles.js loads: inorganic identity + palette-swap rows
+        j("/material_map.json?v=c3b8ef13"),
         j("/building_map.json"),
-        // WB-13: the SAME committed web/creatures_map.json dwf-tiles.js already loads for
-        // the canvas2d unit tier-3 flat-race-cell resolution -- a failed/absent fetch just means
-        // every unit falls back to the fallback dot (same convention as every map here).
         j("/creatures_map.json"),
-        // WC-17 GL parity: the SAME committed web/grass_colors.json dwf-tiles.js already
-        // loads (loadGrassColors there) for its per-species grass tint -- a failed/absent fetch
-        // just means grassSpeciesTintRGBA() falls back to the flat grassSummer wash (same
-        // convention as every other optional map here).
         j("/grass_colors.json"),
       ]);
       const tiletypeMeta = new Map();
@@ -222,19 +221,20 @@
       };
       if (renderer) renderer.setMaps(Object.assign({}, maps, { tiletypeMeta: tiletypeMeta.size ? tiletypeMeta : null }));
       lastKey = ""; // force rebuild with maps present
-      // T1 sweep determinism: signal that the GL map set (incl. material_map) has been handed
-      // to the renderer -- tools/spriterange/range_diff.py waits on this before screenshotting
-      // so gl-vs-c2d parity never compares a maps-loaded frame against a maps-racing one (the
-      // 213412Z partial caught c2d swapped vs GL plain in the first windows). Set even when
-      // individual fetches failed: "settled" means the boot attempt finished, not "all present".
-      try { window.__dfcMapsSettled = true; } catch (_) { /* non-browser context */ }
+      // "Settled" means the boot attempt finished, not that every fetch succeeded: gating the reveal
+      // on a fully successful load would leave the client on canvas2d forever when one sheet 404s.
+      try { window.__dfcMapsSettled = true; } catch { /* the local mapsSettled gate below remains authoritative */ }
+      mapsSettled = true;  // reveal gate condition 1
+      mapsSettledAt = Date.now();  // start of the reveal ceiling
     }
 
     function onContextLost(e) {
       e.preventDefault();
       lossCount++;
+      // A lost context draws nothing: hide the GL canvas so canvas2d resumes full painting at once.
+      setGLVisible(false);
       if (renderer) renderer.handleLost();
-      // spec §1.1: context loss TWICE in a session -> permanent canvas2d fallback.
+      // Context loss TWICE in a session -> permanent canvas2d fallback.
       if (lossCount >= 2) { demote("webgl context lost twice"); return; }
     }
     function onContextRestored() {
@@ -243,36 +243,28 @@
       catch (err) { demote("context restore failed: " + (err && err.message)); }
     }
 
-    // Resize the GL canvas to the window (matching dwf-tiles.js's full-window backing).
-    // WT20 (mobile): same coarse-pointer dpr scale (capped 2, same kill switch) as tiles.js's
-    // resizeCanvas, so the VISIBLE GL map is native-density on phones too. The two scales are
-    // computed independently but even a mismatch stays render-correct: each canvas maps its own
-    // backing to the same 100vw/100vh CSS box, and GL's cell = glCanvas.width/window-tiles is
-    // self-consistent per canvas. Desktop (fine pointer): scale 1, byte-identical behavior.
-    function mobileBackingScale() {
+    // The backing scale is ONE contract, owned by dwf-tiles.js (DwfTiles.backingScale / cellPxFor).
+    // Never give this file its own copy: a second derivation leaves the canvas upscaled by the compositor.
+    function backingScale() {
       try {
-        if (typeof window.matchMedia !== "function" ||
-            !window.matchMedia("(pointer: coarse)").matches) return 1;
-        if (localStorage.getItem("dwf.mobiledpr") === "0") return 1;
-        return Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-      } catch (_) { return 1; }
+        const T = window.DwfTiles;
+        if (T && typeof T.backingScale === "function") return T.backingScale();
+      } catch { /* the shared renderer scale falls back to 1 */ }
+      return 1;
     }
     function syncSize() {
-      const s = mobileBackingScale();
+      const s = backingScale();
       const w = Math.max(1, Math.round(window.innerWidth * s));
       const h = Math.max(1, Math.round(window.innerHeight * s));
       if (glCanvas.width !== w || glCanvas.height !== h) { glCanvas.width = w; glCanvas.height = h; }
     }
 
-    // Pull the decoded window + geometry from canvas2d (single source of truth) and rebuild
-    // the instance buffer ONLY when the window content/origin/zoom changed (spec §1.7).
+    // Rebuild the instance buffer ONLY when the window content, origin or zoom changed.
     function maybeRebuild() {
       const T = window.DwfTiles;
       if (!T || typeof T.getLatest !== "function") return null;
-      // T1d: the (type,subtype)->ITEMDEF token map is wire-driven and lands in dwf-tiles.js
-      // AFTER loadMaps() (once the v1 ITEMDEF_DICT message arrives). Forward it (by reference,
-      // once it changes) so GL's item resolver gains the itemdef->bytoken step -- the root fix
-      // for the minecart/tool/toy/weapon PARITY-MISMATCH class.
+      // The (type,subtype)->ITEMDEF token map is wire-driven and lands in dwf-tiles.js AFTER loadMaps(),
+      // so forward it by reference once it changes or GL's item resolver loses its itemdef->bytoken step.
       if (renderer && typeof T.getItemDefTokens === "function") {
         const idt = T.getItemDefTokens();
         if (idt && idt !== lastItemDefTokens) {
@@ -281,9 +273,6 @@
           lastKey = "";
         }
       }
-      // B256: same forwarding for the numeric item_type -> "TYPE" table (fetched by tiles.js from
-      // /item_type_meta.json). Without it GL cannot turn the AUX projectile wire's numeric
-      // item_type into item art and falls back to the white-dot marker.
       if (renderer && typeof T.getItemTypeNames === "function") {
         const itn = T.getItemTypeNames();
         if (itn && itn !== lastItemTypeNames) {
@@ -294,41 +283,36 @@
       }
       const latest = T.getLatest();
       if (!latest || !latest.tiles || !(latest.width > 0) || !(latest.height > 0)) return null;
+
+      let socketOpens = -1;
+      try {
+        if (window.DwfWS && typeof window.DwfWS.getStats === "function") {
+          const wsStats = window.DwfWS.getStats();
+          if (typeof wsStats.socketOpens === "number") socketOpens = wsStats.socketOpens;
+        }
+      } catch { /* socketOpens stays unknown and cold reconciliation continues */ }
+      const nowMs = Date.now();
+      if (!coldReconcileArmedAt || (socketOpens >= 0 && coldSocketOpens >= 0 &&
+          socketOpens !== coldSocketOpens)) {
+        coldReconcileArmedAt = nowMs;
+        coldReconcileStageDone = 0;
+      }
+      if (socketOpens >= 0) coldSocketOpens = socketOpens;
+      const dueStage = coldReconcileStage(nowMs, coldReconcileArmedAt, coldReconcileStageDone);
+      if (dueStage > coldReconcileStageDone) {
+        coldReconcileStageDone = dueStage;
+        coldReconcileBuildCount++;
+        if (renderer && renderer.invalidateScene) renderer.invalidateScene();
+        lastKey = "";
+      }
+
       const w = glCanvas.width, h = glCanvas.height;
       const renderView = latest;
-      const cell = Math.max(1, Math.min(w / latest.width, h / latest.height));
+      const cell = (typeof T.cellPxFor === "function")
+        ? T.cellPxFor(w, h, latest.width, latest.height)
+        : Math.max(1, Math.floor(Math.min(w / latest.width, h / latest.height)));
       const o = renderView.origin || { x: 0, y: 0, z: 0 };
-      // change key: a monotonic data-change seq + window origin + dims + zoom.
-      //
-      // B29 ROOT-CAUSE NOTE (designations/tile changes invisible until pan/zoom/z-change):
-      // this used to be a `(latest === lastLatest ? "s" : "d")` identity TOGGLE, with
-      // `lastLatest` assigned only inside the rebuild branch below. That was written when
-      // getLatest() returned a fresh object only per applyKeyframe/applyDelta ("identity
-      // change == data change"); the WA-7/13/15 cache-fed path broke the assumption --
-      // refreshFromCacheIfNeeded() rebuilds `latest` on EVERY canvas2d draw (AUX-driven,
-      // ~30-40/s live). Once a rebuild landed on a changed-object frame, `lastLatest` froze
-      // on a dead object, every later frame computed the same "d|..." key, and NO data
-      // change could ever trigger a rebuild again -- only pan/z (origin), zoom (cell),
-      // resize (dims), or a lazy sheet-ready lastKey="" reset did. Live-measured on the
-      // wedged state: latest identity churning at 39.8/s, sceneBuildCount frozen for 10+s
-      // while a freshly-designated tile sat undrawn (2026-07-08 desiglag ledger entry).
-      // F3 (perf audit §2/F3, post-B29 over-correction): the B29 fix folded a monotonic seq
-      // bumped on EVERY `latest` identity change into the key -- but refreshFromCacheIfNeeded()
-      // mints a fresh `latest` on every canvas2d draw (~30/s, unit/AUX-driven), so on a busy fort
-      // buildScene (a full walk of all ~23k visible tiles, up to 26 instances each) ran ~30x/s
-      // even when only UNITS moved (units have their own per-rAF tickUnits path -- see below --
-      // and never need a terrain rebuild). FIX: key the data component on the cache's real window
-      // CONTENT VERSION (latest.contentVersion = max block world_seq over the window, stamped by
-      // dwf-tiles.js) so buildScene runs ONLY when a window-intersecting terrain block
-      // actually changed (a dig/designation/build/liquid/see-down move) or origin/zoom/dims
-      // changed. This keeps B29 covered (a real designation DOES bump contentVersion -> rebuild;
-      // that bug was the OPPOSITE failure, "never rebuilds") while killing the unit-churn rebuilds.
-      // The identity seq is kept as the fallback for the poll/legacy path that carries no version.
       if (latest !== lastLatest) { lastLatest = latest; dataSeq++; }
-      // R2: cache-backed GL terrain delivery is exclusively BLOCK_SET/onDirty-driven. Keeping
-      // contentVersion in this key would silently retain the old full-build fallback and let a
-      // suppressed/missed dirty fixture pass coincidentally. Legacy/no-cache renderers retain
-      // the F3 data key; R2 uses a stable marker and patches before this frame runs.
       const dataPart = terrainKeyComponent(renderer, latest, dataSeq);
       const key = dataPart + "|" + o.x + "," + o.y + "," + o.z +
         "|" + renderView.width + "x" + renderView.height + "|" + cell.toFixed(3) +
@@ -347,42 +331,32 @@
       try {
         syncSize();
         const mb = maybeRebuild();
-        // WB-13: units interpolate on the rAF clock, INDEPENDENT of maybeRebuild's data-change
-        // key (units churn every ~30Hz AUX push, which alone never flips that key -- see
-        // dwf-gl.js's file banner). updateUnits() is identity-deduped internally (a no-op
-        // most of these 60fps calls); tickUnits() always re-emits the interpolated tail so a
-        // unit glides smoothly between two AUX snapshots instead of teleporting once per push.
         if (mb && mb.latest) {
           const latest = mb.latest;
-          // H1: buildings/presence have independent GL segments. Their cheap section folds
-          // update those segments without invalidating the terrain prefix.
+          // Buildings and presence have independent GL segments, so folding them keeps the terrain prefix.
           if (renderer.updateSceneSegments) renderer.updateSceneSegments(latest);
           renderer.updateUnits(latest.units, Date.now());
-          // WC-22: feed the latest projectile snapshot BEFORE tickUnits (tickUnits appends the
-          // projectile instances into the same dynamic tail it re-emits the units into).
+          // Feed the projectile snapshot BEFORE tickUnits: both append into the same dynamic tail.
           if (renderer.updateProjectiles) renderer.updateProjectiles(latest.proj);
-          // B139: flow clouds (t.cloud, per-tile) ride the same tail; updateFlows is keyed
-          // on contentVersion internally so this 60fps call is a cheap no-op most frames.
+          // Flow clouds ride the same tail; updateFlows is keyed on contentVersion, so it usually no-ops.
           if (renderer.updateFlows) renderer.updateFlows(latest);
           const o = latest.origin || { x: 0, y: 0, z: 0 };
           renderer.tickUnits(ts, o.x, o.y, o.z);
         }
-        // benchpan: animate uniform-only scroll (+ a zoom wobble via cell) to prove pan/zoom
-        // is a uniform update with NO scene rebuild between data changes.
+        // benchpan: animate uniform-only scroll, to prove pan/zoom needs no scene rebuild.
         if (bench.on) {
           bench.phase += 0.08;
           renderer.setScroll(Math.sin(bench.phase) * 4, Math.cos(bench.phase * 0.7) * 4);
         }
-        // WB-15: pass the rAF timestamp straight through so the GL renderer's animation clock
-        // (u_timeMs) advances off the SAME clock this loop is already driven by -- no separate
-        // Date.now()/performance.now() call needed here.
         renderer.render(ts);
+        // Checked AFTER render(), so instanceCount reflects the frame that was just drawn.
+        maybeReveal();
         if (bench.on) {
           if (bench.last) bench.frames.push(ts - bench.last);
           bench.last = ts;
           if (bench.frames.length > 240) bench.frames.shift();
         }
-      } catch (_) { /* a bad frame never kills the loop */ }
+      } catch { /* the next animation frame retries from retained renderer state */ }
     }
 
     function start() {
@@ -394,14 +368,21 @@
     function demote(reason) {
       if (disposed) return;
       disposed = true;
+      setGLVisible(false);   // clears __dfcGLVisible so canvas2d's F1 gate reopens at once
       if (rafId) cancelAnimationFrame(rafId);
-      try { if (renderer) renderer.dispose(); } catch (_) {}
+      try { if (renderer) renderer.dispose(); }
+      catch { /* canvas cleanup and renderer demotion still continue */ }
       cleanupCanvas();
       if (typeof onDemote === "function") onDemote(reason);
     }
 
     function getStats() {
-      const s = renderer ? renderer.getStats() : { renderer: "gl" };
+      // The retained/cache comparison runs only through this diagnostic seam: decoding every retained
+      // tile in maybeReveal()'s per-frame getStats() would perturb the cold load being observed.
+      const s = renderer ? renderer.getStats(true) : { renderer: "gl" };
+      s.coldReconcileBuildCount = coldReconcileBuildCount;
+      s.coldReconcileStage = coldReconcileStageDone;
+      s.coldReconcileStageCount = COLD_RECONCILE_DELAYS_MS.length;
       if (bench.on && bench.frames.length > 4) {
         const sorted = bench.frames.slice().sort((a, b) => a - b);
         s.benchP50 = +sorted[Math.floor(sorted.length * 0.5)].toFixed(2);
@@ -414,6 +395,7 @@
     return {
       init,
       setRenderParams: (p) => { if (renderer) renderer.setRenderParams(p); },
+      setSmoothMotion: (on) => { if (renderer) renderer.setSmoothMotion(on); },
       getStats,
       onDemote: (cb) => { onDemote = cb; },
       _forceLoseContext: () => {
@@ -424,12 +406,16 @@
         return false;
       },
       _renderer: () => renderer,
-      // WB-14 debug/test hooks (same convention as _renderer/_forceLoseContext above): the
-      // live atlas instance + its GL context, so an acceptance script can readPixels the
-      // ACTUAL packed cell content (framebufferTextureLayer on atlas.getTexture()) instead
-      // of trusting the allocator's bookkeeping.
       _atlas: () => atlas,
       _gl: () => gl,
+      // Whether the GL canvas is composited yet; harnesses wait on this before screenshotting a GL frame.
+      _glVisible: () => glVisible,
+      // Lets the offline fixture drive the reveal thresholds instead of sleeping out the real ceiling.
+      _revealTuningForTest: (fraction, ceilingMs) => {
+        if (typeof fraction === "number") revealResolvedFraction = fraction;
+        if (typeof ceilingMs === "number") revealCeilingMs = ceilingMs;
+        return { fraction: revealResolvedFraction, ceilingMs: revealCeilingMs };
+      },
     };
   }
 
@@ -439,19 +425,12 @@
   const impls = {
     canvas2d: {
       name: "canvas2d",
-      // Pure pass-through: dwf-tiles.js is either already self-booted (standalone) or
-      // will be booted by dwf-core.js's own DwfTiles.init() call later in the
-      // embedded page's load sequence -- either way THIS call must not re-init anything,
-      // just confirm the implementation exists.
+      // Pure pass-through: dwf-tiles.js self-boots or is booted by dwf-core.js, so this must not re-init.
       init() {
         if (!window.DwfTiles) throw new Error("canvas2d: DwfTiles not loaded");
         return window.DwfTiles;
       },
     },
-    // WB-9: the real instanced WebGL2 pipeline (web/js/dwf-gl.js), managed by the GL
-    // controller above. init() fails fast (throws) on WebGL2 unavailability so the seam falls
-    // back to canvas2d exactly as the WB-1 stub did; a LATER failure (context loss twice /
-    // atlas full) demotes to canvas2d via onDemote without a black screen.
     gl: {
       name: "gl",
       init() {
@@ -459,10 +438,9 @@
         glController.onDemote((reason) => {
           warnFallback("gl", new Error(reason));
           activeName = "canvas2d";
-          // The GL canvas was just removed; canvas2d is now the live display. Under F1 its
-          // paint was gated off while GL was active (kept only keep-warm), so force one
-          // immediate full repaint so the reveal shows a CURRENT frame, not a ~0.5s-stale one.
-          try { if (window.DwfTiles && typeof DwfTiles.draw === "function") DwfTiles.draw(); } catch (_) { /* never throw out of demote */ }
+          // canvas2d's paint was gated off while GL was active, so force one full repaint on the reveal.
+          try { if (window.DwfTiles && typeof DwfTiles.draw === "function") DwfTiles.draw(); }
+          catch { /* canvas2d remains eligible for its next scheduled paint */ }
         });
         return glController.init();
       },
@@ -495,50 +473,34 @@
         impls.canvas2d.init();
         activeName = "canvas2d";
       } catch (err2) {
-        // DwfTiles itself isn't present (script missing/load-order bug) -- surface it
-        // the same way (one warning), but never throw out of this IIFE.
+        // DwfTiles absent (script missing, or a load-order bug): warn once, but never throw out of this IIFE.
         warnFallback("canvas2d", err2);
         activeName = "canvas2d";
       }
     }
-    // F5 LANDMINE FIX (perf audit §2/F5 -- "potentially the whole bug, one line"): NEVER
-    // persist a renderer that came from the ?renderer= URL param. A one-off QA/A-B visit to
-    // `?renderer=canvas2d` (the WB-16 discrimination gate + various A/B instructions tell people
-    // to load exactly that) used to write canvas2d to localStorage, silently pinning a 5090 user
-    // to the 3.4fps-class fallback on EVERY plain-URL load thereafter. The URL param now wins for
-    // THIS session only and does not write. We still persist the REQUESTED choice when it came
-    // from a stored pref (idempotent) or the default (so a transient gl failure doesn't
-    // permanently downgrade a default user once the failure clears) -- just never from the URL.
     if (requestedSource !== "url") {
-      try { localStorage.setItem("dwf.renderer", wanted); } catch (_) { /* ignore */ }
+      window.DwfUtil.lsSet("dwf.renderer", wanted);
     }
   }
 
   select();
 
-  // getStats(): F3/gate-facing counters, merging the active implementation's own stats (if
-  // any) with the renderer name this seam owns. canvas2d's DwfTiles.getStats() already
-  // reports its own "renderer":"canvas2d" plus sceneBuildCount; the seam's `renderer` field
-  // wins so callers always see what THIS layer resolved to.
+  // F3/gate-facing counters; the seam's `renderer` field wins, so callers see what THIS layer resolved to.
   function getStats() {
     let implStats = null;
     try {
       if (window.DwfTiles && typeof DwfTiles.getStats === "function") {
         implStats = DwfTiles.getStats();
       }
-    } catch (_) { /* stats must never throw */ }
+    } catch { /* the coordinator still returns its renderer identity */ }
     let glStats = null;
     if (activeName === "gl" && glController) {
-      try { glStats = glController.getStats(); } catch (_) { /* never throw */ }
+      try { glStats = glController.getStats(); }
+      catch { /* the coordinator still returns its renderer identity */ }
     }
-    // gl stats (sceneBuildCount, scene-build ms, upload bytes, benchpan p95, ...) win when GL
-    // is active; the seam's renderer field always wins over both.
     return Object.assign({}, implStats, glStats, { renderer: activeName });
   }
 
-  // F5 overlay support: renderer provenance for the F3 perf overlay (dwf-tiles.js's
-  // diagText). `active` is what THIS seam resolved to; `demoted` means an init failure / context
-  // loss / atlas-full knocked us off the requested renderer down to canvas2d.
   function provenance() {
     return {
       active: activeName,
@@ -552,13 +514,20 @@
     get active() { return activeName; },
     getStats,
     provenance,
-    // Runtime RenderParams (spec §1.3) -- forwards to the GL renderer with ZERO scene rebuild;
-    // a no-op under canvas2d. WB-10 uses this for the designated-hidden lighten curve.
+    // Runtime RenderParams: forwards to the GL renderer with ZERO scene rebuild; a no-op on canvas2d.
     setRenderParams(p) { if (glController) glController.setRenderParams(p); },
+    get smoothMotion() { return smoothMotion; },
+    setSmoothMotion(on) {
+      smoothMotion = !!on;
+      window.DwfUtil.lsSet(SMOOTH_MOTION_LS_KEY, smoothMotion ? "1" : "0");
+      if (glController) glController.setSmoothMotion(smoothMotion);
+    },
     _impls: impls,   // debug/test hook only -- not part of the public contract
     _glController: () => glController,   // test hook: context-loss / stats introspection
     _dataKeyComponentForTest: dataKeyComponent,   // F3 both-directions regression test hook
-    _terrainKeyComponentForTest: terrainKeyComponent, // R2: onDirty is the sole terrain trigger
+    _terrainKeyComponentForTest: terrainKeyComponent,  // onDirty is the sole terrain trigger
+    _coldReconcileStageForTest: coldReconcileStage,
+    _coldReconcileDelaysForTest: COLD_RECONCILE_DELAYS_MS.slice(),
   };
-  try { window.DwfRender = api; } catch (_) { /* non-browser context */ }
+  try { window.DwfRender = api; } catch { /* a headless harness does not consume the browser export */ }
 })();

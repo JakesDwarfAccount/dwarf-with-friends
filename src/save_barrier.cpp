@@ -1,3 +1,24 @@
+// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #include "save_barrier.h"
 
 #include "DataDefs.h"
@@ -42,9 +63,8 @@ void save_barrier_update() {
         g_clear_frames = 0;
         return;
     }
-    // Do not reopen on the first post-save callback. DF can finish writing before all of its
-    // transient save bookkeeping has been retired; three completed core updates are cheap and
-    // close the exact end-of-save race seen in crash_2026-07-19-21-06-46.
+    // Do not reopen on the first post-save callback: DF can finish writing before its transient
+    // save bookkeeping is retired, and a browser world write inside that window crashes DF.
     if (++g_clear_frames < 3) return;
     g_clear_frames = 0;
     g_active.store(false);

@@ -21,6 +21,7 @@
 
 #include "pause_arbiter.h"
 
+#include "common_util.h"
 #include "diplo.h"
 #include "interaction.h"
 #include "json_util.h"
@@ -45,18 +46,13 @@ namespace dwf {
 
 namespace {
 
-long long steady_ms() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-}
-
 // ---- arbiter bookkeeping (all guarded by g_pause_mutex) ----------------------------------------
 std::mutex g_pause_mutex;
 bool g_target = false;             // arbiter's model of pause_state
 bool g_target_init = false;        // lazily initialized from the live pause_state on first use
 long long g_last_ms = 0;           // steady_ms of the last APPLIED transition
 std::string g_last_actor = "host"; // who is credited with the current pause state
-bool g_leave_reversible = false;   // last apply was a leave-pause -> skip rule 3 for 1st opposing
+bool g_leave_reversible = false;   // after a leave-pause, do not suppress the first opposing request
 std::string g_pending_leave_player;// set by the (core-free) cursor thread, applied by push tick
 
 // ---- tunables (multi-thread readable) ----------------------------------------------------------
@@ -70,16 +66,14 @@ std::atomic<bool> g_host_unpause_only{false};   // crash #4 gate: only host may 
 std::atomic<long long> g_heartbeat_ms{0};   // stamped by pause_push_tick each completed tick
 std::atomic<bool> g_autosave_seen{false};   // last-sampled plotinfo->main.autosave_request
 
-// -----------------------------------------------------------------------------------------------
 bool read_pause_state(bool& out) {
     if (!df::global::pause_state) return false;   // no game loaded
     out = *df::global::pause_state;               // stable process-lifetime bool global
     return true;
 }
 
-// Apply the target pause_state through the EXISTING core-thread action path (run_suspended ->
-// World::SetPauseState). Never called on ws_cursor_loop (that loop must stay CoreSuspender-free);
-// only from pause_request (HTTP worker) or pause_push_tick (push loop).
+// Applies the target through the core-thread action path. Never call it on ws_cursor_loop: that
+// loop must stay CoreSuspender-free.
 bool apply_pause_state(bool desired, std::string* err) {
     return action_on_core_thread(desired ? "pause" : "play", err);
 }
@@ -113,7 +107,7 @@ void ensure_init_locked() {
     }
 }
 
-// Caller must hold g_pause_mutex. Applies + broadcasts a leave-pause (already-paused -> no-op).
+// Caller must hold g_pause_mutex.
 void apply_leave_pause_locked(const std::string& leaver) {
     bool actual = false;
     if (!read_pause_state(actual)) return;   // no world -> no crash, no pause
@@ -124,15 +118,13 @@ void apply_leave_pause_locked(const std::string& leaver) {
     g_target = true;
     g_last_ms = steady_ms();
     g_last_actor = "server";
-    g_leave_reversible = true;   // people should SEE it and be able to resume at once (skip rule 3)
+    g_leave_reversible = true;   // people should SEE it and be able to resume at once
     broadcast_pause(true, "server", "leave", leaver);
 }
 
 } // namespace
 
-// ================================================================================================
-// WT01 request resolution
-// ================================================================================================
+// ---- request resolution ------------------------------------------------------------------------
 PauseDecision pause_request(const std::string& player, const std::string& kind, bool is_host) {
     PauseDecision d;
     std::lock_guard<std::mutex> lk(g_pause_mutex);
@@ -159,12 +151,8 @@ PauseDecision pause_request(const std::string& player, const std::string& kind, 
         return d;
     }
 
-    // Host-only-unpause gate (crash #4 hardening): when enabled, only the host session may LEAVE
-    // pause. Any request that resolves to desired==false (unpause/play/resume, OR a toggle while
-    // currently paused) from a non-host session is refused with a clear reason. Pausing
-    // (desired==true) stays open to everyone. Evaluated on the RESOLVED target so a toggle that
-    // would pause is still allowed for non-hosts, but a toggle that would unpause is not. Gate is
-    // default OFF, so is_host is irrelevant until an operator sets hostunpause=on (range era).
+    // Host-only-unpause gate, evaluated on the RESOLVED target: a toggle that would pause stays
+    // open to non-hosts, a toggle that would unpause does not.
     if (g_host_unpause_only.load() && !desired && !is_host) {
         d.ok = false;
         d.err = "unpause is host-only";
@@ -173,14 +161,8 @@ PauseDecision pause_request(const std::string& player, const std::string& kind, 
         return d;
     }
 
-    // WT28/B218 popup gate: while a native BOX popup is mirrored (popup_push_tick), the sim is
-    // genuinely hard-paused by the popup itself -- DF sets *pause_state for BOX announcements, so
-    // an unpause would not actually resume anything and would desync the arbiter's model. Refuse
-    // with a clear reason so the client explains WHY instead of appearing broken; the forced pause
-    // is deliberate signal and is KEPT until someone dismisses the popup (any web player can, via
-    // the mirrored modal's POST /popup/dismiss). Pausing stays open to everyone. NOTE: this gate
-    // fires ONLY for genuine BOX popups -- popup_blocked() no longer reflects the host's local
-    // Alerts/report window (that is local UI and never blocks browser unpause; see native_popup.h).
+    // DF hard-pauses itself for a BOX popup, so unpausing would resume nothing and desync the
+    // arbiter's model. popup_blocked() covers genuine BOX popups only, never the host's Alerts window.
     if (!desired && popup_blocked()) {
         d.ok = false;
         d.err = "a native announcement popup is open - dismiss it first";
@@ -189,12 +171,8 @@ PauseDecision pause_request(const std::string& player, const std::string& kind, 
         return d;
     }
 
-    // B225 diplomacy gate, same shape as the popup gate above: while the native diplomacy
-    // meeting dialog is open the sim is wedged by the meeting itself (DFHack's own
-    // World::ReadPauseState counts main_interface.diplomacy.open as paused) -- an unpause
-    // would not resume anything and would desync the arbiter's model. Refuse with a clear
-    // reason. v1: the meeting is ADVANCED at the host PC (the browser mirror is read-only
-    // until the advance transition is established -- see src/diplo.cpp's banner).
+    // The native diplomacy dialog wedges the sim the same way a BOX popup does: DFHack's own
+    // ReadPauseState counts diplomacy.open as paused, so an unpause would resume nothing.
     if (!desired && diplo_meeting_open()) {
         d.ok = false;
         d.err = "a diplomacy meeting is underway - it must be advanced at the host PC";
@@ -207,17 +185,14 @@ PauseDecision pause_request(const std::string& player, const std::string& kind, 
     d.by = g_last_actor;
     d.paused_now = g_target;
 
-    // Rule 2: desired == target -> no-op, absorbed (two players hitting the same button; or the
-    // second space-bar toggle after the first already applied resolves to the SAME target).
     if (desired == g_target) {
         d.merged = true;
         d.applied = false;
         return d;
     }
 
-    // Rule 3: opposing request from a DIFFERENT player inside the merge window -> presumed a stale
-    // race (they acted on the pre-transition state they were still seeing) -> SUPPRESS. Skipped
-    // for the first opposing request after a leave-pause (g_leave_reversible).
+    // An opposing request from a different player inside the merge window is a stale race -- they
+    // acted on the pre-transition state they were still seeing -- so suppress it.
     const int win = g_merge_window_ms.load();
     if (!g_leave_reversible && (now - g_last_ms) < win && player != g_last_actor) {
         d.merged = true;
@@ -225,7 +200,6 @@ PauseDecision pause_request(const std::string& player, const std::string& kind, 
         return d;
     }
 
-    // Rule 4: apply.
     std::string err;
     if (!apply_pause_state(desired, &err)) {
         d.ok = false;
@@ -244,9 +218,7 @@ PauseDecision pause_request(const std::string& player, const std::string& kind, 
     return d;
 }
 
-// ================================================================================================
-// Reconcile vs the native host / DF auto-pauses
-// ================================================================================================
+// ---- reconcile against the native host and DF's own auto-pauses ----------------------------------
 void pause_reconcile_tick() {
     std::lock_guard<std::mutex> lk(g_pause_mutex);
     bool actual = false;
@@ -268,31 +240,23 @@ void pause_reconcile_tick() {
     }
 }
 
-// ================================================================================================
-// WT03(b) auto-pause on leave -- CORE-FREE half (runs on ws_cursor_loop): only records intent.
-// ================================================================================================
+// ---- auto-pause on leave: the core-free half, on ws_cursor_loop ----------------------------------
 void pause_on_player_left(const std::string& player) {
     if (!g_autopause_enabled.load()) return;
     std::lock_guard<std::mutex> lk(g_pause_mutex);
-    // Do NOT apply here: ws_cursor_loop must never take CoreSuspender (it carries the busy
-    // watchdog, which has to keep flowing while the core is blocked during a save). Record the
-    // leaver; pause_push_tick (push loop, core-adjacent) does the actual SetPauseState.
+    // Do NOT apply here: ws_cursor_loop must never take CoreSuspender -- it carries the busy
+    // watchdog, which has to keep flowing while the core is blocked during a save.
     g_pending_leave_player = player;
 }
 
-// ================================================================================================
-// Saving/busy heartbeat + reconcile + autosave sample -- runs ONCE per ws_push_loop iteration.
-// ================================================================================================
+// ---- heartbeat, reconcile and autosave sample: once per ws_push_loop iteration -------------------
 void pause_push_tick() {
-    // Heartbeat: reaching here means world_stream_tick returned, i.e. the sim thread was
-    // reachable this pass. During an autosave world-write world_stream_tick BLOCKS on its
-    // CoreSuspender, so this stamp stops advancing -- exactly the stall the watchdog detects.
+    // Reaching here means world_stream_tick returned. During an autosave world-write it blocks on
+    // its CoreSuspender and this stamp stops advancing -- the stall the watchdog detects.
     g_heartbeat_ms.store(steady_ms());
 
-    // Native-host / DF-external reconcile (cheap: one stable-global bool read under g_pause_mutex).
     pause_reconcile_tick();
 
-    // Apply any pending leave-pause recorded by the cursor thread (core-adjacent apply here).
     std::string leaver;
     {
         std::lock_guard<std::mutex> lk(g_pause_mutex);
@@ -306,9 +270,8 @@ void pause_push_tick() {
         apply_leave_pause_locked(leaver);
     }
 
-    // Autosave flag sample @ <=5 Hz under a BOUNDED suspender: skips instantly if the core is
-    // blocked (a save), so this never stalls the push loop; the last-seen flag latches across
-    // skips. plotinfo is heap + freeable on world unload, so this read MUST be suspended.
+    // Bounded suspender: it skips instantly while the core is blocked, so the push loop never
+    // stalls. plotinfo is heap and freed on world unload, so this read MUST be suspended.
     static long long last_autosave_sample = 0;
     const long long now = steady_ms();
     if (now - last_autosave_sample >= 200) {
@@ -321,9 +284,7 @@ void pause_push_tick() {
     }
 }
 
-// ================================================================================================
-// WT03(d2) busy watchdog -- runs on ws_cursor_loop (core-free).
-// ================================================================================================
+// ---- busy watchdog, on ws_cursor_loop (core-free) ------------------------------------------------
 void pause_busy_watchdog_tick() {
     // Single-thread state (ws_cursor_loop only).
     static bool busy_active = false;
@@ -351,7 +312,6 @@ void pause_busy_watchdog_tick() {
         return;
     }
 
-    // Active stall: recover when the heartbeat advances past the value we captured.
     if (hb != stall_hb) {
         busy_active = false;
         std::ostringstream m;
@@ -373,9 +333,7 @@ void pause_busy_watchdog_tick() {
     }
 }
 
-// ================================================================================================
-// WT03(b) leave-grace watchdog -- runs on ws_cursor_loop (core-free).
-// ================================================================================================
+// ---- leave-grace watchdog, on ws_cursor_loop (core-free) -----------------------------------------
 void pause_leave_watchdog_tick() {
     static std::set<std::string> prev;           // roster seen last tick
     static std::map<std::string, long long> pending;  // leaver -> fire deadline (steady_ms)
@@ -386,16 +344,14 @@ void pause_leave_watchdog_tick() {
     const auto vec = ws_connected_players();
     std::set<std::string> cur(vec.begin(), vec.end());
 
-    // Reconnect (incl. B09(a) same-name refresh) cancels a pending leave silently.
+    // Reconnect (incl. a same-name refresh) cancels a pending leave silently.
     for (const auto& n : cur) pending.erase(n);
 
-    // New leaves: present last tick, absent now, not already pending.
     for (const auto& n : prev) {
         if (!cur.count(n) && !pending.count(n))
             pending[n] = now + grace;
     }
 
-    // Fire expired leaves.
     for (auto it = pending.begin(); it != pending.end(); ) {
         if (cur.count(it->first)) { it = pending.erase(it); continue; }   // defensive: reconnected
         if (now >= it->second) {
@@ -410,9 +366,7 @@ void pause_leave_watchdog_tick() {
     prev = std::move(cur);
 }
 
-// ================================================================================================
-// Tunables
-// ================================================================================================
+// ---- tunables ------------------------------------------------------------------------------------
 void pause_set_merge_window_ms(int ms)     { g_merge_window_ms.store(ms < 0 ? 0 : ms); }
 void pause_set_autopause_enabled(bool on)  { g_autopause_enabled.store(on); }
 void pause_set_autopause_grace_ms(int ms)  { g_autopause_grace_ms.store(ms < 0 ? 0 : ms); }

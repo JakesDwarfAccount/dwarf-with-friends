@@ -19,8 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// WT07 panel framework. Persistence keys are stable contract: dwf.panelLayout.v1 and
-// dwf.panelFrame.enabled. Panel keys must never be renamed once a migration ships.
+// The panel framework: registration, docking, drag, and remembered position. The persistence
+// keys dwf.panelLayout.v1 / dwf.panelFrame.enabled and every panel key are stable contract.
 (function (root) {
   "use strict";
 
@@ -36,22 +36,23 @@
   var attached = Object.create(null);
   var saveTimer = 0;
   var layoutPanels = null;
-  // Per-(variant-)key "user positioned this" flags. contentHost panels (#clientPanel/#selection)
-  // persist a variant's geometry ONLY after the user drags/resizes it -- an untouched variant keeps
-  // its CSS/media-query docking so we never freeze a responsive layout into stale inline styles.
+  // "user positioned this", per (variant-)key: an untouched variant keeps its CSS docking, so a
+  // responsive layout is never frozen into stale inline styles.
   var dirty = Object.create(null);
   var hasDom = !!(root.document && root.document.createElement);
 
   function finite(n) { return typeof n === "number" && Number.isFinite(n); }
   function round(n) { return Math.round(n); }
-  function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+  var DwfUtil = root.DwfUtil || (typeof require === "function" ? require("./dwf-util.js") : null);
+  var clamp = DwfUtil.clamp;
 
-  // Pure core: no DOM or storage. The harness drives this object directly.
+  // A 0-wide or 0-tall rect is not geometry -- it is an unlaid-out element. Refuse it here and in
+  // geometryEntry, or one stored entry snaps that panel to the viewport origin for good.
   function validEntry(entry) {
     return !!entry && typeof entry === "object" &&
       (entry.anchor === "tl" || entry.anchor === "tr" || entry.anchor === "bl" || entry.anchor === "br") &&
       finite(entry.x) && finite(entry.y) && finite(entry.w) && finite(entry.h) &&
-      entry.w >= 0 && entry.h >= 0 && (entry.open == null || typeof entry.open === "boolean");
+      entry.w > 0 && entry.h > 0 && (entry.open == null || typeof entry.open === "boolean");
   }
 
   function decodeLayout(raw, knownKeys) {
@@ -105,13 +106,6 @@
     return { x: x, y: y, w: entry.w, h: entry.h };
   }
 
-  // CSS chrome geometry expressed in the target panel's coordinate space. Keeping it as an inset
-  // makes the resize/open solver deterministic even before the DOM has painted; chromeInsets()
-  // below replaces these fallbacks with measured live rectangles. PANEL-GEOMETRY-2: there is NO
-  // right fallback -- #rightHud and the topbar's right controls are a ~200px-tall TOP-RIGHT corner
-  // cluster, not a column. B129 reserved their width for the full screen height, so panels stopped
-  // (and, with the old shrinking clampRect, culled) 208-212 visual px left of the screen edge.
-  // The boundary users see at panel height is the viewport edge; the work-area right edge is too.
   function chromeInsetsFor(visualWidth, scale, panelZoom) {
     scale = finite(scale) && scale > 0 ? scale : 1;
     panelZoom = finite(panelZoom) && panelZoom > 0 ? panelZoom : 1;
@@ -130,12 +124,8 @@
       w: Math.max(0, right - left), h: Math.max(0, bottom - top) };
   }
 
-  // Open, restore, drag, and window-resize all use the same strict work-area clamp: the SIZE is
-  // preserved (shrunk only when the panel is genuinely larger than the work area) and the POSITION
-  // stops at the boundary. PANEL-GEOMETRY-2: the previous version floored w/h at limits.minW/minH
-  // and let x advance past the fit point, so dragging a panel toward an edge SHRANK it in place --
-  // the frame stayed put while overflow:hidden culled the content. Minimum sizes are an interactive-
-  // resize contract (clampResizeRect) and a restore floor, never a drag/open side effect.
+  // Drag/open clamp: SIZE is preserved and POSITION stops at the boundary. Minimum sizes belong to
+  // clampResizeRect and restore only -- flooring here shrinks a panel dragged toward an edge.
   function clampRect(rect, viewport, limits) {
     var area = workArea(viewport, limits);
     var w = Math.max(0, Math.min(rect.w, area.w));
@@ -145,6 +135,20 @@
       y: clamp(rect.y, area.top, Math.max(area.top, area.bottom - h)),
       w: w, h: h,
     };
+  }
+
+  // For an untouched CSS-docked panel the docking IS the truth: shrink from the FAR edge and leave
+  // the docked near edge where CSS put it. Only clampOpenRect uses this; drag and restore do not.
+  function clampDockedRect(rect, viewport, limits) {
+    var area = workArea(viewport, limits);
+    var x = clamp(rect.x, area.left, Math.max(area.left, area.right));
+    var y = clamp(rect.y, area.top, Math.max(area.top, area.bottom));
+    var w = Math.min(rect.w, area.right - x);
+    var h = Math.min(rect.h, area.bottom - y);
+    // A dock that leaves no room at all is not a dock; fall back to the whole work area.
+    if (!(w > 0)) { x = area.left; w = Math.max(0, Math.min(rect.w, area.w)); }
+    if (!(h > 0)) { y = area.top; h = Math.max(0, Math.min(rect.h, area.h)); }
+    return { x: x, y: y, w: w, h: h };
   }
 
   function dragByVisual(start, clientStart, clientNow, zoom) {
@@ -166,8 +170,8 @@
     return rect;
   }
 
-  // Clamp a directional resize while keeping the opposite edge fixed. A plain clampRect(raw)
-  // would meet the size floor but make NW/NE/SW handles jump when that floor is reached.
+  // Clamp a directional resize with the OPPOSITE edge pinned, and apply minW/minH against that edge:
+  // clampRect applies no floor at all, so routing a resize through it would move the wrong edge.
   function clampResizeRect(start, proposed, direction, viewport, limits) {
     var area = workArea(viewport, limits);
     var minW = Math.min(limits && finite(limits.minW) ? limits.minW : 0, area.w);
@@ -219,18 +223,28 @@
     return boxSizing === "border-box" ? size : Math.max(0, size - extras);
   }
 
-  // Pure model for the scroll-fill contract. CSS performs the live layout; this helper pins the
-  // invariant that a resize changes the designated scroll region by the same delta once the
-  // panel's non-scrolling chrome has been reserved.
   function scrollFillHeight(panelHeight, reservedHeight) {
     return Math.max(0, Number(panelHeight) - Number(reservedHeight || 0));
   }
 
-  // Content-host variant key: #clientPanel and #selection are ONE element that many writer modules
-  // re-skin (build menu, squads, unit sheet, stockpile, zone editor...). Each skin is a variant
-  // class on the host; per-variant persistence keeps a moved unit sheet from dragging the stockpile
-  // panel with it. `priority` is most-specific-first so e.g. a `building-panel zone-panel` host maps
-  // to "zone-panel", not the shared "building-panel" base.
+  function footerMinimumHeight(el, bodySelector, listSelector, footerSelector, floor, styleResolver) {
+    if (!el || !el.querySelector) return Number(floor) || 0;
+    var body = el.querySelector(bodySelector), list = el.querySelector(listSelector);
+    var footer = el.querySelector(footerSelector);
+    if (!body || !list || !footer || !el.getBoundingClientRect || !body.getBoundingClientRect ||
+        !list.getBoundingClientRect || !footer.getBoundingClientRect) return Number(floor) || 0;
+    var zoom = effectiveZoomPure(el, styleResolver) || 1;
+    var panelRect = el.getBoundingClientRect(), bodyRect = body.getBoundingClientRect();
+    var listRect = list.getBoundingClientRect(), footerRect = footer.getBoundingClientRect();
+    var chrome = Math.max(0, panelRect.height - bodyRect.height);
+    var beforeList = Math.max(0, listRect.top - bodyRect.top);
+    var afterList = Math.max(0, footerRect.top - listRect.bottom);
+    return Math.max(Number(floor) || 0,
+      Math.ceil((beforeList + afterList + footerRect.height + chrome) / zoom));
+  }
+
+  // #clientPanel and #selection are ONE element many modules re-skin, so geometry is remembered per
+  // variant. `priority` is most-specific-first: a `building-panel zone-panel` host maps to zone-panel.
   function primaryVariant(classNames, priority) {
     var set = Object.create(null);
     String(classNames || "").split(/\s+/).forEach(function (c) { if (c) set[c] = true; });
@@ -243,19 +257,19 @@
     PF_Z_BASE: PF_Z_BASE, PF_Z_MAX: PF_Z_MAX,
     validEntry: validEntry, decodeLayout: decodeLayout, encodeLayout: encodeLayout,
     anchorForRect: anchorForRect, rectFromEntry: rectFromEntry, clampRect: clampRect,
+    clampDockedRect: clampDockedRect,
     chromeInsetsFor: chromeInsetsFor, workArea: workArea,
     dragByVisual: dragByVisual, resizeByVisual: resizeByVisual, clampResizeRect: clampResizeRect,
     effectiveZoom: effectiveZoomPure,
     focusStack: focusStack, zForStack: zForStack, cssSizeForRect: cssSizeForRect,
     primaryVariant: primaryVariant, scrollFillHeight: scrollFillHeight,
-    closableFor: closableFor,          // WAVE 4: variant-aware close (declared below; hoisted)
+    footerMinimumHeight: footerMinimumHeight,
+    closableFor: closableFor,          // variant-aware close (declared below; hoisted)
+    surfaceDragRefused: surfaceDragRefused, SURFACE_NODRAG_SEL: function () { return SURFACE_NODRAG_SEL; },
     dormant: function (enabled, value, apply) { return enabled ? apply(value) : value; },
   };
 
-  function storageGet(key) { try { return root.localStorage.getItem(key); } catch (_) { return null; } }
-  function storageSet(key, value) { try { root.localStorage.setItem(key, value); } catch (_) {} }
-  function storageRemove(key) { try { root.localStorage.removeItem(key); } catch (_) {} }
-  function enabled() { return storageGet(ENABLED_KEY) !== "0"; }
+  function enabled() { return DwfUtil.lsGet(ENABLED_KEY) !== "0"; }
 
   function styleFor(el) { return root.getComputedStyle ? root.getComputedStyle(el) : el.style; }
   function effectiveZoom(el) { return effectiveZoomPure(el, styleFor); }
@@ -264,7 +278,8 @@
     return { w: root.innerWidth / z, h: root.innerHeight / z, z: z };
   }
   function uiScale() {
-    try { if (root.DWFUIScale) return root.DWFUIScale.get(); } catch (_) {}
+    try { if (root.DWFUIScale) return root.DWFUIScale.get(); }
+    catch (err) { DwfErr.report("panel-frame.ui-scale", err); }
     var docEl = root.document && root.document.documentElement;
     var style = docEl && root.getComputedStyle && root.getComputedStyle(docEl);
     var value = style && style.getPropertyValue ? style.getPropertyValue("--ui-scale") : 1;
@@ -283,9 +298,6 @@
     // The topbar can exceed its 48px minimum when flex-wrap activates. Measure that live height.
     var topbar = measured("topbar");
     if (topbar) inset.top = Math.max(inset.top, topbar.bottom / z);
-    // Reserve a right column only if the right HUD genuinely IS one. Measured live it is a 208x204
-    // corner cluster under the topbar (z 8980, far above the 60..89 panel band), so panels may
-    // pass under its lower edge exactly as the pre-B129 CSS docks (hotkeys right:0) were designed.
     var rightHud = measured("rightHud");
     if (rightHud && rightHud.height >= root.innerHeight * 0.6)
       inset.right = Math.max(inset.right, (root.innerWidth - rightHud.left) / z);
@@ -296,11 +308,13 @@
   function visible(el) { return !!el && styleFor(el).display !== "none"; }
   function specEl(spec) { try { return spec.el && spec.el(); } catch (_) { return null; } }
 
-  // Persistence key. Falls back to the stable spec.key; contentHost panels resolve a per-variant
-  // key from the live host class so geometry is remembered per skin. Identity (focus/z/escStack/
-  // attached) always stays keyed on spec.key -- only the layout MAP is variant-scoped.
+  // Only the layout MAP is variant-scoped; identity (focus, z, escStack, attached) always stays
+  // keyed on spec.key.
   function layoutKeyFor(spec, el) {
-    if (spec && spec.variantKey && el) { try { var k = spec.variantKey(el); if (k) return k; } catch (_) {} }
+    if (spec && spec.variantKey && el) {
+      try { var k = spec.variantKey(el); if (k) return k; }
+      catch (err) { DwfErr.report("panel-frame.variant-key", err); }
+    }
     return spec.key;
   }
   function isChrome(node) {
@@ -308,10 +322,8 @@
       (node.classList.contains("pf-head") || node.classList.contains("pf-grip") ||
        node.classList.contains("pf-edge-e") || node.classList.contains("pf-edge-s"));
   }
-  // The content-wrapper seam. Every writer that used to do `host.innerHTML = ...` now targets
-  // contentEl(host) instead, so the persistent framework header + grips (host children) survive a
-  // wholesale re-render. `.pf-content` is display:contents (dwf.css) => zero layout change vs
-  // writing the host directly, and descendant CSS selectors (#selection .kind, etc.) still match.
+  // The content-wrapper seam: writers target contentEl(host), never host.innerHTML, so the
+  // persistent framework header and grips survive a wholesale re-render.
   function contentEl(host) {
     if (!host || host.nodeType !== 1) return host;
     var wrap = null, kids = host.children;
@@ -327,19 +339,8 @@
     return wrap;
   }
 
-  // B167 scroll-fill contract. A registration declares fillSel as a selector, or as a
-  // most-specific-first array of selectors. The first selector with live matches wins; a comma
-  // selector may designate parallel scroll regions (build columns, farm crop/seed lists). The
-  // framework marks the target plus every ancestor up to the panel box, and CSS supplies the
-  // flex/min-height/overflow contract. Reconcile after every content-host render because the
-  // active scrollbox changes with the skin and with sub-views inside a skin.
   function clearFillMarks(el) {
     if (!el || !el.classList) return;
-    // ESC-HANG root cause: this remove was UNGUARDED. Per the DOM spec, classList.remove on an
-    // element that has a class attribute re-sets the attribute even when the token is absent, so
-    // the host's own class observer re-fired reconcileFill's no-targets branch forever -- a pure
-    // microtask loop and a dead tab (B172 Esc close, B173 stockpile open). Every reconciler must
-    // be convergent: a settled DOM passes through with ZERO mutations.
     if (el.classList.contains("pf-fill-host")) el.classList.remove("pf-fill-host");
     if (!el.querySelectorAll) return;
     el.querySelectorAll(".pf-fill-chain,.pf-fill-scroll").forEach(function (node) {
@@ -358,7 +359,7 @@
       try {
         var found = Array.prototype.slice.call(el.querySelectorAll(selectors[i]));
         if (found.length) return found;
-      } catch (_) {}
+      } catch (err) { DwfErr.report("panel-frame.fill-selector", err); }
     }
     return [];
   }
@@ -371,9 +372,8 @@
         if (chains.indexOf(node) < 0) chains.push(node);
       }
     });
-    // Idempotence matters: the content-host class observer sees host class changes. Only mutate a
-    // marker when its membership actually changed, so reconciliation settles instead of feeding
-    // its own observer forever.
+    // Only mutate a marker when its membership actually changed: the class observer sees our own
+    // writes, and an unconditional one feeds itself forever.
     el.querySelectorAll(".pf-fill-scroll").forEach(function (node) {
       if (targets.indexOf(node) < 0) node.classList.remove("pf-fill-scroll");
     });
@@ -391,21 +391,8 @@
   }
   function markDirty(spec, el) { if (spec) dirty[layoutKeyFor(spec, el)] = true; }
 
-  // B145: many contentHost skins render their OWN close control inside the content (the bld-head
-  // ✕ on building/depot/hospital/zone panels, .build-close on the build menu, .info-close on the
-  // fort/reports/info panels, .unit-close-button on the unit sheet / stockpile / stock item).
-  // ONE working close per panel: while the live skin provides its own, the framework's generated
-  // X is REMOVED rather than stacking a second X above it; the moment a skin without one renders
-  // (base selection, tile-list chooser, squads sidebar) the framework X returns. Detection is
-  // scoped to the content wrapper, so the framework's own .pf-x in the head can never satisfy it.
-  // ONE close-control vocabulary (ESC-HANG unification). skinCloseFor and makeX previously used
-  // DIFFERENT selectors: skinCloseFor matched only the four legacy skin classes while makeX also
-  // honored [data-pf-close] / [aria-label='Close']. A close carrying only the generic markers
-  // (the stockpile editor's .spe-close) was visible to one detector and invisible to the other:
-  // reconcileX stacked a second framework X and head adoption was blocked. Both detectors now
-  // share this constant so they can never disagree about "does this panel already have a close?".
-  var CLOSE_SEL = "[data-pf-close],[aria-label='Close'],.bld-x,.build-close,.info-close," +
-    ".unit-close-button,.dfchat-close,.dfchat-x,.hk-x,.cl-close";
+  var CLOSE_SEL = "[data-pf-close],[aria-label='Close'],.building-x,.build-close,.info-close," +
+    ".unit-close-button,.chat-close,.chat-x,.hotkey-x,.combat-log-close";
   function childByClass(node, cls) {
     var kids = node && node.children;
     if (!kids) return null;
@@ -419,25 +406,8 @@
     try { return wrap.querySelector(CLOSE_SEL); } catch (_) { return null; }
   }
 
-  // ---- WAVE 4 / VARIANT-AWARE `closable` (S1's COMPONENT-GAP-S1-CLOSE == S4's GAP-A) -----------
-  // ONE registration hosts MANY skins. `closable` was a per-REGISTRATION boolean, so #selection was
-  // "closable" for all ten of its variants -- and native has NO close X on the unit profile OR the
-  // stock-item sheet (all 24 `steam *` profile captures; both item-sheet oracles). Dismissal there
-  // is ESC.
-  //
-  // THE TRAP THIS CLOSES, and why two agents independently refused to hand-roll around it: head
-  // adoption below is CONDITIONAL on the skin owning a close. Drop the skin's X and skinCloseFor()
-  // returns null -> skinHeadFor() returns null -> the generated `.pf-head` "Selection" TITLE BAR
-  // UN-HIDES and reconcileX stacks a FRESH framework ✕. So the naive parity fix ADDS TWO PIECES OF
-  // NON-NATIVE CHROME while the diff reads as parity compliance.
-  //
-  // `closable` may now be a PREDICATE of the live element (`el => bool`), evaluated per reconcile,
-  // so a registration can declare "this VARIANT has no close chrome at all; ESC dismisses it" and
-  // BOTH gates agree: no framework X is generated, AND adoption no longer demands a skin close.
-  // End state for such a variant: ZERO close affordances, ZERO framework title bar, ESC still
-  // closes (controls-placement.js Esc cascade -> closeSelection()).
-  // A boolean is unchanged in every respect; a throwing/garbage predicate falls back to CLOSABLE
-  // (never silently strand a panel with no way out).
+  // `closable` may be a predicate of the live element. Dropping a variant's close X without one
+  // un-hides the generated title bar AND stacks a fresh framework X; a bad predicate falls back to true.
   function closableFor(spec, el) {
     if (!spec) return false;
     if (typeof spec.closable === "function") {
@@ -453,34 +423,20 @@
   }
   function reconcileX(spec, el, head) {
     if (!head) return;
-    // A close-less variant must also SHED an X a previous variant of the same panel generated --
-    // otherwise the stale ✕ rides along inside the (hidden) head and re-appears the moment a later
-    // skin un-hides the bar. Convergent: removeGeneratedX is a no-op when there is nothing to drop.
+    // A close-less variant must SHED an X a previous variant generated, or the stale one re-appears
+    // the moment a later skin un-hides the bar.
     if (!closableFor(spec, el) || skinCloseFor(spec, el)) { removeGeneratedX(head); return; }
     makeX(spec, el, head);
   }
 
-  // B159 head ADOPTION (the CHOOSER-CHROME closeout direction): when the live contentHost skin
-  // renders its OWN header (unit sheet .unit-sheet-header, building .bld-head, build menu
-  // .build-head, info .info-header, ...), the framework adopts it -- drag binds to the skin's
-  // header and the generated pf-head bar is HIDDEN (never removed: the heal observer and the
-  // detach path key on its presence). Without this, the generated bar stacks a second header
-  // above the skin's and its sticky opaque strip covers the skin's host-anchored close button
-  // and name line (the B159-1 "Selection" bar regression). A skin without its own header (base
-  // selection, tile-list chooser, squads sidebar) gets the generated bar back, X included --
-  // the same return contract as B145's one-close reconciliation.
   function skinHeadFor(spec, el) {
     if (!spec || !spec.contentHost || !spec.adoptHeadSel) return null;
     var wrap = childByClass(el, "pf-content");
     if (!wrap || !wrap.querySelector) return null;
     var head = null;
     try { head = wrap.querySelector(spec.adoptHeadSel); } catch (_) { return null; }
-    // Adoption requires the skin to provide its OWN close: hiding the bar hides its X, and a
-    // CLOSABLE panel must never lose its last close. Transient loading shells that render a
-    // header without a close keep the framework bar until the real skin lands.
-    // WAVE 4: that gate is now scoped to variants that ARE closable. A variant declared close-less
-    // (ESC-only, per closableFor above) has no X to lose, so its header is adopted WITHOUT one --
-    // which is the whole point: the bar stays hidden and no ✕ is manufactured.
+    // Adoption requires a CLOSABLE skin to provide its own close: hiding the bar hides its X. A
+    // variant declared close-less has none to lose, so its header is adopted without one.
     if (!head || (closableFor(spec, el) && !skinCloseFor(spec, el))) return null;
     return head;
   }
@@ -489,9 +445,8 @@
     var skin = skinHeadFor(spec, el);
     if (skin) {
       if (generated) {
-        generated.style.display = "none";
-        // Convergence guard: an unconditional setAttribute queues a mutation record even for an
-        // identical value; only write when the state actually changes.
+      generated.hidden = true;
+        // Only write when the value changes: an unconditional setAttribute queues a mutation record.
         if (generated.setAttribute && (!generated.getAttribute || generated.getAttribute("data-pf-adopted") !== "1"))
           generated.setAttribute("data-pf-adopted", "1");
       }
@@ -500,7 +455,7 @@
       return skin;
     }
     if (generated) {
-      generated.style.display = "";
+      generated.hidden = false;
       if (generated.removeAttribute && generated.getAttribute && generated.getAttribute("data-pf-adopted") != null)
         generated.removeAttribute("data-pf-adopted");
     }
@@ -508,22 +463,33 @@
   }
 
   function loadedLayout() {
-    // Keep clean entries for panels registered later in the same page; each registration only
-    // consumes its own key, so unregistered/renamed keys remain inert.
-    return decodeLayout(storageGet(LAYOUT_KEY));
+    return decodeLayout(DwfUtil.lsGet(LAYOUT_KEY));
   }
   function layoutState() {
     if (layoutPanels == null) layoutPanels = loadedLayout().panels;
     return layoutPanels;
   }
   function geometryEnabled(spec) { return !!spec && (spec.movable !== false || !!spec.resizable); }
+  // Never freeze an untouched variant's CSS docking into inline geometry, and with `persistGeometry`
+  // never write an entry nobody reads: a dead write is a stale rect waiting for a future reader.
+  function persistBlocked(spec, lk, el) {
+    if (spec.persistGeometry && el) {
+      var keep = false;
+      try { keep = !!spec.persistGeometry(el); } catch (_) { keep = true; }
+      if (!keep) return true;
+    }
+    return (spec.contentHost || spec.variantKey || spec.cssDocked) &&
+      !dirty[lk] && !(lk in layoutState());
+  }
   function rememberPanel(spec) {
     if (!geometryEnabled(spec)) return;
     var el = specEl(spec);
     var entry = el && geometryEntry(spec, el);
     if (!entry) return;
+    var lk = layoutKeyFor(spec, el);
+    if (persistBlocked(spec, lk, el)) return;
     if (spec.persistOpen !== false && spec.isOpen) entry.open = !!spec.isOpen();
-    layoutState()[layoutKeyFor(spec, el)] = entry;
+    layoutState()[lk] = entry;
   }
   function saveSoon() {
     if (!enabled()) return;
@@ -535,8 +501,7 @@
         var spec = registry[key], el = specEl(spec);
         if (!el || !attached[key] || !geometryEnabled(spec)) return;
         var lk = layoutKeyFor(spec, el);
-        // Never freeze an untouched contentHost variant's responsive CSS docking into inline geometry.
-        if (spec.contentHost && !dirty[lk] && !(lk in panels)) return;
+        if (persistBlocked(spec, lk, el)) return;
         var entry = geometryEntry(spec, el);
         if (entry) {
           if (spec.persistOpen !== false && spec.isOpen) entry.open = !!spec.isOpen();
@@ -545,8 +510,14 @@
           panels[lk].open = false;
         }
       });
-      storageSet(LAYOUT_KEY, encodeLayout(panels));
+      DwfUtil.lsSet(LAYOUT_KEY, encodeLayout(panels));
     }, 250);
+  }
+  function flushRememberedLayout() {
+    if (!saveTimer) return;
+    root.clearTimeout(saveTimer);
+    saveTimer = 0;
+    DwfUtil.lsSet(LAYOUT_KEY, encodeLayout(layoutState()));
   }
 
   function rectFor(el) {
@@ -568,9 +539,6 @@
     el.style.top = round(rect.y) + "px";
     el.style.right = "auto";
     el.style.bottom = "auto";
-    // Move-only panels (lobby, audio) are sized by their content: the players list must grow when
-    // the roster does. B134: writing inline width/height here froze the lobby at whatever height
-    // it had at open/drag time, and every later roster change scrolled inside the stale box.
     if (spec && !spec.resizable) return;
     el.style.width = round(cssSizeForRect(rect.w, styleFor(el).boxSizing, boxExtras(el, true))) + "px";
     el.style.height = round(cssSizeForRect(rect.h, styleFor(el).boxSizing, boxExtras(el, false))) + "px";
@@ -578,37 +546,90 @@
   }
   function limitsFor(spec, el) {
     var inset = chromeInsets(el);
+    var minW = spec.resizable && spec.resizable.minW;
+    var minH = spec.resizable && spec.resizable.minH;
     return {
-      minW: spec.resizable && spec.resizable.minW || 0,
-      minH: spec.resizable && spec.resizable.minH || 0,
+      minW: (typeof minW === "function" ? minW(el) : minW) || 0,
+      minH: (typeof minH === "function" ? minH(el) : minH) || 0,
       top: inset.top, right: inset.right, bottom: inset.bottom, left: inset.left, head: HEAD_H,
     };
   }
-  function clearRectStyles(el) {
-    ["left", "top", "right", "bottom", "width", "height", "maxHeight"].forEach(function (name) { el.style[name] = ""; });
+  function clearRectStyles(el, includeZIndex) {
+    var names = ["left", "top", "right", "bottom", "width", "height", "max-height"];
+    if (includeZIndex) names.push("z-index");
+    names.forEach(function (name) { el.style.removeProperty(name); });
   }
   function rectChanged(a, b) {
     return Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5 ||
       Math.abs(a.w - b.w) > 0.5 || Math.abs(a.h - b.h) > 0.5;
   }
-  // Open-time / window-resize safety clamp. Writes ONLY the offending sides. PANEL-GEOMETRY-2:
-  // the old version applied the whole rect once anything changed, freezing a CSS-docked host's
-  // TRANSIENT auto size into inline styles -- the build panel's class flips before its catalog
-  // renders, so its skeleton (724x57, floored to minH 140) got frozen and the 456px-tall window
-  // that rendered moments later was culled by overflow:hidden. CSS must keep sizing an untouched
-  // panel; inline geometry is written only by the user's own drag/resize or a violation shrink.
+  // A vertically docked panel is SIZED BY ITS EDGES: never give it an inline height and never
+  // release one (`top:<px>; bottom:auto`) -- that leaves the panel measuring height 0.
+  function vDockModeFor(el) {
+    if (!el || !el.style) return "";
+    if (el.style.height || el.style.bottom === "auto") return "";
+    var style = styleFor(el);
+    if (!style || !style.getPropertyValue) return "";
+    if (String(style.getPropertyValue("--pf-vstretch")).trim() === "1") return "stretch";
+    if (String(style.getPropertyValue("--pf-vdock-bottom")).trim() === "1") return "bottom";
+    return "";
+  }
+  // Re-derive the stretch clamp from the CSS box every pass: a clamp made for a short window would
+  // otherwise outlive it and the panel would never return to its dock.
+  function releaseStretchV(el) {
+    if (!el.dataset || el.dataset.pfStretchClamp !== "1") return;
+    el.style.top = "";
+    el.style.bottom = "";
+    // The bottom dock shrinks with max-height, so its clamp is released the same way.
+    el.style.maxHeight = "";
+    el.dataset.pfStretchClamp = "0";
+  }
+  function clampStretchV(el, rect, viewport, limits, out) {
+    var area = workArea(viewport, limits);
+    var top = rect.y, bottom = rect.y + rect.h, clamped = false;
+    if (top < area.top - 0.5) { top = area.top; el.style.top = round(top) + "px"; clamped = true; }
+    if (bottom > area.bottom + 0.5) {
+      bottom = area.bottom;
+      el.style.bottom = round(Math.max(0, viewport.h - area.bottom)) + "px";
+      clamped = true;
+    }
+    if (clamped && el.dataset) el.dataset.pfStretchClamp = "1";
+    out.y = top;
+    out.h = Math.max(0, bottom - top);
+  }
+  // A bottom-docked panel loses height from its TOP, via max-height: moving `top` would delete the
+  // dock and stop the panel tracking the window.
+  function clampBottomDockedV(el, rect, viewport, limits, out) {
+    var area = workArea(viewport, limits);
+    out.y = rect.y;
+    out.h = rect.h;
+    if (rect.h <= area.h + 0.5) return;
+    el.style.maxHeight = round(area.h) + "px";
+    if (el.dataset) el.dataset.pfStretchClamp = "1";
+    out.h = area.h;
+    out.y = Math.max(area.top, rect.y + rect.h - area.h);
+  }
   function clampOpenRect(spec, el) {
     if (!visible(el) || !el.getBoundingClientRect) return null;
-    var rect = rectFor(el), next = clampRect(rect, viewportFor(el), limitsFor(spec, el));
-    if (!rectChanged(rect, next)) return next;
-    if (Math.abs(next.w - rect.w) > 0.5)
-      el.style.width = round(cssSizeForRect(next.w, styleFor(el).boxSizing, boxExtras(el, true))) + "px";
-    if (Math.abs(next.h - rect.h) > 0.5) {
-      el.style.height = round(cssSizeForRect(next.h, styleFor(el).boxSizing, boxExtras(el, false))) + "px";
-      el.style.maxHeight = "none";
+    var vdock = vDockModeFor(el);
+    if (vdock) releaseStretchV(el);
+    var stretched = vdock === "stretch";
+    var viewport = viewportFor(el), limits = limitsFor(spec, el);
+    var rect = rectFor(el), next = clampDockedRect(rect, viewport, limits);
+    // Hold the measured values so the top/height writes below cannot fire on a declared vertical dock.
+    if (vdock) { next.y = rect.y; next.h = rect.h; }
+    if (rectChanged(rect, next)) {
+      if (Math.abs(next.w - rect.w) > 0.5)
+        el.style.width = round(cssSizeForRect(next.w, styleFor(el).boxSizing, boxExtras(el, true))) + "px";
+      if (Math.abs(next.h - rect.h) > 0.5) {
+        el.style.height = round(cssSizeForRect(next.h, styleFor(el).boxSizing, boxExtras(el, false))) + "px";
+        el.style.maxHeight = "none";
+      }
+      if (Math.abs(next.x - rect.x) > 0.5) { el.style.left = round(next.x) + "px"; el.style.right = "auto"; }
+      if (Math.abs(next.y - rect.y) > 0.5) { el.style.top = round(next.y) + "px"; el.style.bottom = "auto"; }
     }
-    if (Math.abs(next.x - rect.x) > 0.5) { el.style.left = round(next.x) + "px"; el.style.right = "auto"; }
-    if (Math.abs(next.y - rect.y) > 0.5) { el.style.top = round(next.y) + "px"; el.style.bottom = "auto"; }
+    if (stretched) clampStretchV(el, rect, viewport, limits, next);
+    else if (vdock === "bottom") clampBottomDockedV(el, rect, viewport, limits, next);
     return next;
   }
   function explicitRect(spec, el) {
@@ -616,14 +637,18 @@
     applyRect(spec, el, rect);
     return rect;
   }
+  // `visible(el)` speaks only for the element itself: a block element inside a display:none host
+  // reads visible and measures 0x0, so the zero-size guard below refuses it before it is ever stored.
   function geometryEntry(spec, el) {
     if (!visible(el)) return null;
-    return anchorForRect(rectFor(el), viewportFor(el));
+    var rect = rectFor(el);
+    if (!(rect.w > 0) || !(rect.h > 0)) return null;
+    return anchorForRect(rect, viewportFor(el));
   }
   function restore(spec, el, entry) {
     var viewport = viewportFor(el), limits = limitsFor(spec, el);
     var raw = rectFromEntry(entry, viewport);
-    // clampRect no longer inflates to minimums (PANEL-GEOMETRY-2); floor stale/corrupt saves here.
+    // clampRect does not inflate to minimums; floor a stale or corrupt save here.
     if (finite(limits.minW)) raw.w = Math.max(raw.w, limits.minW);
     if (finite(limits.minH)) raw.h = Math.max(raw.h, limits.minH);
     applyRect(spec, el, clampRect(raw, viewport, limits));
@@ -635,7 +660,7 @@
     var z = zForStack(order);
     Object.keys(z).forEach(function (key) {
       var spec = registry[key], el = specEl(spec);
-      if (el) el.style.zIndex = String(z[key]);
+      if (el) el.style.setProperty("--pf-z-index", String(z[key]));
     });
   }
   function focus(key) {
@@ -646,23 +671,19 @@
       Object.keys(registry).forEach(function (id) {
         var item = registry[id], el = specEl(item);
         var index = order.indexOf(id);
-        if (el && item.zBand !== false && index >= 0) el.style.zIndex = String(PF_Z_BASE + index);
+        if (el && item.zBand !== false && index >= 0) el.style.setProperty("--pf-z-index", String(PF_Z_BASE + index));
       });
     }
     if (spec.escClosable) escStack = focusStack(escStack, key);
     restack();
   }
 
-  // Consumers retain their own visibility bookkeeping. They call this after opening, or before
-  // hiding, so an existing opener/X/toggle gets the same persistence and focus behavior.
   function syncOpenState(key, isOpen) {
     var spec = registry[key], el = spec && specEl(spec);
     if (!enabled() || !spec || !el || !attached[key]) return;
     if (spec.contentHost) {
-      // A host can change directly from one VISIBLE skin to another. Inline geometry from the old
-      // skin otherwise beats the new skin's CSS, and the old visibility-only observer never ran --
-      // the build-panel half-off-screen failure. Clear on variant change, then restore only that
-      // variant's saved geometry or clamp its live CSS-derived default.
+      // A host can change from one VISIBLE skin to another: clear inline geometry on variant change,
+      // or the old skin's rect beats the new skin's CSS.
       var lk = layoutKeyFor(spec, el), state = attached[key];
       if (isOpen) {
         if (state.layoutKey !== lk) {
@@ -679,13 +700,16 @@
       return;
     }
     if (isOpen) {
-      var saved = geometryEnabled(spec) && layoutState()[key];
+      // layoutKeyFor, not the bare key: rememberPanel and saveSoon write under the variant key.
+      var saved = geometryEnabled(spec) && layoutState()[layoutKeyFor(spec, el)];
       if (saved) restore(spec, el, saved); else clampOpenRect(spec, el);
       rememberPanel(spec);
       focus(key);
     } else {
       rememberPanel(spec);
-      if (spec.persistOpen !== false && layoutState()[key]) layoutState()[key].open = false;
+      // layoutKeyFor, not the bare key -- symmetrical with the open path above.
+      var closing = layoutState()[layoutKeyFor(spec, el)];
+      if (spec.persistOpen !== false && closing) closing.open = false;
       escStack = escStack.filter(function (item) { return item !== key; });
     }
     saveSoon();
@@ -703,8 +727,7 @@
       close.setAttribute("aria-label", "Close " + (spec.title || "panel"));
       close.setAttribute("data-pf-generated", "1");
       close.dataset.pfGenerated = "1";
-      close.textContent = "✕";   // MULTIPLICATION X; a previous encoding mangle shipped "?"
-      close.style.cssText = "margin-left:auto;border:0;background:none;color:#ffd45c;font:700 18px ui-monospace,monospace;cursor:pointer;line-height:1;";
+      close.textContent = "✕";   // MULTIPLICATION X (U+2715), not an ASCII x
       head.appendChild(close);
     }
     if (close.dataset.pfCloseBound === "1") return;
@@ -721,10 +744,84 @@
     var head = root.document.createElement("div");
     head.className = "pf-head";
     head.textContent = spec.title || "Panel";
-    head.style.cssText = "height:22px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:0 5px;" +
-      "background:#151515;border-bottom:1px solid #d89b27;color:#ffd45c;font:12px ui-monospace,Consolas,monospace;cursor:move;user-select:none;";
     el.insertBefore(head, el.firstChild);
     return head;
+  }
+
+  // One drag runner for both grabs. `threshold` 0 means the press IS the drag; above it the press
+  // stays a plain click until the pointer travels that far, which is what makes grab-anywhere safe.
+  var DRAG_THRESHOLD = 4;
+
+  function setDragging(on) {
+    var docEl = root.document && root.document.documentElement;
+    if (!docEl || !docEl.classList) return;
+    if (on) {
+      if (!docEl.classList.contains("pf-dragging")) docEl.classList.add("pf-dragging");
+      // A grab that began over text would otherwise paint a growing selection under the cursor.
+      try { var sel = root.getSelection && root.getSelection(); if (sel && sel.removeAllRanges) sel.removeAllRanges(); }
+      catch (err) { DwfErr.report("panel-frame.selection-clear", err); }
+    } else if (docEl.classList.contains("pf-dragging")) docEl.classList.remove("pf-dragging");
+  }
+
+  // A committed drag must not also fire the click its pointerdown started, or dropping a panel on
+  // a list row selects that row.
+  function swallowNextClick() {
+    var doc = root.document;
+    if (!doc || !doc.addEventListener) return;
+    function swallow(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      doc.removeEventListener("click", swallow, true);
+    }
+    doc.addEventListener("click", swallow, true);
+    root.setTimeout(function () { doc.removeEventListener("click", swallow, true); }, 0);
+  }
+
+  function runDrag(spec, el, event, captureNode, listenOn, threshold) {
+    // Document-level tracking must run in the CAPTURE phase: panels that swallow pointer events on
+    // their own container would otherwise eat the pointerup and the drag would never end.
+    var phase = listenOn === root.document;
+    var pointerStart = { x: event.clientX, y: event.clientY };
+    var start = null, pending = null, raf = 0, engaged = false;
+    function engage() {
+      engaged = true;
+      focus(spec.key);
+      start = explicitRect(spec, el);
+      try { captureNode.setPointerCapture(event.pointerId); }
+      catch (_) { /* dragging continues from document listeners without capture */ }
+      setDragging(true);
+    }
+    function move(ev) {
+      if (!engaged) {
+        if (Math.abs(ev.clientX - pointerStart.x) < threshold &&
+            Math.abs(ev.clientY - pointerStart.y) < threshold) return;
+        engage();
+      }
+      pending = ev;
+      if (raf) return;
+      raf = root.requestAnimationFrame(function () {
+        raf = 0;
+        if (!pending) return;
+        var rect = dragByVisual(start, pointerStart, { x: pending.clientX, y: pending.clientY }, effectiveZoom(el));
+        applyRect(spec, el, clampRect(rect, viewportFor(el), limitsFor(spec, el)));
+      });
+    }
+    function end() {
+      listenOn.removeEventListener("pointermove", move, phase);
+      listenOn.removeEventListener("pointerup", end, phase);
+      listenOn.removeEventListener("pointercancel", end, phase);
+      if (raf) { root.cancelAnimationFrame(raf); raf = 0; }
+      if (!engaged) return;          // a plain click: nothing moved, nothing to remember
+      setDragging(false);
+      swallowNextClick();
+      markDirty(spec, el);
+      rememberPanel(spec);
+      saveSoon();
+    }
+    if (threshold <= 0) { event.preventDefault(); event.stopPropagation(); engage(); }
+    listenOn.addEventListener("pointermove", move, phase);
+    listenOn.addEventListener("pointerup", end, phase);
+    listenOn.addEventListener("pointercancel", end, phase);
   }
 
   function addDrag(spec, el, head) {
@@ -734,72 +831,155 @@
       if (!enabled() || !attached[spec.key]) return;
       if (event.button != null && event.button !== 0) return;
       if (event.target && event.target.closest && event.target.closest("button,input,select,a,[data-pf-nodrag]")) return;
-      event.preventDefault();
-      event.stopPropagation();
-      focus(spec.key);
-      var start = explicitRect(spec, el);
-      var pointerStart = { x: event.clientX, y: event.clientY };
-      var pending = null, raf = 0;
-      try { head.setPointerCapture(event.pointerId); } catch (_) {}
-      function move(ev) {
-        pending = ev;
-        if (raf) return;
-        raf = root.requestAnimationFrame(function () {
-          raf = 0;
-          if (!pending) return;
-          var rect = dragByVisual(start, pointerStart, { x: pending.clientX, y: pending.clientY }, effectiveZoom(el));
-          applyRect(spec, el, clampRect(rect, viewportFor(el), limitsFor(spec, el)));
-        });
-      }
-      function end() {
-        head.removeEventListener("pointermove", move);
-        head.removeEventListener("pointerup", end);
-        head.removeEventListener("pointercancel", end);
-        if (raf) { root.cancelAnimationFrame(raf); raf = 0; }
-        markDirty(spec, el);
-        rememberPanel(spec);
-        saveSoon();
-      }
-      head.addEventListener("pointermove", move);
-      head.addEventListener("pointerup", end);
-      head.addEventListener("pointercancel", end);
+      runDrag(spec, el, event, head, head, 0);
     });
   }
 
+  // ---- UI-DIV-004: THE CHROMELESS DRAG-ANYWHERE SURFACE ------------------------------------------
+  // APPROVED BLANKET DIVERGENCE (JT 2026-07-28, docs/reference/divergence-register.md UI-DIV-004):
+  // every registered panel is draggable and remembers where the player left it. Native docks its
+  // panels at fixed coordinates; DWF is played by several people at once, on different screens, so
+  // each player arranges their own view.
+  //
+  // WHY THIS LIVES HERE, GENERICALLY, AND NOT AS A PER-PANEL HANDLE. The parity campaign correctly
+  // deleted the framework's generated title bar from the native-chrome screens (the reports window's
+  // "Info" bar was an invented widget -- ledger 0016 P1/P2 read the announcements widget tree as
+  // exactly a tab strip over a report list). Drag went with it, because drag was welded to that bar.
+  // Re-adding a bar to get drag back would re-add the parity bug. So the affordance becomes
+  // CHROMELESS, exactly like the resize grips already are: no pixels, no title, no ✕ -- the panel
+  // body itself is the handle. Visual parity is untouched; only behavior diverges.
+  //
+  // THE THREE THINGS THAT MAKE "GRAB ANYWHERE" SAFE:
+  //   1. A REFUSAL SET (below). Real controls, editable text, and scrollbar gutters are never a
+  //      drag surface -- a press there is theirs.
+  //   2. A CLICK-VS-DRAG THRESHOLD. Under DRAG_THRESHOLD px the gesture is still a click and the
+  //      framework has written nothing at all; past it the panel moves and the resulting click is
+  //      swallowed. Every existing click target keeps working untouched.
+  //   3. MOUSE AND PEN ONLY. A touch drag would have to preventDefault the browser's scroll gesture
+  //      at pointerdown -- i.e. `touch-action: none` on whole panel bodies, which would kill
+  //      scrolling inside every list. Touch keeps the header/handle grab. Recorded as a known limit
+  //      in the register entry rather than faked.
+  var SURFACE_NODRAG_SEL = "button,a,input,select,textarea,label,summary,option," +
+    "[contenteditable],[data-pf-nodrag],[role='button'],[role='tab'],[role='checkbox']," +
+    "[role='radio'],[role='slider'],[role='textbox'],[role='option'],[role='spinbutton']," +
+    ".pf-grip,.pf-edge-e,.pf-edge-s,.pf-head,.pf-handle,.pf-x," +
+    "[data-dwfui-list-bar]";
+
+  // clientWidth/Height exclude the scrollbar gutter, so a press beyond them inside the border box
+  // belongs to the scrollbar.
+  function onScrollbarGutter(node, event) {
+    if (!node || node.nodeType !== 1 || !node.getBoundingClientRect) return false;
+    var vertical = node.scrollHeight > node.clientHeight;
+    var horizontal = node.scrollWidth > node.clientWidth;
+    if (!vertical && !horizontal) return false;
+    var rect = node.getBoundingClientRect();
+    if (vertical && event.clientX > rect.left + node.clientWidth) return true;
+    if (horizontal && event.clientY > rect.top + node.clientHeight) return true;
+    return false;
+  }
+  function surfaceDragRefused(el, event) {
+    var target = event.target;
+    if (!target || target.nodeType !== 1) return true;
+    try { if (target.closest && target.closest(SURFACE_NODRAG_SEL)) return true; } catch (_) { return true; }
+    for (var node = target; node && node !== el.parentElement; node = node.parentElement)
+      if (onScrollbarGutter(node, event)) return true;
+    return false;
+  }
+  function addSurfaceDrag(spec, el) {
+    if (!el || spec.movable === false || el.dataset.pfSurfaceDragBound === "1") return;
+    el.dataset.pfSurfaceDragBound = "1";
+    el.addEventListener("pointerdown", function (event) {
+      if (!enabled() || !attached[spec.key]) return;
+      if (event.button != null && event.button !== 0) return;
+      if (event.pointerType === "touch") return;   // touch keeps the header/handle grab
+      if (surfaceDragRefused(el, event)) return;
+      // Deliberately NO preventDefault/stopPropagation here: until the threshold is crossed this
+      // press must still reach whatever the panel put underneath it.
+      runDrag(spec, el, event, el, root.document, DRAG_THRESHOLD);
+    });
+  }
+
+  // ---- the chrome layer is framework-owned -----------------------------------------------------
+  var CHROME_PARTS = [
+    ["pf-edge-e", "e"],
+    ["pf-edge-s", "s"],
+    ["pf-grip pf-grip-nw", "nw"],
+    ["pf-grip pf-grip-ne", "ne"],
+    ["pf-grip pf-grip-sw", "sw"],
+    ["pf-grip pf-grip-se", "se"]
+  ];
+
+  // A host that refuses pointer events has said it is not a surface: resize chrome pinned to its
+  // corners lands where nothing is and cannot be grabbed. Reconciled per pass, never decided once.
+  function isSurface(el) {
+    var style = styleFor(el);
+    return !style || String(style.pointerEvents) !== "none";
+  }
+  function resizeChromeWanted(spec, el) { return !!spec.resizable && isSurface(el); }
+  function removeResize(el) {
+    el.classList.remove("pf-resizable");
+    el.querySelectorAll(".pf-grip,.pf-edge-e,.pf-edge-s").forEach(function (node) { node.remove(); });
+    // `pfGripScrollBound` is deliberately LEFT SET: its listener is anonymous and unremovable, and
+    // the mark is what stops a remove/re-add cycle stacking a second copy of it.
+  }
+  function reconcileResize(spec, el) {
+    if (!spec.resizable) return;
+    if (!resizeChromeWanted(spec, el)) {
+      if (el.querySelector(".pf-grip,.pf-edge-e,.pf-edge-s") || el.classList.contains("pf-resizable"))
+        removeResize(el);
+      return;
+    }
+    if (!el.classList.contains("pf-resizable")) el.classList.add("pf-resizable");
+    addResize(spec, el);
+  }
+
   function addResize(spec, el) {
-    if (!spec.resizable || el.querySelector(".pf-grip,.pf-edge-e,.pf-edge-s")) return;
+    if (!resizeChromeWanted(spec, el) || el.querySelector(".pf-grip,.pf-edge-e,.pf-edge-s")) return;
     el.classList.add("pf-resizable");
-    // Edges are appended first and corners last: equal-z later siblings win hit-testing. In v1 the
-    // E/S edges covered most of the lone 14px SE grip, making it behave like a one-axis handle.
-    [["pf-edge-e", "e", "right:0;top:0;width:6px;height:100%;cursor:ew-resize;z-index:1;"],
-     ["pf-edge-s", "s", "left:0;bottom:0;width:100%;height:6px;cursor:ns-resize;z-index:1;"],
-     ["pf-grip pf-grip-nw", "nw", "left:0;top:0;cursor:nwse-resize;"],
-     ["pf-grip pf-grip-ne", "ne", "right:0;top:0;cursor:nesw-resize;"],
-     ["pf-grip pf-grip-sw", "sw", "left:0;bottom:0;cursor:nesw-resize;"],
-     ["pf-grip pf-grip-se", "se", "right:0;bottom:0;cursor:nwse-resize;"]].forEach(function (part) {
+    // Edges first, corners last: at equal z the later sibling wins hit-testing.
+    CHROME_PARTS.forEach(function (part) {
       var grip = root.document.createElement("div");
       grip.className = part[0];
-      grip.style.cssText = "position:absolute;" + part[2];
       el.appendChild(grip);
       grip.addEventListener("pointerdown", function (event) {
         if (!enabled() || !attached[spec.key]) return;
         if (event.button != null && event.button !== 0) return;
         event.preventDefault(); event.stopPropagation(); focus(spec.key);
         var start = explicitRect(spec, el), pointerStart = { x: event.clientX, y: event.clientY }, pending = null, raf = 0;
-        try { grip.setPointerCapture(event.pointerId); } catch (_) {}
+        try { grip.setPointerCapture(event.pointerId); }
+        catch (_) { /* resizing continues from document listeners without capture */ }
+        function paintPending() {
+          if (!pending) return;
+          var latest = pending;
+          pending = null;
+          var raw = resizeByVisual(start, pointerStart, { x: latest.clientX, y: latest.clientY }, effectiveZoom(el), part[1]);
+          // Probe the prospective width inside this frame because narrowing can wrap a footer
+          // and raise minH. Measure again before the final rect; the probe is never painted.
+          var viewport = viewportFor(el), limits = limitsFor(spec, el);
+          if (/[ew]/.test(part[1])) {
+            var probe = clampResizeRect(start, raw, part[1], viewport,
+              { minW: limits.minW, minH: 0, top: limits.top, right: limits.right,
+                bottom: limits.bottom, left: limits.left, head: limits.head });
+            probe.y = start.y; probe.h = start.h;
+            applyRect(spec, el, probe);
+            limits = limitsFor(spec, el);
+          }
+          applyRect(spec, el, clampResizeRect(start, raw, part[1], viewport, limits));
+        }
         function move(ev) {
           pending = ev;
           if (raf) return;
           raf = root.requestAnimationFrame(function () {
             raf = 0;
-            if (!pending) return;
-            var raw = resizeByVisual(start, pointerStart, { x: pending.clientX, y: pending.clientY }, effectiveZoom(el), part[1]);
-            applyRect(spec, el, clampResizeRect(start, raw, part[1], viewportFor(el), limitsFor(spec, el)));
+            paintPending();
           });
         }
         function end() {
           grip.removeEventListener("pointermove", move); grip.removeEventListener("pointerup", end); grip.removeEventListener("pointercancel", end);
           if (raf) { root.cancelAnimationFrame(raf); raf = 0; }
+          // A quick move-and-release can happen before the scheduled frame. The release must flush
+          // that last pointer sample, not cancel the player's entire resize.
+          paintPending();
           markDirty(spec, el);
           rememberPanel(spec);
           saveSoon();
@@ -807,14 +987,15 @@
         grip.addEventListener("pointermove", move); grip.addEventListener("pointerup", end); grip.addEventListener("pointercancel", end);
       });
     });
-    // Some hosts scroll at the element level (base #clientPanel/#selection, td-depot, hosp).
-    // Absolute children anchor to the padding box at scroll 0 and would scroll away with the
-    // content; translating by the live scroll offset pins every grip/edge to the VISIBLE corners.
+    // Some hosts scroll at the element level, so absolute children would scroll away with the
+    // content; translating by the live scroll offset pins every grip to the visible corners.
     if (el.dataset.pfGripScrollBound !== "1") {
       el.dataset.pfGripScrollBound = "1";
       el.addEventListener("scroll", function () {
         var t = (el.scrollLeft || el.scrollTop) ? "translate(" + el.scrollLeft + "px," + el.scrollTop + "px)" : "";
-        el.querySelectorAll(".pf-grip,.pf-edge-e,.pf-edge-s").forEach(function (node) { node.style.transform = t; });
+    el.querySelectorAll(".pf-grip,.pf-edge-e,.pf-edge-s").forEach(function (node) {
+      node.style.setProperty("--pf-resize-transform", t);
+    });
       }, { passive: true });
     }
   }
@@ -835,16 +1016,17 @@
     refreshPanelsMenu();
   }
 
-  // Build (or, on heal, rebuild) the persistent chrome: drag handle, X, resize grips, content
-  // wrapper. Idempotent -- the pf*Bound datasets keep repeat calls from double-binding, and
-  // contentEl reuses an existing wrapper. Called from attach and from the heal observer.
+  // Idempotent: the pf*Bound datasets stop repeat calls double-binding, and contentEl reuses its wrapper.
   function buildChrome(spec, el) {
     var head = spec.headSel ? el.querySelector(spec.headSel) : null;
-    if (spec.movable !== false) head = head || newHead(spec, el);
+    // `chromeless: true` means movable with NO generated title bar: the panel is dragged by its own
+    // body and paints nothing the native screen does not own.
+    if (spec.movable !== false && !spec.chromeless) head = head || newHead(spec, el);
     if (head && !head.classList.contains("pf-handle")) head.classList.add("pf-handle");
     reconcileX(spec, el, head);
     addDrag(spec, el, head);
-    addResize(spec, el);
+    addSurfaceDrag(spec, el);   // UI-DIV-004: every panel is draggable, with or without a handle
+    reconcileResize(spec, el);  // ...but only a SURFACE wears resize chrome (see isSurface)
     if (spec.contentHost) {
       contentEl(el);   // ensure the wrapper exists after the head/grips
       var adopted = reconcileHead(spec, el);
@@ -854,20 +1036,8 @@
     return head;
   }
 
-  // contentHost panels are re-skinned by ~20 writer modules. A converted writer mutates the
-  // wrapper's children only, so this childList observer stays silent in normal operation and fires
-  // ONLY when a writer bypasses panelContent() and writes host.innerHTML directly (a missed
-  // migration, or a legacy add-on). That destroys the framework header; we re-heal it (re-wrap the
-  // orphaned content, restore head + grips) and warn once. A class observer drives open/close
-  // detection centrally, so no writer has to call syncOpenState.
-  // Settle budget (ESC-HANG defense in depth). The root fix above makes every reconciler
-  // convergent, so a settled DOM produces zero mutations and the observers go quiet after a
-  // couple of passes. If a FUTURE reconciler diverges (flip-flopping a marker every pass), the
-  // observers would otherwise feed each other in an unbounded microtask loop that never yields
-  // to the event loop -- the dead-tab failure mode. Budget: more than SETTLE_BUDGET observer
-  // passes without reaching an animation frame disconnects the panel's observers (starving the
-  // loop), reports the panel key loudly ONCE via console.error, and re-arms next frame so the
-  // panel stays alive. A divergent reconciler becomes one error per frame, never a dead tab.
+  // A writer that bypasses panelContent() and writes host.innerHTML destroys the framework header;
+  // the heal observer rebuilds it. SETTLE_BUDGET passes without a frame disconnects a divergent loop.
   var SETTLE_BUDGET = 25;
   function installHostObservers(spec, el) {
     if (!root.MutationObserver) return;
@@ -881,29 +1051,38 @@
       xsync.observe(el, { childList: true, subtree: true });
       cls.observe(el, { attributes: true, attributeFilter: ["class"] });
     }
-    function budgeted(reconcile) {
-      return function () {
+    // Bitmap labels mount and unmount a <canvas> as rows scroll, so a batch that is ENTIRELY label
+    // churn is dropped before the settle budget sees it -- it says nothing about panel structure.
+    function isLabelChurn(record) {
+      var target = record && record.target;
+      return !!(target && target.nodeType === 1 && target.closest &&
+        target.closest("[data-dwfui-bitmap-text]"));
+    }
+    function budgeted(reconcile, ignorable) {
+      return function (records) {
         if (!attached[spec.key] || !enabled() || state.settleTripped) return;
-        // A frame boundary is the "settled" signal: reset the pass count whenever one is reached.
-        // A spinning microtask loop never reaches a frame, which is exactly why the budget counts
-        // passes-per-frame instead of trusting a timer.
+        if (ignorable && records && records.length && Array.prototype.every.call(records, ignorable))
+          return;
+        // A frame boundary is the "settled" signal; a spinning microtask loop never reaches one, which
+        // is why the budget counts passes per frame instead of trusting a timer.
         if (state.settlePasses === 0 && root.requestAnimationFrame)
           root.requestAnimationFrame(function () { state.settlePasses = 0; });
         state.settlePasses++;
         if (state.settlePasses > SETTLE_BUDGET) {
           state.settleTripped = true;
-          state.observers.forEach(function (o) { try { o.disconnect(); } catch (_) {} });
+          state.observers.forEach(function (o) {
+            try { o.disconnect(); } catch (err) { DwfErr.report("panel-frame.observer-disconnect", err); }
+          });
           try {
             root.console.error("[DFPanelFrame] settle budget exceeded for panel '" + spec.key +
               "': a reconciler is not converging; observers disconnected, re-arming next frame.");
-          } catch (_) {}
+          } catch (_) { /* the settle guard remains armed even when console access fails */ }
           if (root.requestAnimationFrame) root.requestAnimationFrame(function () {
             if (attached[spec.key] !== state || !state.observers || !enabled()) return;
             state.settlePasses = 0;
             state.settleTripped = false;
             observeAll();
-            // Catch up on whatever the disconnected window missed. Reconcilers are convergent
-            // (or trip again next frame -- bounded either way).
+            // Catch up on what the disconnected window missed; reconcilers are convergent either way.
             reconcilePanel();
           });
           return;
@@ -912,7 +1091,7 @@
       };
     }
     function reconcilePanel() {
-      if (spec.resizable && !el.classList.contains("pf-resizable")) el.classList.add("pf-resizable");
+      reconcileResize(spec, el);
       reconcileX(spec, el, childByClass(el, "pf-head"));
       reconcileHead(spec, el);
       reconcileFill(spec, el);
@@ -923,29 +1102,18 @@
       if (hasHead) return;   // normal converted write (wrapper mutated) or our own chrome adds
       if (!state.healWarned) {
         state.healWarned = true;
-        try { root.console && root.console.warn("[DFPanelFrame] direct innerHTML write to #" + (el.id || spec.key) + " bypassed panelContent(); framework header re-healed. Convert this writer to panelContent()."); } catch (_) {}
+        try { root.console && root.console.warn("[DFPanelFrame] direct innerHTML write to #" + (el.id || spec.key) + " bypassed panelContent(); framework header re-healed. Convert this writer to panelContent()."); }
+        catch (_) { /* the healed header remains authoritative when console access fails */ }
       }
       state.head = buildChrome(spec, el);
       var lk = layoutKeyFor(spec, el), saved = layoutState()[lk];
       if (visible(el) && saved && (dirty[lk] || (lk in layoutState()))) restore(spec, el, saved);
     }));
 
-    // B145 (one close per panel): every skin render replaces the wrapper's children -- and whether
-    // the framework X should exist depends on what the new skin rendered (does it carry its own
-    // close?). Subtree childList on the host sees wrapper-internal writes AND a healed wrapper
-    // replacement. reconcileX is idempotent, so its own head edits settle in one no-op pass.
-    // B159: reconcileHead re-decides whether the framework bar or the skin's own header is THE
-    // head, alongside the X. Idempotent: class adds are guarded, drag binds stop on pfDragBound.
-    var xsync = new root.MutationObserver(budgeted(reconcilePanel));
+    var xsync = new root.MutationObserver(budgeted(reconcilePanel, isLabelChurn));
 
     var cls = new root.MutationObserver(budgeted(function () {
-      // B145 root cause: skins assign host.className WHOLESALE (selection.className = "visible
-      // building-panel"), wiping the framework's pf-resizable class. Without it the CSS close-
-      // button inset (.pf-resizable .pf-handle .pf-x { margin-right: 22px }) stops applying and
-      // the 22x22 NE corner grip (z-index 4) swallows clicks on the X -- the "top X doesn't
-      // close" report. Re-assert before any early return; add() is guarded so the extra
-      // attribute mutation settles in one no-op pass.
-      if (spec.resizable && !el.classList.contains("pf-resizable")) el.classList.add("pf-resizable");
+      reconcileResize(spec, el);
       reconcileFill(spec, el);
       var now = el.classList.contains("visible");
       var variantChanged = now && layoutKeyFor(spec, el) !== state.layoutKey;
@@ -961,8 +1129,7 @@
   }
 
 
-  // Close-only legacy registrations (currently settingsMenu) have no consumer sync hook. Observe
-  // their open class so even an old cached controls script gets the same open-time safety clamp.
+  // Close-only registrations have no consumer sync hook; observe the open class instead.
   function installOpenObserver(spec, el) {
     if (!root.MutationObserver || spec.contentHost || geometryEnabled(spec) || !spec.isOpen) return;
     var state = attached[spec.key];
@@ -994,8 +1161,7 @@
     var saved = geometryEnabled(spec) && layoutState()[layoutKeyFor(spec, el)];
     if (saved) {
       if (spec.contentHost || spec.persistOpen === false) {
-        // Session-semantic / content hosts: geometry persists, open-state does not. Restore only if
-        // already open; never auto-open. Their opener (or the class observer) restores on next open.
+        // Geometry persists, open-state does not: restore only if already open, never auto-open.
         if (visible(el)) restore(spec, el, saved);
       } else if (saved.open === false && spec.close) {
         spec.close();
@@ -1014,12 +1180,20 @@
     var state = attached[key];
     if (!state) return;
     var spec = registry[key], el = state.el;
-    if (state.observers) { state.observers.forEach(function (o) { try { o.disconnect(); } catch (_) {} }); state.observers = null; }
-    if (state.openObserver) { try { state.openObserver.disconnect(); } catch (_) {} state.openObserver = null; }
-    // M1 has no migrated panels; removal is nevertheless complete for an in-page master switch.
-    if (el) ["left", "top", "right", "bottom", "width", "height", "maxHeight", "zIndex"].forEach(function (name) { el.style[name] = ""; });
+    if (state.observers) {
+      state.observers.forEach(function (o) {
+        try { o.disconnect(); } catch (err) { DwfErr.report("panel-frame.observer-disconnect", err); }
+      });
+      state.observers = null;
+    }
+    if (state.openObserver) {
+      try { state.openObserver.disconnect(); }
+      catch (err) { DwfErr.report("panel-frame.open-observer-disconnect", err); }
+      state.openObserver = null;
+    }
+    if (el) clearRectStyles(el, true);
     if (state.head) state.head.classList.remove("pf-handle");
-    // B159: an adopted skin header carries pf-handle too; strip it from every carrier.
+    // an adopted skin header carries pf-handle too; strip it from every carrier.
     if (el && el.querySelectorAll) el.querySelectorAll(".pf-handle").forEach(function (node) { node.classList.remove("pf-handle"); });
     if (el) el.classList.remove("pf-resizable");
     if (el) clearFillMarks(el);
@@ -1035,9 +1209,7 @@
 
   function refreshPanelsMenu() {
     if (!hasDom) return;
-    // Truthiness, NOT closableFor(): a variant-aware predicate means "closable in at least some
-    // variants", and the cog's Panels list is a per-PANEL affordance, not a per-skin one. (Both
-    // contentHost panels are menu:false anyway, so no live panel is affected either way.)
+    // Truthiness, not closableFor(): the cog's Panels list is a per-PANEL affordance, not a per-skin one.
     var closable = Object.keys(registry).filter(function (key) { return registry[key].closable && registry[key].menu !== false && attached[key]; });
     var existing = root.document.getElementById("dfPanelFrameMenu");
     if (!closable.length) { if (existing) existing.remove(); return; }
@@ -1047,7 +1219,6 @@
       existing = root.document.createElement("div");
       existing.id = "dfPanelFrameMenu";
       existing.className = "pf-menu";
-      existing.style.cssText = "border-top:1px solid #5a4316;margin-top:6px;padding-top:4px;";
       menu.appendChild(existing);
     }
     existing.innerHTML = "<h3>Panels</h3>";
@@ -1074,8 +1245,7 @@
       return attached[key] && spec.escClosable && spec.isOpen && spec.isOpen();
     });
     if (!candidates.length) return false;
-    // A panel opened outside the framework still joins on its first Esc; registered order is the
-    // deterministic fallback until the user gives it focus.
+    // Registered order is the deterministic Esc fallback until the user gives a panel focus.
     candidates.forEach(function (key) { if (escStack.indexOf(key) < 0) escStack.push(key); });
     var key = escStack.filter(function (item) { return candidates.indexOf(item) >= 0; }).pop();
     if (!key) key = candidates[candidates.length - 1];
@@ -1084,13 +1254,13 @@
   }
 
   function resetAll() {
-    storageRemove(LAYOUT_KEY);
+    DwfUtil.lsRemove(LAYOUT_KEY);
     layoutPanels = {};
     dirty = Object.create(null);
     Object.keys(registry).forEach(function (key) {
       var spec = registry[key], el = specEl(spec);
       if (!el || !attached[key]) return;
-      ["left", "top", "right", "bottom", "width", "height", "maxHeight", "zIndex"].forEach(function (name) { el.style[name] = ""; });
+      clearRectStyles(el, true);
       if (spec.defaultPos && (!spec.isOpen || spec.isOpen())) {
         var viewport = viewportFor(el), pos = spec.defaultPos(viewport.w, viewport.h);
         if (pos && finite(pos.x) && finite(pos.y) && finite(pos.w) && finite(pos.h)) restore(spec, el, pos);
@@ -1108,7 +1278,7 @@
   }
 
   function setEnabled(on) {
-    storageSet(ENABLED_KEY, on ? "1" : "0");
+    DwfUtil.lsSet(ENABLED_KEY, on ? "1" : "0");
     if (on) Object.keys(registry).forEach(function (key) { attach(registry[key]); });
     else Object.keys(attached).forEach(detach);
     refreshPanelsMenu();
@@ -1117,13 +1287,17 @@
   if (hasDom) {
     root.addEventListener("resize", function () {
       if (!enabled()) return;
+      flushRememberedLayout();
       Object.keys(attached).forEach(function (key) {
         var spec = registry[key], el = specEl(spec);
         if (!el || !visible(el)) return;
-        clampOpenRect(spec, el);
+        // A remembered panel has an unconstrained source rect: reconstruct from it on every window
+        // size change, so the full saved size returns when room does.
+        var saved = geometryEnabled(spec) && layoutState()[layoutKeyFor(spec, el)];
+        if (saved) restore(spec, el, saved);
+        else clampOpenRect(spec, el);
       });
     });
-    // The settings cog is M1's sole close-only registration: it changes no geometry or z-order.
     register({
       key: "settingsMenu", el: function () { return root.document.getElementById("settingsMenu"); },
       movable: false, closable: false, zBand: false, escClosable: true, persistOpen: false,

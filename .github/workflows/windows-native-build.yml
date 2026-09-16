@@ -1,9 +1,21 @@
-name: Windows native build
+name: Native builds
 
 on:
   pull_request:
+    paths:
+      - "src/**"
+      - "third_party/**"
+      - "CMakeLists.txt"
+      - "tools/release/build_receipt.mjs"
+      - ".github/workflows/windows-native-build.yml"
   push:
-    branches: [main, dev]
+    branches: [main, "wt/beta4-native-*"]
+    paths:
+      - "src/**"
+      - "third_party/**"
+      - "CMakeLists.txt"
+      - "tools/release/build_receipt.mjs"
+      - ".github/workflows/windows-native-build.yml"
   workflow_dispatch:
 
 permissions:
@@ -11,24 +23,35 @@ permissions:
 
 jobs:
   build-plugin:
-    runs-on: windows-2022
-    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-2022
+            binary: dwf.plug.dll
+          - platform: linux
+            os: ubuntu-22.04
+            binary: dwf.plug.so
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.x"
+          node-version: "22"
 
-      - name: Install build dependencies
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
         run: |
-          choco install sccache
-          pip install Jinja2
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-11 g++-11 libxml-libxml-perl libxml-libxslt-perl zlib1g-dev
 
       - name: Check out pinned DFHack
         uses: actions/checkout@v4
         with:
           repository: DFHack/dfhack
-          ref: 53.15-r2
+          ref: 53.16-r1
           submodules: true
           fetch-depth: 0
 
@@ -38,40 +61,57 @@ jobs:
           path: plugins/external/multi-dwarf
 
       - name: Register the external plugin
-        shell: pwsh
-        run: Set-Content plugins/external/CMakeLists.txt 'add_subdirectory(multi-dwarf)'
+        shell: bash
+        run: echo 'add_subdirectory(multi-dwarf)' > plugins/external/CMakeLists.txt
 
       - name: Enable MSVC
+        if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Configure the pinned source tree
+      - name: Configure Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           cmake -S . -B build -GNinja `
             -DDFHACK_BUILD_ARCH=64 `
             -DCMAKE_BUILD_TYPE=Release `
-            -DBUILD_LIBRARY=ON `
-            -DBUILD_PLUGINS=ON `
-            -DBUILD_DOCS=OFF `
-            -DBUILD_TESTS=OFF `
+            -DBUILD_LIBRARY=ON -DBUILD_PLUGINS=ON `
+            -DBUILD_DOCS=OFF -DBUILD_TESTS=OFF `
+            -DBUILD_STONESENSE=OFF -DBUILD_SUPPORTED=OFF -DBUILD_XLSXIO=OFF `
             -DINSTALL_DATA_FILES=OFF `
             -DDFCAPTURE_BUILD_STAMP=${{ github.sha }}
 
-      - name: Compile dwf.plug.dll
-        run: cmake --build build --config Release --target dfcapture_public
+      - name: Configure Linux
+        if: runner.os == 'Linux'
+        env:
+          CC: gcc-11
+          CXX: g++-11
+        run: |
+          cmake -S . -B build -GNinja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DBUILD_LIBRARY=ON -DBUILD_PLUGINS=ON \
+            -DBUILD_DOCS=OFF -DBUILD_TESTS=OFF \
+            -DBUILD_STONESENSE=OFF -DBUILD_SUPPORTED=OFF -DBUILD_XLSXIO=OFF \
+            -DINSTALL_DATA_FILES=OFF \
+            -DDFCAPTURE_BUILD_STAMP=${{ github.sha }}
+
+      - name: Compile plugin
+        run: cmake --build build --config Release --target dfcapture_public --parallel 4
 
       - name: Record artifact identity
-        shell: pwsh
+        run: node plugins/external/multi-dwarf/tools/release/build_receipt.mjs --dfhack-build build --platform ${{ matrix.platform }} --out build-receipt.json
+
+      - name: Inspect Linux shared-library requirements
+        if: runner.os == 'Linux'
         run: |
-          $dll = Resolve-Path build/plugins/external/multi-dwarf/dwf.plug.dll
-          $hash = (Get-FileHash -Algorithm SHA256 $dll).Hash.ToLowerInvariant()
-          $size = (Get-Item $dll).Length
-          "commit=${{ github.sha }}`ndfhack=53.15-r2`nsha256=$hash`nbytes=$size" | Set-Content build-receipt.txt
+          readelf -d build/plugins/external/multi-dwarf/dwf.plug.so
+          readelf --version-info build/plugins/external/multi-dwarf/dwf.plug.so
 
       - name: Upload native artifact and receipt
         uses: actions/upload-artifact@v4
         with:
-          name: dwf-windows-${{ github.sha }}
+          name: dwf-${{ matrix.platform }}-${{ github.sha }}
           path: |
-            build/plugins/external/multi-dwarf/dwf.plug.dll
-            build-receipt.txt
+            build/plugins/external/multi-dwarf/${{ matrix.binary }}
+            build-receipt.json
           if-no-files-found: error

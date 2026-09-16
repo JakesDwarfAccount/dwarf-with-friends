@@ -87,8 +87,7 @@ ApiResult<bool> rename_labor_detail(int detail, const std::string& requested_nam
 ApiResult<bool> delete_labor_detail(int detail);
 ApiResult<bool> set_labor_task(int detail, int labor, bool on);
 
-// Registers this module's HTTP routes (moved verbatim from http_server.cpp's
-// register_routes monolith -- B212, 2026-07-13).
+// Registers this module's HTTP routes.
 void register_labor_routes(httplib::Server& server);
 
 } // namespace dwf

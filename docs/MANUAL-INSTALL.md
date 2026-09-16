@@ -1,14 +1,18 @@
 # Manual install (the hard way)
 
-The setup launcher (`DWF Setup.cmd` on Windows or `dwf-setup.sh` on Linux) does everything below
+The one-click launcher (`DWF Setup.cmd` on Windows, `./dwf-setup.sh` on Linux) does everything below
 automatically. Use this guide only if you'd rather install by hand, the launcher won't run on your
 system, or you want a different tunnel (a Tailscale option is at the bottom).
 
-You need **Windows or Linux** and a working copy of **Dwarf Fortress**. Only the **host** does any
-of this — friends just open a link in their browser.
+You need **Windows or Linux** and a working copy of **Dwarf Fortress 0.53.16**. Only the **host** does any of
+this: friends just open a link in their browser. Linux hosting works, but only since beta.3, and it
+has had far less real-world play than Windows: two features remain Windows-only because they call
+into the Windows DF binary at fixed addresses (per-player pan/zoom's native map render, and native
+unit portraits), so a Linux host serves the shared-camera viewscreen fallback and placeholder
+portraits.
 
-Throughout, `<DF>` means your Dwarf Fortress folder (the one holding `Dwarf Fortress.exe` on
-Windows or `dwarfort` on Linux).
+Throughout, `<DF>` means your Dwarf Fortress folder (the one holding `Dwarf Fortress.exe`, or
+`dwarfort` on Linux). Windows paths are written with `\` below; on Linux use the same paths with `/`.
 
 ---
 
@@ -17,57 +21,66 @@ Windows or `dwarfort` on Linux).
 Dwarf With Friends is a DFHack plugin, so DFHack must be installed first, and the version must match
 exactly.
 
-- **Required version: DFHack `53.15-r2`** — https://github.com/DFHack/dfhack/releases/tag/53.15-r2
-- Download the DFHack 53.15-r2 archive for your platform and extract it **into `<DF>`** so that a
-  `hack` folder appears next to the Dwarf Fortress executable.
+- **Required version: DFHack `53.16-r1`**: https://github.com/DFHack/dfhack/releases/tag/53.16-r1
+- **Windows:** download `dfhack-53.16-r1-Windows-64bit.zip` and extract it **into `<DF>`** so that a
+  `hack\` folder appears next to `Dwarf Fortress.exe`.
+- **Linux:** download `dfhack-53.16-r1-Linux-64bit.tar.bz2` and extract it **into `<DF>`** the same
+  way: `tar -xjf dfhack-53.16-r1-Linux-64bit.tar.bz2 -C "<DF>"`: so that a `hack/` folder and a
+  `dfhack` launcher script appear next to `dwarfort`.
 - Launch Dwarf Fortress once and confirm the DFHack terminal/overlay appears, then close it.
 
-(If you use the Steam version of DFHack, make sure it is the `53.15-r2` build — a mismatched DFHack
+(If you use the Steam version of DFHack, make sure it is the `53.16-r1` build: a mismatched DFHack
 is the #1 cause of the plugin not loading.)
 
 ## 2. Install the plugin files
 
 From this release's zip, copy these files to these exact locations, creating folders as needed:
 
-| From the zip | To |
-|---|---|
-| `dwf.plug.dll` (Windows) | `<DF>/hack/plugins/dwf.plug.dll` |
-| `dwf.plug.so` (Linux) | `<DF>/hack/plugins/dwf.plug.so` |
-| `dwf.lua` | `<DF>\hack\lua\plugins\dwf.lua` |
-| `dwf.lua` (same file) | `<DF>\hack\scripts\dwf.lua` |
-| `gui\dwf.lua` | `<DF>\hack\scripts\gui\dwf.lua` |
-| everything in `web\` | `<DF>\hack\dfcapture-web\` (the whole folder) |
+| From the zip | To (Windows) | To (Linux) |
+|---|---|---|
+| the plugin: `dwf.plug.dll` in the Windows zip, `dwf.plug.so` in the Linux zip | `<DF>\hack\plugins\dwf.plug.dll` | `<DF>/hack/plugins/dwf.plug.so` |
+| `dwf.lua` | `<DF>\hack\lua\plugins\dwf.lua` | `<DF>/hack/lua/plugins/dwf.lua` |
+| `dwf.lua` (same file) | `<DF>\hack\scripts\dwf.lua` | `<DF>/hack/scripts/dwf.lua` |
+| `gui\dwf.lua` | `<DF>\hack\scripts\gui\dwf.lua` | `<DF>/hack/scripts/gui/dwf.lua` |
+| everything in `web\` | `<DF>\hack\dfcapture-web\` (the whole folder) | `<DF>/hack/dfcapture-web/` (the whole folder) |
 
-If you are **upgrading** from an older build, first delete any leftover `dfcapture.plug.dll`,
-`dfcapture.plug.so`, and `hack/lua/plugins/dfcapture.lua`. DFHack loads every plugin in
-`hack/plugins`, and an old copy running alongside the new one will fight over the port. The setup
-launcher quarantines these for you; by hand, just delete them.
+On Linux, the launcher marks the plugin `0755` for you; placing it by hand, run
+`chmod 0755 "<DF>/hack/plugins/dwf.plug.so"` after copying it.
+
+If you are **upgrading** from an older build, first delete any leftover `dfcapture.plug.dll` and
+`hack\lua\plugins\dfcapture.lua`: DFHack loads *every* DLL in `hack\plugins\`, and an old copy
+running alongside the new one will fight over the port. (The launcher quarantines these for you;
+by hand, just delete them.)
 
 ## 3. Bake the sprites
 
 The browser UI uses Dwarf Fortress's own art. Rather than redistribute the game's copyrighted files,
 the plugin generates the sprites it needs from *your* installed copy. Run once, from the extracted
-release folder (the one containing `DWF Setup.cmd`):
+release folder (the one containing `DWF Setup.cmd`, or `dwf-setup.sh` on Linux):
 
 ```
-node host/bake_sprites.mjs --df-root "<DF>"
+node host\bake_sprites.mjs --df-root "<DF>"      (Windows)
+node host/bake_sprites.mjs --df-root "<DF>"      (Linux)
 ```
 
-(The Windows package ships a portable Node. Linux and a fully manual Windows install need Node
-installed, or you can let the setup launcher do this step.) This writes a handful of PNGs into
-`hack\dfcapture-web\`. No game files leave your machine.
+(The launcher ships a portable Node; if you're doing this fully by hand you'll need Node installed,
+or just let `DWF Setup.cmd` / `./dwf-setup.sh` do this one step.) This writes a handful of PNGs into
+`hack\dfcapture-web\`. The server serves the required art to your friends’ browsers while they play.
 
 ## 4. Start hosting
 
-1. Launch Dwarf Fortress (with DFHack) and load your fortress.
-2. In the DFHack console (backtick `` ` `` opens it), the plugin auto-loads; the web server listens on
-   **http://127.0.0.1:8765**.
-3. Open **http://127.0.0.1:8765/view** in your browser — because you're on the same machine you're
+1. Launch Dwarf Fortress (with DFHack) and load your fortress. **On Linux**, launch it from Steam,
+   and set the game's Steam launch options once (right-click **Dwarf Fortress** → **Properties** →
+   **Launch Options**) to exactly `sh -c 'exec "./dfhack"' %command%`: otherwise Steam starts
+   `dwarfort` on its own and DFHack, and therefore the plugin, never loads.
+2. In the DFHack console, run `capture-stream-start`. The web server listens on
+   **http://127.0.0.1:8765** by default. You can also start it with `gui/dwf`.
+3. Open **http://127.0.0.1:8765/view** in your browser: because you're on the same machine you're
    recognized as the host automatically (no password prompt).
 4. Press **Esc → Host settings** for the control panel: the friend link, the join password (off by
-   default — anyone with the link can join; set one here if you want), and the connected-player list.
+   default: anyone with the link can join; set one here if you want), and the connected-player list.
 
-At this point local play works. To let friends on other networks join, you need a tunnel — pick
+At this point local play works. To let friends on other networks join, you need a tunnel: pick
 **one** of the next two sections.
 
 ---
@@ -76,14 +89,14 @@ At this point local play works. To let friends on other networks join, you need 
 
 A tunnel exposes your local server to the internet without router port-forwarding.
 
-- **cloudflared `2026.6.1`** — https://github.com/cloudflare/cloudflared/releases/tag/2026.6.1
-- Download the cloudflared binary for your platform, put it wherever you like, then run:
+- **cloudflared `2026.6.1`**: https://github.com/cloudflare/cloudflared/releases/tag/2026.6.1
+- Download `cloudflared-windows-amd64.exe` (on Linux, `cloudflared-linux-amd64`; `chmod +x` it),
+  put it wherever you like, then run:
 
 ```
-cloudflared tunnel --url http://localhost:8765
+cloudflared.exe tunnel --url http://localhost:8765      (Windows)
+./cloudflared tunnel --url http://localhost:8765        (Linux)
 ```
-
-On Windows the downloaded command may be named `cloudflared.exe` instead.
 
 - It prints a `https://<random>.trycloudflare.com` URL. **That link + the join password (if you set
   one) is what your friends open.** Nothing to configure, no account, no login. The link lasts until
@@ -91,31 +104,31 @@ On Windows the downloaded command may be named `cloudflared.exe` instead.
 - The host panel can start/stop this for you; doing it by hand is only for troubleshooting.
 
 **Security note:** with no password, anyone who gets that link can join your fort. The random URL is
-unguessable, but treat it like a secret — don't post it publicly. Set a password in Host settings if
+unguessable, but treat it like a secret: don't post it publicly. Set a password in Host settings if
 you're sharing more widely.
 
 ## 5b. Internet play with Tailscale (if you prefer a private mesh)
 
 [Tailscale](https://tailscale.com) puts you and your friends on a private encrypted network as if you
-were on the same LAN — no public URL exists at all, which some people prefer over a cloudflared link.
+were on the same LAN: no public URL exists at all, which some people prefer over a cloudflared link.
 Everyone who wants to join installs Tailscale (free tier is plenty).
 
 1. **Host:** install Tailscale (https://tailscale.com/download), sign in, and note your machine's
-   Tailscale IP — run `tailscale ip -4` (looks like `100.x.y.z`). Keep Tailscale running while you host.
+   Tailscale IP: run `tailscale ip -4` (looks like `100.x.y.z`). Keep Tailscale running while you host.
 2. **Each friend:** install Tailscale and sign in. To be on the same network they must either be on
-   **your tailnet** — invite them from the Tailscale admin console (https://login.tailscale.com/admin)
-   via *Share* / an invite link — or use a shared node. (If everyone's already on one shared tailnet,
+   **your tailnet**: invite them from the Tailscale admin console (https://login.tailscale.com/admin)
+   via *Share* / an invite link: or use a shared node. (If everyone's already on one shared tailnet,
    skip this.)
 3. **The bind caveat:** the console command `capture-stream-start` listens only on `127.0.0.1`
    (localhost) unless you pass a bind address, so a Tailscale peer can't reach a console-started
    server directly. (The in-game `gui/dwf` window is different: its "Who can connect" toggle
-   starts on LAN, `0.0.0.0` — see `docs/CONFIG.md`.) Two ways to host over Tailscale:
-   - **Easiest — `tailscale serve`:** on the host, run
+   starts on LAN, `0.0.0.0`: see [CONFIG.md](CONFIG.md).) Two ways to host over Tailscale:
+   - **Easiest: `tailscale serve`:** on the host, run
      `tailscale serve --bg http://127.0.0.1:8765`
      This proxies your local server onto your tailnet over HTTPS. Tailscale prints the URL to share
      (a `https://<your-machine>.<tailnet>.ts.net` address). Friends on your tailnet open that link.
      This is the cleanest option, needs no firewall changes, and works with a loopback-only bind.
-   - **Manual — reach the host by Tailscale IP:** make the server listen on all interfaces
+   - **Manual: reach the host by Tailscale IP:** make the server listen on all interfaces
      (`capture-stream-start 8765 0.0.0.0`, or leave `gui/dwf` on its LAN setting) and friends
      browse to `http://100.x.y.z:8765/view` (the host's Tailscale IP).
 
@@ -128,17 +141,17 @@ they join straight from their browser.
 
 ## Uninstalling
 
-Delete the five files/folders from step 2 (`hack/plugins/dwf.plug.dll` or `dwf.plug.so`, both `dwf.lua` copies,
-`hack\scripts\gui\dwf.lua`, and `hack\dfcapture-web\`). That's the entire footprint — the one-click
-installer also writes an install receipt (`dwf_install_receipt.json` in `<DF>`) you can delete if
-present. DFHack itself is untouched.
+Delete the five files/folders from step 2 (`hack\plugins\dwf.plug.dll`: `hack/plugins/dwf.plug.so`
+on Linux: both `dwf.lua` copies, `hack\scripts\gui\dwf.lua`, and `hack\dfcapture-web\`).
+That's the entire footprint: the one-click installer also writes an install receipt
+(`dwf_install_receipt.json` in `<DF>`) you can delete if present. DFHack itself is untouched.
 
 ## Troubleshooting
 
 - **Plugin doesn't load / `/view` won't open:** almost always a DFHack version mismatch. Confirm
-  `53.15-r2`.
-- **Two plugins loading / port already in use:** an old `dfcapture.plug.dll` or
-  `dfcapture.plug.so` is still in `hack/plugins`. Delete it.
+  `53.16-r1`.
+- **Two plugins loading / port already in use:** an old `dfcapture.plug.dll` is still in
+  `hack\plugins\`. Delete it.
 - **Friends can't connect over cloudflared:** the tunnel isn't running, or you shared the local
   `127.0.0.1` link instead of the `trycloudflare.com` one.
 - **Friends can't connect over Tailscale:** they're not on your tailnet, or you shared the Tailscale

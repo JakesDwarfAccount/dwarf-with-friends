@@ -19,45 +19,26 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-join.js -- JOIN SECURITY + VERSION-MISMATCH GATE (ship-blockers, PROJECT-CLOSEOUT
-// Phase 5). Self-contained: injects its own DOM + styles, has zero hard dependency on any other
-// module loading first, and NEVER throws out of the boot path.
-//
-// JOIN SECURITY (friends-tier, the owner: "super simple security, just for sharing with friends"):
-//   - The generic join link is just the server URL; every new session lands here first.
-//   - gate(startFn) fetches GET /version to learn whether the host set a passphrase (authRequired)
-//     and the server's build stamp.
-//   - No passphrase set (dev default) AND a name already stored  -> boot immediately (current wide-
-//     open behavior; zero interruption for returning players -> safe to deploy against the old DLL).
-//   - No passphrase, first-ever visit -> a name-only screen (set your display name), then boot.
-//   - Passphrase set -> a name + password JOIN SCREEN (name prefilled from localStorage). On submit
-//     the password is validated (POST /join, constant-time compared server-side), stored in the
-//     `dfcap_auth` cookie (auto-sent on every same-origin fetch/<img>/<script> -> no per-call-site
-//     plumbing) and kept for the WS hello `token`. A returning session that already holds a valid
-//     credential cookie + a name skips the screen (seamless; survives a server RESTART because the
-//     passphrase is stable). If the host later CHANGES the passphrase the server rejects the stale
-//     credential -> auth_fail -> onAuthFail() clears it and re-shows the screen.
-//
-// VERSION-MISMATCH GATE: the client bakes window.DFCAPTURE_BUILD at deploy time. On boot (and again
-// on every WS hello_ack, via checkVersion) it compares that to the server's build stamp; a hard
-// mismatch (different git/deploy, or different wire CRC) shows a BLOCKING "refresh -- this tab is
-// stale" banner; an asset-buster-only difference shows a soft, dismissible warning. Busters cover
-// caches; this covers a human sitting on an old tab after a redeploy.
+// ---- Join security and the version-mismatch gate. Self-contained; never throws out of the boot path. ----
+// The passphrase is validated by POST /join, kept in the `dfcap_auth` cookie, and reused as the WS hello token.
 
 (function () {
   "use strict";
 
-  // DWFUI contract -- see dwf-escmenu.js. Presence-guarded, but NOT throw-swallowing.
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
     DWFUI.require("join", ["windowHtml", "plaqueBtnHtml", "statusHtml", "esc"]);
 
   var AUTH_COOKIE = "dfcap_auth";
   var NAME_KEY = "dwf.player";
+  var DwfUtil = window.DwfUtil;
   var REMEMBER_S = 400 * 24 * 3600;   // ~max cookie lifetime (Chrome caps at 400 days)
 
   var credential = "";                // the shared passphrase, for the WS hello `token`
   var serverInfo = null;              // last /version payload
   var started = false;                // guard: boot the app at most once
+  var gateState = "idle";             // idle | checking | awaiting-user | ready | started
+  var activeJoinPromise = null;       // one unresolved join card, never a stacked duplicate
+  var reauthPending = false;
 
   // ---- cookies -----------------------------------------------------------------------------
   function getCookie(name) {
@@ -67,17 +48,18 @@
         var p = parts[i].trim();
         if (p.indexOf(name + "=") === 0) return decodeURIComponent(p.slice(name.length + 1));
       }
-    } catch (_) {}
+    } catch (err) { DwfErr.report("join.get-cookie", err); }
     return "";
   }
   function setCookie(name, val) {
     try {
       document.cookie = name + "=" + encodeURIComponent(val) +
         "; path=/; SameSite=Strict; max-age=" + REMEMBER_S;
-    } catch (_) {}
+    } catch (err) { DwfErr.report("join.set-cookie", err); }
   }
   function clearCookie(name) {
-    try { document.cookie = name + "=; path=/; SameSite=Strict; max-age=0"; } catch (_) {}
+    try { document.cookie = name + "=; path=/; SameSite=Strict; max-age=0"; }
+    catch (err) { DwfErr.report("join.clear-cookie", err); }
   }
 
   // ---- version compare (PURE -- unit-tested offline in tools/harness/join_version_test.mjs) ----
@@ -132,42 +114,6 @@
     } catch (_) { return ""; }
   }
 
-  // ---- injected styles ---------------------------------------------------------------------
-  // R1: 18 hex literals -- a private palette on the SUPERSEDED gold -- replaced by the shared
-  // --dwfui-* custom properties (F1's measured native palette). No colour is stated in this module.
-  // The dead `#dfcapJoinBtn` / `#dfcapVerBanner button` skins go with their controls: both are DWFUI
-  // plaques now, so their look comes from .dwfui-plaque -- one plaque, one place.
-  function injectStyles() {
-    if (document.getElementById("dfcapJoinStyle")) return;
-    var css =
-      "#dfcapJoinOverlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;" +
-      "justify-content:center;background:rgba(5,5,5,.92);backdrop-filter:blur(2px)}" +
-      "#dfcapJoinCard{width:min(360px,90vw);background:var(--dwfui-surface);" +
-      "border:2px solid var(--dwfui-gold);height:auto;" +
-      "padding:22px 24px 20px;box-shadow:0 12px 48px rgba(0,0,0,.6);color:var(--dwfui-text-body)}" +
-      "#dfcapJoinCard h1{margin:0 0 4px;font-size:20px;font-weight:600;color:var(--dwfui-gold);letter-spacing:.2px}" +
-      "#dfcapJoinCard .dfcj-sub{margin:0 0 16px;font-size:12.5px;color:var(--dwfui-text-secondary)}" +
-      "#dfcapJoinCard label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.8px;" +
-      "color:var(--dwfui-text-secondary);margin:12px 0 5px}" +
-      // DELIBERATE EXCEPTION (spec invariant): editable text fields stay real DOM inputs.
-      "#dfcapJoinCard input{width:100%;box-sizing:border-box;padding:9px 11px;" +
-      "border:1px solid var(--dwfui-gold-bevel-dark);background:var(--dwfui-ink);" +
-      "color:var(--dwfui-text-body);font-size:14px;outline:none}" +
-      "#dfcapJoinCard input:focus{border-color:var(--dwfui-gold)}" +
-      "#dfcapJoinBtn{margin-top:18px;display:flex}" +
-      "#dfcapJoinBtn .dwfui-plaque{flex:1 1 auto;width:100%}" +
-      "#dfcapJoinErr{min-height:16px;margin-top:10px;font-size:12px;color:var(--dwfui-text-warning)}" +
-      "#dfcapVerBanner{position:fixed;left:0;right:0;top:0;z-index:99999;padding:10px 16px;" +
-      "font-size:13.5px;display:flex;gap:12px;align-items:center;" +
-      "justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}" +
-      "#dfcapVerBanner.hard{background:var(--dwfui-destructive);color:var(--dwfui-text-title)}" +
-      "#dfcapVerBanner.soft{background:var(--dwfui-slab);color:var(--dwfui-gold)}";
-    var st = document.createElement("style");
-    st.id = "dfcapJoinStyle";
-    st.textContent = css;
-    (document.head || document.documentElement).appendChild(st);
-  }
-
   // ---- version banner ----------------------------------------------------------------------
   var bannerDismissedSoft = false;
   function versionBannerMessage(cmp) {
@@ -177,25 +123,18 @@
           : "A new version is live — this browser tab is running stale code.")
       : "Some assets were updated - a refresh is recommended.";
   }
-  // *** ONE DEFINITION, BOTH PATHS. *** versionBannerMarkup() fed only the Studio; showBanner() --
-  // the path a PLAYER actually sees after a redeploy -- hand-built the same banner with
-  // createElement and two raw buttons. Same two-path trap as chat's build(). The markup is now built
-  // ONCE, and showBanner() mounts THAT and wires it, so the Studio card and the live banner cannot
-  // drift. Both actions are native text plaques (red = the destructive/blocking refresh, grey = the
-  // dismissible note).
   function versionBannerMarkup(cmp) {
     cmp = cmp || { level: "hard", reason: "stale" };
     var soft = cmp.level === "soft";
     return '<div id="dfcapVerBanner" class="' + (soft ? "soft" : "hard") + '">' +
-      window.DWFUI.statusHtml({ tag: "span", cls: "dfcj-msg", text: versionBannerMessage(cmp),
+      window.DWFUI.statusHtml({ tag: "span", cls: "join-gate-msg", text: versionBannerMessage(cmp),
         role: "status", live: "polite" }) +
       window.DWFUI.plaqueBtnHtml({ label: "Refresh now", tone: soft ? "grey" : "red",
-        cls: "dfcj-refresh", dataset: { dfcjAct: "refresh" }, title: "Reload this tab" }) +
-      (soft ? window.DWFUI.plaqueBtnHtml({ label: "Dismiss", tone: "grey", cls: "dfcj-x",
+        cls: "join-gate-refresh", dataset: { dfcjAct: "refresh" }, title: "Reload this tab" }) +
+      (soft ? window.DWFUI.plaqueBtnHtml({ label: "Dismiss", tone: "grey", cls: "join-gate-x",
         dataset: { dfcjAct: "dismiss" }, title: "Keep using this tab" }) : "") + '</div>';
   }
   function showBanner(cmp) {
-    injectStyles();
     var existing = document.getElementById("dfcapVerBanner");
     if (cmp.level === "soft" && bannerDismissedSoft) return;
     if (existing) existing.remove();
@@ -211,19 +150,7 @@
     });
     document.body.appendChild(el);
   }
-  // ---- SESSION-PINNED DRIFT GATE (2026-07-17) ----------------------------------------------
-  // compareBuild() goes "unknown" whenever THIS page has no real baked stamp -- and live-verified,
-  // only GET /view substitutes __DFCAPTURE_BUILD__; a tab loaded via "/" or "/index.html" is
-  // served the RAW placeholder (and without the /view no-store header), so on those tabs the
-  // stale-tab banner could never fire AT ALL. That is exactly the "human sitting on an old tab
-  // after a redeploy" hole the banner exists to close (deploy = DF restart; an open tab
-  // reconnects and keeps running its old JS against the new server, and mid-session UI faults
-  // get reported as mystery glitches instead of a visible "refresh" prompt).
-  //
-  // The client can still catch a redeploy WITHOUT any baked stamp: the FIRST real server stamp
-  // this page load sees (boot /version, or the first WS hello_ack) pins the session; any LATER
-  // stamp that differs proves the server was redeployed underneath this open tab. Pure verdict
-  // below (offline-tested in join_version_test.mjs); checkVersion owns the one pin.
+  // ---- session-pinned drift gate -----------------------------------------------------------
   function compareSessionPin(pinBuild, pinAssets, serverBuild, serverAssets) {
     if (!looksReal(pinBuild) || !looksReal(serverBuild)) return { level: "unknown" };
     if (serverBuild !== pinBuild) {
@@ -238,10 +165,8 @@
   var sessionPin = null;   // {build, assets} -- first REAL server stamp seen by this page load
   var PIN_SEVERITY = { unknown: 0, ok: 0, soft: 1, hard: 2 };
 
-  // Compare the client's baked stamp to a server stamp; show a banner on mismatch. Called on boot
-  // (from /version) and on every WS hello_ack (dwf-ws surfaces build there too). The baked-stamp
-  // compare stays authoritative when it is real; the session pin closes the unknown-stamp gap
-  // (unstamped "/" tabs) by escalating to whichever verdict is more severe.
+  // The baked-stamp compare stays authoritative when it is real; the session pin closes the
+  // unknown-stamp gap by escalating to whichever verdict is more severe.
   function checkVersion(serverBuild, serverAssets) {
     var baked = compareBuild(window.DFCAPTURE_BUILD || "", serverBuild || "",
                              clientAssetsHash(), serverAssets || "");
@@ -252,16 +177,13 @@
       sessionPin = { build: serverBuild, assets: serverAssets || "" };
     var cmp = PIN_SEVERITY[pinned.level] > PIN_SEVERITY[baked.level] ? pinned : baked;
     if (cmp.level === "hard" || cmp.level === "soft") {
-      try { showBanner(cmp); } catch (_) {}
+      try { showBanner(cmp); } catch (err) { DwfErr.report("join.version-banner", err); }
     }
     return cmp;
   }
 
-  // ---- join screen -------------------------------------------------------------------------
-  // Renders the join card AND (mode:"rename") the in-session "change your name" card. Both reuse
-  // the SAME single name text field + green plaque, so the rename affordance adds no new hand-built
-  // control (dwf-join's declared editable-input exception stays at 2). Rename mode drops the
-  // password field and retitles; the submit hook (`data-dfcj-join`) is shared.
+  // Also renders the in-session rename card: the same name field and green plaque, and the submit hook
+  // `data-dfcj-join` is shared, so rename adds no new hand-built control.
   function joinCardMarkup(opts) {
     opts = opts || {};
     var rename = opts.mode === "rename";
@@ -279,17 +201,13 @@
           : "Pick a display name to join.");
     var cardBody =
       '<h1>' + window.DWFUI.esc(heading) + '</h1>' +
-      '<p class="dfcj-sub">' + sub + '</p>' +
+      '<p class="join-gate-sub">' + sub + '</p>' +
       '<label for="dfcapJoinName">Your name</label>' +
       '<input id="dfcapJoinName" type="text" autocomplete="nickname" maxlength="32" ' +
       'placeholder="e.g. Urist" value="' + window.DWFUI.esc(String(opts.prefillName || "").slice(0, 32)) + '">' +
       passField +
-      // The Join action is a NATIVE GREEN PLAQUE. `id="dfcapJoinBtn"` is PRESERVED on its host:
-      // tools/ui-lab/stories.js drives the Studio's join screen with `target.closest("#dfcapJoinBtn")`,
-      // and tools/ui-lab is forbidden to this lane -- keeping the pinned hook IS the strangler
-      // contract. The module itself addresses the button by [data-dfcj-join].
       '<div id="dfcapJoinBtn">' + window.DWFUI.plaqueBtnHtml({
-        label: rename ? "Save" : "Join", tone: "green", cls: "dfcj-join", dataset: { dfcjJoin: "" },
+        label: rename ? "Save" : "Join", tone: "green", cls: "join-gate-join", dataset: { dfcjJoin: "" },
         disabled: !!opts.submitting, title: rename ? "Save your new name" : "Join this fortress",
       }) + '</div>' +
       '<div id="dfcapJoinErr">' + window.DWFUI.esc(opts.error || "") + '</div>';
@@ -298,8 +216,8 @@
   }
 
   function showJoinScreen(opts) {
-    injectStyles();
-    return new Promise(function (resolve) {
+    if (activeJoinPromise) return activeJoinPromise;
+    activeJoinPromise = new Promise(function (resolve) {
       var ov = document.createElement("div");
       ov.id = "dfcapJoinOverlay";
       var needPass = !!opts.needPass;
@@ -313,9 +231,8 @@
       nameEl.value = (opts.prefillName || "").slice(0, 32);
       if (nameEl.value && needPass && passEl) passEl.focus(); else nameEl.focus();
 
-      // A name is REQUIRED on every join (the owner: "set your nickname on join no matter what").
-      // Keep Join disabled until the trimmed name is non-empty, so an empty-name join is impossible
-      // from the card itself; submit() re-checks (trim) as belt-and-suspenders.
+      // A name is REQUIRED on every join: Join stays disabled until the trimmed name is non-empty, and
+      // submit() re-checks it.
       function syncEnabled() {
         if (opts.submitting) return;
         btn.disabled = !String(nameEl.value || "").trim();
@@ -342,19 +259,20 @@
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
               body: body,
             });
-            var j = null; try { j = await r.json(); } catch (_) {}
+            var j = null; try { j = await r.json(); }
+            catch (err) { DwfErr.report("join.password-response", err); }
             ok = r.ok && j && j.ok === true;
           } catch (_) { ok = false; }
           if (!ok) { fail("Wrong password. Ask your host for the shared password."); if (passEl) { passEl.focus(); passEl.select(); } return; }
           credential = pass;
           setCookie(AUTH_COOKIE, pass);
         }
-        // core.js has already selected an in-memory fallback before this gate resolves. Adopt
-        // the chosen name now so every live request, chat marker, and presence entry uses it
-        // immediately rather than waiting for a reload.
-        try { if (typeof window.__dwfAdoptName === "function") window.__dwfAdoptName(name); } catch (_) {}
-        try { localStorage.setItem(NAME_KEY, name); } catch (_) {}
+        // Adopt the chosen name now, so every live request, chat marker and presence entry uses it immediately.
+        try { if (typeof window.__dwfAdoptName === "function") window.__dwfAdoptName(name); }
+        catch (err) { DwfErr.report("join.adopt-name", err); }
+        DwfUtil.lsSet(NAME_KEY, name, function (err) { DwfErr.report("join.persist-name", err); });
         ov.remove();
+        activeJoinPromise = null;
         resolve({ name: name });
       }
 
@@ -364,20 +282,11 @@
         if (e.key === "Enter") { e.preventDefault(); submit(); }
       });
     });
+    return activeJoinPromise;
   }
 
-  // ---- in-session rename (players list -> "Rename" on your own row) ------------------------
-  // MECHANISM: SERVER RENAME (not a rejoin). The client sends a tiny WS control message
-  // {"type":"rename","name":"..."}; the host moves this connection's registry entry to the new
-  // name IN PLACE (reusing its dedup machinery -- a collision suffixes name-2/...) and replies with
-  // a hello_ack carrying the authoritative name, which dwf-tiles adopts via __dwfAdoptName. Because
-  // the server keys presence/cursor on the connection's live name, the ~30Hz presence AUX then
-  // advertises the new name to EVERY other client and your on-map cursor label follows -- with NO
-  // ~40s ghost (a web-only rejoin would leave the old name lingering in everyone's roster). The DLL
-  // rename handler rides the next build; against an older DLL the message is ignored, so we also
-  // adopt locally for immediate self-feedback. The RE-BROADCAST (DwfWS.send) is the whole point:
-  // calling only __dwfAdoptName -- the local-label-only trap -- would leave everyone else stale.
-  // Validation matches the join card exactly: trimmed, non-empty, maxlength 32.
+  // Rename is a SERVER rename, not a rejoin: the WS control message moves this connection's registry
+  // entry in place. Calling only __dwfAdoptName is the local-label trap and leaves everyone else stale.
   function renameSelf(name) {
     var clean = String(name == null ? "" : name).trim().slice(0, 32);
     if (!clean) return { ok: false, name: "" };
@@ -385,18 +294,18 @@
     try {
       if (window.DwfWS && typeof window.DwfWS.send === "function")
         sent = !!window.DwfWS.send({ type: "rename", name: clean });
-    } catch (_) {}
+    } catch (err) { DwfErr.report("join.rename-send", err); }
     // Persist so a reload keeps the chosen name, then adopt locally for instant feedback. The
     // server's hello_ack re-adopts the authoritative (possibly dedup-suffixed) name on top of this.
-    try { localStorage.setItem(NAME_KEY, clean); } catch (_) {}
-    try { if (typeof window.__dwfAdoptName === "function") window.__dwfAdoptName(clean); } catch (_) {}
+    DwfUtil.lsSet(NAME_KEY, clean, function (err) { DwfErr.report("join.persist-name", err); });
+    try { if (typeof window.__dwfAdoptName === "function") window.__dwfAdoptName(clean); }
+    catch (err) { DwfErr.report("join.adopt-name", err); }
     return { ok: true, name: clean, sent: sent };
   }
 
   function showRenameScreen(currentName) {
-    injectStyles();
     var cur = String(currentName == null ? "" : currentName);
-    if (!cur) { try { cur = localStorage.getItem(NAME_KEY) || ""; } catch (_) {} }
+    if (!cur) cur = DwfUtil.lsGet(NAME_KEY) || "";
     if (!cur) cur = String(window.playerName || "");
     cur = cur.slice(0, 32);
     return new Promise(function (resolve) {
@@ -410,13 +319,16 @@
       var err = ov.querySelector("#dfcapJoinErr");
       nameEl.value = cur;
       nameEl.focus();
-      try { nameEl.select(); } catch (_) {}
+      try { nameEl.select(); } catch (err) { DwfErr.report("join.name-select", err); }
 
       function syncEnabled() { btn.disabled = !String(nameEl.value || "").trim(); }
       syncEnabled();
       nameEl.addEventListener("input", syncEnabled);
       function fail(m) { err.textContent = m || "Something went wrong."; syncEnabled(); }
-      function done(result) { try { ov.remove(); } catch (_) {} resolve(result); }
+      function done(result) {
+        try { ov.remove(); } catch (err) { DwfErr.report("join.rename-overlay-remove", err); }
+        resolve(result);
+      }
 
       function submit() {
         var name = String(nameEl.value || "").trim().slice(0, 32);
@@ -437,68 +349,164 @@
 
   // ---- auth-fail recovery (WS hello rejected: stale credential after a host password change) ----
   function onAuthFail() {
+    if (reauthPending) return;
+    reauthPending = true;
     credential = "";
     clearCookie(AUTH_COOKIE);
+    gateState = "awaiting-user";
     // Stop the app's socket churn if it's up, then re-run the gate to re-collect the password.
-    try { if (window.DwfWS) window.DwfWS.close(); } catch (_) {}
-    var storedName = "";
-    try { storedName = localStorage.getItem(NAME_KEY) || ""; } catch (_) {}
-    showJoinScreen({ needPass: true, prefillName: storedName }).then(function () {
+    try { if (window.DwfWS) window.DwfWS.close(); } catch (err) { DwfErr.report("join.socket-close", err); }
+    var storedName = DwfUtil.lsGet(NAME_KEY) || "";
+    Promise.resolve(showJoinScreen({ needPass: true, prefillName: storedName })).then(function () {
       // Simplest robust recovery: reload so every module re-inits with the fresh credential/cookie
       // (the new cookie is already set by showJoinScreen, so the next gate() runs seamlessly).
-      try { location.reload(); } catch (_) {}
-    });
+      try { location.reload(); } catch (err) { DwfErr.report("join.reload", err); }
+    }).catch(function (err) { DwfErr.report("join.reauthenticate", err); });
   }
 
   // ---- the boot gate -----------------------------------------------------------------------
+  function markReady() {
+    if (gateState === "ready" || gateState === "started") return;
+    gateState = "ready";
+    // F00 pass 2: parse-time modules may now issue the protected work held by dwf-auth-gate.js.
+    // The validated cookie is already installed before the join promise resolves.
+    try {
+      if (window.DwfAuthGate && typeof window.DwfAuthGate.release === "function")
+        window.DwfAuthGate.release();
+    } catch (err) { DwfErr.report("join.auth-release", err); }
+    // Fires only after the join card resolves or a returning credential is adopted, so no module probes a
+    // protected route while the card is still up.
+    try {
+      if (typeof window.dispatchEvent === "function" && typeof CustomEvent === "function")
+        window.dispatchEvent(new CustomEvent("dwf:join-ready"));
+    } catch (err) { DwfErr.report("join.ready-event", err); }
+  }
+
   function bootOnce(startFn) {
-    if (started) return;
-    started = true;
-    try { startFn(); } catch (_) {}
+    if (started) return true;
+    markReady();
+    try {
+      if (startFn() === false) return false;
+      started = true;
+      gateState = "started";
+      return true;
+    } catch (err) {
+      try { if (window.DwfBoot) window.DwfBoot.note("boot-init", (err && err.message) || err); }
+      catch (noteErr) { DwfErr.report("join.boot-init-note", noteErr); }
+      return false;
+    }
+  }
+
+  // ---- COLD-LOAD ROUND 2: /version can DELAY the boot, but it must never PREVENT it ----------
+  var VERSION_DEADLINE_MS = 2500;        // how long boot is willing to wait, once
+  var VERSION_RETRY_MS = [2500, 5000];   // background retries after boot, then give up
+
+  function withDeadline(promise, ms) {
+    return new Promise(function (resolve) {
+      var timer = setTimeout(function () { resolve(null); }, ms);
+      Promise.resolve(promise).then(function (v) { clearTimeout(timer); resolve(v); },
+        function () { clearTimeout(timer); resolve(null); });
+    });
+  }
+
+  // One /version attempt that is guaranteed to settle. AbortController releases the socket instead
+  // of leaving a dead request occupying one of the six HTTP/1.1 connections for the whole session.
+  function fetchVersionOnce(ms) {
+    return new Promise(function (resolve) {
+      var ctl = null, settled = false, timer = null;
+      function done(v) { if (settled) return; settled = true; clearTimeout(timer); resolve(v); }
+      try { ctl = new AbortController(); } catch (_) { ctl = null; }
+      timer = setTimeout(function () {
+        try { if (ctl) ctl.abort(); } catch (err) { DwfErr.report("join.version-abort", err); }
+        done(null);
+      }, ms);
+      var opts = { cache: "no-store", priority: "high" };
+      if (ctl) opts.signal = ctl.signal;
+      try {
+        fetch("/version", opts).then(function (r) { return r && r.ok ? r.json() : null; })
+          .then(done, function (err) { DwfErr.report("join.version-fetch", err); done(null); });
+      } catch (_) { done(null); }
+    });
+  }
+
+  // Server features the running DLL advertises on /version. A page newer than the DLL sees an empty set,
+  // so every caller must treat "unknown" as "not there" and render its control disabled.
+  window.dwfServerFeatures = window.dwfServerFeatures || [];
+  window.dwfHasServerFeature = function (name) {
+    return Array.isArray(window.dwfServerFeatures) && window.dwfServerFeatures.indexOf(name) !== -1;
+  };
+
+  function applyServerInfo(info) {
+    if (!info) return;
+    serverInfo = info;
+    window.dwfServerFeatures = Array.isArray(info.serverFeatures) ? info.serverFeatures.slice() : [];
+    if (info.build) {
+      try { checkVersion(info.build, info.assets); }
+      catch (err) { DwfErr.report("join.version-check", err); }
+    }
+    // Adopt DF's live 16-colour palette from the handshake so every native colour index resolves to the RGB
+    // DF actually paints. Absent on an old DLL, where DWFUI keeps its defaults.
+    if (info.palette && typeof window.DWFUI !== "undefined") {
+      try { window.DWFUI.applyPalette(info.palette); } catch (err) { DwfErr.report("join.palette-apply", err); }
+    }
+  }
+
+  function retryVersionInBackground(i) {
+    var idx = i || 0;
+    if (idx >= VERSION_RETRY_MS.length) {
+      try { if (window.DwfBoot) window.DwfBoot.note("version-unavailable",
+        "/version never answered; booted without the version/palette handshake"); }
+      catch (err) { DwfErr.report("join.version-unavailable-note", err); }
+      return;
+    }
+    fetchVersionOnce(VERSION_RETRY_MS[idx]).then(function (info) {
+      if (info) applyServerInfo(info);
+      else retryVersionInBackground(idx + 1);
+    }).catch(function (err) { DwfErr.report("join.version-retry", err); });
   }
 
   async function gate(startFn) {
     if (typeof startFn !== "function") return;
+    gateState = "checking";
     // Adopt any credential the browser already holds (returning authed session / restart-proof).
     var existing = getCookie(AUTH_COOKIE);
     if (existing) credential = existing;
 
-    try {
-      var r = await fetch("/version", { cache: "no-store" });
-      serverInfo = r && r.ok ? await r.json() : null;
-    } catch (_) {
-      serverInfo = null;   // old DLL with no /version route -> treat as open, no banner
+    // Prefer the <head> prefetch (in flight since t~0); fall back to our own request only if
+    // index.html is an old copy that does not have it.
+    var pending = window.__dwfVersionPromise;
+    var info = await withDeadline(
+      (pending && typeof pending.then === "function") ? pending : fetchVersionOnce(VERSION_DEADLINE_MS),
+      VERSION_DEADLINE_MS);
+    if (info) applyServerInfo(info);
+    else {
+      serverInfo = null;   // old DLL with no /version route, or a wedged link -> treat as open
+      try { if (window.DwfBoot) window.DwfBoot.note("version-timeout",
+        "/version did not answer within " + VERSION_DEADLINE_MS + " ms; booting anyway"); }
+      catch (err) { DwfErr.report("join.version-timeout-note", err); }
+      retryVersionInBackground(0);
     }
     var authRequired = !!(serverInfo && serverInfo.authRequired);
-    if (serverInfo && serverInfo.build) {
-      try { checkVersion(serverInfo.build, serverInfo.assets); } catch (_) {}
-    }
-    // Text-color spec §3.2: adopt DF's live 16-color curses palette (gps->uccolor) the handshake
-    // ships, so every native color index the client renders resolves to the exact RGB DF paints --
-    // honoring a player-edited data/init/colors.txt. Absent (old DLL) -> DWFUI keeps its defaults.
-    if (serverInfo && serverInfo.palette && typeof window.DWFUI !== "undefined") {
-      try { window.DWFUI.applyPalette(serverInfo.palette); } catch (_) {}
-    }
 
-    var storedName = "";
-    try { storedName = localStorage.getItem(NAME_KEY) || ""; } catch (_) {}
+    var storedName = DwfUtil.lsGet(NAME_KEY) || "";
 
-    // Dev default (no passphrase): keep the CURRENT wide-open behavior. Returning player with a
-    // stored name -> boot with zero interruption (this is what makes deploying against the old,
-    // auth-less DLL graceful). First-ever visitor -> a one-time name screen.
+    // No passphrase: a returning player with a stored name boots with zero interruption; a first visitor
+    // gets a one-time name screen.
     if (!authRequired) {
       if (storedName) { bootOnce(startFn); return; }
-      showJoinScreen({ needPass: false, prefillName: "" }).then(function () { bootOnce(startFn); });
+      gateState = "awaiting-user";
+      Promise.resolve(showJoinScreen({ needPass: false, prefillName: "" })).then(function () { bootOnce(startFn); })
+        .catch(function (err) { DwfErr.report("join.returning-screen", err); });
       return;
     }
 
-    // Passphrase set. A returning session that already holds a credential cookie + a name skips
-    // the screen (seamless; survives server restart since the passphrase is stable). The server
-    // still re-checks the credential at the WS hello + on every HTTP request, so a stale cookie is
-    // caught (auth_fail -> onAuthFail re-prompts) -- the skip is a UX convenience, not the gate.
+    // The skip is a UX convenience, not the gate: the server re-checks the credential at the WS hello and
+    // on every HTTP request, so a stale cookie is still caught.
     if (existing && storedName) { bootOnce(startFn); return; }
 
-    showJoinScreen({ needPass: true, prefillName: storedName }).then(function () { bootOnce(startFn); });
+    gateState = "awaiting-user";
+    Promise.resolve(showJoinScreen({ needPass: true, prefillName: storedName })).then(function () { bootOnce(startFn); })
+      .catch(function (err) { DwfErr.report("join.password-screen", err); });
   }
 
   window.DwfAuth = {
@@ -518,11 +526,14 @@
     clientAssetsHash: clientAssetsHash,
     checkVersion: checkVersion,
     onAuthFail: onAuthFail,
+    authState: function () { return gateState; },
+    isPending: function () { return gateState === "checking" || gateState === "awaiting-user"; },
+    canBoot: function () { return gateState === "ready" || gateState === "started"; },
     showJoinScreen: showJoinScreen,
     showRenameScreen: showRenameScreen,
     renameSelf: renameSelf,
     storyMarkup: joinCardMarkup,
     versionBannerMarkup: versionBannerMarkup,
-    preparePreview: injectStyles,
+    preparePreview: function () {},
   };
 })();

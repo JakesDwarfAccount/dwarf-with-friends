@@ -19,28 +19,15 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-weather.js -- WC-20 weather ambience overlay (rain / snow).
-//
-// Self-contained, renderer-agnostic, ADDITIVE-ONLY module (same posture as
-// dwf-unitcycle.js): it owns its OWN fixed full-viewport canvas layered ABOVE both the
-// GL and canvas2d map canvases (pointer-events:none), and animates DF's coarse weather
-// (None/Rain/Snow) as screen-space particles -- NOT part of either renderer's tile scene, so
-// it can never regress parity (the parity gate screenshots the map canvas; this layer is a
-// separate element the gate never captures, and it is off by default under ?weatherfx=0).
-//
-// Data source: DwfTiles.getLatest().env = { weather: 0 None / 1 Rain / 2 Snow, season,
-// year_tick } -- the WC-20 AUX field the server piggybacks onto the ~30Hz stream. Particles
-// only fall while weather != None AND the current view actually shows the sky (>=1 `outside`
-// tile in getLatest().tiles) -- DF draws no rain over a fully-underground view.
-//
-// Kill switch: ?weatherfx=0 (spec-required for parity runs) disables the layer entirely.
+// dwf-weather.js -- the weather ambience overlay (rain / snow) on its own canvas above both map
+// canvases. Kill switch: ?weatherfx=0.
 
 (function (root) {
   "use strict";
 
   var params = (function () {
     try { return new URLSearchParams(root.location && root.location.search || ""); }
-    catch (_) { return { get: function () { return null; }, has: function () { return false; } }; }
+    catch { return { get: function () { return null; }, has: function () { return false; } }; }
   })();
   // Off when explicitly disabled; also inert if there's no DOM (node harness) -- guarded below.
   var DISABLED = params.get("weatherfx") === "0" || !!root.__DWF_STORY_MODE;
@@ -50,17 +37,22 @@
   var lastT = 0;
   var curWeather = 0;     // 0 none / 1 rain / 2 snow -- last applied state (for pool resizing)
 
-  // WTHR-1: user setting -- "Weather particles (rain/snow overlay)". Gates the DRAW ONLY (this
-  // invented ambience layer that native DF has no counterpart for); the weather DATA stream
-  // (DwfTiles.getLatest().env / .tiles) is never touched, so nothing that reads weather state
-  // breaks and re-enabling is instant (the pool + live state keep flowing while it is off).
-  // Distinct from the ?weatherfx=0 parity kill switch (DISABLED) above: this is a persisted
-  // player preference, default ON, driven from the Settings > Interface panel via DFClientPrefs.
-  // Persisted per browser under the family's dfplex.* localStorage convention.
-  var LS_ENABLED = "dfplex.weatherParticles";
-  function lsGet(k) { try { return root.localStorage ? root.localStorage.getItem(k) : null; } catch (_) { return null; } }
-  function lsSet(k, v) { try { if (root.localStorage) root.localStorage.setItem(k, v); } catch (_) {} }
-  var enabled = lsGet(LS_ENABLED) !== "0";   // default ON; only an explicit stored "0" disables
+  // Gates the DRAW only: the weather DATA stream is never touched, so re-enabling is instant. Distinct
+  // from the ?weatherfx=0 parity kill switch above -- this is a persisted player preference, default ON.
+  var LS_ENABLED = "dwf.weatherParticles";
+  // eslint-disable-next-line no-restricted-syntax -- one-time READ of the legacy key so the #235 rename migrates the stored preference forward; all writes go to dwf.*
+  var LS_ENABLED_LEGACY = "dfplex.weatherParticles";
+  var DwfUtil = root.DwfUtil || (typeof module === "object" && module.require
+    ? module.require("./dwf-util.js") : null);
+  var lsGet = DwfUtil.lsGet, lsSet = DwfUtil.lsSet;
+  function reportPreferenceRead(err) { root.DwfErr.report("weather.preference.read", err); }
+  function reportPreferenceWrite(err) { root.DwfErr.report("weather.preference.write", err); }
+  var storedEnabled = lsGet(LS_ENABLED, reportPreferenceRead);
+  if (storedEnabled === null) {
+    storedEnabled = lsGet(LS_ENABLED_LEGACY, reportPreferenceRead);
+    if (storedEnabled !== null) lsSet(LS_ENABLED, storedEnabled, reportPreferenceWrite);
+  }
+  var enabled = storedEnabled !== "0";   // default ON; only an explicit stored "0" disables
 
   // Fixed densities/speeds (DF-like ambience, not physically tuned). Rain: fast thin diagonal
   // streaks; snow: slow drifting dots. Count scales with viewport area, capped.
@@ -74,9 +66,6 @@
     if (canvas || DISABLED || typeof root.document === "undefined" || !root.document.body) return canvas;
     var c = root.document.createElement("canvas");
     c.id = "dwf-weather-overlay";
-    var s = c.style;
-    s.position = "fixed"; s.left = "0"; s.top = "0"; s.width = "100%"; s.height = "100%";
-    s.pointerEvents = "none"; s.zIndex = "40"; // above the map canvases, below HUD panels/menus
     root.document.body.appendChild(c);
     canvas = c; ctx = c.getContext("2d");
     resize();
@@ -99,9 +88,6 @@
     return Math.round(base * scale);
   }
 
-  // Deterministic review model for Parity Studio. It shares the live overlay's exact particle
-  // styles and speed geometry but uses a fixed distribution so approvals do not change on every
-  // render. Production animation remains driven by the same RAIN/SNOW constants below.
   function previewModel(weather, width, height, count) {
     var W = Math.max(1, Number(width) || 960), H = Math.max(1, Number(height) || 540);
     var kind = Number(weather) === 2 ? "snow" : Number(weather) === 1 ? "rain" : "none";
@@ -121,9 +107,8 @@
     p.x = Math.random() * vw();
     p.y = Math.random() * vh();
     p.phase = Math.random() * Math.PI * 2;
-    // A shared velocity plus exact y=-len resets eventually quantizes every drop onto a few
-    // frame-spaced rows. Stable per-drop jitter preserves an organic distribution at no extra
-    // allocation or particle-count cost.
+    // Stable per-drop jitter: a shared velocity with exact y=-len resets quantizes every drop onto a few
+    // frame-spaced rows.
     p.rainVy = RAIN.vy * (0.86 + Math.random() * 0.28);
     return p;
   }
@@ -147,9 +132,7 @@
     curWeather = weather;
   }
 
-  // Is the sky visible in the current view? (any discovered `outside` tile on screen). Absent
-  // tile data (transport not up yet) -> treat as NOT visible so we don't rain over a blank
-  // connecting screen.
+  // Absent tile data (transport not up yet) counts as NOT visible, so it never rains over a blank screen.
   function skyVisible() {
     try {
       var T = root.DwfTiles;
@@ -161,7 +144,7 @@
         if (t && t.outside) return true;
       }
       return false;
-    } catch (_) { return false; }
+    } catch { return false; }
   }
 
   function currentWeather() {
@@ -171,7 +154,7 @@
       var env = latest && latest.env;
       var w = env && typeof env.weather === "number" ? env.weather : 0;
       return (w === 1 || w === 2) ? w : 0;
-    } catch (_) { return 0; }
+    } catch { return 0; }
   }
 
   function step(ts) {
@@ -181,9 +164,8 @@
     lastT = ts;
 
     var weather = currentWeather();
-    // WTHR-1: `enabled` gates the DRAW only. `weather`/skyVisible() are still evaluated (and the
-    // pool still tracks weather below) so the moment the setting flips back on the overlay resumes
-    // the live storm with no reload -- only the pixels are suppressed while off.
+    // `enabled` gates the DRAW only; weather and skyVisible are still evaluated, so flipping the setting
+    // back on resumes the live storm with no reload.
     var draw = enabled && weather !== 0 && skyVisible();
     if (!draw) {
       // Nothing to show -- clear once and idle cheaply (pool kept for instant resume).
@@ -237,13 +219,13 @@
     if (ctx) ctx.clearRect(0, 0, vw(), vh());
   }
 
-  // WTHR-1: live-applied setter for the "Weather particles" preference. Flips the draw gate,
-  // persists it, and on OFF clears the overlay immediately (no wait for the next frame) so the
-  // storm visibly stops mid-fall. The rAF loop keeps running either way -- it just paints nothing
-  // while off -- which is why re-enabling resumes the current weather instantly, without a reload.
+  // On OFF, clear the overlay immediately so the storm visibly stops mid-fall. The rAF loop keeps running
+  // either way, which is why re-enabling resumes the current weather instantly.
   function setEnabled(on) {
     enabled = !!on;
-    lsSet(LS_ENABLED, enabled ? "1" : "0");
+    lsSet(LS_ENABLED, enabled ? "1" : "0", function (err) {
+      root.DwfErr.report("weather.preference.write", err);
+    });
     if (!enabled && ctx) ctx.clearRect(0, 0, vw(), vh());
   }
   function isEnabled() { return enabled; }

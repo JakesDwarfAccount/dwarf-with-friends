@@ -19,37 +19,15 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// DF rich-text markup parser (the [C:fg:bg:bright] color-escape grammar).
-//
-// This is a faithful port of DFHack's Gui::MTB_parse -- itself reverse-engineered from DF's own
-// markup_text_boxst::process_string_to_lines (v50 win64) -- from the plugin's build tree at
-// <DFHACK_ROOT>, library/modules/Gui.cpp:2286-2569 and grab_token_string_pos in
-// library/MiscUtils.cpp:434. The grammar is FROZEN by that citation. Do NOT invent tokens or
-// colors here: DF's parser is the whole specification. Spec:
-// docs/superpowers/specs/2026-07-14-native-text-color-spec.md §2.2, §5.
-//
-// It exists because several DF surfaces (thoughts, personality, health, needs, legends/help/hover)
-// ship their text with [C:] color tokens embedded (spec §5, live-verified: raw sheet strings carry
-// e.g. "[C:7:0:0]She was [C:6:0:0]uneasy [C:7:0:0]after ..."). Whenever the plugin forwards one of
-// those raw strings, this parser recovers the native per-word color DF itself assigned -- never a
-// guessed word list.
-//
-// ONE DELIBERATE DIVERGENCE FROM MTB_parse, and it changes no color: DF splits body text into one
-// word entry PER whitespace-delimited word (each carries the same color). We instead COALESCE runs
-// of text that share a color into a single span, preserving the original spacing. Color only ever
-// changes at a [C:] token, so every character still receives EXACTLY the index DF's per-word split
-// would give it; coalescing only affects how many spans a uniform-color run becomes, which is what
-// makes the output convenient to render as HTML. spansToText() reconstructs the visible string.
+// DF rich-text markup parser (the [C:fg:bg:bright] color-escape grammar), ported from DFHack's
+// Gui::MTB_parse. Do NOT invent tokens or colors here: DF's parser is the whole specification.
 (function (root) {
   "use strict";
 
-  // DF's curses index for a parsed word = fg + (bright ? 8 : 0). bg is carried separately (it is
-  // NOT folded into the index -- DF stores screenb on its own). Initial state is DF's:
-  // fg = White (7), bg = Black (0), bright = false  (Gui.cpp:2321).
+  // DF's curses index for a parsed word = fg + (bright ? 8 : 0). bg is carried separately, never folded in.
   const DEFAULT_FG = 7, DEFAULT_BG = 0, DEFAULT_BRIGHT = false;
 
-  // grab_token_string_pos(source, pos, compc): capture until compc (':' unless noted), ']', or end.
-  // Verbatim behavior of MiscUtils.cpp:434.
+  // grabToken(source, pos, compc): capture until compc (':' unless noted), ']', or end of input.
   function grabToken(source, pos, compc) {
     let out = "";
     for (let s = pos; s < source.length; s++) {
@@ -60,26 +38,14 @@
     return out;
   }
 
-  // Parse a DF markup string into color-attributed spans.
-  //
-  // Returns { spans: [...] } where each span is one of:
-  //   { text, fg, bg, bright, index, link }   -- a run of visible text; `index` = fg + bright*8;
-  //                                              `link` (or null) = { type, id, subid } inside LPAGE
-  //   { br: true }        -- [R]  hard newline
-  //   { blank: true }     -- [B]  blank line
-  //   { indent: true }    -- [P]  paragraph indent
-  //   { key: true, keyId, index: 10 }  -- [KEY:n] keybinding token (always bright green = index 10).
-  //                                       text is not resolved client-side (needs DF's key table);
-  //                                       our sheet surfaces do not use it. Present for completeness.
-  //
-  // Unknown/unimplemented bracket tokens ([C:VAR:...], [VAR:...], and any unrecognized [X]) are
-  // consumed and produce no output -- exactly as MTB_parse does.
+  // Returns { spans }: visible runs { text, fg, bg, bright, index, link }, plus { br } / { blank } /
+  // { indent } / { key }. Unknown bracket tokens are consumed and produce no output, exactly as DF does.
   function parse(input) {
     const spans = [];
     const text = String(input == null ? "" : input);
     const n = text.length;
 
-    // MTB_parse: an empty string yields a single NEW_LINE word (Gui.cpp:2310-2316).
+    // An empty string yields a single NEW_LINE word.
     if (n === 0) return { spans: [{ br: true }] };
 
     // Current color state.
@@ -233,7 +199,56 @@
     return out;
   }
 
-  const api = { parse, spansToText, DEFAULT_FG, DEFAULT_BG };
+  // ---- html(): the shared prose renderer for any verbatim native string. ----
+  // Colour resolves through DWFUI.dfColor, the live palette and never a literal; with no dfColor the text stays uncoloured.
+  function html(input) {
+    const UI = (typeof window !== "undefined" && window.DWFUI)
+      || (typeof globalThis !== "undefined" && globalThis.DWFUI)
+      || (typeof require === "function" ? require("./dwf-ui-components.js") : null);
+    const dfColor = UI && typeof UI.dfColor === "function" ? UI.dfColor : null;
+    return parse(input).spans.map(span => {
+      if (span.br) return "<br>";
+      if (span.blank) return "<br><br>";
+      if (span.indent) return "&nbsp;&nbsp;&nbsp;&nbsp;";
+      // A [KEY:n] label needs DF's live binding table, which the client does not have. DF prints
+      // the bound key here; printing a guess would be worse than printing nothing.
+      if (span.key) return "";
+      const idx = Number(span.index);
+      const style = dfColor && Number.isInteger(idx) && idx >= 0 && idx <= 15
+        ? ` style="color:${dfColor(idx)}"` : "";
+      return `<span${style}>${UI.esc(span.text || "")}</span>`;
+    }).join("");
+  }
+
+  // ---- bitmapHtml(): the same prose in the player's own CP437 glyphs. ----
+  // The colour rides on the wrapper span, because paintNow reads getComputedStyle(node).color off the label.
+  const RESET_TOKEN = "[C:7:0:0]";
+  const RESET_INDEX = 7;   // DEFAULT_FG + (DEFAULT_BRIGHT ? 8 : 0)
+
+  function bitmapHtml(input, opts) {
+    const o = opts || {};
+    const UI = (typeof window !== "undefined" && window.DWFUI)
+      || (typeof globalThis !== "undefined" && globalThis.DWFUI) || null;
+    if (!UI || typeof UI.bitmapTextHtml !== "function") return html(input);
+    const dfColor = typeof UI.dfColor === "function" ? UI.dfColor : null;
+    return parse(input).spans.map(span => {
+      if (span.br) return "<br>";
+      if (span.blank) return "<br><br>";
+      if (span.indent) return "&nbsp;&nbsp;&nbsp;&nbsp;";
+      if (span.key) return "";                       // needs DF's live binding table; see html()
+      const text = span.text || "";
+      if (!text) return "";
+      const idx = Number(span.index);
+      const style = dfColor && Number.isInteger(idx) && idx >= 0 && idx <= 15
+        ? ` style="color:${dfColor(idx)}"` : "";
+      // The colour sits on the WRAPPER and the bitmap label inherits it, which is what paintNow reads back.
+      return `<span class="dwfui-markup-run"${style}>` +
+        UI.bitmapTextHtml(text, { scale: o.scale, eager: o.eager }) + `</span>`;
+    }).join("");
+  }
+
+  const api = { parse, spansToText, html, bitmapHtml, RESET_TOKEN, RESET_INDEX,
+    DEFAULT_FG, DEFAULT_BG };
   root.DwfDfMarkup = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : this));

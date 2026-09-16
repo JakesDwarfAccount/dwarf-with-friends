@@ -1,67 +1,11 @@
-# Contributing to Dwarf With Friends
+# Contributing
 
-Thanks for helping. A useful pull request here is small, testable, and clear about what it does not
-verify.
+A useful contribution explains the player-visible problem, keeps the change focused, and reports what was checked.
 
-## Choose the smallest useful path
+Read [AGENTS.md](AGENTS.md), [development](docs/DEVELOPMENT.md), and [build instructions](docs/BUILD.md). The client has no package dependencies or bundling step. Native code builds against DFHack 53.16-r1 on Windows and Linux.
 
-- **Documentation, policy inventory, or browser fixture:** about 15 minutes to get started. You
-  need Node, but not Dwarf Fortress, a compiler, or an npm install.
-- **Native C++ change:** use the pinned DFHack 53.15-r2 build described below and include an offline
-  regression test wherever the behaviour can be isolated.
-- **Live-game change:** coordinate with a maintainer before testing. Use an approved disposable
-  save, follow `AGENTS.md`, and state whether the check reads or changes the fortress.
+Run the offline checks in the development guide and include exact commands and results. Add a small regression check when it can demonstrate the reported failure. Do not treat an offline pass as proof of gameplay correctness. Coordinate before using a running game or deploying a changed plugin.
 
-## Set up and build
+Use or extend DWFUI for browser controls. Preserve authentication, host-only permissions, save guards, and native locking. Keep unrelated changes out of the patch. Split a module when a concrete responsibility or testing boundary calls for it, rather than because of line count alone.
 
-Read `AGENTS.md` before changing code; its DF safety rules are mandatory. Build the plugin against
-DFHack 53.15-r2 by following [`docs/BUILD.md`](docs/BUILD.md). The browser client is plain JavaScript
-with no npm install or bundling step.
-
-## Test your change
-
-Run the focused `tools/harness/*_test.mjs` suites covering the files you changed. Before opening a
-PR, run the manifest-controlled offline battery from repository root:
-
-```powershell
-node tools/release/launch_preflight.mjs --stage=suites --json
-```
-
-Run Python unit tests when those areas change:
-
-```text
-Get-ChildItem tools/ws2/tests/test_*.py | ForEach-Object { python $_.FullName }
-```
-
-UI changes must use or extend `web/js/dwf-ui-components.js` and pass:
-
-```text
-node tools/harness/dwfui_boot_test.mjs
-node tools/harness/ui_drift_guard_test.mjs
-node tools/harness/ui_drift_guard_test.mjs --selftest
-```
-
-Server, transport, or renderer work also needs the relevant local gate in `tools/harness/README.md`.
-`gate_perf.py`, `gate_parity.py`, and `gate_localnav.py`, plus suites guarded by `live_guard.mjs`,
-stay local because they require a running fortress, native window, or performance hardware. The
-DF-install oracles `b36_wall_adjacency`, `b47_construction_floor`, `b74_b93_surfaces`,
-`construction_remainder`, `wallsfix_construction`, `tx16_stone_wall_tint`, and
-`tx17_planned_construction` run locally when an install is available and
-skip honestly in CI. Windows CI compiles the plugin against pinned DFHack 53.15-r2; maintainers also
-record a local build receipt before packaging a release.
-
-## Pull requests
-
-Keep one concern per PR. Explain the data flow and failure behaviour, include regression tests with
-behaviour changes, run the relevant suites, and list exact commands plus any skipped or unverified
-checks. Say what you intentionally left unchanged so reviewers can see the boundary of the work.
-Preserve unrelated files and never commit generated review decks at repository root.
-
-AI assistance is welcome, but the author owns every submitted line. Disclose where AI materially
-shaped the patch, then explain the important behaviour in your own words: inputs, validation,
-state changes, failure path, and tests. If you cannot explain a generated section yet, reduce or
-rewrite it before asking somebody else to maintain it.
-
-Good first areas include documentation corrections, offline fixture coverage, clearer diagnostics,
-small host-installer checks, and isolated browser behavior with an existing DWFUI component. Issues
-labelled `good-first-issue` should include the expected files and verification command.
+Open a ready pull request with the problem first, followed by the solution, verification, and any remaining limitations. Disclose material AI assistance and explain the important behavior in plain English. Documentation corrections, clearer diagnostics, and small reproducible bug fixes are useful starting points.

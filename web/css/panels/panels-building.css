@@ -1,0 +1,126 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.building {
+  .building-panel .building-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+  }
+  .building-panel .building-head > * {
+    flex: 0 0 auto;
+  }
+  .building-panel .building-name {
+    min-width: 0;
+    font:
+      800 14px ui-monospace,
+      Consolas,
+      monospace;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .building-panel .building-head > .building-x {
+    flex: 0 0 24px;
+  }
+  .building-panel .building-x {
+    cursor: pointer;
+    font-weight: 900;
+    font-size: 14px;
+  }
+  .building-panel .building-status {
+    padding: 9px 10px 3px;
+    color: var(--dwfui-text-good);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .building-panel .building-btn {
+    box-sizing: border-box;
+    display: block;
+    width: calc(100% - 18px);
+    margin: 6px 9px;
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+    font:
+      700 13px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .building-panel .building-note {
+    margin: -2px 10px 8px;
+    color: var(--dwfui-text-secondary);
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .building-panel .building-removal-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 12px 10px 8px;
+  }
+  .building-panel .building-art {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 4px 10px 8px;
+  }
+  .building-panel .building-head + .building-art {
+    padding-top: 12px;
+  }
+  .building-panel .building-art-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .building-panel .building-art-name {
+    color: var(--dwfui-text-numeric);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+    margin-bottom: 2px;
+  }
+  .building-panel .building-art-quality {
+    margin: 0 0 3px;
+  }
+  .building-panel .building-art-scroll {
+    max-height: 132px;
+  }
+  .building-panel .building-art-prose {
+    color: var(--dwfui-text-prose);
+    font:
+      400 12px/1.45 ui-monospace,
+      Consolas,
+      monospace;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

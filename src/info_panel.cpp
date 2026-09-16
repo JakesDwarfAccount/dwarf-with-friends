@@ -21,9 +21,13 @@
 
 #include "info_panel.h"
 #include "render_thread_wait.h"
+#include "assignable_citizen.h"
 #include "fort_stock.h"
 #include "interaction.h"
+#include "json_util.h"
 #include "unit_activity.h"
+#include "unit_face.h"
+#include "unit_status.h"
 
 #include "MiscUtils.h"
 #include "modules/Buildings.h"
@@ -50,12 +54,15 @@
 #include "df/building_siegeenginest.h"
 #include "df/building_squad_infost.h"
 #include "df/building_stockpilest.h"
-#include "df/building_trapst.h"   // B224: lever/plate/trap icon split (building_icon_key)
+#include "df/building_trapst.h"
 #include "df/building_type.h"
 #include "df/building_workshopst.h"
 #include "df/civzone_type.h"
 #include "df/entity_position.h"
 #include "df/entity_position_assignment.h"
+#include "df/general_ref.h"
+#include "df/general_ref_type.h"
+#include "df/trap_type.h"
 #include "df/map_block.h"
 #include "df/squad.h"
 #include "df/tile_occupancy.h"
@@ -63,6 +70,7 @@
 #include "df/gamest.h"
 #include "df/global_objects.h"
 #include "df/historical_figure.h"
+#include "df/entity_animal_training_knowledgest.h"
 #include "df/historical_entity.h"
 #include "df/inv_item_role_type.h"
 #include "df/item.h"
@@ -70,23 +78,24 @@
 #include "df/item_type.h"
 #include "df/items_other_id.h"
 #include "df/job.h"
+#include "df/job_item.h"
 #include "df/plant_raw.h"
 #include "df/plotinfost.h"
 #include "df/season.h"
 #include "df/siegeengine_type.h"
 #include "df/training_assignment.h"
 #include "df/unit.h"
-#include "df/unit_relationship_type.h"   // B233-2: PetOwner (the work-animal owner slot)
+#include "df/unit_relationship_type.h"
 #include "df/unit_animal_training_info_flag.h"
 #include "df/unit_inventory_item.h"
 #include "df/unit_labor.h"
-#include "df/work_detail.h"             // B254: plotinfo.labor_info.work_details
-#include "df/work_detail_icon_type.h"   // B254: work_detail.icon
+#include "df/work_detail.h"
+#include "df/work_detail_icon_type.h"
 #include "df/workshop_type.h"
 #include "df/world.h"
 #include "df/world_data.h"
 #include "df/world_site.h"
-#include "df/creature_raw.h"   // B51: rt/ct tokens for creature-row species-cell portraits
+#include "df/creature_raw.h"
 #include "df/caste_raw.h"
 #include "df/written_content.h"
 
@@ -107,56 +116,6 @@ namespace dwf {
 namespace {
 
 std::recursive_mutex g_info_panel_mutex;
-
-// Independent browser Info panels mirror DF's premium Info screen tab names.
-// Local source references:
-// - dfhack-src/library/modules/Gui.cpp: add_main_interface_focus_strings()
-//   exposes the active DF Info tabs/subtabs ("Pets/Livestock", "Dead/Missing",
-//   "Work Details", "Standing orders", etc.).
-// - dfhack-src/library/modules/Units.cpp provides the fort-control, citizen,
-//   tame animal, animal, and visitor predicates used for creature bucketing.
-// - dfhack-src/plugins/lua/sort/info.lua shows how DFHack tooling maps units
-//   into Info-panel subsets without relying on DF's singleton UI state.
-// - dfhack-src/plugins/lua/stocks.lua and df::stocks_interfacest document the
-//   native Stocks screen's type_list/storeamount/badamount model. We read those
-//   values when DF has populated them, then fall back to world->items.other.IN_PLAY so the
-//   browser screen remains independent of DF's singleton Stocks UI.
-
-std::string json_escape(const std::string& raw) {
-    std::ostringstream out;
-    for (unsigned char c : DF2UTF(raw)) {
-        switch (c) {
-        case '\\': out << "\\\\"; break;
-        case '"': out << "\\\""; break;
-        case '\b': out << "\\b"; break;
-        case '\f': out << "\\f"; break;
-        case '\n': out << "\\n"; break;
-        case '\r': out << "\\r"; break;
-        case '\t': out << "\\t"; break;
-        default:
-            if (c < 0x20) {
-                out << "\\u" << std::hex << std::uppercase
-                    << static_cast<int>(c) << std::dec << std::nouppercase;
-            } else {
-                out << static_cast<char>(c);
-            }
-        }
-    }
-    return out.str();
-}
-
-std::string json_string(const std::string& raw) {
-    return "\"" + json_escape(raw) + "\"";
-}
-
-void append_string_array(std::ostringstream& body, const std::vector<std::string>& values) {
-    body << "[";
-    for (size_t i = 0; i < values.size(); ++i) {
-        if (i) body << ",";
-        body << json_string(values[i]);
-    }
-    body << "]";
-}
 
 void append_tabs(std::ostringstream& body, const std::vector<InfoTab>& tabs) {
     body << "[";
@@ -282,18 +241,14 @@ std::string unit_display_name(df::unit* unit) {
 }
 
 std::string unit_list_name(df::unit* unit) {
-    // Native's Residents NAME_PROF widget shows the visible native-language name, not DFHack's
-    // getReadableName() convenience string (which appends the English translation in quotes and
-    // the profession). Profession is served separately and composed once by the browser.
+    // Deliberately not Units::getReadableName(): that appends the English translation and the
+    // profession, and the browser composes the profession itself.
     std::string name = Translation::translateName(Units::getVisibleName(unit));
     if (name.empty())
         name = Units::getRaceReadableName(unit);
     return name.empty() ? ("Unit " + std::to_string(unit->id)) : name;
 }
 
-// B296 round 3. The resolver supplies the source bucket alongside DF's label; this mapping only
-// translates that provenance to the four palette indices pixel-sampled from the native oracle.
-// None includes a genuinely idle "No job" row, for which no native color evidence exists yet.
 int8_t resident_job_bucket_color(UnitTaskColorBucket bucket) {
     switch (bucket) {
     case UnitTaskColorBucket::Job: return 11;      // bright cyan
@@ -305,10 +260,6 @@ int8_t resident_job_bucket_color(UnitTaskColorBucket bucket) {
     return -1;
 }
 
-// WD-17: the "held item" column -- the item currently wielded (weapon/shield/crutch) takes
-// priority (most visually meaningful, e.g. a miner's pick), falling back to whatever the unit is
-// hauling. Real inventory data (df::unit::inventory), never fabricated; empty when neither mode
-// is present (most idle/no-job units).
 void fill_held_item(df::unit* unit, InfoRow& row) {
     if (!unit) return;
     df::unit_inventory_item* hauled = nullptr;
@@ -328,33 +279,34 @@ void fill_held_item(df::unit* unit, InfoRow& row) {
     }
 }
 
-// B254: the SPECIALIZED + WORK_DETAILS columns of DF's residents list (`unit_list_options` in
-// df.widgets.unit_list.xml). Both read straight off DF's own state:
-//
-//   * unit.flags4.only_do_assigned_jobs -- df.unit.xml:1469 (UNITFLAG4_ONLY_DO_ASSIGNED_JOBS). This
-//     is the flag the green/red padlocked hammer flips, and it is the SAME bit /labor-specialist has
-//     always written (labor.cpp set_labor_specialist). Nothing new is written here -- this is the
-//     READ that the Creatures panel never had, which is why its toggle could not exist.
-//
-//   * plotinfo.labor_info.work_details -- df.plotinfo.xml:609. Each work_detail has assigned_units
-//     (sorted; DF keeps it that way and labor.cpp already binary_searches it) and an `icon` of type
-//     work_detail_icon_type (df.plotinfo.xml:573). Emit the bare enum key, exactly as
-//     work_detail_icon_key() does for /labor, so both wires speak one vocabulary.
-//
-// Cheap by construction: work_details is ~10-20 entries, each assigned_units lookup is a binary
-// search. This runs per unit row on a panel fetch, not per frame -- nowhere near the CoreSuspender
-// trap in AGENTS.md rule 5.
-// Declared below (with the other three population predicates, kept together on purpose). Work-detail
-// eligibility is CITIZEN-ONLY in native DF -- a long-term resident (B215: an accepted-petition bard,
-// mercenary, monster hunter) appears on the Residents list but cannot hold a fortress labor, and
-// /labor-specialist refuses them by the identical test (labor.cpp is_assignable_citizen). If we
-// emitted the columns for them anyway, the browser would draw a live padlock over a dwarf the game
-// will not let it change -- a control that lies. Skipping them leaves the fields off the row, which
-// the client reads as "unknown" and renders as NO control at all. Fail closed, both wires agreeing.
+// Defined below with the other population predicates.
 bool is_fort_citizen(df::unit* unit);
 
+void fill_livestock_status(df::unit* unit, InfoRow& row) {
+    if (!unit) return;
+    auto set = [&row](const char* caption, int color, bool bright, bool exact) {
+        row.ls_status = caption;
+        row.ls_status_color = color;
+        row.ls_status_bright = bright;
+        row.ls_status_exact = exact;
+    };
+    if (row.ls_slaughter) { set("Ready for slaughter", 5, true, true); return; }
+    if (unit->flags2.bits.for_trade) { set("Being traded", 6, false, true); return; }
+    if (unit->relationship_ids[df::unit_relationship_type::PetOwner] != -1) {
+        set("Owned", 7, false, true);
+        return;
+    }
+    if (row.ls_adoption) { set("Available as a pet", 3, true, false); return; }
+    if (row.ls_pet) { set("Unavailable as a pet", 4, true, false); return; }
+    if (row.ls_tamable) { set("Trainable as a pet, or slaughterable", 6, true, false); return; }
+    set("Uninterested in having an owner", 7, false, false);
+}
+
 void fill_labor_columns(df::unit* unit, InfoRow& row) {
-    if (!is_fort_citizen(unit)) return;   // leaves has_labor_columns false -> the keys are omitted
+    if (!is_fort_citizen(unit)) return;
+    // The same predicate set_labor_specialist enforces, so the padlock cannot exist on a unit
+    // /labor-specialist would refuse.
+    if (!is_assignable_citizen(unit)) return;
     row.has_labor_columns = true;
     row.specialized = unit->flags4.bits.only_do_assigned_jobs;
     auto plotinfo = df::global::plotinfo;
@@ -370,12 +322,100 @@ void fill_labor_columns(df::unit* unit, InfoRow& row) {
     }
 }
 
+// Wire codes for DF's two trainer wildcards; DF stores trainer_id -1 for both, so the flag decides.
+constexpr int32_t kTrainerAny = -1;            // flags.bits.any_trainer
+constexpr int32_t kTrainerAnyUnassigned = -2;  // flags.bits.any_unassigned_trainer
+
+int32_t trainer_wire_id(const df::training_assignment* asg) {
+    if (!asg) return kTrainerAny;
+    if (asg->flags.bits.any_unassigned_trainer) return kTrainerAnyUnassigned;
+    if (asg->flags.bits.any_trainer) return kTrainerAny;
+    return asg->trainer_id;
+}
+
+bool is_production_holder(df::building* building) {
+    if (!building)
+        return false;
+    switch (building->getType()) {
+    case df::building_type::Furnace:
+    case df::building_type::Workshop:
+        return true;
+    case df::building_type::Trap: {
+        auto trap = virtual_cast<df::building_trapst>(building);
+        if (!trap)
+            return false;
+        switch (trap->trap_type) {
+        case df::trap_type::Lever:
+        case df::trap_type::PressurePlate:
+        case df::trap_type::CageTrap:
+        case df::trap_type::TrackStop:
+            return false;
+        default:
+            return true;
+        }
+    }
+    default:
+        return false;
+    }
+}
+
+bool job_details_available(df::job* job) {
+    if (!job)
+        return false;
+
+    if (job->completion_timer < 1 && job->items.empty() && DFHack::Job::getHolder(job)) {
+        for (df::job_item* req : job->job_items.elements) {
+            if (!req)
+                continue;
+            if (req->job_details_flags.bits.have_set_job_details ||
+                (req->mat_type == 0 && req->mat_index == -1) ||
+                ((req->item_type == df::item_type::WOOD ||
+                  req->item_type == df::item_type::SKIN_TANNED) && req->mat_type == -1) ||
+                req->flags1.bits.glass ||
+                req->flags2.bits.plant ||
+                req->flags2.bits.silk ||
+                req->flags2.bits.bone ||
+                req->flags2.bits.shell ||
+                req->flags2.bits.horn ||
+                req->flags2.bits.pearl ||
+                req->flags2.bits.soap ||
+                req->flags2.bits.ivory_tooth ||
+                req->flags2.bits.yarn ||
+                req->flags3.bits.stone ||
+                req->flags3.bits.gem)
+                return true;
+        }
+    }
+
+    switch (job->job_type) {
+    case df::job_type::ConstructStatue:
+    case df::job_type::EncrustWithGems:
+    case df::job_type::EncrustWithGlass:
+    case df::job_type::MakeArmor:
+    case df::job_type::MakeHelm:
+    case df::job_type::MakePants:
+    case df::job_type::StudWith:
+    case df::job_type::MillPlants:
+    case df::job_type::ProcessPlants:
+    case df::job_type::ProcessPlantsVial:
+    case df::job_type::ProcessPlantsBarrel:
+    case df::job_type::MakeGloves:
+    case df::job_type::MakeShoes:
+    case df::job_type::DecorateWith:
+    case df::job_type::EncrustWithStones:
+    case df::job_type::ExtractFromPlants:
+    case df::job_type::SewImage:
+    case df::job_type::MakeFigurine:
+        return true;
+    default:
+        return false;
+    }
+}
+
 InfoRow row_for_unit(df::unit* unit, const WorldActivityIndex& world_activities) {
     InfoRow row;
     row.unit_id = unit->id;
     row.portrait_texpos = unit->portrait_texpos;
-    // B51: resolve raw creature/caste tokens so the client can crop the animal's species cell from
-    // creatures_map.json for off-screen rows too (mirrors tile_map_dump's per-unit rt/ct).
     if (auto world = df::global::world) {
         if (unit->race >= 0 && (size_t)unit->race < world->raws.creatures.all.size()) {
             df::creature_raw* cr = world->raws.creatures.all[unit->race];
@@ -392,30 +432,48 @@ InfoRow row_for_unit(df::unit* unit, const WorldActivityIndex& world_activities)
     row.category = Units::getRaceReadableName(unit);
     row.profession = Units::getProfessionName(unit);
     row.profession_color = Units::getProfessionColor(unit);
-    // Merge of B292-r2 (world-activity fallback index) + B296 (job colour/need/controls fields):
-    // label and source bucket resolve together; color never depends on the rendered string.
     auto task = current_task(unit, world_activities);
     row.job = std::move(task.name);
     row.job_color = resident_job_bucket_color(task.color_bucket);
     row.job_need_driven = !unit->job.current_job && Units::hasUnbailableSocialActivity(unit);
+    row.contained = unit->flags1.bits.caged;
+    if (row.contained) {
+        for (auto ref : unit->general_refs) {
+            if (!ref || ref->getType() != df::general_ref_type::CONTAINED_IN_ITEM)
+                continue;
+            auto container = ref->getItem();
+            if (!container ||
+                !Maps::isValidTilePos(container->pos.x, container->pos.y, container->pos.z))
+                continue;
+            row.container_has_pos = true;
+            row.container_x = container->pos.x;
+            row.container_y = container->pos.y;
+            row.container_z = container->pos.z;
+            break;
+        }
+    }
     if (auto job = unit->job.current_job) {
         row.job_id = job->id;
         row.job_repeat = job->flags.bits.repeat;
         row.job_suspended = job->flags.bits.suspend;
         row.job_do_now = job->flags.bits.do_now;
-        // /workshop-job-action validates that the job belongs to this workshop/furnace. Only
-        // expose that route for holders it accepts.
+        row.has_job_controls = true;
+        row.job_special = job->flags.bits.special;
+        row.job_by_manager = job->flags.bits.by_manager;
+        row.job_dessource = job->flags.bits.dessource;
+        row.job_has_worker = Job::getWorker(job) != nullptr;
+        row.job_details_avail = job_details_available(job);
         if (auto holder = Job::getHolder(job)) {
+            row.job_has_holder = true;
+            row.job_holder_finished = holder->getBuildStage() >= holder->getMaxBuildStage();
+            row.job_holder_production =
+                row.job_holder_finished && is_production_holder(holder);
             if (virtual_cast<df::building_workshopst>(holder) ||
                 virtual_cast<df::building_furnacest>(holder))
                 row.job_building_id = holder->id;
 
-            // DF's generated hover contract names UNITLIST_RECENTER_JOB's action precisely:
-            // "recenter on the task's building" (INFO_RECENTER_ON_JOB_BUILDING). The reviewed
-            // native Residents oracle exposes that building-recenter + cancel pair only for the
-            // exact "Store item in stockpile" label; "Store item in barrel" deliberately has no
-            // pair. Require both that label and a real stockpile holder instead of generalizing the
-            // native quirk to every hauling job. /task-cancel already consumes row.job_id.
+            // Deliberately narrow: native pairs recenter+cancel only on "Store item in stockpile",
+            // never on "Store item in barrel", so this is not generalized to every hauling job.
             if (row.job == "Store item in stockpile" &&
                 virtual_cast<df::building_stockpilest>(holder) &&
                 Maps::isValidTilePos(holder->centerx, holder->centery, holder->z)) {
@@ -425,24 +483,18 @@ InfoRow row_for_unit(df::unit* unit, const WorldActivityIndex& world_activities)
                 row.job_z = holder->z;
             }
         }
+        row.job_cancel_avail =
+            !row.job_special && (!row.job_has_holder || row.job_holder_finished);
     }
-    row.status = Units::isAlive(unit) ? "" : "Dead";
-    // WD-17: locate button needs a map position (reuses the same has_pos/x/y/z shape "Places"
-    // rows already emit) + the mood face bucket (same getStressCategory the top bar HUD uses,
-    // see hud.cpp build_hud_state) + a real held-item glyph.
+    row.status = unit_is_animate(unit) ? "" : "Dead";
     row.has_pos = true;
     row.x = unit->pos.x;
     row.y = unit->pos.y;
     row.z = unit->pos.z;
-    // Units::getStressCategory returns 0=most-stressed..6=calmest (see stress_cutoffs in
-    // Units.cpp); the top bar's HudState::happiness bucketing (hud.cpp build_hud_state)
-    // re-indexes that as happiness[6-cat] so index 0 is the DISPLAYED-leftmost/happiest face
-    // (BUTTON_STRESS_0) and index 6 is the miserable one. Mirror that same remap here so the
-    // per-unit mood face uses the identical BUTTON_STRESS_N meaning as the top bar.
-    int stress_cat = std::max(0, std::min(6, Units::getStressCategory(unit)));
-    row.mood_category = 6 - stress_cat;
+    // unit_face.h owns the face decision; hud.cpp's top bar calls the same helper.
+    row.mood_category = unit_happiness_face(unit);
     fill_held_item(unit, row);
-    fill_labor_columns(unit, row);   // B254: SPECIALIZED + WORK_DETAILS
+    fill_labor_columns(unit, row);   // SPECIALIZED + WORK_DETAILS
     if (Units::isTame(unit))
         row.badges.push_back("Domesticated");
     if (Units::isGrazer(unit))
@@ -451,9 +503,6 @@ InfoRow row_for_unit(df::unit* unit, const WorldActivityIndex& world_activities)
         row.badges.push_back("Pet");
     if (Units::isMarkedForSlaughter(unit))
         row.badges.push_back("Marked for slaughter");
-    // B16: per-animal livestock action state (only meaningful for live animals; the Pets/Livestock
-    // client tab renders Slaughter/War/Hunt/Make-pet buttons off these). Non-animals leave the
-    // whole group false.
     if (Units::isAnimal(unit) && Units::isAlive(unit)) {
         row.livestock = true;
         row.ls_slaughter = Units::isMarkedForSlaughter(unit);
@@ -463,8 +512,6 @@ InfoRow row_for_unit(df::unit* unit, const WorldActivityIndex& world_activities)
         row.ls_trainable_hunt = Units::isTrainableHunting(unit);
         row.ls_pet = Units::isPet(unit);
         row.ls_adoption = Units::isAvailableForAdoption(unit);
-        // B33: trainer-assignment state. `tamable` = DFHack's own assignTrainer precondition
-        // (tameable caste, not yet domesticated) -- gates the client's assign-trainer control.
         row.ls_tamable = Units::isTamable(unit) && !Units::isDomesticated(unit);
         row.ls_training = Units::isMarkedForTraining(unit);
         row.ls_taming = Units::isMarkedForTaming(unit);
@@ -472,42 +519,34 @@ InfoRow row_for_unit(df::unit* unit, const WorldActivityIndex& world_activities)
             df::training_assignment* asg = binsearch_in_vector(
                 df::global::plotinfo->training.training_assignments,
                 &df::training_assignment::animal_id, unit->id);
-            row.ls_trainer_id = asg ? asg->trainer_id : -1;
+            row.ls_trainer_id = trainer_wire_id(asg);   // flag-derived, not the raw field
         }
-        // Husbandry: gelding. isGeldable() == the caste's GELDABLE flag; isGelded() scans body
-        // wounds for a gelded part. Native only offers Geld on a geldable, not-yet-gelded animal.
         row.ls_geld = Units::isMarkedForGelding(unit);
         row.ls_geldable = Units::isGeldable(unit) && !Units::isGelded(unit);
+        fill_livestock_status(unit, row);
     }
     return row;
 }
 
-// A unit may remain in world->units.active after death, become a real ghost, or carry
-// flags1.inactive. DFHack's isActive() owns the inactive-family interpretation; keep all
-// three predicates together so Residents, Labor, and population cannot diverge.
+// world->units.active retains the dead, ghosts and flags1.inactive units.
 bool is_living_active_unit(df::unit* unit) {
     return unit && Units::isActive(unit) && !Units::isDead(unit) && !Units::isGhost(unit);
 }
 
-// Fort GROUP members only. Work-detail eligibility and the animal-trainer picker are
-// citizen-only in native DF (long-term residents cannot hold fortress labors), so those paths
-// must use this, not the broader is_resident below.
+// Fort GROUP members only. Labor and trainer-picker paths must use this, not is_resident:
+// a long-term resident appears on the Residents list but cannot hold a fortress labor.
 bool is_fort_citizen(df::unit* unit) {
     return is_living_active_unit(unit) && Units::isCitizen(unit, true);
 }
 
-// B215: the Residents screen and the population total count fort citizens PLUS accepted-petition
-// long-term residents (entertainers, bards, mercenaries, monster hunters). A long-term resident
-// is isOwnCiv but NOT isOwnGroup, so isCitizen() drops them; DFHack's isResident() is DF's own
-// long-term-resident test. This mirrors DFHack citizensRange(exclude_residents=false), the same
-// grouping native's population/units screen uses.
+// Citizens PLUS long-term residents: a resident is isOwnCiv but not isOwnGroup, so isCitizen
+// alone drops them from the Residents screen and the population total.
 bool is_resident(df::unit* unit) {
     return is_living_active_unit(unit) &&
            (Units::isCitizen(unit, true) || Units::isResident(unit, true));
 }
 
-// Mirrors the map stream's fort-visibility gate. Caged animals remain listable once seen;
-// the caged flag alone is not evidence that the creature is undiscovered.
+// The caged flag alone is not evidence a creature is undiscovered -- do not filter on it here.
 bool is_visible_to_fort(df::unit* unit) {
     if (!unit || unit->flags1.bits.hidden_in_ambush ||
         unit->flags1.bits.hidden_ambusher)
@@ -653,7 +692,7 @@ std::vector<StockCategory> stock_categories() {
         {VERMIN, "Vermin"},
         {WEAPON, "Weapons"},
         {WEAPONRACK, "Weapon racks"},
-        {WINDOW, "Windows"},
+        {df::item_type::WINDOW, "Windows"},
         {WOOD, "Wood"},
     };
 }
@@ -817,25 +856,60 @@ void add_unit_rows(InfoPanel& panel, bool (*predicate)(df::unit*),
     }
 }
 
-// Defined further down (with the Labor panel helpers); forward-declared so the Pets/Livestock
-// builder can enumerate animal-training-capable citizens for B33's trainer picker.
+// Defined below with the Labor panel helpers.
 bool unit_has_labor(df::unit* unit, df::unit_labor labor);
 
-// B33: citizens who can be assigned as a specific animal trainer -- residents with the
-// Animal Training labor enabled (DF's own gate for who appears in the "assign a trainer" list).
 void collect_animal_trainers(InfoPanel& panel) {
     for (auto unit : active_units()) {
-        if (is_fort_citizen(unit) && Units::isAlive(unit) &&
+        if (is_fort_citizen(unit) && unit_is_animate(unit) &&
             unit_has_labor(unit, df::unit_labor::ANIMALTRAIN)) {
             panel.trainers.emplace_back(unit->id, unit_display_name(unit));
         }
     }
 }
 
+void collect_training_knowledge(InfoPanel& panel) {
+    auto* world = df::global::world;
+    auto* plotinfo = df::global::plotinfo;
+    auto* fort = plotinfo ? df::historical_entity::find(plotinfo->group_id) : nullptr;
+    if (!world || !fort || !fort->training_knowledge) return;
+    struct Step { const char* label; int color; };
+    // Index by df::training_knowledge_level: None, FewFacts, GeneralFamiliarity, Knowledgeable,
+    // Expert, Domesticated.
+    static const Step kLadder[] = {
+        { nullptr, -1 },              // None -- not listed
+        { "A few facts", 4 },
+        { "General familiarity", 6 },
+        { "Knowledgeable", 7 },
+        { "Expert", 3 },
+        { "Domesticated", 2 },
+    };
+    const auto& levels = fort->training_knowledge->level;
+    for (size_t race = 0; race < levels.size(); ++race) {
+        const int level = static_cast<int>(levels[race]);
+        if (level <= 0 || level >= static_cast<int>(sizeof(kLadder) / sizeof(kLadder[0])))
+            continue;
+        if (race >= world->raws.creatures.all.size()) continue;
+        df::creature_raw* raw = world->raws.creatures.all[race];
+        if (!raw) continue;
+        InfoPanel::TrainingKnowledgeRow row;
+        row.race = raw->name[0].empty() ? raw->creature_id : raw->name[0];
+        row.level = level;
+        row.label = kLadder[level].label;
+        row.color = kLadder[level].color;
+        panel.training_knowledge.push_back(std::move(row));
+    }
+    std::sort(panel.training_knowledge.begin(), panel.training_knowledge.end(),
+              [](const InfoPanel::TrainingKnowledgeRow& a, const InfoPanel::TrainingKnowledgeRow& b) {
+                  return a.race < b.race;
+              });
+}
+
 void build_creatures_panel(InfoPanel& panel, const WorldActivityIndex& world_activities) {
     if (panel.detail == "pets") {
         add_unit_rows(panel, is_pet_or_livestock, world_activities);
         collect_animal_trainers(panel);
+        collect_training_knowledge(panel);
         for (auto& row : panel.rows) {
             if (row.status.empty())
                 row.status = row.badges.empty() ? "Domesticated" : row.badges.front();
@@ -877,6 +951,7 @@ void build_tasks_panel(InfoPanel& panel, const WorldActivityIndex& world_activit
         auto row = row_for_unit(unit, world_activities);
         row.status = row.job;
         row.job_id = unit->job.current_job->id;
+        row.tasks_row = true;
         panel.rows.push_back(row);
         if (panel.rows.size() >= 80)
             break;
@@ -1189,13 +1264,6 @@ std::string abstract_location_name(df::abstract_building* location) {
     return type + " #" + std::to_string(location->id);
 }
 
-// B229 (census #46, "occupant counts"): how many people are actually IN the location right now,
-// and how many of its staff slots are filled. The Places > Locations tab listed neither -- a tavern
-// with nobody in it and a tavern with fourteen dwarves in it rendered identically.
-//   occupants = live units standing inside any civzone attached to the location
-//               (abstract_building_contents::building_ids -> df::building_civzonest x1..x2/y1..y2/z)
-//   staff     = df::occupation entries on abstract_building::occupations with a holder
-//               (occupation::unit_id / ::histfig_id; -1 == vacant, same as native's Location Details)
 struct LocationCounts {
     int32_t occupants = 0;
     int32_t staff = 0;
@@ -1291,11 +1359,7 @@ void sort_place_rows(InfoPanel& panel) {
     });
 }
 
-// R6 (CIM-places-stockpiles.jpg): "NN% occupied" -- DF exposes no direct occupancy field, so we
-// mirror what native computes: filled stockpile tiles / total stockpile tiles. A tile counts as
-// filled when its map occupancy carries an item (tile_occupancy.bits.item, df.d_basics.xml:11054).
-// Shaped (irregular) piles honor room.extents; rectangular piles scan the x1..x2/y1..y2 footprint.
-// NOT-VERIFIED live: native may weight container capacity differently -- flagged in the notes.
+// DF exposes no occupancy field; this is filled stockpile tiles over total stockpile tiles.
 std::string stockpile_occupancy_label(df::building_stockpilest* sp) {
     if (!sp)
         return "";
@@ -1320,19 +1384,17 @@ std::string stockpile_occupancy_label(df::building_stockpilest* sp) {
         }
     }
     if (total <= 0)
-        return "0% occupied"; // seeded-bad guard: never a div-by-zero NaN%
+        return "0% occupied";
     int pct = static_cast<int>((static_cast<long long>(filled) * 100 + total / 2) / total);
     return std::to_string(pct) + "% occupied";
 }
 
-// R6 (CIM-places-zones.jpg): pen/pasture "N assigned / N present". assigned = the pasture roster;
-// present = assigned units currently standing inside the zone footprint (native's live count).
 std::string pen_assignment_label(df::building_civzonest* zone) {
     if (!zone)
         return "";
     int assigned = static_cast<int>(zone->assigned_units.size());
     if (assigned <= 0)
-        return ""; // native omits the counts line for an empty pen (Fishing zone shows none)
+        return ""; // native omits the counts line for an empty pen
     int present = 0;
     for (int32_t uid : zone->assigned_units) {
         auto unit = df::unit::find(uid);
@@ -1345,7 +1407,6 @@ std::string pen_assignment_label(df::building_civzonest* zone) {
     return std::to_string(assigned) + " assigned / " + std::to_string(present) + " present";
 }
 
-// R6 (CIM-places-zones.jpg): barracks "2 squads assigned" / "<squad> assigned" / "Guard assigned".
 std::string barracks_squad_label(df::building_civzonest* zone) {
     if (!zone)
         return "";
@@ -1357,8 +1418,8 @@ std::string barracks_squad_label(df::building_civzonest* zone) {
         ++n;
         info = room;
     }
-    // DFHack's native updater retains a building-side zero-mode row after the last mode is
-    // cleared; it is not an assignment and must not inflate the Places status line.
+    // A zero-mode squad_room_info row survives the last mode being cleared; it is not an
+    // assignment and must not inflate the count.
     if (!n)
         return "";
     if (n > 1)
@@ -1373,8 +1434,6 @@ std::string barracks_squad_label(df::building_civzonest* zone) {
     return name + " assigned";
 }
 
-// R6 (CIM-places-workshops.jpg): native appends "+ N task" to the current job when a workshop has
-// more than one queued job. Empty when 0/1 jobs (the current-job label already covers the first).
 std::string workshop_extra_tasks_suffix(df::building* b) {
     if (!b)
         return "";
@@ -1400,8 +1459,6 @@ void build_places_panel(InfoPanel& panel) {
             row.icon_sheet = "zone";
             row.icon_x = meta.icon_x;
             row.icon_y = meta.icon_y;
-            // R6: native shows an assignment metric (not Active/Suspended) for pens + barracks;
-            // fall back to the activity state for the zone types that carry no roster line.
             if (zone->type == df::civzone_type::Pen)
                 row.status = pen_assignment_label(zone);
             else if (zone->type == df::civzone_type::Barracks)
@@ -1447,7 +1504,6 @@ void build_places_panel(InfoPanel& panel) {
                     if (contents->location_value > 0)
                         row.job = "Value: " + std::to_string(contents->location_value);
                 }
-                // B229: occupants + staffing, the two facts the stub screen was missing.
                 auto counts = location_counts(location);
                 row.subtitle = row.subtitle.empty()
                     ? std::to_string(counts.occupants) + " inside"
@@ -1472,7 +1528,6 @@ void build_places_panel(InfoPanel& panel) {
             row.icon_sheet = "stockpile";
             row.icon_row = stockpile_icon_row(sp);
             row.job = stockpile_groups_text(sp);
-            // R6 (CIM-places-stockpiles.jpg): the native per-row metric is "NN% occupied".
             row.status = stockpile_occupancy_label(sp);
             if (sp->stockpile_flag.bits.use_links_only)
                 row.status += row.status.empty() ? "Links only" : " \xC2\xB7 Links only";
@@ -1492,7 +1547,7 @@ void build_places_panel(InfoPanel& panel) {
             row.profession = pretty_enum_key(enum_item_key(ws->type));
             row.job = first_job_label(ws);
             if (!row.job.empty())
-                row.job += workshop_extra_tasks_suffix(ws); // R6: "+ N task"
+                row.job += workshop_extra_tasks_suffix(ws);
             if (row.job.empty() && row.status.empty())
                 row.status = "Idle";
             panel.rows.push_back(row);
@@ -1505,7 +1560,7 @@ void build_places_panel(InfoPanel& panel) {
             row.profession = pretty_enum_key(enum_item_key(furnace->type));
             row.job = first_job_label(furnace);
             if (!row.job.empty())
-                row.job += workshop_extra_tasks_suffix(furnace); // R6: "+ N task"
+                row.job += workshop_extra_tasks_suffix(furnace);
             if (row.job.empty() && row.status.empty())
                 row.status = "Idle";
             panel.rows.push_back(row);
@@ -1546,7 +1601,7 @@ void build_places_panel(InfoPanel& panel) {
         }
         sort_place_rows(panel);
         if (panel.rows.empty()) {
-            // R7 (CIM-places-siege engines.jpg): verbatim 2-line empty state.
+            // verbatim native empty state -- do not reword.
             panel.messages.push_back("You do not have any siege engines.");
             panel.messages.push_back("Siege engines are placed using the building menu at the bottom of the screen.");
         }
@@ -1609,9 +1664,8 @@ std::string position_name(df::entity_position* position) {
 
 void build_nobles_panel(InfoPanel& panel) {
     auto plotinfo = df::global::plotinfo;
-    // Fort nobles/administrators live on the fort GROUP entity (group_id), not the
-    // civilization (civ_id). Using civ_id here surfaced civ-level positions (monarch
-    // etc.) instead of the fort's own positions. See /nobles in fort_admin.cpp.
+    // Fort positions live on the fort GROUP entity (group_id); civ_id surfaces civ-level
+    // positions such as the monarch instead.
     auto entity = plotinfo ? df::historical_entity::find(plotinfo->group_id) : nullptr;
     panel.messages.push_back("Ask host to assign");
     panel.messages.push_back("Members of the nobility have required rooms and can make demands. They cannot be reassigned.");
@@ -1741,8 +1795,6 @@ void set_row_item_position(InfoRow& row, df::item* item) {
     row.has_pos = true;
 }
 
-// R7 (CIM-objects-artifacts.jpg): resolve a Symbol claim's position name via its
-// entity_position_assignment id (symbol_claim_id) -> position_id -> entity_position.name[0].
 std::string position_name_for_symbol_claim(df::historical_entity* entity, int32_t assignment_id) {
     if (!entity || assignment_id < 0)
         return "";
@@ -1758,10 +1810,6 @@ std::string position_name_for_symbol_claim(df::historical_entity* entity, int32_
     return "";
 }
 
-// R7: the right-hand claim column ("Treasure of <entity>", "<hf>'s family heirloom",
-// "Symbol of the <position>"). An artifact carries at most one displayed claim; prefer the most
-// specific (Symbol > Heirloom > Treasure/HolyRelic) as the native list does. Empty when unclaimed
-// (seeded-bad guard: never "Treasure of " with a blank entity).
 std::string artifact_claim_label(df::artifact_record* artifact) {
     auto world = df::global::world;
     if (!world || !artifact)
@@ -1816,8 +1864,6 @@ InfoRow row_for_artifact(df::artifact_record* artifact, const std::string& categ
     row.category = category;
     if (!artifact)
         return row;
-    // R7: native stacks the artifact's own name (line 1) over its quoted English translation
-    // (line 2, "" form). Fall back to the item description when the artifact has no english alias.
     std::string native = artifact->name.has_name ? Translation::translateName(&artifact->name, false) : "";
     std::string english = artifact->name.has_name ? Translation::translateName(&artifact->name, true) : "";
     row.name = !native.empty() ? native : artifact_name(artifact);
@@ -1833,8 +1879,6 @@ InfoRow row_for_artifact(df::artifact_record* artifact, const std::string& categ
     std::string holder = historical_figure_name(artifact->holder_hf >= 0 ? artifact->holder_hf : artifact->owner_hf);
     if (!holder.empty())
         row.job = "Held by " + holder;
-    // R7: the claim label is the native right-column text. Fall back to the location state when
-    // the artifact carries no entity/heirloom/symbol claim.
     std::string claim = artifact_claim_label(artifact);
     if (!claim.empty())
         row.status = claim;
@@ -1876,9 +1920,6 @@ std::vector<df::artifact_record*> all_world_artifacts() {
 }
 
 // --- Fort scoping ------------------------------------------------------------------------
-// Base DF's fortress Objects screen lists only objects present at / claimed by YOUR fort, not
-// every artifact in world history. world->artifacts.all is the whole world (hundreds, all the
-// worldgen relics held by figures elsewhere), so a fresh fort must show (almost) none.
 int32_t fortress_site_id() {
     auto pi = df::global::plotinfo;
     return (pi && pi->main.fortress_site) ? pi->main.fortress_site->id : -1;
@@ -1914,7 +1955,6 @@ std::vector<df::artifact_record*> symbol_artifacts() {
     for (auto entity : world->entities.all) {
         if (!entity)
             continue;
-        // Only the player's own civilization / fortress group, not every entity in the world.
         if (entity->id != plotinfo->civ_id && entity->id != plotinfo->group_id)
             continue;
         for (auto claim : entity->artifact_claims) {
@@ -2002,14 +2042,12 @@ void build_objects_panel(InfoPanel& panel) {
                     break;
             }
         }
-        // No unfiltered world fallback: base DF lists only written works present at the fort,
-        // so dumping world->written_contents.all here flooded the tab with every book in history.
+        // No unfiltered world fallback: native lists only written works present at the fort.
     }
 
     if (panel.rows.empty()) {
         if (panel.detail == "artifacts") {
-            // WD-22: verbatim empty-state text pinned by 19-info-objects.png (three lines, not
-            // the previous single-line placeholder).
+            // verbatim native empty state -- do not reword.
             panel.messages.push_back("There aren't any crafted artifacts here.");
             panel.messages.push_back("Your workers will rarely make them on their own.");
             panel.messages.push_back("You may also send a squad to obtain one.");
@@ -2019,7 +2057,7 @@ void build_objects_panel(InfoPanel& panel) {
         else if (panel.detail == "named")
             panel.messages.push_back("No named objects listed.");
         else if (panel.detail == "written") {
-            // R7 (CIM-objects-written content.jpg): verbatim empty state, transcribed line-for-line.
+            // verbatim native empty state -- do not reword.
             panel.messages.push_back("There is no written content here.");
             panel.messages.push_back("Prepare writing material and assign scholars to a library.");
             panel.messages.push_back("Writing materials include paper and parchment sheets.");
@@ -2095,13 +2133,6 @@ struct RenderThreadPanelRequest {
 
 } // namespace
 
-// B224: the occupant rail (dwf-unitcycle.js) paints one icon per tile occupant. The Places
-// info rows above already own the building -> icon derivation over the client's building_icons.png
-// cell names (workshop_icon_key / furnace_icon_key / siege_engine_icon_key / farm_plot); this
-// exports that SAME channel so /tile-occupants (interaction.cpp) ships it per occupant instead of
-// growing a second derivation. The furniture arm mirrors the client's BLD_ICON_CELL names
-// (dwf-build-info-panels.js). Returns "" when this building type has no cell -- the client
-// then falls back to a label-keyword match and finally fails loud (empty tile + identity marker).
 std::string building_icon_key(df::building* building) {
     if (!building)
         return "";
@@ -2232,6 +2263,26 @@ InfoPanel build_info_panel(const std::string& panel_name,
     return panel;
 }
 
+namespace {
+// One writer per control object: the generic row and the Tasks-tab aliases both format through
+// these two helpers, so the two routes cannot drift apart.
+void append_job_flags_json(std::ostringstream& body, const InfoRow& row) {
+    body << "{\"repeat\":" << (row.job_repeat ? "true" : "false")
+         << ",\"suspend\":" << (row.job_suspended ? "true" : "false")
+         << ",\"special\":" << (row.job_special ? "true" : "false")
+         << ",\"byManager\":" << (row.job_by_manager ? "true" : "false")
+         << ",\"dessource\":" << (row.job_dessource ? "true" : "false") << "}";
+}
+void append_job_holder_json(std::ostringstream& body, const InfoRow& row) {
+    if (!row.job_has_holder) {
+        body << "null";
+        return;
+    }
+    body << "{\"finished\":" << (row.job_holder_finished ? "true" : "false")
+         << ",\"productionHolder\":" << (row.job_holder_production ? "true" : "false") << "}";
+}
+} // namespace
+
 std::string info_panel_json(const InfoPanel& panel) {
     std::ostringstream body;
     body << "{"
@@ -2246,14 +2297,24 @@ std::string info_panel_json(const InfoPanel& panel) {
     body << ",\"detailTabs\":";
     append_tabs(body, panel.detail_tabs);
     body << ",\"messages\":";
-    append_string_array(body, panel.messages);
+    append_json_string_array(body, panel.messages);
     body << ",\"sideItems\":";
-    append_string_array(body, panel.side_items);
+    append_json_string_array(body, panel.side_items);
     body << ",\"trainers\":[";
     for (size_t i = 0; i < panel.trainers.size(); ++i) {
         if (i) body << ",";
         body << "{\"id\":" << panel.trainers[i].first
              << ",\"name\":" << json_string(panel.trainers[i].second) << "}";
+    }
+    body << "]";
+    body << ",\"trainingKnowledge\":[";
+    for (size_t i = 0; i < panel.training_knowledge.size(); ++i) {
+        const auto& tk = panel.training_knowledge[i];
+        if (i) body << ",";
+        body << "{\"race\":" << json_string(tk.race)
+             << ",\"level\":" << tk.level
+             << ",\"label\":" << json_string(tk.label)
+             << ",\"color\":" << tk.color << "}";
     }
     body << "]";
     body << ",\"footer\":" << json_string(panel.footer) << ",\"rows\":[";
@@ -2295,14 +2356,40 @@ std::string info_panel_json(const InfoPanel& panel) {
              << "\"jobRepeat\":" << (row.job_repeat ? "true" : "false") << ","
              << "\"jobSuspended\":" << (row.job_suspended ? "true" : "false") << ","
              << "\"jobDoNow\":" << (row.job_do_now ? "true" : "false") << ","
-             << "\"muted\":" << (row.muted ? "true" : "false") << ","
+             << "\"contained\":" << (row.contained ? "true" : "false") << ",";
+        if (row.container_has_pos) {
+            body << "\"containerPos\":{\"x\":" << row.container_x
+                 << ",\"y\":" << row.container_y
+                 << ",\"z\":" << row.container_z << "},";
+        }
+        if (row.has_job_controls) {
+            body << "\"hasWorker\":" << (row.job_has_worker ? "true" : "false") << ","
+                 << "\"flags\":";
+            append_job_flags_json(body, row);
+            body << ",\"holder\":";
+            append_job_holder_json(body, row);
+            body << ",";
+        }
+        if (row.tasks_row) {
+            body << "\"workerContained\":" << (row.contained ? "true" : "false") << ",";
+            if (row.container_has_pos) {
+                body << "\"workerContainerPos\":{\"x\":" << row.container_x
+                     << ",\"y\":" << row.container_y
+                     << ",\"z\":" << row.container_z << "},";
+            }
+            if (row.has_job_controls) {
+                body << "\"jobFlags\":";
+                append_job_flags_json(body, row);
+                body << ",\"jobHolder\":";
+                append_job_holder_json(body, row);
+                body << ",\"detailsAvail\":" << (row.job_details_avail ? "true" : "false")
+                     << ",\"cancelAvail\":" << (row.job_cancel_avail ? "true" : "false") << ",";
+            }
+        }
+        body << "\"muted\":" << (row.muted ? "true" : "false") << ","
              << "\"moodCategory\":" << row.mood_category << ","
              << "\"heldItem\":" << json_string(row.held_item) << ","
              << "\"heldItemId\":" << row.held_item_id << ",";
-        // B254. Emitted ONLY for units the labor system applies to (see InfoRow::has_labor_columns).
-        // The client presence-checks these keys: ABSENT means "unknown", and it then renders no
-        // padlock at all rather than a live control over a state it cannot read or write. That is
-        // the same signal an OLD DLL sends by omitting them, so one code path covers both.
         if (row.has_labor_columns) {
             body << "\"specialized\":" << (row.specialized ? "true" : "false") << ","
                  << "\"workDetails\":[";
@@ -2328,12 +2415,16 @@ std::string info_panel_json(const InfoPanel& panel) {
                  << ",\"taming\":" << (row.ls_taming ? "true" : "false")
                  << ",\"trainerId\":" << row.ls_trainer_id
                  << ",\"geld\":" << (row.ls_geld ? "true" : "false")
-                 << ",\"geldable\":" << (row.ls_geldable ? "true" : "false") << "}";
+                 << ",\"geldable\":" << (row.ls_geldable ? "true" : "false")
+                 << ",\"status\":" << json_string(row.ls_status)
+                 << ",\"statusColor\":" << row.ls_status_color
+                 << ",\"statusBright\":" << (row.ls_status_bright ? "true" : "false")
+                 << ",\"statusExact\":" << (row.ls_status_exact ? "true" : "false") << "}";
         } else {
             body << "null";
         }
         body << ",\"badges\":";
-        append_string_array(body, row.badges);
+        append_json_string_array(body, row.badges);
         body << "}";
     }
     body << "],\"stockItems\":[";
@@ -2408,13 +2499,27 @@ struct RenderThreadCancelRequest {
     std::promise<bool> done;
 };
 
+struct RenderThreadTaskActionRequest {
+    int32_t job_id = -1;
+    std::string action;
+    TaskJobActionResult result;
+    std::string err;
+    std::promise<bool> done;
+};
+
+df::job* find_world_job(int32_t job_id) {
+    auto world = df::global::world;
+    if (!world)
+        return nullptr;
+    for (auto* link = world->jobs.list.next; link; link = link->next) {
+        if (link->item && link->item->id == job_id)
+            return link->item;
+    }
+    return nullptr;
+}
+
 } // namespace
 
-// WD-22: Tasks tab cancel button. Same recipe as placement.cpp's eraser job-cancel pass
-// (DFHack::Job::removeJob on the matched df::job*), run via runOnRenderThread like every other
-// mutation/read in this file rather than the CoreSuspender+capture_state_mutex pattern other
-// panel files use -- info_panel.cpp has no dependency on sdl_capture.h today and the render
-// thread is already the safe place to touch world->jobs.
 bool cancel_job_on_render_thread(int32_t job_id, std::string* err) {
     std::lock_guard<std::recursive_mutex> lock(g_info_panel_mutex);
 
@@ -2424,16 +2529,7 @@ bool cancel_job_on_render_thread(int32_t job_id, std::string* err) {
 
     DFHack::runOnRenderThread([request]() {
         try {
-            auto world = df::global::world;
-            df::job* job = nullptr;
-            if (world) {
-                for (auto* link = world->jobs.list.next; link; link = link->next) {
-                    if (link->item && link->item->id == request->job_id) {
-                        job = link->item;
-                        break;
-                    }
-                }
-            }
+            df::job* job = find_world_job(request->job_id);
             if (!job) {
                 request->err = "job not found";
                 request->done.set_value(false);
@@ -2458,13 +2554,103 @@ bool cancel_job_on_render_thread(int32_t job_id, std::string* err) {
     return ok;
 }
 
+bool task_job_action_on_render_thread(int32_t job_id, const std::string& action,
+                                      TaskJobActionResult& out, std::string* err) {
+    std::lock_guard<std::recursive_mutex> lock(g_info_panel_mutex);
+
+    auto request = std::make_shared<RenderThreadTaskActionRequest>();
+    request->job_id = job_id;
+    request->action = action;
+    auto future = request->done.get_future();
+
+    DFHack::runOnRenderThread([request]() {
+        try {
+            df::job* job = find_world_job(request->job_id);
+            if (!job) {
+                request->err = "job not found";
+                request->done.set_value(false);
+                return;
+            }
+
+            df::building* holder = DFHack::Job::getHolder(job);
+            const bool holder_finished =
+                holder && holder->getBuildStage() >= holder->getMaxBuildStage();
+            const bool production = holder_finished && is_production_holder(holder);
+
+            if (request->action == "recenter") {
+                if (!holder ||
+                    !DFHack::Maps::isValidTilePos(holder->centerx, holder->centery, holder->z)) {
+                    request->err = holder ? "job holder has no map position" :
+                                            "job has no holder building";
+                    request->done.set_value(false);
+                    return;
+                }
+                request->result.has_pos = true;
+                request->result.x = holder->centerx;
+                request->result.y = holder->centery;
+                request->result.z = holder->z;
+            } else if (request->action == "removeWorker") {
+                if (!holder || job->flags.bits.special || job->flags.bits.dessource ||
+                    !DFHack::Job::getWorker(job)) {
+                    request->err = "remove-worker control is unavailable for this job";
+                    request->done.set_value(false);
+                    return;
+                }
+                if (!DFHack::Job::removeWorker(job)) {
+                    request->err = "removeWorker failed";
+                    request->done.set_value(false);
+                    return;
+                }
+            } else if (request->action == "suspend") {
+                if (!production) {
+                    request->err = "suspend control is unavailable for this job";
+                    request->done.set_value(false);
+                    return;
+                }
+                job->flags.bits.suspend = !job->flags.bits.suspend;
+            } else if (request->action == "repeat") {
+                if (!production || job->flags.bits.by_manager) {
+                    request->err = "repeat control is unavailable for this job";
+                    request->done.set_value(false);
+                    return;
+                }
+                job->flags.bits.repeat = !job->flags.bits.repeat;
+            } else {
+                request->err = "unsupported task action";
+                request->done.set_value(false);
+                return;
+            }
+
+            request->result.repeat = job->flags.bits.repeat;
+            request->result.suspended = job->flags.bits.suspend;
+            request->result.has_worker = DFHack::Job::getWorker(job) != nullptr;
+            request->done.set_value(true);
+        } catch (const std::exception& ex) {
+            request->err = ex.what();
+            request->done.set_value(false);
+        } catch (...) {
+            request->err = "unknown task action error";
+            request->done.set_value(false);
+        }
+    });
+
+    bool ok = render_future_ready(future) && future.get();
+    if (!ok) {
+        if (err)
+            *err = request->err;
+        return false;
+    }
+    out = request->result;
+    return true;
+}
+
 namespace {
 
 struct RenderThreadLivestockRequest {
     int32_t unit_id = -1;
     std::string action;
-    int32_t trainer_id = -1;   // B33: only consulted by "assign-trainer"
-    int32_t owner_id = -1;     // B233-2: only consulted by "assign-work-animal"
+    int32_t trainer_id = -1;   // only consulted by "assign-trainer"
+    int32_t owner_id = -1;     // Only consulted by "assign-work-animal"
     LivestockState state;
     std::string err;
     std::promise<bool> done;
@@ -2478,8 +2664,6 @@ struct RenderThreadNicknameRequest {
     std::promise<bool> done;
 };
 
-// B16: mirror the current DF flags of one animal into a LivestockState (read-only helper, always
-// on the render thread with the unit already validated).
 void read_livestock_state(df::unit* unit, LivestockState& s) {
     s.slaughter = Units::isMarkedForSlaughter(unit);
     s.war = Units::isMarkedForWarTraining(unit);
@@ -2488,7 +2672,6 @@ void read_livestock_state(df::unit* unit, LivestockState& s) {
     s.trainable_hunt = Units::isTrainableHunting(unit);
     s.pet = Units::isPet(unit);
     s.adoption = Units::isAvailableForAdoption(unit);
-    // B33: trainer-assignment state.
     s.tamable = Units::isTamable(unit) && !Units::isDomesticated(unit);
     s.training = Units::isMarkedForTraining(unit);
     s.taming = Units::isMarkedForTaming(unit);
@@ -2497,22 +2680,16 @@ void read_livestock_state(df::unit* unit, LivestockState& s) {
         df::training_assignment* asg = binsearch_in_vector(
             df::global::plotinfo->training.training_assignments,
             &df::training_assignment::animal_id, unit->id);
-        s.trainer_id = asg ? asg->trainer_id : -1;
+        s.trainer_id = trainer_wire_id(asg);   // flag-derived, not the raw field
     }
-    // Husbandry: gelding state (same gate as build_row's ls_geld/ls_geldable).
     s.geld = Units::isMarkedForGelding(unit);
     s.geldable = Units::isGeldable(unit) && !Units::isGelded(unit);
-    // B233-2: the work-animal owner field (df.unit.xml:2732 relationship_ids[PetOwner]).
     s.work_animal_owner = unit->relationship_ids[df::unit_relationship_type::PetOwner];
     s.ok = true;
 }
 
-// B16: set/clear the war-or-hunt training designation the same way DF's livestock screen does --
-// by adding/removing an entry in plotinfo->training.training_assignments (the sorted-by-animal_id
-// vector DFHack's Units::isMarkedFor*Training / assignTrainer read and write). War and hunt are
-// mutually exclusive on one animal, exactly as in DF. `want_war==false` means hunt. Toggling the
-// currently-set kind OFF removes the assignment (matching DFHack's unassignTrainer: erase the
-// pointer from the vector, no delete -- avoids any double-free with DF's own references).
+// Removing an assignment ERASES the pointer from training_assignments without deleting it:
+// DF holds its own references to that object and a delete here double-frees.
 void toggle_training(df::unit* unit, bool want_war) {
     auto plotinfo = df::global::plotinfo;
     if (!plotinfo || !unit)
@@ -2539,20 +2716,17 @@ void toggle_training(df::unit* unit, bool want_war) {
     asg->flags.bits.train_hunt = want_war ? 0 : 1;
 }
 
-// B33: assign (or re-assign) a trainer to TAME this animal -- DF's "Assign a trainer to this
-// creature" action (the ctrl+T workaround the owner had to use). trainer_id == -1 means "any available
-// trainer"; a specific unit id restricts the assignment to that dwarf. Mirrors DFHack's
-// Units::assignTrainer for the create case, but ALSO updates an existing assignment's trainer in
-// place -- without disturbing any war/hunt flag already set -- which assignTrainer itself refuses
-// to do (it bails if the animal is already marked for training). Returns false if the caste isn't
-// tameable, the animal is already domesticated, or a bad trainer id was given.
+// Also updates an EXISTING assignment in place, which DFHack's Units::assignTrainer refuses to do
+// (it bails once the animal is already marked for training).
 bool set_trainer(df::unit* unit, int32_t trainer_id) {
     auto plotinfo = df::global::plotinfo;
     if (!plotinfo || !unit)
         return false;
     if (!Units::isTamable(unit) || Units::isDomesticated(unit))
         return false;
-    if (trainer_id != -1 && !df::unit::find(trainer_id))
+    const bool any = (trainer_id == kTrainerAny);
+    const bool any_unassigned = (trainer_id == kTrainerAnyUnassigned);
+    if (!any && !any_unassigned && !df::unit::find(trainer_id))
         return false;
     auto& vec = plotinfo->training.training_assignments;
     df::training_assignment* asg =
@@ -2564,8 +2738,9 @@ bool set_trainer(df::unit* unit, int32_t trainer_id) {
         asg->flags.whole = 0;
         created = true;
     }
-    asg->trainer_id = trainer_id;
-    asg->flags.bits.any_trainer = (trainer_id == -1);
+    asg->trainer_id = (any || any_unassigned) ? kTrainerAny : trainer_id;
+    asg->flags.bits.any_trainer = any;
+    asg->flags.bits.any_unassigned_trainer = any_unassigned;
     if (created)
         insert_into_vector(vec, &df::training_assignment::animal_id, asg);
     return true;
@@ -2573,10 +2748,6 @@ bool set_trainer(df::unit* unit, int32_t trainer_id) {
 
 } // namespace
 
-// B233-2: see the long note on the declaration in info_panel.h. Eligibility mirrors DF's own
-// AssignWorkAnimal list (a trained war/hunting animal of the fort's own civ) -- the same predicate
-// DFHack's WorkAnimalOverlay uses to count a citizen's work animals
-// (plugins/lua/sort/info.lua:452-460: isOwnCiv && (isWar || isHunter), keyed on PetOwner).
 std::string work_animal_blocked_reason(df::unit* animal) {
     if (!animal)
         return "Animal not found.";
@@ -2588,9 +2759,6 @@ std::string work_animal_blocked_reason(df::unit* animal) {
         return "Only tame animals can be assigned as work animals.";
     if (!Units::isWar(animal) && !Units::isHunter(animal))
         return "Only war- or hunting-trained animals can be work animals. Train it first.";
-    // The one honest wall: a historical-figure animal's ownership is ALSO recorded in the history
-    // graph (histfig_hf_link_pet_ownerst). We write the unit field only, so for a histfig animal
-    // that would be a half-write. Refuse instead of desyncing the save; assign it in DF.
     if (animal->hist_figure_id >= 0)
         return "This animal is a historical figure -- DF also stores its ownership in the history "
                "graph, which we cannot write safely yet. Assign it in DF.";
@@ -2599,11 +2767,8 @@ std::string work_animal_blocked_reason(df::unit* animal) {
 
 namespace {
 
-// B233-2 WRITE. owner_id < 0 clears the assignment; otherwise the owner must be a LIVING citizen
-// (B214 living predicate -- world.units.active retains corpses and ghosts). One field, one write:
-// unit.relationship_ids[PetOwner]. DF's pet AI derives the follow state (unit.following /
-// owner_type = PET_MASTER, df.unit.xml:2728-2730) from this field, so there is no second field to
-// keep in step.
+// One field, one write: unit.relationship_ids[PetOwner]. DF's pet AI derives the follow state
+// from it, so there is no second field to keep in step.
 bool set_work_animal_owner(df::unit* animal, int32_t owner_id, std::string* err) {
     std::string blocked = work_animal_blocked_reason(animal);
     if (!blocked.empty()) {
@@ -2670,26 +2835,19 @@ bool livestock_action_on_render_thread(int32_t unit_id, const std::string& actio
                 unit->flags3.bits.available_for_adoption =
                     unit->flags3.bits.available_for_adoption ? 0 : 1;
             } else if (a == "assign-trainer") {
-                // B33: assign a trainer to tame this animal (request->trainer_id == -1 => any).
                 if (!set_trainer(unit, request->trainer_id)) {
                     request->err = "animal not tameable (or bad trainer)";
                     request->done.set_value(false);
                     return;
                 }
             } else if (a == "assign-work-animal") {
-                // B233-2: native "Assign this creature as a work animal for a specific citizen or
-                // resident" (INFO_ASSIGN_WORK_ANIMAL). owner < 0 clears the assignment.
                 if (!set_work_animal_owner(unit, request->owner_id, &request->err)) {
                     request->done.set_value(false);
                     return;
                 }
             } else if (a == "unassign-trainer") {
-                // B33: cancel the trainer assignment entirely (DFHack Units::unassignTrainer).
                 Units::unassignTrainer(unit);
             } else if (a == "geld") {
-                // Husbandry: mark/unmark for gelding. Gate exactly as native does -- only a
-                // geldable caste (GELDABLE flag) that isn't already gelded. A mis-rendered client
-                // that ever POSTs geld on a non-geldable animal is rejected 400, no flag written.
                 if (!Units::isGeldable(unit) || Units::isGelded(unit)) {
                     request->err = "animal not geldable (or already gelded)";
                     request->done.set_value(false);
@@ -2738,8 +2896,8 @@ bool set_unit_nickname_on_render_thread(int32_t unit_id, const std::string& nick
                 request->done.set_value(false);
                 return;
             }
-            // This is the field written by DF's native nickname editor. Do not alter the real
-            // name, translated words, profession, or unit flags.
+            // The only field DF's native nickname editor writes; never extend this to the real
+            // name, translated words, profession or flags.
             unit->name.nickname = request->nickname;
             request->stored_nickname = unit->name.nickname;
             request->done.set_value(true);
@@ -2779,17 +2937,7 @@ std::string livestock_state_json(int32_t unit_id, const LivestockState& s) {
     return body.str();
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
-// NOTE: /panel's error body uses THIS FILE's anonymous-namespace json_string (this module
-// predates the shared json_util helpers and keeps its own copy; including json_util.h here
-// would make every existing unqualified json_string call ambiguous). The two copies differ
-// only in \u zero-padding for control characters, which our fixed ASCII error strings never
-// contain. Handlers that stringify USER input (/unit-nickname) live in unit_sheet.cpp, which
-// uses the shared json_util implementation.
+// ---------------------------------------------------------------- HTTP routes
 void register_info_panel_routes(httplib::Server& server) {
     server.Get("/panel", [](const httplib::Request& req, httplib::Response& res) {
         std::string panel_name = req.has_param("panel") ? req.get_param_value("panel") : "citizens";

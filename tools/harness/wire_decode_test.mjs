@@ -1,6 +1,6 @@
 // wire_decode_test.mjs -- WA-8 acceptance deliverable (protocol v1, Part 0).
 //
-// Loads the REAL client decoder web/js/dwf-wire-v1.js verbatim (vm.runInThisContext,
+// Loads the REAL client decoder web/js/dwf-wire-v1.js verbatim (through the rendered harness,
 // the same load path WA-12's worker uses via importScripts) and decodes the committed
 // golden fixture tools/harness/fixtures/wire_fixture.bin, asserting every field of every
 // one of the 512 tile records + all sparse tails against fixtures/wire_fixture.expected.json.
@@ -12,20 +12,32 @@
 // Run: node tools/harness/wire_decode_test.mjs [path-to-fixture.bin]
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { createRenderedHarness } from "../lib/rendered_harness.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DECODER_PATH = path.resolve(__dirname, "../../web/js/dwf-wire-v1.js");
 const FIX_BIN = process.argv[2] || path.resolve(__dirname, "fixtures/wire_fixture.bin");
 const FIX_JSON = path.resolve(__dirname, "fixtures/wire_fixture.expected.json");
 
 // ---- load the decoder module verbatim into this global scope --------------------
-vm.runInThisContext(fs.readFileSync(DECODER_PATH, "utf8"), { filename: DECODER_PATH });
+const harness = createRenderedHarness({ root: path.resolve(__dirname, "../..") });
+harness.run("web/js/dwf-wire-v1.js");
 const W = globalThis.DwfWireV1;
 assert(W && typeof W.decodeBlockSet === "function", "decoder module did not attach DwfWireV1");
 assert.equal(typeof W.formatItemName, "function", "decoder exports native item-text formatter");
+{
+  const itemArtBytes = Uint8Array.of(0x07, 7);
+  const itemArt = W.decodeTailData(W.C.TAIL_ITEM_ART,
+    new DataView(itemArtBytes.buffer), 0, itemArtBytes.length);
+  assert.deepEqual(itemArt, { flags: 7, instrumentClass: 7, specialMaterial: true, generatedTool: true },
+    "ITEM-SPRITES item-art tail decodes instrument, SPECIAL material, and generated-tool flags");
+  const specialOnlyBytes = Uint8Array.of(0x02);
+  assert.deepEqual(W.decodeTailData(W.C.TAIL_ITEM_ART,
+    new DataView(specialOnlyBytes.buffer), 0, specialOnlyBytes.length),
+  { flags: 2, specialMaterial: true },
+  "ITEM-SPRITES special-material discriminator does not require an instrument payload byte");
+}
 
 const bin = new Uint8Array(fs.readFileSync(FIX_BIN));
 const expected = JSON.parse(fs.readFileSync(FIX_JSON, "utf8"));
@@ -261,16 +273,21 @@ assert.equal(A.tails.find((t) => t.tile_idx === 5 && t.kind === W.C.TAIL_ITEM).d
   const dvm = new DataView(mutated.buffer, mutated.byteOffset, mutated.length);
   let oScan = 6 + 10;
   const tcA = dvm.getUint16(oScan + 1, true); oScan += 3 + 256 * 12;
-  let q23qfOff = -1, q26qOff = -1;
+  let a5IflagsOff = -1, q23qfOff = -1, q26qOff = -1;
   for (let t = 0; t < tcA; t++) {
-    const tIdx = dvm.getUint8(oScan), tLen = dvm.getUint8(oScan + 2);
+    const tIdx = dvm.getUint8(oScan), tKind = dvm.getUint8(oScan + 1), tLen = dvm.getUint8(oScan + 2);
+    if (tIdx === 5 && tKind === W.C.TAIL_ITEM) a5IflagsOff = oScan + 3 + 10;
     if (tIdx === 23) q23qfOff = oScan + 3 + tLen - 2;   // qflags = 2nd-from-last byte
     if (tIdx === 26) q26qOff  = oScan + 3 + tLen - 3;   // quality = 3rd-from-last byte
     oScan += 3 + tLen;
   }
-  assert(q23qfOff > 0 && q26qOff > 0, "test-the-test located quality byte offsets");
+  assert(a5IflagsOff > 0 && q23qfOff > 0 && q26qOff > 0, "test-the-test located item byte offsets");
+  dvm.setUint8(a5IflagsOff, dvm.getUint8(a5IflagsOff) | 0x80); // additive grown discriminator
   dvm.setUint8(q23qfOff, 0);   // clear the artifact bit
   dvm.setUint8(q26qOff, 2);    // 5 -> 2
+  const shared = W.decodeBlockSet(mutated);
+  assert.equal(shared.blocks[0].tails.find((t) => t.tile_idx === 5 && t.kind === W.C.TAIL_ITEM).data.grown,
+    true, "TEST-THE-TEST: iflags bit7 decodes the grown discriminator");
   const m = reparseItemTails(mutated);
   assert.equal(m[0].find((t) => t.tile_idx === 23).artifact, false, "TEST-THE-TEST: cleared qflags byte flips artifact true->false");
   const m26 = m[0].find((t) => t.tile_idx === 26);

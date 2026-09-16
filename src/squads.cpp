@@ -23,11 +23,15 @@
 
 #include "Core.h"
 #include "MiscUtils.h"
+#include "assignable_citizen.h"
 #include "client_state.h"
 #include "diagnostics.h"
 #include "http_server.h"
 #include "json_util.h"
+#include "noble_appointment.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
+#include "squad_emblem.h"
 
 #include "modules/Gui.h"
 #include "modules/Military.h"
@@ -107,6 +111,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <array>
+#include <functional>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -120,22 +125,12 @@ namespace {
 
 std::recursive_mutex g_squad_mutex;
 
-// Squad/unit/entity reads and mutations touch stable sim structures (like labor.cpp),
-// so we serialize them the same way the labor panel does: panel mutex -> capture-state
-// mutex -> CoreSuspender. This matches lock ordering with the /frame.jpg render path and
-// keeps every squad operation crash-safe. (Reads run under the same guard as mutations
-// because iterating world->units.active / squad->positions must not race the sim.)
 template <typename Fn>
 bool run_squad_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> squad_lock(g_squad_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_squad_mutex, std::forward<Fn>(fn));
 }
 
-// ---------------------------------------------------------------------------
-// Provider state (plain structs; no df pointers escape run_squad_locked).
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------- provider state
 
 struct PositionUniformSpec {
     int cat = 0;
@@ -154,6 +149,12 @@ struct PositionUniformSpec {
     int assigned_count = 0;
 };
 
+struct SquadOrderInfo {
+    int index = 0;
+    std::string type;
+    std::string description;
+};
+
 struct SquadMember {
     int idx = 0;
     int32_t unit_id = -1;
@@ -163,46 +164,31 @@ struct SquadMember {
     std::vector<std::string> top_skills;
     int uniform_items = 0;
     bool filled = false;
-    int32_t portrait_texpos = -1;  // B59: additive, -1 = unknown/absent on old payloads
-    std::vector<PositionUniformSpec> uniform_details; // detail response only (native 5.5)
+    int32_t portrait_texpos = -1;  // additive, -1 = unknown/absent on old payloads
+    std::vector<PositionUniformSpec> uniform_details; // detail response only
+    std::vector<SquadOrderInfo> orders; // this POSITION's own orders, not the squad's
 };
 
-struct SquadOrderInfo {
-    int index = 0;
-    std::string type;
-    std::string description;
-};
-
-// WD-30(b): one month's entry in the ACTIVE schedule routine (squad->schedule.routine[
-// squad->cur_routine_idx]->month[i]) -- the per-month Sleep/Uniform template DF's own squad
-// schedule screen edits. Recurring per-month scheduled orders (squad_schedule_entry::orders,
-// e.g. "train months 3-5") are read/write only as a pass-through count here; editing those is
-// out of scope this pass (spec's schedule item covers the sleep/uniform grid; per-month order
-// assignment is a finer-grained follow-up, same tier as the custom-uniform-editor flag below).
+// One month of the ACTIVE schedule routine (squad->schedule.routine[cur_routine_idx]->month[i]).
 struct SquadScheduleMonth {
     int month = 0;
     std::string name;
     std::string sleep;
     std::string uniform;
     int order_count = 0;
-    // 7.2/7.3: a compact summary of this month's scheduled orders. DF's own monthly grid shows
-    // the first order's label ("Train"/"Off duty"/…); has_train + min_count drive the training
-    // editor's toggle. Per-member order_assignments (the finest grain) are a documented follow-up.
     bool has_train = false;
     int min_count = 0;
     std::string order_label; // "No orders" | "Train" | first order's description
 };
 
-// 7.2 View Monthly Schedule / 7.3 Edit Training: one squad's full per-routine schedule (every
-// routine's 12 months, not just the active one). schedule.routine is parallel to the fort-wide
-// alerts.routines (same index) -- see the WD-30(b) note. Served detail-only.
+// Every routine's 12 months, not just the active one. Detail responses only.
 struct SquadRoutineSchedule {
     int idx = 0;
     std::string name;
     std::vector<SquadScheduleMonth> months;
 };
 
-// milequip: one squad_ammo_spec (squad->ammo.ammunition[]) rendered for the ammo authoring UI.
+// One squad_ammo_spec (squad->ammo.ammunition[]).
 struct SquadAmmoSpec {
     int index = 0;
     int item_subtype = -1;    // ammo itemdef id (0=bolt, 1=arrow, ...)
@@ -216,14 +202,20 @@ struct SquadAmmoSpec {
     bool use_training = false;
 };
 
-// Emblem: DF's per-squad badge (df.squad.xml:342-350 on the `squad` struct). symbol is a 0..22
-// index into the graphics-mode symbol sheet; fg/bg are the RGB of the coloured glyph. Purely
-// cosmetic (graphics mode only) -- served READ on /squads + written via /squad-emblem.
+// symbol is an index into the graphics-mode symbol sheet; fg/bg are the glyph's RGB.
 struct SquadEmblem {
     int symbol = 0;
     int fg_r = 0, fg_g = 0, fg_b = 0;
     int bg_r = 0, bg_g = 0, bg_b = 0;
 };
+
+// glyphs in DF's stock squad symbol sheet
+constexpr int SQUAD_EMBLEM_SYMBOL_COUNT = 23;
+
+inline bool emblem_is_unassigned(const SquadEmblem& e) {
+    return e.symbol < 0 || e.symbol >= SQUAD_EMBLEM_SYMBOL_COUNT ||
+           (!e.fg_r && !e.fg_g && !e.fg_b && !e.bg_r && !e.bg_g && !e.bg_b);
+}
 
 struct SquadInfo {
     int32_t id = -1;
@@ -232,15 +224,13 @@ struct SquadInfo {
     int routine_idx = 0;
     std::string routine_name;
     SquadEmblem emblem;
-    // Supplies (native 5.4): squad->supplies. carry_food 0..3 ("No food".."3 food"); carry_water
-    // is a name ("none"|"nowater"|"water"|"drink").
-    int carry_food = 0;
-    std::string carry_water = "none";
+    int carry_food = 0;                 // 0..3
+    std::string carry_water = "none";   // "none" | "nowater" | "water" | "drink"
     std::vector<SquadMember> positions;
-    std::vector<SquadOrderInfo> orders; // WD-30: current (non-scheduled) squad orders.
-    std::vector<SquadScheduleMonth> schedule; // WD-30(b): active routine's 12 months.
-    std::vector<SquadRoutineSchedule> routine_schedules; // 7.2/7.3: ALL routines' 12 months.
-    std::vector<SquadAmmoSpec> ammo; // milequip: squad->ammo.ammunition[] specs.
+    std::vector<SquadOrderInfo> orders; // current (non-scheduled) squad orders.
+    std::vector<SquadScheduleMonth> schedule; // active routine's 12 months.
+    std::vector<SquadRoutineSchedule> routine_schedules; // ALL routines' 12 months.
+    std::vector<SquadAmmoSpec> ammo; // squad->ammo.ammunition[] specs.
 };
 
 std::string squad_sleep_mode_name(df::squad_sleep_option_type mode) {
@@ -275,8 +265,6 @@ bool parse_squad_uniform_mode(const std::string& s, df::squad_civilian_uniform_t
     return false;
 }
 
-// Supplies (native 5.4): squad->supplies.carry_water is a small enum; carry_food is a plain
-// 0..3 count ("No food".."3 food"). Names below match the client's radio values.
 std::string squad_water_level_name(df::squad_water_level_type w) {
     switch (w) {
         case df::squad_water_level_type::AnyDrink: return "drink";
@@ -319,7 +307,7 @@ struct SquadCandidate {
     int8_t profession_color = -1;
     std::vector<std::string> top_skills;
     int best_skill_level = 0;     // DF-sourced ordering proxy; never presented as native suitability
-    int32_t portrait_texpos = -1;  // B59: additive
+    int32_t portrait_texpos = -1;
 };
 
 struct SquadFreePosition {
@@ -331,12 +319,8 @@ struct SquadFreePosition {
     int squad_size = 0;
 };
 
-// B233-3: a squad-capable position the RAWS still allow another holder of -- i.e. one native's
-// create-squad chooser would offer as "a new militia captain" (entity_position.number, -1 =
-// AS_NEEDED = unlimited; MILITIA_CAPTAIN is AS_NEEDED in vanilla_entities/objects/
-// entity_default.txt:546). No seat exists for it yet, so it has no assignment id: the client first
-// POSTs /position-create?position=<positionId> (fort_admin.cpp) to make the seat, then hands the
-// returned assignment id to /squad-create?position=. That two-step IS what DF does internally.
+// No seat exists for these yet, so they carry no assignment id: the client POSTs /position-create
+// to make the seat, then hands the returned assignment id to /squad-create?position=.
 struct SquadCreatablePosition {
     int32_t position_id = -1;
     std::string title;
@@ -345,7 +329,7 @@ struct SquadCreatablePosition {
     int max_seats = -1;  // raws' NUMBER (-1 = unlimited)
 };
 
-// milequip: an ammo itemdef catalog entry (world.raws.itemdefs.ammo[]).
+// An ammo itemdef catalog entry (world.raws.itemdefs.ammo[]).
 struct AmmoDef {
     int subtype = -1;
     std::string name;
@@ -358,13 +342,15 @@ struct SquadState {
     std::vector<std::pair<int32_t, std::string>> uniforms;   // id  -> name
     std::vector<SquadCandidate> candidates;
     std::vector<SquadFreePosition> free_positions;           // squad-capable entity assignments
-    std::vector<SquadCreatablePosition> creatable_positions; // B233-3: seats the raws still allow
-    std::vector<AmmoDef> ammo_defs;                          // milequip: ammo catalog
+    std::vector<SquadCreatablePosition> creatable_positions; // Seats the raws still allow
+    std::vector<AmmoDef> ammo_defs;                          // ammo catalog
     bool has_free_position = false;
+    // Titles of squad-commanding seats that exist but are VACANT, in fortress order.
+    std::vector<std::string> blocking_appointments;
     std::vector<std::string> messages;
 };
 
-// milequip: full uniform-template detail + authoring catalogs (served on GET /uniforms).
+// Full uniform-template detail + authoring catalogs (served on GET /uniforms).
 struct UniformItemDetail {
     int cat = 0;
     int item_type = -1;
@@ -444,10 +430,6 @@ int best_military_skill_level(df::unit* unit) {
     return best;
 }
 
-// Summarise one schedule month's Sleep/Uniform + scheduled orders into a flat SquadScheduleMonth
-// (shared by the active-routine read and the full routine_schedules read). A month with a TRAIN
-// order surfaces has_train + its min_count ("At least N / Train" in native 7.3); otherwise the
-// label is the first order's description, or "No orders".
 void fill_schedule_month(SquadScheduleMonth& sm, int month, const df::squad_schedule_entry& entry) {
     sm.month = month;
     sm.name = entry.name;
@@ -482,16 +464,9 @@ int count_position_uniform_items(df::squad_position* pos) {
     return total;
 }
 
-// ---------------------------------------------------------------------------
-// milequip (Wave 3): uniform authoring + squad ammo authoring. Extends WD-30(c),
-// which applied EXISTING fort uniform templates but scoped OUT authoring NEW templates
-// and ammunition. All the helpers/structs/routes below run under the same
-// run_squad_locked -> CoreSuspender discipline as the rest of this file.
-// ---------------------------------------------------------------------------
+// -------------------------------------- uniform + squad ammo authoring
 
-// Canonical uniform_category -> item_type map, confirmed from the fort's default
-// "Melee, leather armor" template (id 0) read live via lua: each category carries exactly
-// one item_type; the author chooses SUBTYPE (specific itemdef or -1=any) + material + color.
+// Each uniform_category carries exactly one item_type; the author picks subtype, material, colour.
 int uniform_item_type_for_category(int cat) {
     switch (cat) {
         case df::uniform_category::body:   return df::item_type::ARMOR;
@@ -558,7 +533,7 @@ df::entity_uniform* find_fort_uniform(int32_t id, std::string* err) {
 }
 
 // Nudge the sim to re-evaluate ammunition after an ammo spec change (same discipline the
-// WD-30(c) uniform-apply used for the uniform categories).
+// uniform-apply used for the uniform categories).
 void nudge_squad_ammo(df::squad* squad) {
     if (!squad) return;
     squad->ammo.update.whole |= df::equipment_update::mask_ammo;
@@ -584,39 +559,6 @@ df::entity_position* find_entity_position(df::historical_entity* fort, int32_t p
     for (auto pos : fort->positions.own)
         if (pos && pos->id == position_id) return pos;
     return nullptr;
-}
-
-// DF's own current appointment offers. This vector already incorporates population, market,
-// replacement, and appointer requirements; squad creation must not infer availability from
-// entity_position.number alone.
-bool position_is_possible_appointable(df::historical_entity* fort, int32_t position_id) {
-    if (!fort) return false;
-    for (auto assignment : fort->positions.possible_appointable)
-        if (assignment && assignment->position_id == position_id)
-            return true;
-    return false;
-}
-
-// `possible_appointable` is the right source for the Nobles screen, but it is not the complete
-// source for native's Create Squad chooser. AS_NEEDED squad offices (vanilla MILITIA_CAPTAIN)
-// are synthesized by that chooser once their appointing office is held, even when DF has not put
-// another vacant assignment in possible_appointable yet.
-bool position_is_as_needed_squad_appointable(df::historical_entity* fort,
-                                             df::entity_position* position) {
-    if (!fort || !position || position->squad_size <= 0 || position->number >= 0 ||
-        position->flags.is_set(df::entity_position_flags::HAS_BEEN_REPLACED) ||
-        (position->requires_population > 0 &&
-         !position->flags.is_set(df::entity_position_flags::HAS_MET_POP_REQ)) ||
-        (position->flags.is_set(df::entity_position_flags::REQUIRES_MARKET) &&
-         !position->flags.is_set(df::entity_position_flags::HAS_MET_MARKET_REQ)))
-        return false;
-    if (position->appointed_by.empty())
-        return false;
-    for (auto appointer_id : position->appointed_by)
-        for (auto assignment : fort->positions.assignments)
-            if (assignment && assignment->position_id == appointer_id && assignment->histfig >= 0)
-                return true;
-    return false;
 }
 
 bool squad_leader_seat_is_available(df::historical_entity* fort,
@@ -670,7 +612,7 @@ bool build_squad_state(SquadState& state, std::string* err) {
         if (uniform)
             state.uniforms.emplace_back(uniform->id, uniform->name);
 
-    // milequip: ammo itemdef catalog (bolt/arrow/blowdart/mod-added) for the ammo authoring UI.
+    // Ammo itemdef catalog (bolt/arrow/blowdart/mod-added) for the ammo authoring UI.
     for (auto def : world->raws.itemdefs.ammo) {
         if (!def) continue;
         AmmoDef ad;
@@ -691,7 +633,7 @@ bool build_squad_state(SquadState& state, std::string* err) {
         row.routine_idx = squad->cur_routine_idx;
         if (row.routine_idx >= 0 && row.routine_idx < static_cast<int>(state.routines.size()))
             row.routine_name = state.routines[row.routine_idx].second;
-        // Emblem (df.squad.xml:342-350): graphics-mode badge symbol + fg/bg RGB.
+        // Emblem: graphics-mode badge symbol + fg/bg RGB, off df::squad's own fields.
         row.emblem.symbol = squad->symbol;
         row.emblem.fg_r = squad->foreground_r;
         row.emblem.fg_g = squad->foreground_g;
@@ -699,13 +641,10 @@ bool build_squad_state(SquadState& state, std::string* err) {
         row.emblem.bg_r = squad->background_r;
         row.emblem.bg_g = squad->background_g;
         row.emblem.bg_b = squad->background_b;
-        // Supplies (native 5.4): squad->supplies carry_food (0..3) + carry_water enum.
         row.carry_food = squad->supplies.carry_food;
         row.carry_water = squad_water_level_name(squad->supplies.carry_water);
-        // WD-30(b): schedule.routine is parallel to alerts.routines (makeSquad allocates one
-        // routine entry per fort-wide named routine, same index) -- read the ACTIVE one's 12
-        // months for the quick schedule editor, AND every routine's 12 months for the monthly
-        // grid (7.2) + training editor (7.3).
+        // squad->schedule.routine is parallel to the fort-wide alerts.routines: same index, one
+        // entry per named routine. Never look a routine name up any other way.
         for (int ri = 0; ri < static_cast<int>(squad->schedule.routine.size()); ++ri) {
             auto* routine = squad->schedule.routine[ri];
             if (!routine) continue;
@@ -730,7 +669,6 @@ bool build_squad_state(SquadState& state, std::string* err) {
             order->getDescription(&info.description);
             row.orders.push_back(std::move(info));
         }
-        // milequip: squad ammunition specs (squad->ammo.ammunition[]).
         for (size_t a = 0; a < squad->ammo.ammunition.size(); ++a) {
             auto spec = squad->ammo.ammunition[a];
             if (!spec) continue;
@@ -769,6 +707,17 @@ bool build_squad_state(SquadState& state, std::string* err) {
             }
             member.uniform_items = count_position_uniform_items(pos);
             if (pos) {
+                for (size_t oi = 0; oi < pos->orders.size(); ++oi) {
+                    auto order = pos->orders[oi];
+                    if (!order) continue;
+                    SquadOrderInfo info;
+                    info.index = static_cast<int>(oi);
+                    info.type = squad_order_type_name(order->getType());
+                    order->getDescription(&info.description);
+                    member.orders.push_back(std::move(info));
+                }
+            }
+            if (pos) {
                 for (int cat = 0; cat <= df::enum_traits<df::uniform_category>::last_item_value; ++cat) {
                     const auto& specs = pos->equipment.uniform[cat];
                     for (size_t i = 0; i < specs.size(); ++i) {
@@ -802,14 +751,8 @@ bool build_squad_state(SquadState& state, std::string* err) {
     }
 
     for (auto unit : world->units.active) {
-        // B214: world->units.active retains corpses and real ghosts (isDead() covers
-        // flags2.killed + flags3.ghostly); a dead soldier's squad_id can clear to -1, so
-        // isCitizen + squad_id alone would list the deceased as an assignable candidate.
-        // B290: native also excludes BABY/CHILD professions from squad assignment.
-        if (!unit || !DFHack::Units::isCitizen(unit) || !DFHack::Units::isActive(unit) ||
-            DFHack::Units::isDead(unit) || DFHack::Units::isGhost(unit) ||
-            DFHack::Units::isBaby(unit) || DFHack::Units::isChild(unit) ||
-            unit->military.squad_id != -1)
+        // A dead soldier's squad_id clears to -1, so squad_id alone would offer the deceased.
+        if (!is_assignable_citizen(unit) || unit->military.squad_id != -1)
             continue;
         SquadCandidate cand;
         cand.unit_id = unit->id;
@@ -821,9 +764,8 @@ bool build_squad_state(SquadState& state, std::string* err) {
         cand.portrait_texpos = unit->portrait_texpos;
         state.candidates.push_back(std::move(cand));
     }
-    // The native SQUAD_FILL_POSITION selector does not expose appointment_candidatest.value.
-    // Keep its rows deterministic with a DF-sourced proxy: strongest effective military skill
-    // first, then readable name. Do not serialize or label this as an exact suitability score.
+    // Native's own suitability score is not exposed; this ordering is a proxy and must never be
+    // serialized or labelled as one.
     std::sort(state.candidates.begin(), state.candidates.end(),
               [](const SquadCandidate& a, const SquadCandidate& b) {
                   if (a.best_skill_level != b.best_skill_level)
@@ -831,8 +773,6 @@ bool build_squad_state(SquadState& state, std::string* err) {
                   return a.name < b.name;
               });
 
-    // Native create flow lists every free squad-capable entity assignment (captain of the guard,
-    // militia captain, etc.) instead of silently taking the first one.
     for (auto asn : fort->positions.assignments) {
         if (!squad_leader_seat_is_available(fort, asn))
             continue;
@@ -850,11 +790,24 @@ bool build_squad_state(SquadState& state, std::string* err) {
     }
     state.has_free_position = !state.free_positions.empty();
 
-    // B233-3: the CREATE-POSITION half of native's create chooser. A squad-capable position whose
-    // raws allow another holder can have a brand-new seat made for it, which is how native keeps
-    // offering "a new militia captain" after every existing captain already leads a squad. Bound:
-    // entity_position.number (df.entity.xml:977; -1 = AS_NEEDED = unlimited) -- the SAME bound
-    // /position-create enforces, so a chooser row here can never be rejected by the write.
+    // The whole list is served, not just the first: naming one seat vs a generic line is the
+    // client's presentation split to make.
+    for (auto asn : fort->positions.assignments) {
+        if (!asn || asn->histfig >= 0) continue;          // filled: not what blocks the player
+        auto pos = find_entity_position(fort, asn->position_id);
+        if (!pos || pos->squad_size <= 0) continue;       // does not command a squad
+        if (pos->flags.is_set(df::entity_position_flags::HAS_BEEN_REPLACED)) continue;
+        if (pos->requires_population > 0 &&
+            !pos->flags.is_set(df::entity_position_flags::HAS_MET_POP_REQ)) continue;
+        std::string title = entity_position_title(pos);
+        if (title.empty()) continue;
+        if (std::find(state.blocking_appointments.begin(), state.blocking_appointments.end(), title)
+            == state.blocking_appointments.end())
+            state.blocking_appointments.push_back(std::move(title));
+    }
+
+    // Positions the raws still allow another seat of. The entity_position.number bound below is
+    // the SAME one /position-create enforces, so a row offered here can never be rejected there.
     for (auto pos : fort->positions.own) {
         if (!pos || pos->squad_size <= 0 ||
             (!position_is_possible_appointable(fort, pos->id) &&
@@ -884,12 +837,23 @@ bool build_squad_state(SquadState& state, std::string* err) {
 bool squads_snapshot(SquadState& state, std::string* err) {
     std::string local_err;
     bool ok = run_squad_locked([&]() { return build_squad_state(state, &local_err); });
+    if (!ok) {
+        if (err) *err = local_err;
+        return false;
+    }
+
+    // Deliberately OUTSIDE run_squad_locked: the roll runs on the render thread, and
+    // run_squad_locked suspends the core, which stops that thread from draining its queue.
+    const bool any_unassigned = std::any_of(state.squads.begin(), state.squads.end(),
+        [](const SquadInfo& s) { return emblem_is_unassigned(s.emblem); });
+    if (any_unassigned && squad_emblem_ensure_native_roll() > 0)
+        ok = run_squad_locked([&]() { return build_squad_state(state, &local_err); });
+
     if (!ok && err)
         *err = local_err;
     return ok;
 }
 
-// milequip: full uniform-template detail + authoring catalogs (GET /uniforms).
 bool build_uniform_catalog(UniformCatalog& cat, std::string* err) {
     auto plotinfo = df::global::plotinfo;
     auto world = df::global::world;
@@ -982,9 +946,7 @@ bool uniform_catalog_snapshot(UniformCatalog& cat, std::string* err) {
     return ok;
 }
 
-// ---------------------------------------------------------------------------
-// Serialization
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------- serialization
 
 void append_skills(std::ostringstream& body, const std::vector<std::string>& skills) {
     body << "[";
@@ -997,6 +959,20 @@ void append_skills(std::ostringstream& body, const std::vector<std::string>& ski
 
 std::string position_name(int idx) {
     return idx == 0 ? std::string("Leader") : std::string("Member");
+}
+
+// Shared by the squad's own order vector and by each position's.
+void append_orders(std::ostringstream& body, const std::vector<SquadOrderInfo>& orders) {
+    body << "[";
+    for (size_t i = 0; i < orders.size(); ++i) {
+        if (i) body << ",";
+        const auto& o = orders[i];
+        body << "{\"index\":" << o.index
+             << ",\"type\":" << json_string(o.type)
+             << ",\"description\":" << json_string(o.description)
+             << "}";
+    }
+    body << "]";
 }
 
 void append_member(std::ostringstream& body, const SquadMember& m, bool include_uniform_details) {
@@ -1012,6 +988,9 @@ void append_member(std::ostringstream& body, const SquadMember& m, bool include_
          << ",\"portraitTexpos\":" << m.portrait_texpos
          << ",\"topSkills\":";
     append_skills(body, m.top_skills);
+    // Additive: an old client that does not know `orders` keeps its no-special-orders reading.
+    body << ",\"orders\":";
+    append_orders(body, m.orders);
     if (include_uniform_details) {
         body << ",\"uniformDetails\":[";
         for (size_t i = 0; i < m.uniform_details.size(); ++i) {
@@ -1030,19 +1009,6 @@ void append_member(std::ostringstream& body, const SquadMember& m, bool include_
         body << "]";
     }
     body << "}";
-}
-
-void append_orders(std::ostringstream& body, const std::vector<SquadOrderInfo>& orders) {
-    body << "[";
-    for (size_t i = 0; i < orders.size(); ++i) {
-        if (i) body << ",";
-        const auto& o = orders[i];
-        body << "{\"index\":" << o.index
-             << ",\"type\":" << json_string(o.type)
-             << ",\"description\":" << json_string(o.description)
-             << "}";
-    }
-    body << "]";
 }
 
 void append_squad(std::ostringstream& body, const SquadInfo& s, bool include_uniform_details = false) {
@@ -1122,6 +1088,13 @@ std::string squads_list_json(const std::string& player, const SquadState& state)
     append_free_positions(body, state.free_positions);
     body << ",";
     append_creatable_positions(body, state.creatable_positions);
+    // The offices whose vacancy is what actually blocks Create. Additive.
+    body << ",\"blockingAppointments\":[";
+    for (size_t i = 0; i < state.blocking_appointments.size(); ++i) {
+        if (i) body << ",";
+        body << json_string(state.blocking_appointments[i]);
+    }
+    body << "]";
     body << ",\"squads\":[";
     for (size_t i = 0; i < state.squads.size(); ++i) {
         if (i) body << ",";
@@ -1156,8 +1129,8 @@ std::string squad_detail_json(const std::string& player, const SquadState& state
         body << "{\"id\":" << state.uniforms[i].first
              << ",\"name\":" << json_string(state.uniforms[i].second) << "}";
     }
-    // WD-30(b): active routine's 12-month schedule (not part of append_squad/the /squads list
-    // shape -- detail-only, keeps /squads byte-identical per the WD-23 regression guard).
+    // Active routine's 12-month schedule (not part of append_squad/the /squads list
+    // shape -- detail-only, keeps /squads byte-identical per the regression guard).
     body << "],\"supplies\":{\"food\":" << squad.carry_food
          << ",\"water\":" << json_string(squad.carry_water) << "}";
     body << ",\"schedule\":[";
@@ -1174,7 +1147,7 @@ std::string squad_detail_json(const std::string& player, const SquadState& state
              << ",\"minCount\":" << sm.min_count
              << "}";
     }
-    // 7.2/7.3: every routine's full 12-month schedule for this squad.
+    // Every routine's full 12-month schedule for this squad.
     body << "],\"routineSchedules\":[";
     for (size_t r = 0; r < squad.routine_schedules.size(); ++r) {
         if (r) body << ",";
@@ -1194,7 +1167,7 @@ std::string squad_detail_json(const std::string& player, const SquadState& state
         }
         body << "]}";
     }
-    // milequip: squad ammunition specs (detail-only; not part of the /squads list shape).
+    // Squad ammunition specs (detail-only; not part of the /squads list shape).
     body << "],\"ammo\":[";
     for (size_t i = 0; i < squad.ammo.size(); ++i) {
         if (i) body << ",";
@@ -1239,7 +1212,7 @@ std::string squad_detail_json(const std::string& player, const SquadState& state
     return body.str();
 }
 
-// milequip: full uniform authoring catalog (GET /uniforms).
+// Full uniform authoring catalog (GET /uniforms).
 std::string uniform_catalog_json(const std::string& player, const UniformCatalog& cat) {
     std::ostringstream body;
     body << "{\"player\":" << json_string(player) << ",\"uniforms\":[";
@@ -1304,12 +1277,8 @@ std::string uniform_catalog_json(const std::string& player, const UniformCatalog
     return body.str();
 }
 
-// ---------------------------------------------------------------------------
-// Mutations (all run under run_squad_locked -> CoreSuspender)
-// ---------------------------------------------------------------------------
+// ------------------------------ mutations (all run under run_squad_locked)
 
-// B94/B249 leader-seat helpers (defined below do_squad_assign; forward-declared so do_squad_create
-// can seat the commander at position 0 the moment the squad is made).
 df::entity_position_assignment* squad_leader_assignment(df::squad* squad);
 df::unit* squad_leader_unit(df::squad* squad);
 bool seat_leader_at_pos0(df::squad* squad, df::unit* unit, std::string* err);
@@ -1354,14 +1323,8 @@ int do_squad_create(int32_t requested_assignment_id, int32_t requested_uniform_i
                     }
                 }
             }
-            // B94: native DF seats the commanding militia captain/commander at position 0 the
-            // moment the squad is created ("they immediately are the leader / position 0").
-            // makeSquad only records leader_position/leader_assignment; it leaves positions[0]
-            // unoccupied, which is why position 0 then looked empty and rejected assignment.
-            // Seat the assignment holder now (best-effort: a vacant command position is a no-op).
-            // The former W23 squad_pos0 probe guard is GONE: the pos-0 commander write was verified
-            // live on this machine 2026-07-17 (see the seat note at do_squad_assign pos==0), so the
-            // auto-seat now runs unconditionally, exactly as native DF seats the commander on create.
+            // makeSquad records leader_position/leader_assignment but leaves positions[0]
+            // unoccupied, so the commander is seated here, as native does on create.
             if (auto leader = squad_leader_unit(squad)) {
                 if (leader->military.squad_id == -1)
                     seat_leader_at_pos0(squad, leader, nullptr);
@@ -1388,32 +1351,8 @@ bool do_squad_rename(int32_t squad_id, const std::string& name, std::string* err
     });
 }
 
-// B249 (supersedes B94's reading): position 0 IS the squad leader -- and in DF, FILLING it is what
-// APPOINTS its occupant as the squad's militia commander/captain. It is NOT a precondition. B94
-// shipped the coupling backwards -- it demanded a commander be appointed to the squad BEFORE slot 0
-// could be filled -- which made an empty squad's position 0 permanently unfillable. The owner: "in the
-// native client you can assign
-// whoever you want to be position 0." The DF/DFHack evidence, all in <DFHACK_ROOT>:
-//
-//  * `Military::removeFromSquad` (library/modules/Military.cpp:478) is explicitly "based on
-//    unitst::remove_squad_info" -- DF's OWN routine -- and at :528 it branches
-//    `if (squad_pos == 0) remove_officer_entity_link(hf, squad); else remove_soldier_entity_link(...)`.
-//    `remove_officer_entity_link` (:345) finds the noble assignment whose `squad_id == squad->id`
-//    and sets `assignment->histfig = -1; assignment->histfig2 = -1;`, drops the hf's
-//    histfig_entity_link_positionst and files a former-position link + history event.
-//    So: removing the dwarf at squad position 0 VACATES the squad's militia commander/captain seat.
-//    The occupant of position 0 therefore HOLDS that seat -- the appointment follows the slot.
-//  * `Military::addToSquad` (:426) refuses `squad_pos == 0` for exactly one stated reason:
-//    "this function cannot (currently) change the squad commander". A DFHack TODO, not a DF rule.
-//  * The noble seat (df::entity_position_assignment, original name entity_position_profilest) and
-//    the squad slot (df::squad_position.occupant, original name hfid) are different objects; DF's
-//    own fill-position UI is the generic unit selector
-//    (df::unit_selector_interfacest{squad_id, squad_position}, context SQUAD_FILL_POSITION) with no
-//    slot-0 special case in its candidate set.
-//
-// Hence: pos 0 accepts any assignable citizen; seating them also performs the appointment (histfig
-// + POSITION entity link, displacing any previous holder), which is the exact inverse of what DF's
-// remove path undoes. Positions 1..9 are unchanged and still go through addToSquad.
+// Filling position 0 APPOINTS its occupant as the squad's commander -- it is NOT a precondition.
+// Requiring the appointment first makes an empty squad's position 0 permanently unfillable.
 
 // The fort entity's assignment (noble seat) that commands this squad, or nullptr.
 df::entity_position_assignment* squad_leader_assignment(df::squad* squad) {
@@ -1428,8 +1367,6 @@ df::entity_position_assignment* squad_leader_assignment(df::squad* squad) {
     return nullptr;
 }
 
-// Resolve the unit currently appointed to the squad's commanding (leader) entity-position
-// assignment. Returns nullptr if that assignment is vacant or its holder has no live unit.
 df::unit* squad_leader_unit(df::squad* squad) {
     auto asn = squad_leader_assignment(squad);
     if (!asn || asn->histfig < 0) return nullptr;
@@ -1438,9 +1375,7 @@ df::unit* squad_leader_unit(df::squad* squad) {
     return df::unit::find(hf->unit_id);
 }
 
-// Drop the noble POSITION link for <fort entity, assignment> from a histfig. Same shape as
-// fort_admin.cpp's unlink_position_holder (the make-monarch.lua unlink-before-relink recipe) and
-// as the link Military.cpp's remove_officer_entity_link removes.
+// Drop the noble POSITION link for <fort entity, assignment> from a histfig.
 void unlink_leader_position(int32_t hf_id, int32_t entity_id, int32_t assignment_id) {
     auto hf = df::historical_figure::find(hf_id);
     if (!hf) return;
@@ -1454,8 +1389,8 @@ void unlink_leader_position(int32_t hf_id, int32_t entity_id, int32_t assignment
     }
 }
 
-// Appoint `hf` to the squad's commanding noble seat: the write that DF's remove path (see the
-// B249 note above) undoes. Idempotent. Caller holds the squad lock.
+// Appoint `hf` to the squad's commanding noble seat: the write that DF's remove path undoes.
+// Idempotent. Caller holds the squad lock.
 bool appoint_squad_leader_position(df::squad* squad, df::historical_figure* hf, std::string* err) {
     auto plotinfo = df::global::plotinfo;
     auto fort = plotinfo ? df::historical_entity::find(plotinfo->group_id) : nullptr;
@@ -1490,12 +1425,8 @@ bool appoint_squad_leader_position(df::squad* squad, df::historical_figure* hf, 
     return true;
 }
 
-// Seat `unit` at squad position 0 (the leader/commander slot) and appoint them to the squad's
-// commanding noble seat. Mirrors the bookkeeping Military::addToSquad performs for a normal member
-// (occupant, unit->military, equipment-update flags) -- the pieces its pos-0 early-return skips --
-// but files the OFFICER (histfig_entity_link_positionst) link rather than the soldier squad link,
-// because that is the one DF's remove path takes back off a pos-0 occupant (Military.cpp:528).
-// Idempotent: a no-op success if `unit` already leads this squad. Caller holds the squad lock.
+// Files the OFFICER link (histfig_entity_link_positionst), not the soldier squad link -- that is
+// the one DF's own remove path takes back off a pos-0 occupant. Caller holds the squad lock.
 bool seat_leader_at_pos0(df::squad* squad, df::unit* unit, std::string* err) {
     if (!squad || squad->positions.empty()) { if (err) *err = "squad has no positions"; return false; }
     auto pos0 = squad->positions[0];
@@ -1530,21 +1461,17 @@ bool do_squad_assign(int32_t squad_id, int32_t unit_id, int32_t squad_pos, std::
         if (!squad) { if (err) *err = "squad not found"; return false; }
         auto unit = df::unit::find(unit_id);
         if (!unit) { if (err) *err = "unit not found"; return false; }
-        if (!DFHack::Units::isCitizen(unit) || !DFHack::Units::isActive(unit) ||
-            DFHack::Units::isDead(unit) || DFHack::Units::isGhost(unit)) {
-            if (err) *err = "unit is not an assignable living citizen";
-            return false;
-        }
-        // DFHack 53.15-r1 exposes both predicates (modules/Units.h); checking the freshly
-        // resolved unit under CoreSuspender closes the stale/crafted-request path too.
+        // Spelled out ahead of is_assignable_citizen so a child gets the specific refusal.
         if (DFHack::Units::isBaby(unit) || DFHack::Units::isChild(unit)) {
             if (err) *err = "unit is a child";
             return false;
         }
+        if (!is_assignable_citizen(unit)) {
+            if (err) *err = "unit is not an assignable living citizen";
+            return false;
+        }
         if (unit->military.squad_id != -1) { if (err) *err = "unit is already assigned to a squad"; return false; }
-        // The old "any free slot" path let Military::addToSquad start at 0; DFHack then rejects
-        // that commander seat, so an empty squad could reject every default assignment. Position 0
-        // is an explicit, guarded appointment. Automatic placement starts at the first rank seat.
+        // Automatic placement starts at 1: addToSquad refuses position 0.
         if (squad_pos < 0) {
             for (size_t i = 1; i < squad->positions.size(); ++i) {
                 auto position = squad->positions[i];
@@ -1562,19 +1489,11 @@ bool do_squad_assign(int32_t squad_id, int32_t unit_id, int32_t squad_pos, std::
             if (err) *err = "squad position is out of range";
             return false;
         }
-        // B249: position 0 is the leader/commander slot. addToSquad refuses it ("cannot change the
+        // Position 0 is the leader/commander slot. addToSquad refuses it ("cannot change the
         // squad commander"), so seat the leader ourselves -- ANY assignable citizen, exactly as
         // native does. Seating them IS the appointment: seat_leader_at_pos0 writes the squad's
         // militia commander/captain seat, which is precisely what DF's own remove path vacates
-        // when a pos-0 occupant leaves. See the B249 note above for the citations.
-        //
-        // VERIFIED LIVE 2026-07-17 (this machine): browser /squad-create -> /squad-assign?pos=0 on
-        // a real fort seated the commander coherently -- squad.positions[0].occupant ==
-        // unit.hist_figure_id (3151), unit.military {squad_id=91, squad_position=0}, and the fort
-        // entity carried EXACTLY ONE positions.assignment (id 12, histfig 3151, squad_id 91 --
-        // correctly linked, no duplicates); a subsequent disband unseated cleanly (unit military
-        // cleared, zero leftover noble assignments) with DF alive throughout. The former W23
-        // squad_pos0 probe guard that gated this write is GONE.
+        // when a pos-0 occupant leaves.
         if (squad_pos == 0) {
             return seat_leader_at_pos0(squad, unit, err);
         }
@@ -1595,8 +1514,8 @@ bool do_squad_remove(int32_t unit_id, std::string* err) {
         const int32_t was_pos = unit->military.squad_position;
         const int32_t hf_id = unit->hist_figure_id;
         if (!DFHack::Military::removeFromSquad(unit_id)) { if (err) *err = "remove failed"; return false; }
-        // B249 legacy sweep: removeFromSquad takes the OFFICER link off a pos-0 occupant and never
-        // looks for a soldier link (Military.cpp:528). B94-era leaders were seated with a soldier
+        // Legacy sweep: removeFromSquad takes the OFFICER link off a pos-0 occupant and never
+        // looks for a soldier link (Military.cpp). Older leaders were seated with a soldier
         // link (histfig_entity_link_squadst) by this plugin, so an existing save can hold one that
         // nothing would ever remove. Drop it here; a correctly-seated leader has none and this is
         // a no-op.
@@ -1616,43 +1535,86 @@ bool do_squad_remove(int32_t unit_id, std::string* err) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// WD-30: squad orders (move/kill/train + cancel). Same allocation recipe Military.cpp uses
-// for the squad-creation default train order (df::allocate<T>(), push onto a live order
-// vector, stamp year/year_tick from the world clock) applied to squad->orders -- the
-// *immediate* order queue the in-game squad screen's Move/Kill/Train buttons push onto
-// (distinct from squad->schedule, the per-month routine template WD-30's item (b) covers).
-// Patrol and defend-burrow use the same queue. Patrol additionally creates a persistent route in
-// plotinfo->waypoints (point_infost.points/routes), which is the canonical store referenced by
-// squad_order_patrol_routest.route_id.
-// ---------------------------------------------------------------------------
+// ------------------------- squad orders (move/kill/train/patrol/defend-burrow/cancel)
 
-bool do_squad_order_move(int32_t squad_id, int32_t x, int32_t y, int32_t z, std::string* err) {
+// An order pointer is never shared between two vectors: each vector deletes what it holds, so
+// one allocation on two vectors double-frees on cancel.
+
+static bool resolve_order_targets(df::squad* squad, const std::vector<int>& members,
+                                  std::vector<std::vector<df::squad_order*>*>& out,
+                                  std::string* err) {
+    out.clear();
+    if (members.empty()) { out.push_back(&squad->orders); return true; }
+    std::vector<int> seen;
+    for (int idx : members) {
+        if (idx < 0 || idx >= static_cast<int>(squad->positions.size())) {
+            if (err) *err = "member position " + std::to_string(idx) + " out of range";
+            return false;
+        }
+        if (std::find(seen.begin(), seen.end(), idx) != seen.end())
+            continue;  // de-dupe, same rule the kill target list uses
+        auto pos = squad->positions[idx];
+        if (!pos) {
+            if (err) *err = "member position " + std::to_string(idx) + " has no record";
+            return false;
+        }
+        seen.push_back(idx);
+        out.push_back(&pos->orders);
+    }
+    if (out.empty()) { if (err) *err = "no valid member positions"; return false; }
+    return true;
+}
+
+// Build every order BEFORE touching a live vector: a failed allocation must not leave half the
+// roster ordered and half not.
+static bool push_order_to_targets(const std::vector<std::vector<df::squad_order*>*>& targets,
+                                  const std::function<df::squad_order*()>& make,
+                                  std::string* err) {
+    std::vector<df::squad_order*> built;
+    built.reserve(targets.size());
+    for (size_t i = 0; i < targets.size(); ++i) {
+        df::squad_order* order = make();
+        if (!order) {
+            for (auto* b : built) delete b;
+            if (err) *err = "allocation failed";
+            return false;
+        }
+        order->year = df::global::cur_year ? *df::global::cur_year : 0;
+        order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
+        built.push_back(order);
+    }
+    for (size_t i = 0; i < targets.size(); ++i)
+        targets[i]->push_back(built[i]);
+    return true;
+}
+
+bool do_squad_order_move(int32_t squad_id, int32_t x, int32_t y, int32_t z,
+                         const std::vector<int>& members, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
-        auto order = df::allocate<df::squad_order_movest>();
-        if (!order) { if (err) *err = "allocation failed"; return false; }
-        order->year = df::global::cur_year ? *df::global::cur_year : 0;
-        order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
-        order->pos = df::coord(x, y, z);
-        order->point_id = -1;
-        squad->orders.push_back(order);
-        return true;
+        std::vector<std::vector<df::squad_order*>*> targets;
+        if (!resolve_order_targets(squad, members, targets, err)) return false;
+        return push_order_to_targets(targets, [&]() -> df::squad_order* {
+            auto order = df::allocate<df::squad_order_movest>();
+            if (!order) return nullptr;
+            order->pos = df::coord(x, y, z);
+            order->point_id = -1;
+            return order;
+        }, err);
     });
 }
 
-// B70: a kill order natively carries a LIST of targets (squad_order_kill_listst.units) -- one
-// order, many victims -- so multi-select maps onto a single order with several units, not several
-// orders. Every id is validated + de-duped before the order is built; the title reads "Kill X"
-// for one target and "Kill X +N more" for a set. The single-id overload below keeps the original
-// (scalar) call shape working unchanged.
+// A kill order natively carries a LIST of targets (squad_order_kill_listst.units): multi-select
+// is ONE order with several units, never several orders.
 bool do_squad_order_kill(int32_t squad_id, const std::vector<int32_t>& target_unit_ids,
-                         std::string* err) {
+                         const std::vector<int>& members, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
         if (target_unit_ids.empty()) { if (err) *err = "no target units"; return false; }
+        std::vector<std::vector<df::squad_order*>*> targets;
+        if (!resolve_order_targets(squad, members, targets, err)) return false;
         std::vector<int32_t> valid;
         for (int32_t tid : target_unit_ids) {
             if (std::find(valid.begin(), valid.end(), tid) != valid.end())
@@ -1663,71 +1625,85 @@ bool do_squad_order_kill(int32_t squad_id, const std::vector<int32_t>& target_un
             }
             valid.push_back(tid);
         }
-        auto order = df::allocate<df::squad_order_kill_listst>();
-        if (!order) { if (err) *err = "allocation failed"; return false; }
-        order->year = df::global::cur_year ? *df::global::cur_year : 0;
-        order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
         std::string first_name;
-        for (size_t i = 0; i < valid.size(); ++i) {
-            auto target = df::unit::find(valid[i]);
-            order->units.push_back(valid[i]);
-            if (target->hist_figure_id != -1)
-                order->histfigs.push_back(target->hist_figure_id);
-            if (i == 0) first_name = DFHack::Units::getReadableName(target);
-        }
-        order->title = valid.size() == 1
+        if (auto first = df::unit::find(valid[0])) first_name = DFHack::Units::getReadableName(first);
+        const std::string title = valid.size() == 1
             ? ("Kill " + first_name)
             : ("Kill " + first_name + " +" + std::to_string(valid.size() - 1) + " more");
-        squad->orders.push_back(order);
-        return true;
+        return push_order_to_targets(targets, [&]() -> df::squad_order* {
+            auto order = df::allocate<df::squad_order_kill_listst>();
+            if (!order) return nullptr;
+            for (int32_t tid : valid) {
+                auto target = df::unit::find(tid);
+                order->units.push_back(tid);
+                if (target && target->hist_figure_id != -1)
+                    order->histfigs.push_back(target->hist_figure_id);
+            }
+            order->title = title;
+            return order;
+        }, err);
     });
 }
 
-// Single-target back-compat overload (unchanged call shape for any existing caller).
+// Whole-squad back-compat overload (no member subset).
+bool do_squad_order_kill(int32_t squad_id, const std::vector<int32_t>& target_unit_ids,
+                         std::string* err) {
+    return do_squad_order_kill(squad_id, target_unit_ids, std::vector<int>{}, err);
+}
+
+// Single-target back-compat overload.
 [[maybe_unused]] bool do_squad_order_kill(int32_t squad_id, int32_t target_unit_id, std::string* err) {
     return do_squad_order_kill(squad_id, std::vector<int32_t>{ target_unit_id }, err);
 }
 
-bool do_squad_order_train(int32_t squad_id, std::string* err) {
+bool do_squad_order_train(int32_t squad_id, const std::vector<int>& members, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
-        auto order = df::allocate<df::squad_order_trainst>();
-        if (!order) { if (err) *err = "allocation failed"; return false; }
-        order->year = df::global::cur_year ? *df::global::cur_year : 0;
-        order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
-        squad->orders.push_back(order);
-        return true;
+        std::vector<std::vector<df::squad_order*>*> targets;
+        if (!resolve_order_targets(squad, members, targets, err)) return false;
+        return push_order_to_targets(targets, [&]() -> df::squad_order* {
+            // A train order carries no payload: uniform type and lock delegate to the unit's
+            // live activity event.
+            return df::allocate<df::squad_order_trainst>();
+        }, err);
     });
 }
 
-// index < 0 cancels every current order (matches the in-game "clear orders" affordance).
-bool do_squad_order_cancel(int32_t squad_id, int index, std::string* err) {
+// index < 0 cancels every current order.
+bool do_squad_order_cancel(int32_t squad_id, int index, const std::vector<int>& members,
+                           std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
-        if (index < 0) {
-            for (auto order : squad->orders) delete order;
-            squad->orders.clear();
+        std::vector<std::vector<df::squad_order*>*> targets;
+        if (!resolve_order_targets(squad, members, targets, err)) return false;
+        if (index >= 0) {
+            if (targets.size() != 1) {
+                if (err) *err = "cancel by index addresses one squad or one member, not a set";
+                return false;
+            }
+            if (index >= static_cast<int>(targets[0]->size())) {
+                if (err) *err = "order index out of range";
+                return false;
+            }
+            delete (*targets[0])[index];
+            targets[0]->erase(targets[0]->begin() + index);
             return true;
         }
-        if (index >= static_cast<int>(squad->orders.size())) {
-            if (err) *err = "order index out of range";
-            return false;
+        for (auto* vec : targets) {
+            for (auto order : *vec) delete order;
+            vec->clear();
         }
-        delete squad->orders[index];
-        squad->orders.erase(squad->orders.begin() + index);
         return true;
     });
 }
 
-// Native patrol authoring stores each clicked world tile as a persistent waypoint, stores their
-// ids on one persistent route, then queues a patrol order that references that route id. Build
-// every heap object before touching the live vectors so allocation failure cannot leave a
-// half-route behind. Consecutive duplicate clicks are ignored and at least two distinct points
-// are required, matching the useful minimum for a route.
+// A patrol needs a persistent route in plotinfo->waypoints; the order only references its id.
+// Build every heap object before touching the live vectors so a failed alloc leaves no half-route.
 bool do_squad_order_patrol(int32_t squad_id, const std::string& requested_name,
                            const std::vector<df::coord>& requested_points,
+                           const std::vector<int>& members,
                            int32_t* created_route_id, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
@@ -1772,40 +1748,52 @@ bool do_squad_order_patrol(int32_t squad_id, const std::string& requested_name,
             route->points.push_back(waypoint->id);
         }
 
-        auto* order = df::allocate<df::squad_order_patrol_routest>();
-        if (!order) {
+        // One shared route; only the order referencing it is per-target.
+        std::vector<std::vector<df::squad_order*>*> targets;
+        if (!resolve_order_targets(squad, members, targets, err)) {
             for (auto* waypoint : waypoints) delete waypoint;
             delete route;
-            if (err) *err = "allocation failed";
             return false;
         }
-        order->year = df::global::cur_year ? *df::global::cur_year : 0;
-        order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
-        order->route_id = route->id;
+        std::vector<df::squad_order*> built;
+        for (size_t i = 0; i < targets.size(); ++i) {
+            auto* order = df::allocate<df::squad_order_patrol_routest>();
+            if (!order) {
+                for (auto* b : built) delete b;
+                for (auto* waypoint : waypoints) delete waypoint;
+                delete route;
+                if (err) *err = "allocation failed";
+                return false;
+            }
+            order->year = df::global::cur_year ? *df::global::cur_year : 0;
+            order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
+            order->route_id = route->id;
+            built.push_back(order);
+        }
 
         for (auto* waypoint : waypoints)
             plotinfo->waypoints.points.push_back(waypoint);
         plotinfo->waypoints.routes.push_back(route);
         plotinfo->waypoints.next_point_id += static_cast<int32_t>(waypoints.size());
         ++plotinfo->waypoints.next_route_id;
-        squad->orders.push_back(order);
+        for (size_t i = 0; i < targets.size(); ++i)
+            targets[i]->push_back(built[i]);
         if (created_route_id) *created_route_id = route->id;
         return true;
     });
 }
 
-// cpp-batch (Item 1a): defend-burrow order. squad_order_defend_burrowsst (df.squad.xml:91-93)
-// carries exactly one field -- a vector of burrow ids -- so it follows the same allocate/stamp/
-// push recipe as move/kill/train above. Every requested id is validated against the live
-// plotinfo->burrows.list before the order is built (an invalid id would produce an order the sim
-// can never satisfy).
+// Every burrow id is validated against the live plotinfo->burrows.list first: an invalid id
+// would produce an order the sim can never satisfy.
 bool do_squad_order_defend_burrow(int32_t squad_id, const std::vector<int32_t>& burrow_ids,
-                                  std::string* err) {
+                                  const std::vector<int>& members, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) { if (err) *err = "world unavailable"; return false; }
+        std::vector<std::vector<df::squad_order*>*> targets;
+        if (!resolve_order_targets(squad, members, targets, err)) return false;
         // De-dupe + validate against live burrows.
         std::vector<int32_t> valid;
         for (int32_t bid : burrow_ids) {
@@ -1817,28 +1805,24 @@ bool do_squad_order_defend_burrow(int32_t squad_id, const std::vector<int32_t>& 
                 valid.push_back(bid);
         }
         if (valid.empty()) { if (err) *err = "no valid burrow ids"; return false; }
-        auto order = df::allocate<df::squad_order_defend_burrowsst>();
-        if (!order) { if (err) *err = "allocation failed"; return false; }
-        order->year = df::global::cur_year ? *df::global::cur_year : 0;
-        order->year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
-        for (int32_t bid : valid)
-            order->burrows.push_back(bid);
-        squad->orders.push_back(order);
-        return true;
+        return push_order_to_targets(targets, [&]() -> df::squad_order* {
+            auto order = df::allocate<df::squad_order_defend_burrowsst>();
+            if (!order) return nullptr;
+            for (int32_t bid : valid)
+                order->burrows.push_back(bid);
+            return order;
+        }, err);
     });
 }
 
-// cpp-batch (Item 1b): squad emblem write. The six colour bytes + symbol index are graphics-mode
-// cosmetics (df.squad.xml:342-350) with no sim invariant, so a clamped in-place write is safe.
-// -1 sentinels mean "leave unchanged" (partial update): the caller passes -1 for any field the
-// client is not editing so toggling one never clobbers the others.
+// -1 in any field means "leave unchanged", so editing one never clobbers the others.
 bool do_squad_emblem(int32_t squad_id, int symbol, int fg_r, int fg_g, int fg_b,
                      int bg_r, int bg_g, int bg_b, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
         auto clamp = [](int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); };
-        if (symbol >= 0) squad->symbol = clamp(symbol, 0, 22);
+        if (symbol >= 0) squad->symbol = clamp(symbol, 0, SQUAD_EMBLEM_SYMBOL_COUNT - 1);
         if (fg_r >= 0) squad->foreground_r = static_cast<uint8_t>(clamp(fg_r, 0, 255));
         if (fg_g >= 0) squad->foreground_g = static_cast<uint8_t>(clamp(fg_g, 0, 255));
         if (fg_b >= 0) squad->foreground_b = static_cast<uint8_t>(clamp(fg_b, 0, 255));
@@ -1849,9 +1833,6 @@ bool do_squad_emblem(int32_t squad_id, int symbol, int fg_r, int fg_g, int fg_b,
     });
 }
 
-// Supplies (native 5.4): squad->supplies.carry_food (0..3) + carry_water enum. Both are simple
-// scalars on the squad with no sim invariant (they just tell haulers what each member carries),
-// so a clamped in-place write is safe. food < 0 or an empty water string leaves that field alone.
 bool do_squad_supplies(int32_t squad_id, int food, const std::string& water_str, std::string* err) {
     return run_squad_locked([&]() -> bool {
         auto squad = df::squad::find(squad_id);
@@ -1872,17 +1853,12 @@ bool do_squad_supplies(int32_t squad_id, int food, const std::string& water_str,
     });
 }
 
-// ---------------------------------------------------------------------------
-// Routine authoring (native 7.1 Add/Edit Routines). Routines are FORT-GLOBAL
-// (plotinfo->alerts.routines) but every squad carries a PARALLEL schedule.routine entry at the
-// same index (Military.cpp's makeSquad allocates one squad_routine_schedulest per fort routine).
-// So create/delete must keep BOTH sides in lockstep across every squad, exactly as DF's own
-// add/remove-routine does -- otherwise cur_routine_idx or a monthly read would index out of range.
-// ---------------------------------------------------------------------------
+// ------------------------------------------------- routine authoring (fort-global)
 
-// Build one squad's schedule entry for a NEW routine, replicating makeSquad's per-name defaults
-// (Off duty / Staggered training / Constant training / Ready / generic). squad_size = number of
-// positions. Caller already holds run_squad_locked.
+// Routines live on plotinfo->alerts.routines, but every squad carries a PARALLEL schedule.routine
+// entry at the same index: create/delete must keep both in lockstep or a read runs off the end.
+
+// Replicates makeSquad's per-name defaults for a NEW routine. Caller holds run_squad_locked.
 df::squad_routine_schedulest* make_routine_schedule_for_squad(df::squad* squad,
                                                               const std::string& name) {
     int squad_size = static_cast<int>(squad->positions.size());
@@ -2023,16 +1999,7 @@ bool do_routine_delete(int routine_idx, std::string* err) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// WD-30(b): schedule (squad.schedule months x routines). schedule.routine is parallel to
-// plotinfo->alerts.routines (Military.cpp's makeSquad allocates one routine entry per
-// fort-wide named routine, at the same index) -- switching cur_routine_idx picks which named
-// routine is active (matches DF's own schedule-screen routine-name selector); set-month writes
-// the Sleep/Uniform fields of one month of the CURRENTLY active routine (matches the sleep/
-// uniform grid under it). Per-month scheduled orders (e.g. recurring "train" months) are
-// read-only (order_count) this pass -- editing them is a queued follow-up, noted in the route
-// comment below.
-// ---------------------------------------------------------------------------
+// ------------------------------------------ schedule (squad.schedule, months x routines)
 
 bool do_squad_set_routine(int32_t squad_id, int routine_idx, std::string* err) {
     return run_squad_locked([&]() -> bool {
@@ -2047,7 +2014,7 @@ bool do_squad_set_routine(int32_t squad_id, int routine_idx, std::string* err) {
     });
 }
 
-// routine_idx < 0 -> the squad's active routine (cur_routine_idx). 7.3 passes an explicit routine.
+// routine_idx < 0 -> the squad's active routine (cur_routine_idx).
 bool do_squad_schedule_set_month(int32_t squad_id, int routine_idx, int month,
                                   const std::string& sleep_str, const std::string& uniform_str,
                                   const std::string* name, std::string* err) {
@@ -2080,11 +2047,8 @@ bool do_squad_schedule_set_month(int32_t squad_id, int routine_idx, int month,
     });
 }
 
-// 7.3 Edit Training: set one routine-month's scheduled order to a single TRAIN order (with a
-// minimum-soldier count -- native "At least N / Train") or clear it ("No orders"). Existing
-// orders in that month are deep-deleted first; per-position order_assignments are reset to
-// unassigned (-1) since they index into the now-replaced order list. Editing individual member
-// assignments (the finest grain of native 7.3) is a documented follow-up.
+// Per-position order_assignments index into the month's order list, so replacing that list must
+// reset them to -1.
 bool do_squad_schedule_set_month_order(int32_t squad_id, int routine_idx, int month,
                                        const std::string& order, int min_count, std::string* err) {
     return run_squad_locked([&]() -> bool {
@@ -2128,15 +2092,10 @@ bool do_squad_schedule_set_month_order(int32_t squad_id, int routine_idx, int mo
     });
 }
 
-// ---------------------------------------------------------------------------
-// WD-30(c): uniform assignment -- apply an EXISTING fort uniform template (fort->uniforms,
-// authored via DF's own military Uniforms page) onto one squad position's per-category
-// equipment spec vectors. Custom uniform authoring (building a NEW template from scratch) is
-// out of scope, per spec -- flagged as a follow-up. Mirrors the template's item_type/subtype/
-// material fields into fresh squad_uniform_spec allocations (item id left unset, same as a
-// freshly-applied uniform in-game: specific items get matched in by the sim afterward), and
-// copies the template's replace-clothing/exact-match flags (same bitfield type on both sides).
-// ---------------------------------------------------------------------------
+// ------------------------------ uniform assignment (apply an EXISTING fort template)
+
+// The spec's item id is deliberately left unset, as a freshly-applied uniform is in-game: the
+// sim matches specific items in afterwards.
 
 bool apply_uniform_to_position_locked(df::squad* squad, int32_t pos_idx,
                                       df::entity_uniform* tmpl, std::string* err) {
@@ -2301,23 +2260,13 @@ bool do_squad_equipment_change(int32_t squad_id, int32_t pos_idx, const std::str
     });
 }
 
-// ---------------------------------------------------------------------------
-// squad-delete (a known WD-29/30a gap -- WD-23 added squad-create but
-// never a way to remove one; DFHack::Military exposes no such call). Tears the squad down the
-// way DF's own disband would: release every occupied position (Military::removeFromSquad --
-// no position-0 restriction there, unlike addToSquad), free the leader position's assignment
-// slot for reuse, deep-delete every heap object the squad exclusively owns (current orders,
-// per-position orders + uniform specs, the whole schedule.routine tree, barracks room links
-// incl. the building-side backref -- mirrors Military::updateRoomAssignments's own removal
-// branch), then unlink the id from fort->squads / world->squads.all and free the squad object.
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------- squad-delete
 
-// ---- rules-ledger 0008: the four native disband steps do_squad_delete used to skip ------------
+// DFHack::Military exposes no disband, so every step DF's own disband performs is done here by
+// hand. Anything left linked to a freed squad is a use-after-free.
 
-// Gap 1/4 (native 0x1410ea8a0): return one piece of squad equipment to the fort's unassigned
-// pool. plotinfo.equipment.items_assigned/items_unassigned are the native item-assignment
-// indexes -- per item type, sorted by item id (df.plotinfo.xml equip_infost, 'binary'). Without
-// this, the assignment index keeps describing equipment for a position that no longer exists.
+// plotinfo.equipment.items_assigned/items_unassigned are per item type and sorted by item id.
+// Leave an item behind and the index still describes equipment for a position that is gone.
 void unassign_equipment_item(int32_t item_id) {
     auto plotinfo = df::global::plotinfo;
     if (!plotinfo) return;
@@ -2328,13 +2277,8 @@ void unassign_equipment_item(int32_t item_id) {
     insert_into_vector(plotinfo->equipment.items_unassigned[type], item_id);
 }
 
-// Gap 2 (native 0x1413c2cd0): clear squad membership off an occupant historical figure that has
-// no live unit on the map (died off-screen, left on a mission). Military::removeFromSquad needs a
-// live unit, and DFHack's own link helpers (Military.cpp remove_soldier/officer_entity_link) are
-// file-static, so this mirrors them: the soldier SQUAD link becomes a former-squad link; a
-// leader's POSITION link is dropped, the noble seat's holder fields are vacated, and a
-// former-position link is filed. Deliberately skipped: the cosmetic remove-link history event the
-// officer path also writes (soldier removal writes none either -- Military.cpp:343).
+// For an occupant historical figure with no live unit (died off-map, away on a mission):
+// Military::removeFromSquad needs a live unit, and DFHack's link helpers are file-static.
 void release_offmap_occupant(df::historical_figure* hf, df::squad* squad, bool leader) {
     if (!hf || !squad) return;
     const int32_t cur_year = df::global::cur_year ? *df::global::cur_year : 0;
@@ -2378,11 +2322,7 @@ void release_offmap_occupant(df::historical_figure* hf, df::squad* squad, bool l
     }
 }
 
-// Gap 3 (native 0x1400a1b10): destroy the squad's current training activity outright. Native DF
-// removes the activity object itself, not just the membership. activity_event is a virtual class,
-// so `delete` runs the proper generated destructor for each concrete event type. order_load is
-// DF's has-bad-pointers load buffer (df.activity.xml) -- nulled as the same cheap defense-in-depth
-// purge_ui_caches_for_squad applies to world.squads.order_load.
+// Native removes the activity OBJECT, not just the squad's membership of it.
 void remove_squad_activity(df::squad* squad) {
     if (!squad || squad->activity == -1) return;
     auto world = df::global::world;
@@ -2402,88 +2342,28 @@ void remove_squad_activity(df::squad* squad) {
     squad->activity = -1;
 }
 
-// Null the dying squad out of a single raw-pointer cache slot.
 inline void null_if_squad(df::squad*& slot, const df::squad* dying) {
     if (slot == dying) slot = nullptr;
 }
-// Null EVERY occurrence of the dying squad in a raw-pointer cache vector, IN PLACE -- never erase.
-// Erasing would shift the parallel metadata vectors these screens index in lockstep
-// (viewscreen_worldst.squad_flag, squads.squad_id/sel_squads) out of sync and turn a
-// use-after-free into an out-of-bounds read. Nulling keeps every length and selection index intact
-// and simply defuses the freed pointer. Used for the surfaces where null entries are tolerable
-// (DF marks plotinfo.squads.list has-bad-pointers); the main_interface squad-screen lists get the
-// stronger clear-the-parallel-family treatment below instead (see purge_ui_caches_for_squad).
+// Null IN PLACE, never erase: erasing shifts the parallel metadata vectors these screens index in
+// lockstep out of sync, turning a use-after-free into an out-of-bounds read.
 inline void null_squad_in(std::vector<df::squad*>& vec, const df::squad* dying) {
     for (auto*& p : vec) if (p == dying) p = nullptr;
 }
-// True when the dying squad appears anywhere in a squad* cache vector.
 inline bool contains_squad(const std::vector<df::squad*>& vec, const df::squad* dying) {
     for (auto* p : vec) if (p == dying) return true;
     return false;
 }
 
-// purge_ui_caches_for_squad -- sibling of practical/stockpile-uaf's purge_ui_caches_for_building
-// (a df::squad is NOT a df::building, so this is a parallel helper in the same family, not a call
-// into that one). MUST run under the caller's CoreSuspender (do_squad_delete holds it).
-//
-// Freeing a df::squad while any native squad screen still holds a RAW POINTER to it is a
-// use-after-free of the exact class tonight's crash dump PROVED for stockpiles: a freed object left
-// live in a game.main_interface UI cache, walked on the next frame. df-structures enumerates every
-// fort-mode screen that caches a squad*; this nulls the dying squad out of each BEFORE the free.
-// Conservative: a slot is touched only when it points at THIS squad; ids are never rewritten
-// (main_interface.squad_selector caches squad_id[] -- integers, safe by construction).
-//
-// Cache sites (df.d_interface.xml / df.plotinfo.xml / df.squad.xml, DFHack 53.15-r1):
-//   game.main_interface.view.squad_list_sq   (d_interface:520)  unit view-sheet "assign to squad"
-//   game.main_interface.view.name_squad      (d_interface:533)  squad being renamed
-//   game.main_interface.barracks_squad       (d_interface:5528) barracks assignment screen
-//   game.main_interface.ap_squad             (d_interface:5534) assign-position (single)
-//   game.main_interface.ap_squad_list        (d_interface:5538) assign-position-squad list
-//   plotinfo.squads.list                     (plotinfo:517)     the 's' military squad-mode list
-//   plotinfo.squads.nearest_squad            (plotinfo:531)     hover cache
-//   viewscreen_worldst.squad                 (d_interface:7029) world/mission screen's send-on-a-
-//     mission squad picker (sibling of squad_flag / civlist / army_controller / messenger_epp).
-//     This is a live viewscreen, NOT a main_interface field: it holds pointers to FORT squads
-//     (missions.cpp opens it from fort mode to dispatch raids -- see its squad[]+squad_flag[] dump
-//     note), so a squad freed while it is on the stack would dangle. Walk the whole gview stack
-//     (Gui::getViewscreenByType<>(0)) and null there too. [Corrected 2026-07-16: :7029 is
-//     viewscreen_worldst @6989, NOT setup_race_selectionst @6864 -- the earlier note misread the
-//     enclosing type because a <class-type> viewscreen was skipped; setup_race_selectionst has no
-//     squad* cache. Reviewer-proven.]
-//   world.squads.order_load                  (squad:356)        DF-marked has-bad-pointers; a
-//     load-time reconstruction buffer DF does not walk during play (sibling of world.squads.all,
-//     which do_squad_delete already erases from). Documented-safe, but nulled here too as cheap,
-//     in-scope defense-in-depth so no freed pointer survives anywhere.
-// NOT purged: main_interface.squad_selector caches squad_id[] -- integers, safe by construction.
-//
-// RENDERER-GUARDEDNESS AUDIT (2026-07-17, Ghidra prior_art_types2 + full-binary displacement scan;
-// offsets ground-truthed by MSVC offsetof probe, internal verification notes):
-// no static reference to squad_list_sq/name_squad/barracks_squad/ap_squad/ap_squad_list exists
-// ANYWHERE in the binary outside the list builder (FUN_1407c49c0), the main_interfacest
-// copy-ctor/dtor/serializers, and DF's own reset paths -- every render/feed consumer reaches these
-// caches through widget indirection, so per-consumer null-check proof is NOT obtainable statically.
-// Dump 97692 (location_selector) proved renderers of this family DO deref subjects unguarded.
-// Therefore null-in-place alone is NOT trusted for the main_interface squad screens; each surface
-// also gets its dependent screen state DISMISSED, mirroring DF's own decomp-proven resets:
-//   - FUN_1408bd4e0 @ 0x1408bd902/0x1408bd909 clears assigning_position AND
-//     assigning_position_squad (gamest+0x7d51/+0x7d64) whenever the selected building changes --
-//     the native dismissal of both assign-position pickers.
-//   - FUN_1407c49c0 (called from FUN_1408bd4e0 with &main_interface) resets
-//     barracks_selected_squad_ind=0 and clears barracks_squad AND barracks_squad_flag TOGETHER --
-//     proving the pair is managed as a parallel family whose native reset state is EMPTY.
-// An emptied list is a state every squad screen must already render (fort with no squads), while a
-// nulled entry is a state no native path ever produces -- so for the parallel-vector screens we
-// clear the WHOLE family together (never erase/clear just one member) and reset the selection
-// index, exactly as DF's own rebuilder does. Single-pointer subjects are nulled AND their
-// open/mode flag closed (the location_selector fix shape).
+// A df::squad freed while a native squad screen still holds a raw pointer to it is a
+// use-after-free. Runs under the caller's CoreSuspender; ids are never rewritten.
 void purge_ui_caches_for_squad(df::squad* squad) {
     if (!squad) return;
     if (auto* game = df::global::game) {
         auto& mi = game->main_interface;
         auto& vu = mi.view;
-        // Unit sheet "assign to squad" tab: squad_list_sq is one of FIVE parallel vectors
-        // (sq/ep/epp/has_subord_pos/add_index) indexed in lockstep. Clear the whole family and
-        // reset the selection, as the sheet's list builder would on rebuild.
+        // squad_list_sq is one of five parallel vectors indexed in lockstep: clear the whole
+        // family and reset the selection, never one member.
         if (contains_squad(vu.squad_list_sq, squad)) {
             vu.squad_list_sq.clear();
             vu.squad_list_ep.clear();
@@ -2492,23 +2372,19 @@ void purge_ui_caches_for_squad(df::squad* squad) {
             vu.squad_list_add_index.clear();
             vu.selected_squad = 0;
         }
-        // Squad rename box: name_squad is its subject; naming_squad is its open flag (adjacent in
-        // viewunit_interfacest). Nulling the subject without closing the box is the exact
-        // location_selector half-fix (dump 97692) -- close it.
+        // Nulling name_squad without closing naming_squad leaves the rename box open on a dead
+        // subject; close the flag too.
         if (vu.name_squad == squad) {
             vu.name_squad = nullptr;
             vu.naming_squad = false;
         }
-        // Barracks assignment list: barracks_squad / barracks_squad_flag are a parallel pair;
-        // clear both + reset the index, byte-for-byte what DF's own FUN_1407c49c0 reset does.
+        // barracks_squad / barracks_squad_flag are a parallel pair: clear both, reset the index.
         if (contains_squad(mi.barracks_squad, squad)) {
             mi.barracks_squad.clear();
             mi.barracks_squad_flag.clear();
             mi.barracks_selected_squad_ind = 0;
         }
-        // Assign-position pickers: if the dying squad is the single-picker subject OR any entry of
-        // the squad-list picker, dismiss BOTH pickers -- FUN_1408bd4e0 clears the two flags as a
-        // pair, so we do too (conservative; reopening re-derives everything).
+        // The two assign-position pickers are dismissed as a pair; reopening re-derives both.
         const bool ap_hit = (mi.ap_squad == squad);
         const bool apl_hit = contains_squad(mi.ap_squad_list, squad);
         if (ap_hit)
@@ -2522,9 +2398,8 @@ void purge_ui_caches_for_squad(df::squad* squad) {
             mi.assigning_position_squad = false;
         }
     }
-    // plotinfo.squads: DF annotates list has-bad-pointers, and DF's own squads-mode reset
-    // (FUN_140e5c1c0) nulls list/nearest_squad wholesale -- null-tolerant by DF's own contract, so
-    // null-in-place suffices here (list is parallel to squad_id/sel_squads: never erase).
+    // plotinfo.squads.list is parallel to squad_id/sel_squads and DF marks it has-bad-pointers,
+    // so null-in-place is enough here. Never erase.
     if (auto* plotinfo = df::global::plotinfo) {
         null_squad_in(plotinfo->squads.list, squad);
         null_if_squad(plotinfo->squads.nearest_squad, squad);
@@ -2547,10 +2422,8 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         auto squad = df::squad::find(squad_id);
         if (!squad) { if (err) *err = "squad not found"; return false; }
 
-        // Release every occupied position (leader included). A live unit goes through
-        // Military::removeFromSquad (activities, unit->military, entity links); an occupant with
-        // no live unit gets the same membership/entity-link cleanup directly (0008 gap 2) --
-        // the old fallback left the figure claiming a squad that was about to be freed.
+        // Release every occupied position, leader included: an occupant left claiming a squad
+        // that is about to be freed is a dangling membership.
         for (size_t i = 0; i < squad->positions.size(); ++i) {
             auto pos = squad->positions[i];
             if (!pos || pos->occupant == -1) continue;
@@ -2565,15 +2438,14 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
             pos->occupant = -1;
         }
 
-        // Free the position assignment this squad was tied to (mirrors makeSquad's forward
-        // edge: found_assignment->squad_id = result->id).
+        // Free the position assignment this squad was tied to: makeSquad wrote the forward edge,
+        // and nothing else clears it, so a stale squad_id survives the squad it names.
         for (auto asn : fort->positions.assignments) {
             if (asn && asn->squad_id == squad_id) asn->squad_id = -1;
         }
 
-        // Deep-delete per-position state (own order queue + per-category uniform specs).
-        // First unlink the position's assigned equipment from the fort's item-assignment
-        // indexes (0008 gap 1) -- native does this per position before freeing it.
+        // Unlink the position's assigned equipment from the fort's item-assignment indexes
+        // BEFORE freeing the position, as native does.
         for (auto pos : squad->positions) {
             if (!pos) continue;
             for (int32_t item_id : pos->equipment.assigned_items)
@@ -2590,9 +2462,7 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         for (auto order : squad->orders) delete order;
         squad->orders.clear();
 
-        // Deep-delete the full schedule tree (N routines x 12 months), incl. each month's
-        // scheduled orders (own squad_order alloc, per Military.cpp's insert_training_order
-        // recipe) and per-position order-assignment markers.
+        // Deep-delete the whole schedule tree: each month owns its scheduled squad_order allocs.
         for (auto routine : squad->schedule.routine) {
             if (!routine) continue;
             for (int m = 0; m < 12; ++m) {
@@ -2607,12 +2477,9 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         }
         squad->schedule.routine.clear();
 
-        // Remove the squad's current training activity outright (0008 gap 3).
         remove_squad_activity(squad);
 
-        // Squad ammunition (0008 gap 4): unlink every spec's assigned item IDs from the fort's
-        // item-assignment indexes, then delete the specs themselves -- the vector destructor
-        // frees only the pointers, so skipping this leaked every spec allocation.
+        // The vector destructor frees only the pointers, so each ammo spec is deleted here.
         for (auto spec : squad->ammo.ammunition) {
             if (!spec) continue;
             for (int32_t item_id : spec->assigned)
@@ -2647,9 +2514,7 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
         for (size_t i = 0; i < world->squads.all.size(); ++i) {
             if (world->squads.all[i] == squad) { world->squads.all.erase(world->squads.all.begin() + i); break; }
         }
-        // Defuse every native squad-UI raw-pointer cache of this squad BEFORE the free (see
-        // purge_ui_caches_for_squad -- the stockpile-UAF class, proven live in tonight's dump).
-        // Still under run_squad_locked's CoreSuspender.
+        // Defuse every native squad-UI raw-pointer cache BEFORE the free.
         purge_ui_caches_for_squad(squad);
         delete squad;
         diagnostics_log("squad-delete-teardown: full 0008 cleanup for squad " +
@@ -2658,11 +2523,8 @@ bool do_squad_delete(int32_t squad_id, std::string* err) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// milequip: uniform TEMPLATE authoring (fort->uniforms). WD-30(c) only APPLIED existing
-// templates onto squad positions (copying specs); this builds/edits the templates themselves.
+// ------------------------------------------ uniform TEMPLATE authoring (fort->uniforms)
 // Templates are copied on apply, so editing or deleting one never dangles a squad position.
-// ---------------------------------------------------------------------------
 
 bool do_uniform_create(int32_t& new_id, const std::string& name, int type, std::string* err) {
     return run_squad_locked([&]() -> bool {
@@ -2771,10 +2633,7 @@ bool do_uniform_flags(int32_t id, bool replace_clothing, bool exact_matches, std
     });
 }
 
-// ---------------------------------------------------------------------------
-// milequip: squad ammunition authoring (squad->ammo.ammunition[]). item_type is always AMMO;
-// the author chooses the ammo itemdef subtype, material, amount, and combat/training use flags.
-// ---------------------------------------------------------------------------
+// -------------------------- squad ammunition authoring (squad->ammo.ammunition[])
 
 bool do_squad_ammo_add(int32_t squad_id, int subtype, int amount, int matclass, int mattype,
                        int matindex, bool combat, bool training, std::string* err) {
@@ -2845,21 +2704,7 @@ bool do_squad_ammo_clear(int32_t squad_id, std::string* err) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// Routes
-// ---------------------------------------------------------------------------
-
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
-}
+// --------------------------------------------------------------------- routes
 
 } // namespace
 
@@ -2960,9 +2805,8 @@ void register_squad_routes(httplib::Server& server) {
         }
         int pos = -1;
         query_int(req, "pos", pos);
-        // B249: pos==0 seats the squad commander (noble-record write). This was verified live on
-        // this machine 2026-07-17 (see the seat note in do_squad_assign) and the former W23
-        // squad_pos0 probe guard is GONE -- pos-0 assignment is now handled like any other.
+        // Pos==0 seats the squad commander (noble-record write). Ungated -- pos-0 assignment
+        // is handled like any other (see the seat note in do_squad_assign).
         std::string err;
         if (!do_squad_assign(squad_id, unit_id, pos, &err)) {
             json_error(res, 400, err);
@@ -2990,24 +2834,14 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/squad-remove", squad_remove_handler);
     server.Post("/squad-remove", squad_remove_handler);
 
-    // POST /squad-delete?squad= -- disbands a squad (known gap: /squad-create had no
-    // counterpart). Releases every member, frees the leader position's assignment slot, deep-
-    // deletes every heap object the squad exclusively owns, unlinks it from fort->squads /
-    // world->squads.all. Irreversible; client should confirm before calling.
+    // POST /squad-delete?squad= -- irreversible; the client confirms before calling.
     auto squad_delete_handler = [](const httplib::Request& req, httplib::Response& res) {
         int squad_id = -1;
         if (!query_int(req, "squad", squad_id)) {
             json_error(res, 400, "missing squad");
             return;
         }
-        // Disbanding a squad is OPEN TO EVERY AUTHENTICATED PLAYER (owner policy 2026-07-16). The
-        // old `squad_disband` fail-closed guard was held because do_squad_delete freed the squad
-        // while native squad-UI vectors still cached raw pointers to it (a use-after-free) -- that
-        // ROOT CAUSE is now fixed: do_squad_delete calls purge_ui_caches_for_squad, which nulls the
-        // dying squad out of every fort-mode squad-UI cache (df.d_interface.xml view.squad_list_sq/
-        // name_squad/barracks_squad/ap_squad/ap_squad_list + plotinfo.squads.list/nearest_squad)
-        // before the free, all under CoreSuspender. With the UAF closed there is no reason to gate
-        // it. Join-auth still refuses unauthenticated callers upstream.
+        // Ungated beyond join-auth: every authenticated player may disband.
         std::string err;
         if (!do_squad_delete(squad_id, &err)) {
             json_error(res, 400, err);
@@ -3019,13 +2853,8 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/squad-delete", squad_delete_handler);
     server.Post("/squad-delete", squad_delete_handler);
 
-    // POST /squad-order?squad=&action=move|kill|train|cancel|patrol|defend-burrow (WD-30).
-    // move: player=&px=&py=&w=&h= (same tile-grid pixel contract as /designate and
-    //   /hauling-stop-add -- px/py index into the requesting player's rendered window; z comes
-    //   from that player's camera). kill: target=<unit id>. train: no extra params.
-    // cancel: index=<n> (order slot) or all=1 to clear every current order.
-    // patrol: name=<route name>&points=x:y:z;x:y:z (persistent world coordinates).
-    // defend-burrow: burrows=<csv ids from GET /burrows>.
+    // move's px/py index into the REQUESTING player's rendered window and z comes from that
+    // player's camera -- the same tile-grid pixel contract /designate uses.
     auto squad_order_handler = [](const httplib::Request& req, httplib::Response& res) {
         int squad_id = -1;
         if (!query_int(req, "squad", squad_id) || !req.has_param("action")) {
@@ -3036,11 +2865,29 @@ void register_squad_routes(httplib::Server& server) {
         std::string err;
         int32_t patrol_route_id = -1;
 
+        // `members=<csv of position indices>` narrows the order to a subset of the roster;
+        // absent or empty keeps the whole-squad behaviour.
+        std::vector<int> members;
+        if (req.has_param("members")) {
+            std::stringstream ms(req.get_param_value("members"));
+            std::string tok;
+            while (std::getline(ms, tok, ',')) {
+                try {
+                    size_t consumed = 0;
+                    int v = std::stoi(tok, &consumed);
+                    if (consumed > 0) members.push_back(v);
+                } catch (...) { /* skip non-numeric token */ }
+            }
+            if (members.empty()) {
+                json_error(res, 400, "no valid position indices in 'members'");
+                return;
+            }
+        }
+
         if (action == "move") {
             std::string player = query_player(req);
             int px = 0, py = 0, frame_w = 0, frame_h = 0;
-            if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-                    !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+            if (!parse_frame_point(req, px, py, frame_w, frame_h)) {
                 json_error(res, 400, "missing px/py/w/h");
                 return;
             }
@@ -3056,13 +2903,13 @@ void register_squad_routes(httplib::Server& server) {
             }
             int tx = frame_w > 0 ? std::max(0, std::min(frame_w - 1, px)) : 0;
             int ty = frame_h > 0 ? std::max(0, std::min(frame_h - 1, py)) : 0;
-            if (!do_squad_order_move(squad_id, camera.x + tx, camera.y + ty, camera.z, &err)) {
+            if (!do_squad_order_move(squad_id, camera.x + tx, camera.y + ty, camera.z, members, &err)) {
                 json_error(res, 400, err);
                 return;
             }
         } else if (action == "kill") {
-            // B70: multi-target via targets=<csv of unit ids> (same CSV shape as defend-burrow's
-            // burrows=). Single target=<id> stays accepted for back-compat (B62's shape).
+            // Multi-target via targets=<csv of unit ids> (same CSV shape as defend-burrow's
+            // burrows=). Single target=<id> stays accepted for back-compat.
             std::vector<int32_t> targets;
             if (req.has_param("targets")) {
                 std::stringstream ss(req.get_param_value("targets"));
@@ -3086,12 +2933,12 @@ void register_squad_routes(httplib::Server& server) {
                 }
                 targets.push_back(target);
             }
-            if (!do_squad_order_kill(squad_id, targets, &err)) {
+            if (!do_squad_order_kill(squad_id, targets, members, &err)) {
                 json_error(res, 400, err);
                 return;
             }
         } else if (action == "train") {
-            if (!do_squad_order_train(squad_id, &err)) {
+            if (!do_squad_order_train(squad_id, members, &err)) {
                 json_error(res, 400, err);
                 return;
             }
@@ -3103,7 +2950,7 @@ void register_squad_routes(httplib::Server& server) {
                 json_error(res, 400, "missing index (or all=1)");
                 return;
             }
-            if (!do_squad_order_cancel(squad_id, all ? -1 : index, &err)) {
+            if (!do_squad_order_cancel(squad_id, all ? -1 : index, members, &err)) {
                 json_error(res, 400, err);
                 return;
             }
@@ -3127,7 +2974,7 @@ void register_squad_routes(httplib::Server& server) {
                 json_error(res, 400, "no valid burrow ids in 'burrows'");
                 return;
             }
-            if (!do_squad_order_defend_burrow(squad_id, ids, &err)) {
+            if (!do_squad_order_defend_burrow(squad_id, ids, members, &err)) {
                 json_error(res, 400, err);
                 return;
             }
@@ -3163,7 +3010,7 @@ void register_squad_routes(httplib::Server& server) {
                 points.emplace_back(xyz[0], xyz[1], xyz[2]);
             }
             std::string name = req.has_param("name") ? req.get_param_value("name") : "";
-            if (!do_squad_order_patrol(squad_id, name, points, &patrol_route_id, &err)) {
+            if (!do_squad_order_patrol(squad_id, name, points, members, &patrol_route_id, &err)) {
                 json_error(res, 400, err);
                 return;
             }
@@ -3180,10 +3027,7 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/squad-order", squad_order_handler);
     server.Post("/squad-order", squad_order_handler);
 
-    // POST /squad-emblem?squad=&symbol=&fgR=&fgG=&fgB=&bgR=&bgG=&bgB= (cpp-batch Item 1b).
-    // Writes the squad's graphics-mode badge (symbol 0-22, fg/bg RGB 0-255). Every field is
-    // OPTIONAL: any param omitted (or sent <0) leaves that field unchanged, so the client can
-    // toggle one component without resending the rest. Read side rides GET /squads ("emblem":{}).
+    // Every field is OPTIONAL: an omitted (or negative) param leaves that component unchanged.
     auto squad_emblem_handler = [](const httplib::Request& req, httplib::Response& res) {
         int squad_id = -1;
         if (!query_int(req, "squad", squad_id)) {
@@ -3209,14 +3053,8 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/squad-emblem", squad_emblem_handler);
     server.Post("/squad-emblem", squad_emblem_handler);
 
-    // POST /squad-schedule?squad=&action=set-routine|set-month (WD-30 (b)).
-    // set-routine: routine=<idx> -- switch the squad's active routine (schedule.routine is
-    //   parallel to the /squad detail response's "routines" list -- same index both places).
-    // set-month: month=<0-11>&sleep=<anywhere|barracks-will|barracks-need|none>&
-    //   uniform=<regular|civilian|none>[&name=<label>] -- writes one month of the CURRENTLY
-    //   active routine's schedule (both sleep and uniform are required together since they're
-    //   independent fields on the same struct; pass the month's existing value for whichever
-    //   one you are not changing).
+    // set-month requires sleep AND uniform together: resend the month's existing value for
+    // whichever one is not changing.
     auto squad_schedule_handler = [](const httplib::Request& req, httplib::Response& res) {
         int squad_id = -1;
         if (!query_int(req, "squad", squad_id) || !req.has_param("action")) {
@@ -3257,7 +3095,7 @@ void register_squad_routes(httplib::Server& server) {
                 return;
             }
         } else if (action == "set-month-order") {
-            // 7.3: month=<0-11>&order=train|none[&routine=<idx>][&min=<n>]. routine defaults to
+            // month=<0-11>&order=train|none[&routine=<idx>][&min=<n>]. routine defaults to
             // the active one; order=train sets a single train order (min soldiers), none clears.
             int month = -1;
             if (!query_int(req, "month", month) || !req.has_param("order")) {
@@ -3308,12 +3146,6 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/squad-supplies", squad_supplies_handler);
     server.Post("/squad-supplies", squad_supplies_handler);
 
-    // Routine authoring (native 7.1). Routines are fort-global (served in the /squad detail's
-    // "routines" list, same index as each squad's schedule.routine). create/delete keep every
-    // squad's parallel schedule.routine in lockstep.
-    //   POST /routine-create?name=            -> append a routine (defaults applied per name)
-    //   POST /routine-rename?idx=&name=       -> rename routine idx
-    //   POST /routine-delete?idx=             -> delete routine idx (refuses the last one)
     auto routine_create_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string name = req.has_param("name") ? req.get_param_value("name") : std::string("New routine");
         if (name.size() > 64) name.resize(64);
@@ -3365,11 +3197,6 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/routine-delete", routine_delete_handler);
     server.Post("/routine-delete", routine_delete_handler);
 
-    // POST /squad-uniform?squad=&pos=&action=apply|clear (WD-30 (c)).
-    // apply: uniform=<fort uniform template id, from /squad detail's "uniforms" list> -- copies
-    //   that template's per-category item specs onto squad.positions[pos].equipment.uniform.
-    // clear: drops every uniform spec from that position (no uniform assigned).
-    // Existing templates only; authoring a NEW custom uniform is a queued follow-up.
     auto squad_uniform_handler = [](const httplib::Request& req, httplib::Response& res) {
         int squad_id = -1, pos_idx = -1;
         if (!query_int(req, "squad", squad_id) || !query_int(req, "pos", pos_idx) ||
@@ -3435,14 +3262,8 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/squad-equipment", squad_equipment_handler);
     server.Post("/squad-equipment", squad_equipment_handler);
 
-    // ---------------------------------------------------------------------------
-    // milequip: uniform-template authoring + squad ammunition authoring.
-    // ---------------------------------------------------------------------------
+    // ------------- uniform-template authoring + squad ammunition authoring
 
-    // GET /uniforms?player= -> all fort uniform templates (full per-category item detail) +
-    // authoring catalogs (per-category subtype lists, material-class name table). Kept off the
-    // /squad detail response so that response stays lean; the /squad "uniforms" list (id+name)
-    // is unchanged.
     server.Get("/uniforms", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         UniformCatalog cat;
@@ -3507,10 +3328,8 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/uniform-delete", uniform_delete_handler);
     server.Post("/uniform-delete", uniform_delete_handler);
 
-    // POST /uniform-item-add?id=&cat=&subtype=&matclass=&mattype=&matindex=&color=&choice=
-    // cat: 0=body,1=head,2=pants,3=gloves,4=shoes,5=shield,6=weapon (item_type derived from cat).
     // subtype -1 = any subtype; matclass -1 = any material; choice = uniform_indiv_choice bits
-    // (1=any,2=melee,4=ranged) for weapon "individual choice".
+    // (1=any, 2=melee, 4=ranged).
     auto uniform_item_add_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1, cat = -1;
         if (!query_int(req, "id", id) || !query_int(req, "cat", cat)) {
@@ -3571,11 +3390,7 @@ void register_squad_routes(httplib::Server& server) {
     server.Get("/uniform-flags", uniform_flags_handler);
     server.Post("/uniform-flags", uniform_flags_handler);
 
-    // POST /squad-ammo?squad=&action=add|update|remove|clear
-    // add:    subtype=&amount=&matclass=&mattype=&matindex=&combat=0|1&training=0|1
-    // update: index= + amount/matclass/mattype/matindex/combat/training (client resends all)
-    // remove: index=
-    // clear:  (no extra params)
+    // update resends every field, never a partial patch.
     auto squad_ammo_handler = [](const httplib::Request& req, httplib::Response& res) {
         int squad_id = -1;
         if (!query_int(req, "squad", squad_id) || !req.has_param("action")) {

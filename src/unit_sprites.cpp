@@ -21,6 +21,7 @@
 
 #include "unit_sprites.h"
 #include "diagnostics.h"
+#include "fnv.h"
 #include "frame.h"
 #include "image_encoder.h"
 
@@ -31,9 +32,17 @@
 #include "df/enabler.h"
 #include "df/global_objects.h"
 #include "df/map_block.h"
+#include "df/world.h"
+#include "df/creature_raw.h"
+#include "df/caste_raw.h"
 #include "df/tile_designation.h"
 #include "df/unit_flags1.h"
 #include "df/unit_flags4.h"
+#include "df/creature_raw.h"
+#include "df/caste_raw.h"
+#include "df/creature_raw_graphics.h"
+#include "df/graphic.h"
+#include "df/profession.h"
 
 #include <SDL_surface.h>
 
@@ -42,6 +51,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <future>
@@ -66,36 +76,14 @@ using namespace DFHack;
 namespace dwf {
 namespace {
 
-// FNV-1a fold, local copy of the tiny helper in tile_map_dump.cpp (not worth
-// exporting a whole utility header for 5 lines).
-inline uint64_t fnv1a(uint64_t h, const void* data, size_t n) {
-    const uint8_t* p = static_cast<const uint8_t*>(data);
-    for (size_t i = 0; i < n; ++i) { h ^= p[i]; h *= 1099511628211ull; }
-    return h;
-}
-
-// Cadence for the spec's "slow safety rescan" diagnostic heartbeat (~150
-// passes at a 30Hz-ish call rate ~= 5s). The per-pass hash compare below
-// already re-verifies EVERY unit's identity every single pass -- a strict
-// superset of a 150-tick cadence -- so this heartbeat cannot find a mismatch
-// the per-pass check missed; it exists as an explicit, spec-literal log line
-// for QA visibility (distinct from the immediate dirty-edge log lines).
+// passes between safety-rescan heartbeat log lines
 constexpr uint64_t kSafetyRescanPasses = 150;
 
-// ah-defect retry cadence (2026-07-09). Generated creatures (demons/bogeymen/nightmares)
-// that DF has never RENDERED carry no texpos_currently_in_use, so the census never marks them
-// dirty and no composite ("ah") record is ever produced (641/1873 frozen on the pause-locked
-// range world). The per-pass hash check DOES catch a unit the moment its texpos appears -- but
-// only if a pass happens to run after the render, and the change is consumed exactly once. This
-// wall-clock-gated retry (independent of sim ticks -- the world is paused) periodically
-// re-enqueues record-less units whose texpos is NOW populated, so a composite is produced as
-// soon as a player's camera has rendered them. Bounded to record-less + already-rendered units,
-// so it never spends the export worker on units with nothing to copy.
+// Record-retry cadence, keyed on the WALL CLOCK rather than sim ticks so it still fires while the
+// world is paused. A unit DF has never rendered has no texpos, so nothing ever marks it dirty.
 constexpr auto kRecordRetryInterval = std::chrono::seconds(7);
 
-// Defensive cap on the dirty queue (coalesced by id, so it can only reach
-// the tracker's size in practice -- this guards against a future bug, not
-// normal operation).
+// defensive cap on the dirty queue (coalesced by id, so normal operation stays far below it)
 constexpr size_t kMaxDirtyQueue = 4096;
 
 struct UnitTexState {
@@ -112,20 +100,16 @@ std::deque<int32_t> g_dirty_queue;
 std::unordered_set<int32_t> g_dirty_set;   // membership mirror of g_dirty_queue
 uint64_t g_pass_gen = 0;
 uint64_t g_last_heartbeat_pass = 0;
-UnitCensusStats g_last_stats;
-// ah-defect retry (see kRecordRetryInterval): wall-clock timestamp of the last retry sweep.
+// wall-clock timestamp of the last record-retry sweep
 std::chrono::steady_clock::time_point g_last_record_retry{};
 
 std::atomic<bool> g_enabled{false};
 
-// ah-defect retry helper: fill `out` with the ids that currently HAVE a composite record.
-// Defined after the WE-2 g_records map (below in this TU -- an anonymous-namespace global is
-// visible throughout the translation unit); forward-declared here so unit_census_pass can call
-// it. Takes one g_records_mu lock per retry sweep (every ~7s), so it is not a hot path.
+// Fills `out` with the ids that already have a composite record. One g_records_mu lock per sweep.
 void census_collect_record_ids(std::unordered_set<int32_t>& out);
 
 uint64_t hash_identity(const int32_t texpos[3][2], const bool in_use[3][2]) {
-    uint64_t h = 1469598103934665603ull;
+    uint64_t h = kFnvOffsetBasis;
     h = fnv1a(h, texpos, sizeof(int32_t) * 6);
     h = fnv1a(h, in_use, sizeof(bool) * 6);
     return h;
@@ -155,9 +139,8 @@ UnitCensusStats unit_census_pass(const std::vector<df::unit*>& active) {
     ++g_pass_gen;
     const uint64_t pass = g_pass_gen;
 
-    // ah-defect retry: is a wall-clock retry sweep due this pass? If so, snapshot the ids that
-    // already have a composite record ONCE (one g_records_mu lock), so the per-unit test below
-    // is a cheap set lookup. Only record-less units that DF has already rendered get re-enqueued.
+    // Snapshot the ids that already have a record ONCE per sweep, so the per-unit test below is a
+    // set lookup instead of a lock.
     const auto now = std::chrono::steady_clock::now();
     const bool retry_due = (now - g_last_record_retry) >= kRecordRetryInterval;
     std::unordered_set<int32_t> have_record;
@@ -176,11 +159,8 @@ UnitCensusStats unit_census_pass(const std::vector<df::unit*>& active) {
         const int32_t id = u->id;
         seen.insert(id);
 
-        // WE-5's own rule, applied here too: DF never composites an
-        // undetected ambusher or a unit standing on an unrevealed tile, so
-        // there is nothing to track yet. Leave any existing tracker entry
-        // untouched (it may become relevant again the moment the unit is
-        // revealed / the ambush ends) rather than purge it.
+        // DF composites nothing for a hidden ambusher or a unit on an unrevealed tile. Leave any
+        // tracker entry alone rather than purge it: it matters again the moment the unit shows.
         if (u->flags1.bits.hidden_in_ambush) { ++stats.units_skipped_hidden; continue; }
         {
             df::map_block* ublk = Maps::getTileBlock(u->pos);
@@ -228,22 +208,16 @@ UnitCensusStats unit_census_pass(const std::vector<df::unit*>& active) {
                               reason + ")");
         }
 
-        // ah-defect retry: on a wall-clock cadence, re-enqueue a unit that has NO composite
-        // record yet but whose texpos is NOW populated (DF has rendered it since -- e.g. a
-        // player's camera passed over a never-before-drawn generated creature). The normal
-        // dirty path only fires on a CHANGE and only if a pass runs at the right moment; this
-        // is the belt-and-braces sweep that un-freezes the 641/1873 stuck records. Gated to
-        // texpos-present (new_texpos[0][0] != 0) so we never re-queue a unit with nothing to
-        // copy, and to record-less units so it is bounded and cheap. enqueue_dirty_locked
-        // dedups against anything already queued this pass.
+        // Re-enqueue a unit that has no composite record but whose texpos is now populated. Gated
+        // to texpos-present and record-less units, so it never queues a unit with nothing to copy.
         if (retry_due && !dirty && new_texpos[0][0] != 0 && !have_record.count(id)) {
             enqueue_dirty_locked(id);
             ++retry_requeued;
         }
     }
 
-    // Purge tracker entries for ids no longer present in `active` at all --
-    // DF recycles unit slots, so a stale id must never be trusted (scout §3).
+    // Purge tracker entries for ids no longer active: DF recycles unit slots, so a stale id must
+    // never be trusted.
     for (auto it = g_tracker.begin(); it != g_tracker.end(); ) {
         if (seen.count(it->first)) { ++it; continue; }
         g_dirty_set.erase(it->first);
@@ -253,7 +227,6 @@ UnitCensusStats unit_census_pass(const std::vector<df::unit*>& active) {
 
     stats.tracker_size = (int)g_tracker.size();
     stats.queue_size = (int)g_dirty_queue.size();
-    g_last_stats = stats;
 
     if (retry_due && retry_requeued > 0) {
         diagnostics_log_v("unit-census: ah-defect retry re-enqueued " +
@@ -261,11 +234,6 @@ UnitCensusStats unit_census_pass(const std::vector<df::unit*>& active) {
                           " record-less rendered unit(s) for export");
     }
 
-    // Safety-rescan heartbeat (spec: slow ~150-tick cadence). The per-pass hash
-    // compare above already re-verifies every unit's identity on EVERY pass -- a
-    // strict superset of the 150-tick rescan -- so this is a single QA-visible
-    // log line per cadence window, not extra reads. Logged ONCE per crossing
-    // (not per unit; that spammed 1 line/unit in the first cut).
     if (pass - g_last_heartbeat_pass >= kSafetyRescanPasses) {
         g_last_heartbeat_pass = pass;
         diagnostics_log_v("unit-census: safety rescan pass " + std::to_string(pass) +
@@ -290,83 +258,77 @@ size_t drain_dirty_queue(std::vector<int32_t>& out, size_t max) {
     return n;
 }
 
-UnitCensusStats unit_census_last_stats() {
-    std::lock_guard<std::mutex> lock(g_mu);
-    return g_last_stats;
-}
-
-size_t unit_census_tracker_size() {
-    std::lock_guard<std::mutex> lock(g_mu);
-    return g_tracker.size();
-}
-
-// ===========================================================================
-// WE-2 -- composite export service. See unit_sprites.h for the design note;
-// this block is self-contained (its own mutexes, its own background thread)
-// so it never needs to touch the WE-1 tracker's internals beyond the public
-// drain_dirty_queue() hook WE-1 already exposes for this purpose.
-// ===========================================================================
+// ---- composite export service: its own mutexes, its own background thread -----------------------
 namespace {
 
 #ifdef _WIN32
 int we2_seh_filter(struct _EXCEPTION_POINTERS*) { return EXCEPTION_EXECUTE_HANDLER; }
 #endif
 
-// One copied texpos cell's pixels, in the R,G,B,A memory order that
-// DFSDL_ConvertSurface(..., SDL_PIXELFORMAT_ABGR8888, ...) produces on a
-// little-endian machine (same normalisation tile_dump.cpp's dump_atlas_impl
-// uses -- see its comment for why ABGR8888 is the "RGBA on little-endian"
-// target format).
+// One copied texpos cell's pixels, in the R,G,B,A memory order DFSDL_ConvertSurface produces for
+// SDL_PIXELFORMAT_ABGR8888 on a little-endian machine.
 struct CellPixels {
     int i = 0, j = 0;   // original unit.texpos[i][j] indices (col, row-from-top)
     int w = 0, h = 0;   // this cell's pixel dimensions (32x32 for the standard tileset)
     std::vector<uint8_t> rgba;
 };
 
-// Allocated once and never freed (DFSDL exposes no DFSDL_FreeFormat -- same
-// one-shot-leak tradeoff tile_dump.cpp's dump_atlas_impl documents). Unlike
-// dump_atlas_impl (called once per manual /tiledump?atlas=1), this function
-// is called once per dirty unit for the life of the plugin, so allocating a
-// fresh SDL_PixelFormat every call would be a real per-export leak -- cache it.
+// Allocated once and never freed -- DFSDL exposes no DFSDL_FreeFormat. This runs once per dirty
+// unit, so allocating a fresh format per call would be a real per-export leak.
 SDL_PixelFormat* abgr8888_format() {
     static SDL_PixelFormat* fmt = DFHack::DFSDL::DFSDL_AllocFormat(SDL_PIXELFORMAT_ABGR8888);
     return fmt;
 }
 
-// Object-owning worker (locals with destructors), called only from the SEH
-// wrapper below -- never contains __try itself (MSVC C2712: __try cannot
-// coexist with unwindable locals in the same function; tile_dump.cpp's
-// dump_atlas/dump_atlas_impl split exists for the same reason).
-bool copy_unit_texture_cells_impl(df::unit* u, std::vector<CellPixels>& cells, std::string* err) {
+bool copy_texpos_cell(int32_t tp, int i, int j, CellPixels& cp) {
     auto en = df::global::enabler;
-    if (!en) { if (err) *err = "no enabler"; return false; }
-    auto& raws = en->textures.raws;
+    if (!en || tp <= 0 || static_cast<size_t>(tp) >= en->textures.raws.size()) return false;
+    SDL_Surface* s = reinterpret_cast<SDL_Surface*>(en->textures.raws[tp]);
+    if (!s || !s->pixels || s->w <= 0 || s->h <= 0) return false;
     SDL_PixelFormat* fmt = abgr8888_format();
+    SDL_Surface* conv = fmt ? DFHack::DFSDL::DFSDL_ConvertSurface(s, fmt, 0) : nullptr;
+    SDL_Surface* use = conv ? conv : s;
+    cp.i = i; cp.j = j; cp.w = use->w; cp.h = use->h;
+    cp.rgba.resize(static_cast<size_t>(use->w) * use->h * 4);
+    for (int y = 0; y < use->h; ++y)
+        std::memcpy(cp.rgba.data() + static_cast<size_t>(y) * use->w * 4,
+                    reinterpret_cast<const uint8_t*>(use->pixels) + static_cast<size_t>(y) * use->pitch,
+                    static_cast<size_t>(use->w) * 4);
+    if (conv) DFHack::DFSDL::DFSDL_FreeSurface(conv);
+    return true;
+}
+
+bool copy_texpos_cell_safe(int32_t tp, int i, int j, CellPixels& cp) {
+    bool ok = false;
+#ifdef _WIN32
+    __try {
+#endif
+        ok = copy_texpos_cell(tp, i, j, cp);
+#ifdef _WIN32
+    } __except (we2_seh_filter(GetExceptionInformation())) {
+        ok = false;
+    }
+#endif
+    return ok;
+}
+
+
+// Object-owning half, called only from the SEH wrapper below: MSVC C2712 forbids __try in a
+// function that also has unwindable locals.
+bool copy_unit_texture_cells_impl(df::unit* u, std::vector<CellPixels>& cells, std::string* err) {
+    if (!df::global::enabler) { if (err) *err = "no enabler"; return false; }
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 2; ++j) {
             if (!u->texpos_currently_in_use[i][j]) continue;
-            int32_t tp = u->texpos[i][j];
-            if (tp <= 0 || static_cast<size_t>(tp) >= raws.size()) continue;
-            SDL_Surface* s = reinterpret_cast<SDL_Surface*>(raws[tp]);
-            if (!s || !s->pixels || s->w <= 0 || s->h <= 0) continue;
-            SDL_Surface* conv = fmt ? DFHack::DFSDL::DFSDL_ConvertSurface(s, fmt, 0) : nullptr;
-            SDL_Surface* use = conv ? conv : s;
             CellPixels cp;
-            cp.i = i; cp.j = j; cp.w = use->w; cp.h = use->h;
-            cp.rgba.resize(static_cast<size_t>(use->w) * use->h * 4);
-            for (int y = 0; y < use->h; ++y)
-                std::memcpy(cp.rgba.data() + static_cast<size_t>(y) * use->w * 4,
-                            reinterpret_cast<const uint8_t*>(use->pixels) + static_cast<size_t>(y) * use->pitch,
-                            static_cast<size_t>(use->w) * 4);
-            cells.push_back(std::move(cp));
-            if (conv) DFHack::DFSDL::DFSDL_FreeSurface(conv);
+            if (copy_texpos_cell(u->texpos[i][j], i, j, cp)) cells.push_back(std::move(cp));
         }
     }
     return true; // an empty `cells` (all slots blank/out-of-range) is a valid outcome
 }
 
-// SEH wrapper only -- no unwindable locals. Never dereferences a texpos slot
-// outside this one render-thread hop (scout §3: DF recycles slots).
+// SEH wrapper only -- no unwindable locals. Never dereferences a texpos slot outside this one
+// render-thread hop: DF recycles slots.
 bool copy_unit_texture_cells(df::unit* u, std::vector<CellPixels>& cells, std::string* err) {
     bool ok = false;
 #ifdef _WIN32
@@ -390,12 +352,8 @@ struct AssembledSprite {
     std::vector<uint8_t> rgba;  // R,G,B,A memory order, (sw*cell_w) x (sh*cell_h)
 };
 
-// Span/anchor rule (scout §3, spec WE-2 step 3): the bounding box is driven
-// by which texpos SLOTS are in use (structural signal), not by which pixels
-// happen to be non-transparent -- a legitimately blank allocated cell must
-// still occupy its place in the span ("keep geometry"). anchor col = 0 if
-// sw==1 else 1; anchor row = sh-1 (bottom row -- DF's texpos[i][j] is
-// row-from-top, so the unit's own tile is always the LAST row in the span).
+// The span is driven by which texpos SLOTS are in use, not by which pixels are non-transparent: a
+// blank allocated cell still holds its place. texpos j is row-from-top, so the unit is the last row.
 bool assemble_sprite(const std::vector<CellPixels>& cells, const bool in_use[3][2],
                      AssembledSprite& out) {
     int min_i = 3, max_i = -1, min_j = 2, max_j = -1;
@@ -436,10 +394,8 @@ bool assemble_sprite(const std::vector<CellPixels>& cells, const bool in_use[3][
     return true;
 }
 
-// CapturedFrame.bgra is B,G,R,A memory order (GDI+'s PixelFormat32bppARGB
-// native layout -- see image_encoder.cpp); the assembled sprite is R,G,B,A
-// (ABGR8888-converted). Swap channels 0/2 so encode_png's output PNG has the
-// correct standard R,G,B,A pixel values.
+// CapturedFrame.bgra is B,G,R,A (GDI+ 32bppARGB) while the assembled sprite is R,G,B,A, so swap
+// channels 0 and 2 to make encode_png write standard RGBA.
 CapturedFrame to_captured_frame_bgra(const AssembledSprite& sp) {
     CapturedFrame f;
     f.width = sp.sw * sp.cell_w;
@@ -460,8 +416,7 @@ std::string to_hex16(uint64_t v) {
     return std::string(buf, 16);
 }
 
-// Content-addressed LRU PNG cache (spec: cap 1024 entries). Guarded by its
-// own mutex, independent of the WE-1 tracker's g_mu.
+// Content-addressed LRU PNG cache, guarded by its own mutex, independent of the census tracker's.
 struct CacheEntry {
     std::vector<uint8_t> png;
     std::list<std::string>::iterator lru_it;
@@ -479,8 +434,7 @@ bool cache_get_locked(const std::string& hash, std::vector<uint8_t>& out) {
     return true;
 }
 
-// Returns true iff `hash` was newly inserted (a genuinely new appearance);
-// false if it already existed (content-addressed dedup hit -- `png` unused).
+// True iff `hash` was newly inserted; false on a content-addressed dedup hit, where `png` is unused.
 bool cache_put_locked(const std::string& hash, std::vector<uint8_t> png, uint64_t& evictions) {
     auto it = g_cache.find(hash);
     if (it != g_cache.end()) {
@@ -501,21 +455,18 @@ bool cache_put_locked(const std::string& hash, std::vector<uint8_t> png, uint64_
     return true;
 }
 
-// unit_id -> current composite record. WE-3 will read this to populate the
-// AUX wire's "ah"/"sw"/"sh"/"ax"/"ay" fields; the /unit-sprite listing route
-// reads it as this item's interim/QA surface.
+// unit_id -> current composite record; the source of the AUX wire's "ah"/"sw"/"sh"/"ax"/"ay" fields.
 std::mutex g_records_mu;
 std::unordered_map<int32_t, UnitSpriteRecord> g_records;
 
-// ah-defect retry helper (forward-declared near the WE-1 tracker). One lock per ~7s retry sweep.
+// One g_records_mu lock per retry sweep.
 void census_collect_record_ids(std::unordered_set<int32_t>& out) {
     std::lock_guard<std::mutex> lock(g_records_mu);
     out.reserve(g_records.size());
     for (const auto& kv : g_records) out.insert(kv.first);
 }
 
-// Accumulated counters for /diag; cache_size/records_tracked are read live
-// from their own containers at snapshot time rather than double-booked here.
+// Accumulated /diag counters. cache_size and records_tracked are read live from their containers.
 std::mutex g_stats_mu;
 uint64_t g_exports_attempted = 0;
 uint64_t g_exports_succeeded = 0;
@@ -541,13 +492,8 @@ struct BatchUnitCopy {
     std::vector<CellPixels> cells;
 };
 
-// One render-thread hop for a whole batch of dirty unit ids (spec: "drain
-// the WE-1 dirty queue at most once per render frame"). CoreSuspender budget
-// is ZERO -- runOnRenderThread hops onto DF's render thread, not a
-// core-suspended context (same LAW tile_dump.cpp's header comment states).
-// Hashing + PNG encoding happen back on the CALLING thread (the export
-// worker, or the HTTP handler thread for unit_sprite_export_now), never on
-// the render thread itself, per spec step 2.
+// runOnRenderThread hops onto DF's render thread, not a core-suspended context, so the
+// CoreSuspender budget here is ZERO; hashing and PNG encoding stay on the calling thread.
 void export_batch_on_render_thread(const std::vector<int32_t>& ids) {
     auto prom = std::make_shared<std::promise<std::vector<BatchUnitCopy>>>();
     auto fut = prom->get_future();
@@ -561,7 +507,7 @@ void export_batch_on_render_thread(const std::vector<int32_t>& ids) {
             bc.unit_id = id;
             df::unit* u = df::unit::find(id);
             if (u) {
-                std::memcpy(bc.in_use, u->texpos_currently_in_use, sizeof(bc.in_use));
+                std::memcpy(bc.in_use, u->texpos_currently_in_use.data(), sizeof(bc.in_use));
                 std::string cerr;
                 if (copy_unit_texture_cells(u, bc.cells, &cerr)) {
                     bc.found = true;
@@ -603,7 +549,7 @@ void export_batch_on_render_thread(const std::vector<int32_t>& ids) {
             continue;
         }
 
-        uint64_t h = 1469598103934665603ull;
+        uint64_t h = kFnvOffsetBasis;
         h = fnv1a(h, sp.rgba.data(), sp.rgba.size());
         struct { int32_t sw, sh, cw, ch; } dims{sp.sw, sp.sh, sp.cell_w, sp.cell_h};
         h = fnv1a(h, &dims, sizeof(dims));
@@ -650,14 +596,8 @@ void export_batch_on_render_thread(const std::vector<int32_t>& ids) {
     g_last_render_hop_ms = hop_ms;
 }
 
-// Background worker: polls WE-1's dirty queue and exports. Parks on a short
-// wait (woken early by set_unit_sprite_export_enabled) when the feature flag
-// is off, doing no reads/allocation at all -- mirrors unit_census_pass()'s
-// no-op-when-disabled contract. There is no ambient "once per render frame"
-// hook available to this module (that lives in the WA-9 read pass / WA-11's
-// push loop, out of this item's territory), so a ~30Hz timer is the closest
-// available proxy for the spec's per-frame cadence; the ≤32-units-per-hop
-// cap is the actual budget guarantee, not the wake interval.
+// Polls the census's dirty queue. While the feature flag is off it parks doing no reads or
+// allocation at all; the <=32-units-per-hop cap is the budget guarantee, not the wake interval.
 void export_worker_loop() {
     std::vector<int32_t> batch_ids;
     while (!g_worker_stop.load(std::memory_order_relaxed)) {
@@ -730,15 +670,119 @@ UnitSpriteExportStats unit_sprite_export_stats() {
     return s;
 }
 
-bool unit_sprite_export_now(int32_t unit_id, UnitSpriteRecord& out, std::string* err) {
-    export_batch_on_render_thread(std::vector<int32_t>{unit_id});
-    std::lock_guard<std::mutex> lock(g_records_mu);
-    auto it = g_records.find(unit_id);
-    if (it == g_records.end()) {
-        if (err) *err = "unit has no in-use texpos slot (no composite to export right now)";
+bool unit_sprite_export_key(int32_t unit_id, int32_t race, int32_t caste,
+                            const std::string& path, int profession,
+                            UnitSpriteRecord& out, std::string* err) {
+    struct NativeCopy {
+        bool found = false;
+        bool in_use[3][2] = {{false, false}, {false, false}, {false, false}};
+        std::vector<CellPixels> cells;
+        std::string error;
+    };
+    auto prom = std::make_shared<std::promise<NativeCopy>>();
+    auto fut = prom->get_future();
+    DFHack::runOnRenderThread([unit_id, race, caste, path, profession, prom]() {
+        NativeCopy nc;
+        df::unit* u = df::unit::find(unit_id);
+        auto world = df::global::world;
+        if (!world) {
+            nc.error = "world not loaded"; prom->set_value(std::move(nc)); return;
+        }
+        int32_t race_index = u ? u->race : race;
+        int32_t caste_index = u ? u->caste : caste;
+        df::creature_raw* cr = race_index >= 0 && static_cast<size_t>(race_index) < world->raws.creatures.all.size()
+                             ? world->raws.creatures.all[race_index] : nullptr;
+        df::caste_raw* ca = cr && caste_index >= 0 && static_cast<size_t>(caste_index) < cr->caste.size()
+                          ? cr->caste[caste_index] : nullptr;
+        df::creature_raw_graphics* graphics = ca && ca->caste_graphics ? ca->caste_graphics
+                                            : (cr ? cr->graphics : nullptr);
+        int32_t scalar = 0;
+        if (path == "sheet_icon_texpos" && u) scalar = u->sheet_icon_texpos;
+        else if (graphics) {
+            if (path == "egg_texpos") scalar = graphics->egg_texpos;
+            else if (path == "list_icon_texpos") scalar = graphics->list_icon_texpos;
+            else if (path == "skeleton_with_skull_texpos") scalar = graphics->skeleton_with_skull_texpos;
+            else if (path == "skeleton_texpos") scalar = graphics->skeleton_texpos;
+            else if (path == "texpos_glow") scalar = graphics->texpos_glow;
+            else if (path == "texpos_glow_left_gone") scalar = graphics->texpos_glow_left_gone;
+            else if (path == "texpos_glow_right_gone") scalar = graphics->texpos_glow_right_gone;
+            else if (path == "texpos_glow_child") scalar = graphics->texpos_glow_child;
+            else if (path.rfind("creature_small_texpos[", 0) == 0 && path.back() == ']') {
+                static const char* names[] = {"VERMIN", "VERMIN_ALT", "SWARM_LARGE", "SWARM_MEDIUM",
+                    "SWARM_SMALL", "LIGHT_VERMIN", "LIGHT_VERMIN_ALT", "LIGHT_SWARM_LARGE",
+                    "LIGHT_SWARM_MEDIUM", "LIGHT_SWARM_SMALL", "REMAINS", "HIVE"};
+                std::string name = path.substr(22, path.size() - 23);
+                for (int idx = 0; idx <= (int)df::creature_small_texture_type::HIVE; ++idx)
+                    if (name == names[idx]) { scalar = graphics->creature_small_texpos[idx]; break; }
+            } else if (path == "layer_unitless") {
+                int max_prof = (int)df::profession::STANDARD;
+                int p = std::max(0, std::min(max_prof, profession));
+                for (int i = 0; i < 3; ++i) for (int j = 0; j < 2; ++j) {
+                    auto& cells = graphics->layer_unitless_texpos[p][i][j];
+                    if (cells.empty()) continue;
+                    CellPixels cp;
+                    if (copy_texpos_cell_safe(cells.front(), i, j, cp)) {
+                        nc.in_use[i][j] = true;
+                        nc.cells.push_back(std::move(cp));
+                    }
+                }
+            }
+        }
+        if (!scalar && df::global::gps) {
+            // Frozen oracle global list/fallback cells. Slots are table-relative, never texpos.
+            if (path == "generated_feature_beast_list_icon") scalar = df::global::gps->texture_indices4[1115];
+            else if (path == "generated_titan_list_icon") scalar = df::global::gps->texture_indices4[1116];
+            else if (path == "generated_demon_list_icon") scalar = df::global::gps->texture_indices4[1117];
+            else if (path == "generated_night_creature_list_icon") scalar = df::global::gps->texture_indices4[1118];
+            else if (path == "generated_other_list_icon") scalar = df::global::gps->texture_indices4[1119];
+            else if (path == "corpse_resolution_failed") scalar = df::global::gps->texture_indices7[236];
+            else if (path == "vermin_list_icon_fallback") scalar = df::global::gps->texture_indices7[241];
+            else if (path == "creature_resolution_failed") scalar = df::global::gps->texture_indices7[416];
+            else if (path == "portrait_frame_default") scalar = df::global::gps->texture_indices3[657];
+            else if (path == "portrait_frame_variant_a") scalar = df::global::gps->texture_indices3[658];
+            else if (path == "portrait_frame_variant_b") scalar = df::global::gps->texture_indices3[659];
+            else if (path == "portrait_frame_fallback") scalar = df::global::gps->texture_indices3[660];
+        }
+        if (scalar) {
+            CellPixels cp;
+            if (copy_texpos_cell_safe(scalar, 0, 0, cp)) {
+                nc.in_use[0][0] = true;
+                nc.cells.push_back(std::move(cp));
+            }
+        }
+        nc.found = !nc.cells.empty();
+        if (!nc.found && nc.error.empty()) nc.error = "native creature key has no texture";
+        prom->set_value(std::move(nc));
+    });
+    if (fut.wait_for(std::chrono::seconds(5)) != std::future_status::ready) {
+        if (err) *err = "native creature key render-thread hop timed out";
         return false;
     }
-    out = it->second;
+    NativeCopy nc = fut.get();
+    if (!nc.found) { if (err) *err = nc.error; return false; }
+    AssembledSprite sp;
+    if (!assemble_sprite(nc.cells, nc.in_use, sp)) {
+        if (err) *err = "native creature key did not assemble";
+        return false;
+    }
+    uint64_t h = kFnvOffsetBasis;
+    h = fnv1a(h, sp.rgba.data(), sp.rgba.size());
+    struct { int32_t sw, sh, cw, ch; } dims{sp.sw, sp.sh, sp.cell_w, sp.cell_h};
+    h = fnv1a(h, &dims, sizeof(dims));
+    const std::string hash = to_hex16(h);
+    {
+        std::lock_guard<std::mutex> lock(g_cache_mu);
+        std::vector<uint8_t> existing;
+        if (!cache_get_locked(hash, existing)) {
+            CapturedFrame frame = to_captured_frame_bgra(sp);
+            std::vector<uint8_t> png;
+            std::string perr;
+            if (!encode_png(frame, png, &perr)) { if (err) *err = perr; return false; }
+            uint64_t evictions = 0;
+            cache_put_locked(hash, std::move(png), evictions);
+        }
+    }
+    out.hash = hash; out.sw = sp.sw; out.sh = sp.sh; out.ax = sp.ax; out.ay = sp.ay;
     return true;
 }
 

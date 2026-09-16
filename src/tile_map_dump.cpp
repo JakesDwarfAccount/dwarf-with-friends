@@ -19,27 +19,15 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// ===========================================================================
-// WS2 MAP-DATA PIVOT -- crash-safe tile streaming proof-of-concept.
-//
-// Reference implementation copied from DFHack's own RemoteFortressReader
-// (plugins/remotefortressreader/RemoteFortressReader.cpp): CopyBlock (rfr:930),
-// CopyDesignation (rfr:1037), CopyBuildings (rfr:1221), GetUnitList (rfr:1659).
-// Those read stable SIMULATION structures and never crash; approach A scraped
-// graphic_viewportst.screentexpos_* (render OUTPUT) and crashed DF 3x.
-//
-// APPROACH-A-FREE INVARIANT: this file references NONE of graphic_viewportst,
-// screentexpos_*, SDL_RenderReadPixels, or any offscreen render. It only reads
-// Maps::getBlock / MapExtras::MapCache / world->units.active / world->buildings.all,
-// all under DFHack::CoreSuspender (the same "core already suspended" safe context
-// RFR's RPC handlers run in). Every block is null-checked (unrevealed/edge blocks
-// are null) and skipped rather than dereferenced.
-// ===========================================================================
+// Crash-safe tile / unit / building reads over DF's stable sim structures, under CoreSuspender.
 
 #include "tile_map_dump.h"
+#include "tile_material.h"
+#include "common_util.h"
 #include "diagnostics.h"
+#include "json_util.h"
 #include "unit_sprites.h"
-#include "unit_status.h"    // B222: shared overhead-status st bits (kUStat*/unit_status_bits)
+#include "unit_status.h"    // Shared overhead-status st bits (kUStat*/unit_status_bits)
 
 #include "Core.h"
 #include "DataDefs.h"
@@ -74,9 +62,9 @@
 #include "df/caste_raw.h"
 #include "df/block_square_event.h"
 #include "df/block_square_event_material_spatterst.h"
-#include "df/block_square_event_item_spatterst.h"   // WC-11: item-spatter (leaves/fruit)
-#include "df/flow_info.h"                            // WC-15: block->flows (mist/smoke/...)
-#include "df/plant_growth.h"                         // WC-11: growth token -> growth_class
+#include "df/block_square_event_item_spatterst.h"   // item-spatter (leaves/fruit)
+#include "df/flow_info.h"                            // block->flows (mist/smoke/...)
+#include "df/plant_growth.h"                         // Growth token -> growth_class
 #include "df/material.h"
 #include "df/descriptor_color.h"
 #include "df/matter_state.h"
@@ -98,38 +86,6 @@ using namespace DFHack;
 namespace dwf {
 namespace {
 
-void mkdirs(const std::string& p) {
-#ifdef _WIN32
-    std::string cur;
-    for (char c : p) {
-        cur.push_back(c);
-        if (c == '/' || c == '\\') _mkdir(cur.c_str());
-    }
-    _mkdir(p.c_str());
-#endif
-}
-
-// Minimal JSON string escaper (unit/building names may carry quotes/backslashes).
-std::string json_escape(const std::string& s) {
-    std::string o;
-    o.reserve(s.size() + 8);
-    for (unsigned char c : s) {
-        switch (c) {
-            case '"':  o += "\\\""; break;
-            case '\\': o += "\\\\"; break;
-            case '\n': o += "\\n";  break;
-            case '\r': o += "\\r";  break;
-            case '\t': o += "\\t";  break;
-            default:
-                // Control chars AND high bytes (>=0x80, DF's CP437 name glyphs) become \u00XX so
-                // the JSON is valid UTF-8 (raw CP437 bytes are not, and broke the parser).
-                if (c < 0x20 || c >= 0x80) { char b[8]; std::snprintf(b, sizeof(b), "\\u%04x", c); o += b; }
-                else o.push_back((char)c);
-        }
-    }
-    return o;
-}
-
 // Does building [x1,x2] x [y1,y2] at z overlap the viewport rect?
 bool building_in_view(df::building* b, int ox, int oy, int oz, int w, int h) {
     if (!b) return false;
@@ -141,27 +97,16 @@ bool building_in_view(df::building* b, int ox, int oy, int oz, int w, int h) {
 
 } // namespace
 
-// ===========================================================================
-// SHARED PER-TILE / PER-OBJECT EMITTERS.
-// emit_tile_fields / emit_units / emit_buildings hold the EXACT wire:5 field
-// emission and are shared by the full-frame reader (build_map_json_impl, used by
-// HTTP /mapdata + the capture-mapdump command) and the v1 wire encoder
-// (wire_v1.cpp::encode_block, which ports the same reads minus see-down descent
-// and wallnbr -- see the WA spec §0.3.1).
-// ===========================================================================
+// ---- shared per-tile / per-object emitters ------------------------------------------------------
 
-// Emit ONE tile object (the wire:5 fields) for the tile at (tx,ty) on z=oz into `js`.
-// When include_xy is true the object is prefixed with "x":tx,"y":ty (the delta path);
-// the full-frame path passes false for byte-identical legacy output. Returns true if a
-// real tile was written, false for a null/edge {"tt":-1} marker. All reads are the
-// crash-safe Maps::getTileBlock / MapCache / block->items / block->block_events /
-// column->plants, every pointer null-checked, under the caller's CoreSuspender.
+// Emits ONE tile object at (tx,ty) on z=oz; false means a null/edge {"tt":-1} marker was written.
+// include_xy=false keeps the full-frame output byte-identical to the legacy inline reader.
 static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
                              df::world* world, int tiles_x, int tiles_y,
                              int tx, int ty, int oz, bool include_xy) {
     auto put_xy = [&]() { if (include_xy) js << "\"x\":" << tx << ",\"y\":" << ty << ","; };
 
-    // wire:3 helper: is the tile at (x,y,z) a WALL? Crash-safe.
+    // Is the tile at (x,y,z) a WALL? Crash-safe.
     auto tile_is_wall = [&](int x, int y, int z) -> bool {
         if (x < 0 || y < 0 || x >= tiles_x || y >= tiles_y) return false;
         df::map_block* nb = Maps::getTileBlock(df::coord(x, y, z));
@@ -194,11 +139,6 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
     df::tile_occupancy   top_occ = block->occupancy[lx][ly];
 
     int base_mt = -1, base_mi = -1;
-    MapExtras::Block* mcb = MC.BlockAtTile(tpos);
-    if (mcb) {
-        t_matpair bm = mcb->baseMaterialAt(df::coord2d(lx, ly));
-        base_mt = bm.mat_type; base_mi = bm.mat_index;
-    }
 
     auto is_open = [](df::tiletype_shape s, df::tiletype_material m) {
         return s == df::tiletype_shape::EMPTY
@@ -207,20 +147,7 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
     };
     int depth = 0;
     if (!des.bits.hidden && is_open(shp, tmat)) {
-        // BUGFIX (window-parity M1 follow-up, docs/superpowers/plans/2026-07-07-overnight-
-        // run-orders.md ledger): MAX_DEPTH was 10, which is NOT deep enough for ordinary
-        // outdoor terrain -- live-verified at camera (53,75,172): the real ground in that
-        // column is a FULL 10 z-levels of open sky below the camera PLUS the actual floor
-        // one level further (i.e. depth 11), so the old cap silently exhausted its budget
-        // one level short and reported "no substitution" even though solid ground existed
-        // in the very same column, just past the search horizon -- explaining the
-        // near-total "0/100-400 tiles ever carry a depth field" finding (most outdoor
-        // camera placements sit more than 10 z above the surface). Raised to 60, comfortably
-        // covering realistic DF surface-to-sky spans (a modern embark's playable Z range is
-        // usually well under a hundred levels) while staying a bounded, cheap
-        // (getTileBlock + a tiletype/designation read) per-tile loop that only runs its full
-        // length for genuinely-open columns with no floor at all (e.g. true void above the
-        // world), same cost class as before.
+        // z-levels of see-down search; 10 fell short of ordinary outdoor sky-to-ground spans
         const int MAX_DEPTH = 60;
         for (int dz = 1; dz <= MAX_DEPTH; ++dz) {
             int lz = oz - dz;
@@ -239,16 +166,12 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
             tt = ltt; shp = lshp; tmat = lmat; spc = lspc; des = ldes; flow = lflow;
             depth = dz;
             fblk = lblk; fpos = lpos;
-            base_mt = -1; base_mi = -1;
-            MapExtras::Block* lmcb = MC.BlockAtTile(lpos);
-            if (lmcb) {
-                t_matpair lbm = lmcb->baseMaterialAt(df::coord2d(lx, ly));
-                base_mt = lbm.mat_type; base_mi = lbm.mat_index;
-            }
+
             break;
         }
     }
 
+    resolve_tile_material(MC, fpos, tmat, base_mt, base_mi);
     std::string extra;
 
     if (shp == df::tiletype_shape::WALL) {
@@ -267,16 +190,12 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
         for (size_t ii = 0; ii < fblk->items.size() && scanned < ITEM_SCAN_CAP; ++ii, ++scanned) {
             df::item* it = df::item::find(fblk->items[ii]);
             if (!it) continue;
-            // WC-1: hidden items (INTERFACE_INVISIBLE) are never drawn by DF -- skip them
-            // from topmost-item candidacy (same rule as the wire_v1 ITEM tail encoder).
+            // Hidden items are never drawn by DF, so one can never be the topmost item.
             if (it->flags.bits.hidden) continue;
             if (it->pos.x == fpos.x && it->pos.y == fpos.y && it->pos.z == fpos.z)
                 top = it;
         }
         if (top) {
-            // WC-1: subtype (-1 when none), iflags (web/forbid/dump/melt/on_fire bitmask,
-            // same encoding as the wire_v1 ITEM tail), stack (item_actual::stack_size,
-            // RFR item_reader.cpp:435-439 pattern; 1 when not item_actual-derived).
             int iflags = 0;
             if (top->flags.bits.spider_web) iflags |= 0x01;
             if (top->flags.bits.forbid)     iflags |= 0x02;
@@ -317,9 +236,8 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
                     for (size_t pi = 0; pi < col->plants.size() && pi < PLANT_CAP; ++pi) {
                         df::plant* pl = col->plants[pi];
                         if (!pl) continue;
-                        // column->plants spans all z-levels at this x/y. Without z this legacy /mapdata
-                        // emitter can borrow an unrelated plant's raw id (B90), so its species
-                        // tail must use the same exact-position predicate as wire_v1.cpp.
+                        // column->plants spans every z at this x/y, so the species tail must use
+                        // the exact-position predicate or it borrows an unrelated plant's raw id.
                         if (pl->pos.x == fpos.x && pl->pos.y == fpos.y && pl->pos.z == fpos.z) {
                             df::plant_raw* pr = df::plant_raw::find(pl->material);
                             if (pr) pid = pr->id;
@@ -329,17 +247,14 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
                 }
             }
             extra += ",\"plant\":{";
-            if (!pid.empty()) extra += "\"id\":\"" + json_escape(pid) + "\",";
+            if (!pid.empty()) extra += "\"id\":\"" + json_escape_bytes(pid) + "\",";
             extra += "\"part\":\"";
             extra += part;
             extra += "\"}";
         }
     }
 
-    // WC-11: material-spatter now carries `state` (matter_state) alongside mat/amount --
-    // legacy JSON stays first-event-only (this path is scheduled for deletion once the
-    // client migrates to the wire_v1 SPATTER tail's multi-event ordering, §1.1); the wire
-    // path (wire_v1.cpp encode_block) is the one that emits ALL events ordered by amount.
+    // This legacy JSON stays first-event-only; the wire path emits ALL events ordered by amount.
     if (fblk) {
         for (size_t ei = 0; ei < fblk->block_events.size(); ++ei) {
             STRICT_VIRTUAL_CAST_VAR(sp, df::block_square_event_material_spatterst, fblk->block_events[ei]);
@@ -356,11 +271,8 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
         }
     }
 
-    // WC-11: item-spatter litter (fallen leaves/fruit) -- first event with amount>0.
-    // growth_class: 0 OTHER/1 LEAVES/2 FRUIT/3 FRUIT_SMALL/4 FRUIT_LARGE, resolved from
-    // the plant's growths[] raw token (memoized per (plant,growth) pair -- mirrors
-    // wire_v1.cpp::classify_growth; kept as an independent copy since this is a separate
-    // translation unit on a path slated for deletion, not worth a shared header for).
+    // item-spatter litter (fallen leaves/fruit), first event with amount>0. growth_class:
+    // 0 OTHER / 1 LEAVES / 2 FRUIT / 3 FRUIT_SMALL / 4 FRUIT_LARGE, from the plant's growths[] token.
     if (fblk) {
         static std::unordered_map<int64_t, int> growth_cache;
         for (size_t ei = 0; ei < fblk->block_events.size(); ++ei) {
@@ -402,16 +314,14 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
         }
     }
 
-    // WC-15: block flows (mist/smoke/miasma/dragonfire/...) -- densest at this tile.
-    // NOTE: keyed "cloud" (not "flow") to avoid colliding with the pre-existing
-    // liquid-flow-depth "flow" field emitted below (tile_designation.flow_size).
+    // Block flows, densest at this tile. Keyed "cloud", not "flow": "flow" is already the
+    // liquid-flow-depth field emitted below.
     if (fblk) {
         int best_type = -1, best_density = -1;
         for (size_t fi = 0; fi < fblk->flows.size(); ++fi) {
             df::flow_info* fl = fblk->flows[fi];
             if (!fl || (int)fl->type < 0) continue;
-            // B139: DF retains expired flows in the block vector (flags.DEAD, density
-            // decayed <=0) and re-uses the slots -- skip them, same gate as wire_v1.cpp.
+            // DF keeps expired flows in the block vector and re-uses the slots.
             if (fl->flags.bits.DEAD || fl->density <= 0) continue;
             if (fl->pos.x != fpos.x || fl->pos.y != fpos.y || fl->pos.z != fpos.z) continue;
             int dens = fl->density; if (dens > 255) dens = 255;
@@ -472,29 +382,8 @@ static bool emit_tile_fields(std::ostringstream& js, MapExtras::MapCache& MC,
     return true;
 }
 
-// Emit the in-view UNIT array ELEMENTS into `js` (comma-separated, no surrounding [ ]).
-// Returns the count written. Shared verbatim by the full-frame and delta paths.
-//
-// WE-1: also runs the unit texture census (unit_sprites.h) over the FULL active-unit
-// list (not just this call's viewport window -- WE-2's future export target is "every
-// unit any player might see", not one player's current camera). No-op cost when the
-// `capture-unit-census` feature flag is off (unit_census_enabled() == false): the call
-// returns immediately without touching DF state or the tracker, so this JSON emission
-// below is byte-identical to the pre-WE-1 output either way.
-//
-// WE-3: units with a live WE-2 composite additionally carry "ah"/"sw"/"sh"/"ax"/"ay"
-// (appearance-hash + span/anchor cells) -- ONLY when a composite exists; units without
-// one keep exactly today's shape (client falls back, WE-4). Source is a single
-// unit_sprite_snapshot() copy taken once per call (not per unit -- the snapshot itself
-// copies the whole map, so per-unit calls would be O(units^2)); when the exporter flag
-// is off the snapshot is empty and this is a pure no-op, same contract as WE-1's flag.
-// No DF reads: the snapshot is WE-2's own hash map, guarded by its own mutex.
-// B23: is a unit at (ux,uy,uz) see-down-visible from camera oz (oz > uz)? True iff every
-// tile in the column from uz+1 up to oz is open (EMPTY/RAMP_TOP/AIR) -- the SAME is_open
-// predicate + null-block-is-transparent rule the terrain see-down descent in
-// emit_tile_fields uses, so a unit is shown exactly when the terrain floor it stands on is
-// shown (and correctly hidden the moment a ceiling intervenes). Capped at 60 levels to
-// match MAX_DEPTH. Cheap bounded getTileBlock walk; only called for below-camera units.
+// Is a unit at (ux,uy,uz) see-down-visible from camera oz? True iff every tile in the column from
+// uz+1 to oz is open -- the same predicate the terrain descent uses, capped at 60 like MAX_DEPTH.
 static bool seedown_visible(int ux, int uy, int uz, int oz) {
     if (uz >= oz) return false;
     if (oz - uz > 60) return false;
@@ -513,6 +402,8 @@ static bool seedown_visible(int ux, int uy, int uz, int oz) {
     return true;
 }
 
+// Emits the in-view UNIT array elements, and runs the census over the FULL active list rather than
+// this viewport. The sprite snapshot is taken ONCE per call: per unit it would be O(units^2).
 static int emit_units(std::ostringstream& js, df::world* world,
                       int ox, int oy, int oz, int width, int height) {
     unit_census_pass(world->units.active);
@@ -526,13 +417,12 @@ static int emit_units(std::ostringstream& js, df::world* world,
     for (size_t i = 0; i < world->units.active.size(); ++i) {
         df::unit* u = world->units.active[i];
         if (!u) continue;
-        // units.active retains killed/inactive records after death. Native DF still
-        // draws real ghosts translucently, so preserve the explicit ghostly exception.
+        // units.active keeps killed records, and DF still draws real ghosts. NOT Units::isAlive():
+        // it folds in the NOT_LIVING curse flag, which erased the fort's vampire and every undead.
         if (!Units::isGhost(u) &&
-            (!Units::isActive(u) || !Units::isAlive(u))) continue;
-        // B23: camera-z units render normally; below-camera units ride only when
-        // see-down-visible (open column up to the camera plane), tagged "sd":1 so the
-        // client fog-dims them by depth. Above-camera units never ride (see-above deleted).
+            (!Units::isActive(u) || !unit_is_animate(u))) continue;
+        // Below-camera units ride only when see-down-visible, tagged "sd":1 so the client fog-dims
+        // them by depth. Above-camera units never ride.
         bool seedown = false;
         if (u->pos.z != oz) {
             if (u->pos.z < oz && seedown_visible(u->pos.x, u->pos.y, u->pos.z, oz)) seedown = true;
@@ -541,15 +431,22 @@ static int emit_units(std::ostringstream& js, df::world* world,
         if (u->pos.x < ox || u->pos.x >= ox + width)  continue;
         if (u->pos.y < oy || u->pos.y >= oy + height) continue;
 
-        // WE-5: DF never draws/composites an undetected ambusher or a unit standing
+        // DF never draws/composites an undetected ambusher or a unit standing
         // on an unrevealed (fog-of-war) tile -- leaking either would show players
         // dots for units they cannot actually see. Dead units are already excluded
-        // by units.active; caged units stay visible (DF shows them normally).
-        if (u->flags1.bits.hidden_in_ambush) continue;
+        // by units.active.
+        //
+        // CORRECTION: this comment used to assert "caged units stay visible (DF shows them
+        // normally)". That is false. Native draws NO creature for a caged unit anywhere -- the
+        // cage ITEM is what is drawn -- and the unit's pos stays frozen at the trap tile
+        // (ledger 0020 R5/R12, §5.2). Because this emitter is recomputed per request, leaving it
+        // out of the skip is what used to make the stale creature come back on a page refresh
+        // even after the live stream was fixed. Same predicate as the stream (unit_status.h).
+        if (!unit_is_map_present(u)) continue;
         {
             df::map_block* ublk = Maps::getTileBlock(u->pos);
-            // A missing block means the tile can't be classified as unrevealed here;
-            // leave the unit visible rather than guess (matches prior behavior).
+            // A missing block cannot be classified as unrevealed: leave the unit visible rather
+            // than guess.
             if (ublk && ublk->designation[u->pos.x & 15][u->pos.y & 15].bits.hidden)
                 continue;
         }
@@ -575,23 +472,17 @@ static int emit_units(std::ostringstream& js, df::world* world,
         js << "{\"x\":" << u->pos.x << ",\"y\":" << u->pos.y << ",\"z\":" << u->pos.z
            << ",\"id\":" << u->id
            << ",\"race\":" << u->race << ",\"caste\":" << u->caste
-           << ",\"rt\":\"" << json_escape(rt) << "\""
-           << ",\"ct\":\"" << json_escape(ct) << "\""
-           << ",\"name\":\"" << json_escape(name) << "\"";
+           << ",\"rt\":\"" << json_escape_bytes(rt) << "\""
+           << ",\"ct\":\"" << json_escape_bytes(ct) << "\""
+           << ",\"name\":\"" << json_escape_bytes(name) << "\"";
         if (Units::isGhost(u)) js << ",\"gh\":1";
         if (seedown) js << ",\"sd\":1";
-        // B222 FIX: this serializer NEVER shipped "st", while world_stream.cpp's
-        // append_unit_json did -- so every path built from the mapdata shape (GET /mapdata,
-        // the byte-identical WS push, i.e. fresh joins / snapshots) dropped all overhead
-        // status bubbles until an aux fold change re-shipped the unit. For a dwarf asleep
-        // the whole time that change never came (the fold changes on wake), which is exactly
-        // the "only ever seen the mood one". Same contract as append_unit_json: the shared
-        // unit_status_bits() value, emitted ONLY when non-zero.
+        // Same contract as append_unit_json: the shared unit_status_bits() value, emitted only when
+        // non-zero. Omit it here and every snapshot / fresh-join path silently loses the bubbles.
         {
             const int st = unit_status_bits(u);
             if (st) js << ",\"st\":" << st;
-            // WT31: the second status word rides the SAME shape, or this serializer would reprise
-            // B222 one word over (every snapshot / fresh-join path dropping the new bubbles).
+            // st2 must ride the SAME shape, or snapshots lose the second status word.
             const int st2 = unit_status_bits2(u);
             if (st2) js << ",\"st2\":" << st2;
         }
@@ -610,8 +501,7 @@ static int emit_units(std::ostringstream& js, df::world* world,
     return units_written;
 }
 
-// Emit the in-view BUILDING array ELEMENTS into `js` (comma-separated, no [ ]).
-// Returns the count written. Shared verbatim by the full-frame and delta paths.
+// Emits the in-view BUILDING array elements. Shared verbatim by the full-frame and delta paths.
 static int emit_buildings(std::ostringstream& js, df::world* world,
                           int ox, int oy, int oz, int width, int height) {
     int buildings_written = 0;
@@ -638,12 +528,9 @@ static int emit_buildings(std::ostringstream& js, df::world* world,
                         int rr = (int)(col->red * 255.0f + 0.5f);
                         int gg = (int)(col->green * 255.0f + 0.5f);
                         int bb = (int)(col->blue * 255.0f + 0.5f);
-                        if (rr < 0) rr = 0;
-                        if (rr > 255) rr = 255;
-                        if (gg < 0) gg = 0;
-                        if (gg > 255) gg = 255;
-                        if (bb < 0) bb = 0;
-                        if (bb > 255) bb = 255;
+                        if (rr < 0) rr = 0; if (rr > 255) rr = 255;
+                        if (gg < 0) gg = 0; if (gg > 255) gg = 255;
+                        if (bb < 0) bb = 0; if (bb > 255) bb = 255;
                         js << ",\"rgb\":[" << rr << "," << gg << "," << bb << "]";
                     }
                 }
@@ -655,27 +542,15 @@ static int emit_buildings(std::ostringstream& js, df::world* world,
     return buildings_written;
 }
 
-// The reads live in this function because it owns C++ objects that require
-// stack unwinding (MapCache, std::string, std::ostringstream). MSVC forbids
-// __try/__except in such a function (C2712), and SEH is unnecessary here: the
-// crash-safety comes from (a) reading only stable sim structures under
-// CoreSuspender and (b) null-checking every block. A C++ try/catch backstops
-// any std::exception so a bad edge case logs + fails rather than faults DF.
-//
-// Shared core reader. When use_window_origin is true the origin is taken from
-// window_x/y/z (the host viewport, for the capture-mapdump command); otherwise
-// (ox_in,oy_in,oz_in) is used (per-player camera origin for the HTTP endpoint).
-// Returns the wire:1 JSON on success; on failure returns "" and sets err.
+// Owns C++ objects that need unwinding, so MSVC forbids __try here (C2712); a C++ try/catch
+// backstops std::exception instead. use_window_origin reads window_x/y/z for the host viewport.
 static std::string build_map_json_impl(bool use_window_origin,
                                        int ox_in, int oy_in, int oz_in,
                                        int width, int height,
                                        bool emit_log, std::string* err) {
     try {
-        // ---- SAFE CONTEXT: suspend the core so DF's sim thread is not mutating
-        // the map/units/buildings while we read them. This is the map-data
-        // equivalent of RFR's "RPC handler runs with core already suspended"
-        // (ws2-mapdata-alternative.md sec.3). CoreSuspender is reentrant, so it
-        // is safe even though DFHack command handlers already run suspended.
+        // Suspend the core so DF's sim thread is not mutating the map, units or buildings while we
+        // read them. CoreSuspender is reentrant, so this is safe even when the caller suspended.
         CoreSuspender suspend;
 
         if (!Maps::IsValid()) {
@@ -696,8 +571,7 @@ static std::string build_map_json_impl(bool use_window_origin,
             oz = *df::global::window_z;
         }
 
-        // Auto-size the window from the screen grid (gps->dimx/dimy is graphicST,
-        // NOT graphic_viewportST -- a plain grid dimension, no render arrays).
+        // gps->dimx/dimy is graphicST -- a plain grid dimension, not graphic_viewportST's arrays.
         if (width <= 0 || height <= 0) {
             auto gps = df::global::gps;
             int gw = (gps && gps->dimx > 0) ? gps->dimx : 80;
@@ -716,62 +590,13 @@ static std::string build_map_json_impl(bool use_window_origin,
         MapExtras::MapCache MC;
 
         std::ostringstream js;
-        // wire:2 adds per-tile "depth":N (see-down z-descent). When N>0 the
-        // tt/shape/mat/special/flow/liquid/base_mt/base_mi fields describe the
-        // solid-or-liquid tile found N z-levels BELOW an open/air top tile
-        // (like DF's own see-down); the client darkens the cell by depth.
-        //
-        // wire:3 adds per-tile visual-parity fields (all optional, emitted only
-        // when present, all read crash-safe under the existing CoreSuspender via
-        // getTileBlock/MapCache/block->items/block->block_events/column->plants,
-        // every pointer null-checked). New fields:
-        //   "wallnbr":<0-15>   -- WALL tiles only: adjacency mask of neighbor
-        //                         walls for joined-wall sprites. bit0 N(y-1),
-        //                         bit1 S(y+1), bit2 E(x+1), bit3 W(x-1); a bit is
-        //                         set iff that neighbor's tileShape==WALL.
-        //   "rt":"<CREATURE_ID>" / "ct":"<caste_id>"  -- on each unit: raw
-        //                         creature/caste tokens (world->raws.creatures).
-        //   "item":{"type":"<item_type token>","mat_type":N,"mat_index":N,
-        //           "subtype":N,"iflags":N,"stack":N}
-        //                      -- topmost ground item on the (possibly descended)
-        //                         tile, or omitted if none. WC-1: subtype (-1 none),
-        //                         iflags bit0 web/1 forbid/2 dump/3 melt/4 on_fire,
-        //                         stack (item_actual::stack_size, else 1). Hidden
-        //                         items never become "top" (DF doesn't draw them).
-        //   "plant":{"id":"<plant raw id>","part":"<TRUNK|BRANCH|CANOPY|LEAVES|
-        //                         SAPLING|SHRUB>"} -- for tree/mushroom/sapling/
-        //                         shrub tiles; id best-effort from the column
-        //                         plant at that pos (omitted if unresolved).
-        //   "spatter":{"mat_type":N,"mat_index":N,"state":N,"amount":N} -- first
-        //                         blood/contaminant material spatter on the tile,
-        //                         or omitted if none. WC-11: "state" (matter_state:
-        //                         -1 None/0 Solid/1 Liquid/2 Gas/3 Powder/4 Paste/
-        //                         5 Pressed) added; first-event-only kept here (this
-        //                         JSON path is scheduled for deletion -- the wire_v1
-        //                         SPATTER tail emits ALL events ordered by amount).
-        //   "item_spatter":{"growth_class":N,"item_type":N,"amount":N} -- WC-11
-        //                         fallen-leaves/fruit litter, first event with
-        //                         amount>0, or omitted if none. growth_class: 0
-        //                         OTHER/1 LEAVES/2 FRUIT/3 FRUIT_SMALL/4 FRUIT_LARGE.
-        //   "cloud":{"type":N,"density":N} -- WC-15 block flow (mist/smoke/miasma/
-        //                         dragonfire/... df::flow_type ordinal 0-13), the
-        //                         densest flow at this (possibly descended) tile, or
-        //                         omitted if none. Named "cloud" (not "flow") to
-        //                         avoid colliding with the pre-existing liquid-flow-
-        //                         depth "flow" field below.
-        // buildings[] entries also gain "subtype":N and "stage":N (getSubtype /
-        // getBuildStage on the df::building).
-        // wire:5 adds per-tile "desig" (dig/chop/gather/smooth/engrave/traffic/track +
-        // marker mode; see the designation block below) for the on-canvas designation
-        // overlay, plus a top-level "players" presence array spliced in by the /mapdata
-        // handler (each connected player's live cursor + drag rect, in world coords).
+        // wire:5. The field shapes live in emit_tile_fields / emit_units / emit_buildings.
         js << "{\"wire\":5,"
            << "\"origin\":{\"x\":" << ox << ",\"y\":" << oy << ",\"z\":" << oz << "},"
            << "\"width\":" << width << ",\"height\":" << height << ",\"z\":" << oz << ",";
 
-        // ---- TILES: row-major (y outer, x inner) over the viewport window. The per-tile
-        // field emission lives in the shared emit_tile_fields() (include_xy=false keeps
-        // this full-frame output byte-identical to the legacy inline reader).
+        // Row-major (y outer, x inner). include_xy=false keeps this byte-identical to the legacy
+        // inline reader.
         int tiles_written = 0, tiles_skipped = 0;
         js << "\"tiles\":[";
         bool firstTile = true;

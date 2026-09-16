@@ -1,0 +1,313 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.burrows {
+  .burrow-head {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .burrow-cit-title {
+    flex: 1;
+    color: var(--dwfui-text-body);
+    font:
+      700 13px/1.3 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-add {
+    padding: 5px 14px;
+    color: var(--dwfui-text-good);
+    background: var(--dwfui-slate);
+    border: 2px solid var(--dwfui-text-good);
+    cursor: pointer;
+    font:
+      800 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-add:hover {
+    background: var(--dwfui-slate);
+  }
+  .burrow-paint-bar {
+    padding: 6px 12px 8px;
+    border-top: 1px solid var(--dwfui-slab);
+    border-bottom: 1px solid var(--dwfui-slab);
+  }
+  .burrow-paint-label {
+    margin-bottom: 5px;
+    color: var(--dwfui-text-numeric);
+    font:
+      700 12px/1.3 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-paint-tools {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .burrow-done {
+    margin-left: 8px;
+    padding: 4px 10px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-slab);
+    border: 1px solid var(--dwfui-silver);
+    cursor: pointer;
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-done:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+  .burrow-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .burrow-empty {
+    min-height: 40px;
+  }
+  .burrow-row {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--dwfui-surface);
+  }
+  .burrow-row.armed {
+    background: rgba(74, 58, 24, 0.62);
+  }
+  .burrow-row-main {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .burrow-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 2px 4px;
+    color: var(--dwfui-text-body);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    font:
+      700 13px/1.2 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-name:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+  .burrow-members {
+    color: var(--dwfui-text-secondary);
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-rename-input {
+    flex: 1;
+    min-width: 0;
+    padding: 3px 6px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-row-tools {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+  }
+  .burrow-cit-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-bottom: 1px solid var(--dwfui-surface);
+  }
+  .burrow-cit-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--dwfui-text-body);
+    font:
+      700 12px/1.25 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  #burrowPanel [data-df-color="0"] { color: var(--df-c0); }
+  #burrowPanel [data-df-color="1"] { color: var(--df-c1); }
+  #burrowPanel [data-df-color="2"] { color: var(--df-c2); }
+  #burrowPanel [data-df-color="3"] { color: var(--df-c3); }
+  #burrowPanel [data-df-color="4"] { color: var(--df-c4); }
+  #burrowPanel [data-df-color="5"] { color: var(--df-c5); }
+  #burrowPanel [data-df-color="6"] { color: var(--df-c6); }
+  #burrowPanel [data-df-color="7"] { color: var(--df-c7); }
+  #burrowPanel [data-df-color="8"] { color: var(--df-c8); }
+  #burrowPanel [data-df-color="9"] { color: var(--df-c9); }
+  #burrowPanel [data-df-color="10"] { color: var(--df-c10); }
+  #burrowPanel [data-df-color="11"] { color: var(--df-c11); }
+  #burrowPanel [data-df-color="12"] { color: var(--df-c12); }
+  #burrowPanel [data-df-color="13"] { color: var(--df-c13); }
+  #burrowPanel [data-df-color="14"] { color: var(--df-c14); }
+  #burrowPanel [data-df-color="15"] { color: var(--df-c15); }
+  .burrow-cit-prof {
+    color: var(--dwfui-text-secondary);
+    font:
+      400 10px/1.25 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .burrow-symbol-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2px 12px 10px;
+  }
+  .burrow-section-title {
+    margin: 8px 0 5px;
+    color: var(--dwfui-text-heading);
+    font:
+      700 10px/1.2 ui-monospace,
+      Consolas,
+      monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .burrow-symbol-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+  }
+  .burrow-symbol-cell {
+    padding: 1px;
+    background: var(--dwfui-surface);
+    border: 1px solid var(--dwfui-hatch);
+    cursor: pointer;
+  }
+  .burrow-symbol-cell:hover {
+    border-color: var(--dwfui-text-numeric);
+  }
+  .burrow-symbol-cell.on,
+  .burrow-symbol-cell.active {
+    background: var(--dwfui-slab);
+    border-color: var(--dwfui-text-numeric);
+  }
+  .burrow-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+  }
+  .burrow-swatch {
+    height: 20px;
+    padding: 0;
+    border: 2px solid var(--dwfui-hatch);
+    cursor: pointer;
+  }
+  .burrow-swatch:hover {
+    border-color: var(--dwfui-text-numeric);
+  }
+  .burrow-swatch.on {
+    border-color: var(--dwfui-text-numeric);
+    box-shadow: inset 0 0 0 1px var(--dwfui-surface);
+  }
+  #burrowPanel .zone-unit-act {
+    flex: 0 0 auto;
+    padding: 3px 8px;
+    color: var(--dwfui-text-row);
+    background: var(--dwfui-surface);
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    cursor: pointer;
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  #burrowPanel .zone-unit-act:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+  #burrowPanel .zone-unit-act.assigned {
+    color: var(--dwfui-text-selected);
+    background: var(--dwfui-gold);
+    border-color: var(--dwfui-text-numeric);
+  }
+  #burrowPanel .stock-palette-status {
+    padding: 4px 12px 8px;
+    margin: 0;
+  }
+  .stock-palette-status {
+    min-height: 16px;
+    margin: 6px 0 0;
+    color: var(--dwfui-text-good);
+    font:
+      700 11px/1.25 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .stock-palette-status.err {
+    color: var(--dwfui-text-danger);
+  }
+  #burrowPanel [data-burrow-cit-controls] {
+    flex: 0 0 auto;
+    padding: 4px 10px 0;
+    border-bottom: 1px solid var(--dwfui-surface);
+  }
+  #burrowPanel .burrow-cit-controls {
+    display: grid;
+    gap: 4px;
+  }
+  #burrowPanel .burrow-cit-filters {
+    flex-wrap: wrap;
+  }
+  #burrowPanel .burrow-cit-sort {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #burrowPanel .burrow-cit-filter-status {
+    padding: 0 2px 4px;
+  }
+  #burrowPanel .burrow-cit-list {
+    min-height: 0;
+  }
+  #burrowPanel [data-burrow-cit-search] {
+    flex: 0 0 auto;
+  }
+  #burrowPanel .burrow-cit-search {
+    margin: 4px 10px 8px;
+  }
+}

@@ -1,0 +1,104 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.join-gates {
+  /* Join and version gates */
+  #dfcapJoinOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 5, 0.92);
+    backdrop-filter: blur(2px);
+  }
+  #dfcapJoinCard h1 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--dwfui-text-numeric);
+    letter-spacing: 0.2px;
+  }
+  #dfcapJoinCard .join-gate-sub {
+    margin: 0 0 16px;
+    font-size: 12.5px;
+    color: var(--dwfui-text-secondary);
+  }
+  #dfcapJoinCard label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--dwfui-text-secondary);
+    margin: 12px 0 5px;
+  }
+  /* Editable text fields deliberately remain real DOM inputs. */
+  #dfcapJoinCard input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 11px;
+    border: 1px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-body);
+    font-size: 14px;
+    outline: none;
+  }
+  #dfcapJoinCard input:focus {
+    border-color: var(--dwfui-text-numeric);
+  }
+  #dfcapJoinBtn {
+    margin-top: 18px;
+    display: flex;
+  }
+  #dfcapJoinErr {
+    min-height: 16px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--dwfui-text-warning);
+  }
+  #dfcapVerBanner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 99999;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
+  #dfcapVerBanner.hard {
+    background: var(--dwfui-destructive);
+    color: var(--dwfui-text-title);
+  }
+  #dfcapVerBanner.soft {
+    background: var(--dwfui-slab);
+    color: var(--dwfui-text-numeric);
+  }
+}

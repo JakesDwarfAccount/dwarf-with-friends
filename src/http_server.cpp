@@ -25,7 +25,8 @@
 #include "Core.h"
 
 #include "announcements.h"
-#include "art_desc.h"        // B246: /engraving-info -- DF art data for an engraved tile
+#include "api_response.h"
+#include "art_desc.h"        // /engraving-info -- DF art data for an engraved tile
 #include "attribution.h"
 #include "auth.h"
 #include "building_zone.h"
@@ -34,7 +35,7 @@
 #include "client_state.h"
 #include "console_routes.h"
 #include "diagnostics.h"
-#include "write_guards.h"   // W23: GET /write-guards + host-only /console-config
+#include "write_guards.h"   // GET /write-guards + host-only /console-config
 #include "flight_recorder.h" // ground-truth pipeline Pillar 2: /recorder/start|stop|status
 #include "fort_admin.h"
 #include "hauling.h"
@@ -52,6 +53,7 @@
 #include "native_popup.h"
 #include "pause_arbiter.h"
 #include "oracle_routes.h"
+#include "texpos_conformance.h"
 #include "route_helpers.h"
 #include "request_origin.h"
 #include "save_barrier.h"
@@ -59,6 +61,8 @@
 #include "kitchen_panel.h"
 #include "labor.h"
 #include "lever_link.h"
+#include "machines.h"
+#include "siege_engines.h"
 #include "lua_bridge.h"
 #include "notifications.h"
 #include "placement.h"
@@ -68,7 +72,6 @@
 #include "unit_sheet.h"
 #include "unit_portrait.h"
 #include "unit_sprites.h"
-#include "vote.h"
 #include "sprite_map.h"
 #include "squads.h"
 #include "status_truth.h"
@@ -118,7 +121,20 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <map>
 #include <vector>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+// Safe here: httplib.h above has already pulled in <winsock2.h>, so windows.h cannot drag in the
+// conflicting legacy <winsock.h>.
+#include <windows.h>
+#endif
 
 namespace dwf {
 namespace {
@@ -126,33 +142,25 @@ namespace {
 std::mutex g_server_mutex;
 std::unique_ptr<httplib::Server> g_server;
 std::thread g_server_thread;
-std::thread g_ws_push_thread;              // WebSocket map-push loop (FIX 2)
+std::thread g_ws_push_thread;              // WebSocket map-push loop
 std::thread g_ws_cursor_thread;            // WebSocket smooth-cursor broadcast loop
 std::atomic<bool> g_running(false);
 int g_port = DEFAULT_STREAM_PORT;
 std::string g_bind_address = DEFAULT_BIND_ADDRESS;
 
-// --- WT24: crash-evidence counters ---------------------------------------------------
-// All relaxed atomics, all incremented on paths that already do far heavier work (a socket
-// write, a 33 ms sleep). Nothing here logs; the 60 s heartbeat, the stall watchdog and the
-// shutdown mark are the only writers to dwf.log.
+// --- crash-evidence counters ---------------------------------------------------
+// All relaxed atomics, on paths that already do far heavier work. Nothing here writes to dwf.log.
 std::atomic<long long> g_server_start_ms{0};      // diag_steady_ms() at start_server()
 std::atomic<uint64_t> g_push_iters{0};            // ws_push_loop iterations since load
 std::atomic<uint64_t> g_cursor_iters{0};          // ws_cursor_loop iterations since load
 std::atomic<uint64_t> g_http_requests{0};         // requests that reached the router
 std::atomic<bool> g_http_listen_running{false};   // true between listen_after_bind enter/exit
-// Native handle of the HTTP listen thread. On Windows a zero-timeout wait on it is the ONLY
-// cheap check that distinguishes "parked in accept()" (alive) from "the thread is gone"
-// (which a plain bool flag can never see -- a thread that dies abnormally never clears it).
-// Valid until stop_server() joins, and the push loop -- the only reader -- is always joined
-// BEFORE that join, so it can never observe a stale handle.
+// Valid until stop_server() joins it, and the push loop -- the only reader -- is always joined
+// BEFORE that, so it can never observe a stale handle.
 std::atomic<void*> g_http_thread_handle{nullptr};
 
-// The heartbeat's DF read: df::global::world->frame_counter and the pause flag. Deliberately
-// NOT under CoreSuspender -- suspending DF's sim thread once a minute just to print a
-// diagnostic is exactly the trap AGENTS.md warns about. These are plain reads of two
-// long-lived DF globals (an int32 and a bool); worst case is a torn/one-frame-stale integer
-// in a log line, which cannot corrupt anything and cannot stall the game.
+// Deliberately NOT under CoreSuspender: suspending DF's sim thread once a minute just to print a
+// diagnostic is the starvation trap. A torn integer in a log line corrupts and stalls nothing.
 int32_t df_frame_counter_unsafe() {
     auto world = df::global::world;
     return world ? world->frame_counter : -1;
@@ -161,42 +169,167 @@ bool df_paused_unsafe() {
     return df::global::pause_state && *df::global::pause_state;
 }
 
-// A crash tail is only readable if the marks are greppable. Prefixes used in dwf.log:
-//   THREAD-ENTER / THREAD-EXIT   one line per plugin thread, at its real entry/exit
-//   HEARTBEAT                    one line per 60 s from the push loop, always, even idle
-//   STALL / STALL-CLEARED        the cursor loop (which never touches DF) catching a wedged
-//                                push loop and naming the stage it is wedged inside
-//   SHUTDOWN-CLEAN               dwf stopped on purpose (see dwf.cpp)
+// Greppable crash-tail marks in dwf.log: THREAD-ENTER / THREAD-EXIT, HEARTBEAT,
+// STALL / STALL-CLEARED, SHUTDOWN-CLEAN.
 constexpr int kHeartbeatSecs = 60;
-constexpr int kStallSecs = 15;   // > a slow autosave; a save-stalled tick is reported once,
-                                 // then STALL-CLEARED with its duration, so a save reads as a
-                                 // save and a death reads as a death.
+constexpr int kStallSecs = 15;   // longer than a slow autosave, so a save reads as a save and a
+                                 // death reads as a death
 
-// WA-5: content-hash ETag (FNV-1a/64 over the body + implicit length via the byte stream),
-// quoted per RFC 7232. A different body -> a different ETag with overwhelming probability, so
-// a returned 304 always means byte-identical content (correctness over cleverness: a wrong
-// 304 is far worse than a missed one, and a content hash can never claim "unchanged" for a
-// body that actually changed). Used by the static-asset file hook + /sprites/map.json below.
-std::string content_etag(const std::string& body) {
-    uint64_t h = 1469598103934665603ull;
-    for (unsigned char c : body) { h ^= c; h *= 1099511628211ull; }
-    std::ostringstream o;
-    o << '"' << std::hex << h << '"';
-    return o.str();
+// ---- SPRITE SHEET INDEX + ETAG CACHE (cold-load) ----------------------------------------------
+// Neither cache may change WHICH file wins, and a 304 still only ever means byte-identical content.
+
+const char* const kSpriteImgDirs[] = {
+    "data/vanilla/vanilla_environment/graphics/images",
+    "data/vanilla/vanilla_plants_graphics/graphics/images",
+    "data/vanilla/vanilla_creatures_graphics/graphics/images",
+    // extinct-creature sheets: the only home of per-species corpse art for extinct species
+    "data/vanilla/vanilla_creatures_extinct_graphics/graphics/images",
+    // gems.png / smallgems.png ship in the descriptors module, not vanilla_items
+    "data/vanilla/vanilla_descriptors_graphics/graphics/images",
+    "data/vanilla/vanilla_buildings_graphics/graphics/images",
+    "data/vanilla/vanilla_items_graphics/graphics/images",
+    // the designation-overlay glyphs (designations.png) live here
+    "data/vanilla/vanilla_interface/graphics/images",
+};
+
+std::string ascii_lower(std::string s) {
+    for (char& c : s) c = (char)std::tolower((unsigned char)c);
+    return s;
 }
 
-// ---- SESSION META TABLES (WA-5) ---------------------------------------------------------------
-// Build the tiletype_meta.json: {"wire":1,"tiletypes":[[tt,"TTNAME","SHAPE","MAT","SPECIAL"],...]}
-// Iterates all df::tiletype enum values, skips those with empty keys, caches the result.
-std::string build_tiletype_meta_json() {
+struct FileStamp {
+    uint64_t mtime = 0;
+    uint64_t size = 0;
+    bool operator==(const FileStamp& o) const { return mtime == o.mtime && size == o.size; }
+};
+
+// Existence + (mtime, size) without opening the file. False = not a readable regular file.
+bool stat_file(const std::string& path, FileStamp& out) {
+#ifdef _WIN32
+    WIN32_FILE_ATTRIBUTE_DATA a;
+    if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &a))
+        return false;
+    if (a.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        return false;
+    out.mtime = ((uint64_t)a.ftLastWriteTime.dwHighDateTime << 32) | a.ftLastWriteTime.dwLowDateTime;
+    out.size = ((uint64_t)a.nFileSizeHigh << 32) | a.nFileSizeLow;
+    return true;
+#else
+    (void)path; (void)out;
+    return false;
+#endif
+}
+
+// Indexes every "*.png" in `dir`, plus one level of subdirectories at the top level, matching what
+// the route's validator allows. emplace() never overwrites, so the first dir to supply a name keeps it.
+void index_png_dir(const std::string& dir, const std::string& prefix, bool recurse,
+                   std::map<std::string, std::string>& out) {
+#ifdef _WIN32
+    WIN32_FIND_DATAA fd;
+    HANDLE h = FindFirstFileA((dir + "/*").c_str(), &fd);
+    if (h == INVALID_HANDLE_VALUE)
+        return;
+    do {
+        std::string entry = fd.cFileName;
+        if (entry == "." || entry == "..")
+            continue;
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (recurse)
+                index_png_dir(dir + "/" + entry, prefix + ascii_lower(entry) + "/", false, out);
+            continue;
+        }
+        std::string lower = ascii_lower(entry);
+        if (lower.size() > 4 && lower.compare(lower.size() - 4, 4, ".png") == 0)
+            out.emplace(prefix + lower, dir + "/" + entry);
+    } while (FindNextFileA(h, &fd));
+    FindClose(h);
+#else
+    (void)dir; (void)prefix; (void)recurse; (void)out;
+#endif
+}
+
+const std::map<std::string, std::string>& sprite_png_index() {
+    // Magic static, built once on the first sheet request: DF's own install does not change while
+    // the plugin is loaded.
+    static const std::map<std::string, std::string> index = [] {
+        std::map<std::string, std::string> m;
+        for (const char* dir : kSpriteImgDirs)
+            index_png_dir(dir, std::string(), true, m);
+        std::ostringstream note;
+        note << "sprite-img index: " << m.size() << " sheets across "
+             << (sizeof(kSpriteImgDirs) / sizeof(kSpriteImgDirs[0])) << " vanilla graphics dirs";
+        diagnostics_log(note.str());
+        return m;
+    }();
+    return index;
+}
+
+// Resolve a validated request name to a file path, preserving the old probe's precedence
+// exactly. Empty string = nothing to serve (the caller 404s).
+std::string resolve_sprite_png(const std::string& name) {
+    const auto& index = sprite_png_index();
+    auto it = index.find(ascii_lower(name));
+    if (it != index.end())
+        return it->second;
+
+    FileStamp st;
+    // An empty index means the walk found nothing. Never let that 404 a file the old linear probe
+    // would have opened: fall back to that probe, in its original order.
+    if (index.empty()) {
+        for (const char* dir : kSpriteImgDirs) {
+            std::string path = std::string(dir) + "/" + name;
+            if (stat_file(path, st))
+                return path;
+        }
+    }
+    // The mounted web root is last and stays a LIVE probe: generated atlas sheets are written
+    // there at runtime.
+    std::string web = std::string(web_root()) + "/" + name;
+    if (stat_file(web, st))
+        return web;
+    return std::string();
+}
+
+std::mutex g_sprite_etag_mutex;
+std::unordered_map<std::string, std::pair<FileStamp, std::string>> g_sprite_etag;
+
+// The remembered ETag for `path`, but only while the file's (mtime, size) is exactly what it was
+// when we hashed it. No I/O. False = we must read and hash the file.
+bool sprite_cached_etag(const std::string& path, const FileStamp& stamp, std::string& etag) {
+    std::lock_guard<std::mutex> lock(g_sprite_etag_mutex);
+    auto it = g_sprite_etag.find(path);
+    if (it == g_sprite_etag.end() || !(it->second.first == stamp))
+        return false;
+    etag = it->second.second;
+    return true;
+}
+
+void sprite_remember_etag(const std::string& path, const FileStamp& stamp,
+                          const std::string& etag) {
+    std::lock_guard<std::mutex> lock(g_sprite_etag_mutex);
+    g_sprite_etag[path] = std::make_pair(stamp, etag);
+}
+
+bool read_whole_file(const std::string& path, std::string& out) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f)
+        return false;
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    out = ss.str();
+    return true;
+}
+
+// ---- SESSION META TABLES ----------------------------------------------------------------------
+// A failure returns the error shape, never a valid-but-empty table: empty and broken look the same.
+ApiResult<std::string> build_tiletype_meta_json() {
     using namespace DFHack;
     try {
         std::ostringstream js;
         js << "{\"wire\":1,\"tiletypes\":[";
         bool first = true;
 
-        // Iterate df::tiletype enum values 0..max. We use a reasonable upper bound since
-        // we check for empty keys. DFHack enums are documented to fit within ~500 for tiletype.
+        // 1000 is a safe upper bound over the enum; empty keys are skipped.
         for (int tt_int = 0; tt_int < 1000; ++tt_int) {
             std::string tt_key = ENUM_KEY_STR(tiletype, static_cast<df::tiletype>(tt_int));
             if (tt_key.empty()) continue;  // skip empty keys
@@ -217,26 +350,25 @@ std::string build_tiletype_meta_json() {
         }
 
         js << "]}";
-        return js.str();
+        return ApiResult<std::string>::success(js.str());
     } catch (const std::exception& e) {
         diagnostics_log(std::string("tiletype_meta exception: ") + e.what());
-        return "{\"wire\":1,\"tiletypes\":[]}";
+        return ApiResult<std::string>::failure(500, "tiletype_meta_unavailable", e.what());
     } catch (...) {
         diagnostics_log("tiletype_meta: unknown exception");
-        return "{\"wire\":1,\"tiletypes\":[]}";
+        return ApiResult<std::string>::failure(500, "tiletype_meta_unavailable",
+                                               "unknown exception building tiletype metadata");
     }
 }
 
-// Build the item_type_meta.json: {"wire":1,"item_types":[[v,"KEY"],...]}
-// Iterates all df::item_type enum values, skips those with empty keys.
-std::string build_item_type_meta_json() {
+// A failure returns the ApiResult error shape for the same reason build_tiletype_meta_json does.
+ApiResult<std::string> build_item_type_meta_json() {
     using namespace DFHack;
     try {
         std::ostringstream js;
         js << "{\"wire\":1,\"item_types\":[";
         bool first = true;
 
-        // Iterate df::item_type enum values. DFHack has ~200-300 item types.
         for (int v = 0; v < 1000; ++v) {
             std::string key = ENUM_KEY_STR(item_type, static_cast<df::item_type>(v));
             if (key.empty()) continue;  // skip empty keys
@@ -247,13 +379,14 @@ std::string build_item_type_meta_json() {
         }
 
         js << "]}";
-        return js.str();
+        return ApiResult<std::string>::success(js.str());
     } catch (const std::exception& e) {
         diagnostics_log(std::string("item_type_meta exception: ") + e.what());
-        return "{\"wire\":1,\"item_types\":[]}";
+        return ApiResult<std::string>::failure(500, "item_type_meta_unavailable", e.what());
     } catch (...) {
         diagnostics_log("item_type_meta: unknown exception");
-        return "{\"wire\":1,\"item_types\":[]}";
+        return ApiResult<std::string>::failure(500, "item_type_meta_unavailable",
+                                               "unknown exception building item type metadata");
     }
 }
 
@@ -264,24 +397,8 @@ std::mutex g_stream_wake_mutex;
 std::condition_variable g_stream_wake_cv;
 std::atomic<uint64_t> g_input_generation{0};
 
-// ---- PERF DIAGNOSTICS ---------------------------------------------------------------
-// WA-15: the legacy per-player build-cost ring (DiagSample/g_diag/diag_record/diag_forget)
-// that fed /diag's "players" array was removed along with the legacy per-player push loop
-// that wrote it -- protocol v1's own per-connection diagnostics (scanBlocks/dirtyBlocks/
-// encodedBlocks/pendingBlocks/inflightFrames/rttMs/trickle*, plus v1SuspenderMsPerSec) live
-// in world_stream.cpp's "v1" object instead (world_stream_diag_json(), WA-9). The /diag
-// handler below now reports live connection/keepalive health straight off the registry
-// (ws_connected_players/ws_connection_count_for/ws_player_health) rather than a stale
-// build-sample cache.
-
-// Multiplayer presence roster (WT-spec WP-A section 1.2): build the players array spliced into
-// every AUX frame + /mapdata. ws_roster_players is the authoritative entry set: healthy
-// sockets plus a five-second server-side disconnect grace. A reconnect re-adopts the same row;
-// a socket silent past the 45-second keepalive deadline is removed after grace even if teardown
-// is delayed. Camera/cursor data remains a join against the mutex-guarded client snapshot.
-// Reads no DF state and is safe outside CoreSuspender. Entries may lack x/y when the cursor is
-// idle; consumers must guard numeric coordinates. /diag remains socket-oriented and uses this
-// keepalive cutoff directly rather than the anti-flicker roster.
+// The presence array spliced into every AUX frame and /mapdata. ws_roster_players is the
+// authoritative entry set; an entry may lack x/y when the cursor is idle, so consumers must guard.
 static const long long kRosterGhostMs = 45000;
 
 std::string presence_json(const std::string& self) {
@@ -297,9 +414,8 @@ std::string presence_json(const std::string& self) {
         for (const auto& c : clients) if (c.player == name) { cam = &c.camera; break; }
         if (!first) body << ",";
         first = false;
-        // R2: byte-clean name emit (chat_escape, not json_string's DF2UTF transcode) so a non-ASCII
-        // roster name matches the raw registered identity + the client's adopted hello_ack.player --
-        // otherwise "self" detection (p.name === player) and follow targeting break for unicode names.
+        // chat_escape, not json_string's DF2UTF transcode: a non-ASCII roster name has to match the
+        // raw registered identity, or self-detection and follow targeting break for unicode names.
         body << "{\"name\":\"" << chat_escape(name) << "\""
              << ",\"self\":" << (name == self ? 1 : 0);
         // Cursor block (unchanged rule): only when the cursor is live + fresh.
@@ -316,15 +432,8 @@ std::string presence_json(const std::string& self) {
                      << ",\"dy\":" << (cam->y + cam->drag_py);
             }
         }
-        // View window, composed EXACTLY like the interest window that drives this player's
-        // streamed frame (world_stream.cpp ~:648, §0.8): POSITION from the POST /camera authority
-        // (the client_state camera). As of the -wscam1 fix a browser's WS `cam` message can ALSO
-        // carry position and write that same authority (the primary transport now; HTTP POST is the
-        // socket-down fallback), so the authority is current regardless of channel. The conn
-        // snapshot's own xyz is still only a last resort for a pure-WS probe that never set a
-        // position. DIMS come from the v1 connection's CAM snapshot (zoom-aware, the real visible span --
-        // never hud.viewport, B25). Conn-snapshot xyz is a last resort for a client that never
-        // touched /camera (pure WS probes). Elevation consumers read camz.
+        // POSITION comes from the camera authority (POST /camera, or a WS `cam` message writing the
+        // same authority); DIMS come from the v1 CAM snapshot -- zoom-aware, never hud.viewport.
         int cx, cy, cz, cw, ch;
         bool conn_cam = ws_cam_for_player(name, cx, cy, cz, cw, ch);
         if (cam) {
@@ -344,12 +453,8 @@ std::string presence_json(const std::string& self) {
     return body.str();
 }
 
-// Smooth-cursor broadcast: build the array of every OTHER player's precise sub-tile cursor
-// for the viewer `self`. Emits WORLD coords -- integer tile (x,y,z) + fractional in-tile
-// offset (fx,fy) -- so each viewer reconstructs the on-screen pixel in its own window and
-// interpolates client-side. Cursors age out on a SHORT window (they stop updating the moment
-// the pointer stills), independent of the longer presence heartbeat. Reads only the
-// mutex-guarded client snapshot; no DF/core access.
+// Emits WORLD coords -- integer tile plus fractional in-tile offset -- so each viewer rebuilds the
+// pixel in its own window. Cursors age out on a SHORT window, independent of the presence heartbeat.
 std::string cursors_json(const std::string& self) {
     static const long long kCursorStaleMs = 2000;
     std::ostringstream body;
@@ -397,18 +502,8 @@ std::string cursors_json(const std::string& self) {
     return body.str();
 }
 
-// ---- JOIN SECURITY: request auth gate (ship-blocker, PROJECT-CLOSEOUT Phase 5) ----------------
-// When a join passphrase is configured (auth::enabled()), every request that isn't part of the
-// PUBLIC bundle needed to render the join screen must present the shared passphrase. The client
-// keeps it in the `dfcap_auth` cookie, which the browser attaches automatically to fetch, <img>,
-// <script> and every other same-origin load -- so no per-call-site plumbing and no gap for a
-// resource load that can't set a header. The WS wire is gated separately at the hello (websocket
-// .cpp) since the /ws upgrade is intercepted below httplib routing.
-//
-// PUBLIC (never gated): CORS preflight, the shell/join endpoints, and an explicit list of files
-// required to render that shell. Authorization is never inferred from a filename extension: a new
-// .json/.jpg route remains protected until deliberately added here. Live state, generated game
-// art, diagnostics, and mutations therefore stay gated even when their path looks like a file.
+// Authorization is NEVER inferred from a filename extension: a new .json or .jpg route stays gated
+// until it is deliberately added to the PUBLIC list. The WS wire is gated separately, at the hello.
 namespace {
 
 bool join_public_path(const std::string& method, const std::string& path) {
@@ -435,14 +530,52 @@ bool local_diagnostic_path(const std::string& path) {
         "/diag", "/host-state", "/zoom-probe", "/frame.jpg", "/tiledump",
         "/menu-oracle", "/statustruth", "/statusharvest",
         "/recorder/start", "/recorder/stop", "/recorder/status",
+        "/texpos-conformance",
     };
     for (const char* candidate : kExact) if (path == candidate) return true;
     return false;
 }
 
-// Percent-decode (the client stores the credential cookie via encodeURIComponent, which %XX-encodes
-// punctuation and spaces but never emits '+', so '+' is left literal). Bad/short escapes pass
-// through unchanged rather than throwing.
+// An existence check against the three mounted roots, not an extension allowlist: a dynamic route
+// does not become save-safe because its name ends in ".json". Auth still runs after this.
+bool save_barrier_disk_read(const std::string& method, const std::string& path) {
+    if (method != "GET" && method != "HEAD") return false;
+
+    // /view reads the mounted index and substitutes the build stamp; / and /index.html redirect
+    // there in the pre-routing hook. None reads DF state.
+    if (path == "/" || path == "/index.html" || path == "/view") return true;
+
+    static const char* kSaveSafeCatalogs[] = {
+        "/sprites/map.json",
+        "/tiletype_meta.json",
+        "/item_type_meta.json",
+    };
+    for (const char* catalog : kSaveSafeCatalogs)
+        if (path == catalog) return true;
+
+    // Routed, read-only asset handlers whose bodies come from files on disk.
+    if (path.rfind("/sprites/img/", 0) == 0 || path.rfind("/sound/", 0) == 0)
+        return true;
+
+    struct Mount { const char* prefix; const char* root; };
+    const Mount mounts[] = {
+        {"/asset", "data/vanilla/vanilla_interface/graphics/images"},
+        {"/dfart", "data/art"},
+        {"/", web_root()},
+    };
+    for (const Mount& mount : mounts) {
+        if (path.rfind(mount.prefix, 0) != 0) continue;
+        std::string sub_path = "/" + path.substr(std::strlen(mount.prefix));
+        if (!httplib::detail::is_valid_path(sub_path)) continue;
+        std::string disk_path = std::string(mount.root) + sub_path;
+        if (!disk_path.empty() && disk_path.back() == '/') disk_path += "index.html";
+        if (httplib::detail::is_file(disk_path)) return true;
+    }
+    return false;
+}
+
+// Percent-decode. The client stores the cookie with encodeURIComponent, which never emits '+', so
+// '+' is left literal; a bad or short escape passes through unchanged rather than throwing.
 std::string url_decode(const std::string& s) {
     std::string out;
     out.reserve(s.size());
@@ -485,51 +618,30 @@ std::string cookie_value(const std::string& cookie_header, const std::string& na
 
 void register_routes(httplib::Server& server) {
     server.set_mount_point("/asset", "data/vanilla/vanilla_interface/graphics/images");
-    // D1 (native font): DF's UI text is a CP437 bitmap cell atlas -- data/art/curses_640x300.png,
-    // 128x192 px = a 16x16 glyph grid = 8x12 px per cell, 1-bit white glyphs on a magenta key
-    // (the file named by [FONT:] in data/init/init_default.txt). The /asset mount above cannot
-    // reach it. The SHIPPING font does NOT depend on this mount -- tools/ws2/build_df_font.mjs
-    // traces the atlas into web/fonts/df-curses.ttf at build time, which the client loads as an
-    // ordinary @font-face over the "/" mount. This mount exists so the atlas (and DF's other
-    // interface art: scrollbar.png, tabs.png, sort.png, border.png) is reachable from the browser
-    // at all -- it is what makes a future runtime-generated face possible without shipping art,
-    // and it is useful to DFChrome-style code generally.
-    // Traversal-safe by the same mechanism as /asset: handle_file_request rejects any sub-path
-    // containing ".." (detail::is_valid_path), so this cannot escape data/art. Read-only: httplib
-    // mounts serve GET/HEAD only. Silently no-ops (returns false) if the folder is absent -- e.g.
-    // a dev running the plugin outside a real DF install.
+    // DF's CP437 bitmap atlas and its other interface art. The SHIPPING font does NOT depend on
+    // this mount. Traversal-safe by handle_file_request's ".." rejection; no-ops if data/art is absent.
     server.set_mount_point("/dfart", "data/art");
     server.set_mount_point("/", web_root());
 
     // httplib knows no font MIME types, so a .ttf served from the "/" mount would go out with NO
-    // Content-Type header at all. Name it explicitly for web/fonts/df-curses.ttf (D1).
+    // Content-Type header at all. Name it explicitly for web/fonts/df-curses.ttf.
     server.set_file_extension_and_mimetype_mapping("ttf", "font/ttf");
 
-    // Install the auth gate BEFORE any route runs (backported set_pre_routing_handler). No-op when
-    // no passphrase is set (dev-default open behavior).
+    // Install the auth gate BEFORE any route runs. No-op when no passphrase is set.
     server.set_pre_routing_handler([](const httplib::Request& req, httplib::Response& res) -> bool {
-        g_http_requests.fetch_add(1, std::memory_order_relaxed);   // WT24: one relaxed add
-        // SAVE-BARRIER: reject every routed HTTP operation while DF serializes or cleans up a
-        // save. This deliberately includes legacy mutating GET routes and reads that would queue
-        // on CoreSuspender; static assets already in flight are harmless, and the browser's live
-        // WebSocket busy banner remains available because upgrades bypass httplib routing.
-        if (save_barrier_active()) {
+        g_http_requests.fetch_add(1, std::memory_order_relaxed);   // one relaxed add
+        // Reject DF-backed reads and every mutation while DF serializes a save. Disk-only GET/HEAD
+        // stays available: a 503 for a script a cold browser is loading leaves a half-booted page.
+        if (save_barrier_active() && !save_barrier_disk_read(req.method, req.path)) {
             res.status = 503;
             res.set_header("Cache-Control", "no-store");
             res.set_header("Retry-After", "2");
-            res.set_content("{\"ok\":false,\"busy\":true,\"error\":\"Dwarf Fortress is saving; try again when saving finishes\"}\n",
+            res.set_content("{\"ok\":false,\"busy\":true,\"reason\":\"save-barrier\",\"error\":\"Dwarf Fortress is saving; try again when saving finishes\"}\n",
                             "application/json; charset=utf-8");
             return true;
         }
-        // STALE-TAB GATE (2026-07-17): force the game entry point through /view, which is the ONLY
-        // path that substitutes the __DFCAPTURE_BUILD__ stamp. A GET("/") redirect route exists in
-        // session_routes.cpp but is DEAD -- the "/" static mount wins cpp-httplib routing precedence
-        // (handle_file_request runs before Get handlers), so "/" and "/index.html" were served raw:
-        // no stamp -> compareBuild permanently "unknown" -> the stale-tab banner could never fire,
-        // AND no Cache-Control -> the browser cached the unstamped page and could boot old JS against
-        // a redeployed server (the owner's mystery "refresh fixes it" glitches). Redirect here, in the
-        // pre-routing hook, so it runs BEFORE the file mount; no-store so the redirect itself is never
-        // cached. Pairs with the client session-pin drift gate (dwf-join.js compareSessionPin).
+        // Force the entry point through /view, the ONLY path that substitutes the build stamp. The
+        // "/" static mount beats a Get handler in httplib, so this has to happen pre-routing.
         if (req.method == "GET" && (req.path == "/" || req.path == "/index.html")) {
             res.set_header("Cache-Control", "no-store");
             res.set_redirect("/view");
@@ -554,15 +666,8 @@ void register_routes(httplib::Server& server) {
         return true;                                            // short-circuit routing
     });
 
-    // WA-5: httplib's built-in static-file mount serves the full body on every request with
-    // no conditional-request support at all (no ETag / no If-None-Match / no Last-Modified),
-    // so the web client re-downloads every unchanged JS/CSS/PNG/JSON asset in full on each
-    // reload. This hook fires for every file served from a mount point AFTER httplib has read
-    // the bytes into res.body (see Server::handle_file_request), letting us attach a
-    // content-hash ETag and answer a matching If-None-Match with an empty 304. `no-cache`
-    // (store-but-always-revalidate) is the conservative correct policy: the browser revalidates
-    // on every load and only skips the transfer when the bytes are byte-identical, so there is
-    // no staleness risk even for a file like index.html that references versioned sub-assets.
+    // httplib's static mount has no conditional-request support at all, so this hook attaches a
+    // content-hash ETag and answers If-None-Match with a 304. no-cache: revalidate, transfer on change.
     server.set_file_request_handler([](const httplib::Request& req, httplib::Response& res) {
         if (res.status != 200) return;                 // only decorate a real file hit
         std::string etag = content_etag(res.body);
@@ -582,51 +687,42 @@ void register_routes(httplib::Server& server) {
     register_hauling_routes(server);
     register_kitchen_routes(server);
     register_worldmap_routes(server);
-    register_mission_routes(server);   // B228 missions/raids: /missions, /mission-create, /mission-rescue
+    register_mission_routes(server);   // Missions/raids: /missions, /mission-create, /mission-rescue
     register_standing_orders_routes(server);
     register_stone_use_routes(server);
-    // LEVER-LINKING task #18 flagged hunk: HTTP-only target picker + link job queue.
+    // HTTP-only target picker + link job queue.
     register_lever_link_routes(server);
+    register_machine_routes(server);   // read-only machine/power networks
+    register_siege_engine_routes(server); // W3b siege engines: /siege-engine + action/resting-facing
     register_trade_depot_routes(server);
     register_hospital_routes(server);   // Wave 3.3 hospital/health routes
-    register_menu_oracle_routes(server); // B37 crash-safe render-thread native menu snapshot
-    register_status_truth_routes(server); // B280 bubble-vs-DF-sheet cross-check oracle: GET /statustruth
-    register_status_harvest_routes(server); // NATIVE-STATUS-BUBBLE §3.A screen-array harvest: GET /statusharvest
+    register_menu_oracle_routes(server); // crash-safe render-thread native menu snapshot
+    register_status_truth_routes(server); // bubble-vs-DF-sheet cross-check oracle: GET /statustruth
+    register_status_harvest_routes(server); // GET /statusharvest
     register_flight_recorder_routes(server); // ground-truth Pillar 2 corpus capture: /recorder/start|stop|status
-    register_sound_route(server);        // P1 audio: GET /sound/(.+) + /sound-info capability probe
-    register_chat_routes(server);        // WP-D multiplayer chat: GET /chat scrollback
-    register_vote_routes(server);        // WT14 fortress-elevation vote: /vote + start/cast/close
-    register_popup_routes(server);       // WT28/B218 native popup mirror: GET /popup + /popup/dismiss
-    register_diplo_routes(server);       // B225 petitions/diplomacy detector + meeting mirror:
-                                         // GET /diplo + POST /diplo-request-priority
-    // WT26 browser DFHack command console: GET /console/commands + POST /console/run. W23: both
-    // routes are gated on the dfhack_console host setting, DEFAULT OFF (dfcapture-hostwrites.json;
-    // see console_routes.cpp). When ON they serve ANY AUTHED PLAYER -- NOT host-only. Containment
-    // is the server-side blocklist in src/console_policy.h, which binds the host exactly as it
-    // binds a friend. Neither path has a static extension nor is in join_public_path, so the
-    // pre-routing auth gate above already refuses unauthed callers.
+    register_sound_route(server);        // GET /sound/(.+) + /sound-info capability probe
+    register_chat_routes(server);        // multiplayer chat: GET /chat scrollback
+    register_popup_routes(server);       // Native popup mirror: GET /popup + /popup/dismiss
+    register_diplo_routes(server);       // Petitions/diplomacy detector + meeting mirror:
+    // The console routes are gated on the dfhack_console host setting, DEFAULT OFF, and when ON
+    // they serve ANY authed player. Containment is the server-side blocklist in console_policy.h.
     register_console_routes(server);
-    // W23 guard surface: GET /write-guards (read-only flag state for guard-aware clients) +
-    // GET|POST /console-config (host-tab-only toggle of dfhack_console). Auth-covered like the
-    // console routes; must stay above the catch-all.
+    // GET /write-guards + GET|POST /console-config, auth-covered like the console routes and, like
+    // them, must stay above the catch-all.
     guards::register_write_guard_routes(server);
-    register_art_desc_routes(server);   // B246 statue/engraving art: GET /engraving-info (read-only)
+    register_art_desc_routes(server);   // Statue/engraving art: GET /engraving-info (read-only)
 
-    // B212 (2026-07-13): the ~150 route registrations that used to live inline below this point
-    // (register_routes had grown to 2,749 lines -- the repo's #1 merge-conflict site, in 49 of
-    // the last 200 commits) now live with their domain modules, finishing the register_*_routes()
-    // split that the 18 calls above started. Handler bodies moved VERBATIM; the registered route
-    // surface and every route's behavior are unchanged (verified by a before/after registration
-    // inventory diff). NOTE: every register_*_routes call MUST stay above the POST ".*" catch-all
-    // at the end of this function -- httplib dispatches in registration order.
+    // Every register_*_routes call MUST stay above the POST ".*" catch-all at the end of this
+    // function: httplib dispatches in registration order.
     register_session_routes(server);       // /, /view, /version, /join, /camera, /save, ...
     register_oracle_routes(server);        // /frame.jpg, /tiledump, /zoom-probe, /host-state
+    register_texpos_conformance_routes(server); // /texpos-conformance
     register_placement_routes(server);     // /designate, /build-*, /stockpile, /zone, /placement-*
     register_building_zone_routes(server); // /building-*, /workshop-*, /zone-*, /farm-plot*, /zones
     register_stockpile_routes(server);     // /stockpile-*
     register_labor_routes(server);         // /labor, /labor-*
     register_unit_routes(server);          // /unit, /unit-portrait, /unit-sprite*, /unit-nickname,
-                                           //   /task-cancel, /livestock-action
+                                           //   /task-cancel, /task-action, /livestock-action
     register_info_panel_routes(server);    // /panel
     register_interaction_routes(server);   // /inspect, /hover, /tile-occupants, /stock-item-action
     register_notification_routes(server);  // /notifications, /notification-action
@@ -641,11 +737,8 @@ void register_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_header("Connection", "close");
         res.set_header("Content-Type", "multipart/x-mixed-replace; boundary=dwf");
-        // NOTE: the vendored httplib.h in third_party/cpp-httplib only exposes the single-arg
-        // set_chunked_content_provider(provider, resource_releaser = {}) with a void-returning
-        // provider (size_t offset, DataSink&) -- there is no (content_type, provider) overload and
-        // no bool return. So, same as the pre-existing handler this replaces, loop control is via
-        // sink.done() + return (never a boolean), and Content-Type stays on the header set above.
+        // The vendored httplib exposes only the single-arg set_chunked_content_provider with a
+        // void-returning provider, so loop control is sink.done() + return, never a boolean.
         res.set_chunked_content_provider(
             [player, last_seq, last_sent, interval](size_t, httplib::DataSink& sink) mutable {
                 if (!g_running.load() || !sink.is_writable()) {
@@ -733,9 +826,8 @@ void register_routes(httplib::Server& server) {
         res.set_content(hud_json(player, hud), "application/json; charset=utf-8");
     });
 
-    // Live per-player map-data (wire:1 tile JSON). Reads only stable sim structures
-    // (Maps / MapCache / units / buildings) under CoreSuspender -- the crash-safe
-    // reader proven by capture-mapdump -- never the render arrays.
+    // Live per-player map-data JSON. Reads only stable sim structures under CoreSuspender, never
+    // the render arrays.
     server.Get("/mapdata", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         Camera camera;
@@ -747,13 +839,8 @@ void register_routes(httplib::Server& server) {
             return;
         }
 
-        // FIX 1 -- window sizing. When the tile client passes &w=&h= (tile counts derived
-        // from its canvas so the map's aspect matches the browser and fills it), honor
-        // them (clamped). Origin stays at the camera (DF top-left), so the grid<->world
-        // contract that /designate, /inspect, /hover, /placement-cursor and the presence
-        // splice all rely on (world = camera + grid_index) is preserved. Absent w/h keeps
-        // the legacy behavior: size to the REAL DF viewport (zoom-aware, reads
-        // gps->main_viewport only -- no core suspend / render thread).
+        // &w=&h= sizes the window in tiles (clamped); the origin stays at the camera, preserving the
+        // world = camera + grid_index contract. Absent w/h sizes to the real DF viewport.
         int view_w = 0;
         int view_h = 0;
         int req_w = 0;
@@ -770,11 +857,8 @@ void register_routes(httplib::Server& server) {
             return;
         }
 
-        // SAFE CONTEXT: mirror the proven inspect/hover ordering (interaction.cpp
-        // run_suspended) -- take the capture-state mutex BEFORE CoreSuspender so the
-        // lock order matches the /frame.jpg render path and can never form a cycle.
-        // build_map_json_for_camera acquires CoreSuspender internally (reentrant),
-        // and touches NO other mutex, so it cannot deadlock with the capture path.
+        // Take the capture-state mutex BEFORE CoreSuspender so the lock order matches the
+        // /frame.jpg render path and can never form a cycle. The builder suspends internally.
         std::string json;
         {
             std::lock_guard<std::recursive_mutex> lock(capture_state_mutex());
@@ -787,9 +871,8 @@ void register_routes(httplib::Server& server) {
             return;
         }
 
-        // Splice the multiplayer-presence array in just before the map object's closing
-        // brace (build_map_json_* always returns a `...}` object). Cheap string surgery
-        // keeps the tile reader (which has no player identity) unchanged.
+        // Splice the presence array in just before the map object's closing brace, so the tile
+        // reader -- which has no player identity -- stays unchanged.
         if (!json.empty() && json.back() == '}') {
             json.pop_back();
             json += ",\"players\":" + presence_json(player) + "}";
@@ -799,15 +882,8 @@ void register_routes(httplib::Server& server) {
         res.set_content(json, "application/json; charset=utf-8");
     });
 
-    // PERF DIAGNOSTICS: curl-able snapshot of connection/keepalive health per connected
-    // player + overall, plus the "v1" object (world_stream_diag_json()) which carries the
-    // real per-connection transport cost (scanBlocks/dirtyBlocks/encodedBlocks/
-    // pendingBlocks/inflightFrames/rttMs/trickle*) and v1SuspenderMsPerSec -- the ONE
-    // global CoreSuspender hold that actually costs DF anything now (WA-9). WA-15: this
-    // used to also report the legacy per-player build-cost ring (buildMs/pushesPerSec/
-    // blocksSkippedPct); that ring's source (the legacy push loop) is gone, so those
-    // fields are gone with it -- this reads straight off the live connection registry
-    // instead of a stale build-sample cache.
+    // Connection and keepalive health per player, plus the "v1" object carrying per-connection
+    // transport cost and v1SuspenderMsPerSec -- the one global CoreSuspender hold that costs DF.
 
     server.Get("/diag", [](const httplib::Request&, httplib::Response& res) {
         std::ostringstream out;
@@ -819,12 +895,11 @@ void register_routes(httplib::Server& server) {
         bool first = true;
         std::vector<std::string> players = ws_connected_players();
         for (const std::string& player : players) {
-            // WA-3 keepalive health: RTT from server PING/PONG + inbound-silence age.
+            // Keepalive health: RTT from server PING/PONG + inbound-silence age.
             long long rttMs = -1, lastInboundAgeMs = -1;
             bool health = ws_player_health(player, rttMs, lastInboundAgeMs);
-            // Same ghost gate as the presence roster: a wedged connection the writer thread never
-            // reaped (inbound silent past the 45 s window) is not a live player -- drop it so /diag
-            // agrees with the lobby/roster instead of showing phantom uuid entries.
+            // Same ghost gate as the presence roster: a wedged connection the writer never reaped
+            // is not a live player, so /diag agrees with the lobby instead of showing phantoms.
             if (health && lastInboundAgeMs >= 0 && lastInboundAgeMs > kRosterGhostMs) continue;
             int conns = (int)ws_connection_count_for(player);
             ov_conns += conns;
@@ -838,11 +913,10 @@ void register_routes(httplib::Server& server) {
         out << "],\"overall\":{"
             << "\"connections\":" << ov_conns
             << ",\"players\":" << players.size() << "}"
-            // WT28/B218: true while a native modal popup is mirrored -- the reason a web
-            // unpause is being refused (the client explains instead of appearing broken).
+            // True while a native modal popup is mirrored -- the reason a web unpause is refused.
             << ",\"popupBlocked\":" << (popup_blocked() ? "true" : "false")
-            // B225: true while the native diplomacy meeting dialog is open (sim-blocking per
-            // DFHack World::ReadPauseState) -- the reason a web unpause is being refused.
+            // True while the native diplomacy dialog is open -- the other reason a web unpause is
+            // refused.
             << ",\"diploBlocked\":" << (diplo_meeting_open() ? "true" : "false")
             << ",\"luaBridge\":{\"calls\":" << lua_health.calls
             << ",\"successes\":" << lua_health.successes
@@ -854,32 +928,33 @@ void register_routes(httplib::Server& server) {
         res.set_content(out.str(), "application/json; charset=utf-8");
     });
 
-    // Premium sprite lookup (token -> sheet/col/row), parsed once from DF's own
-    // graphics raws. Static per plugin run, so a long browser cache is fine.
+    // Token -> sheet/col/row, parsed once from DF's own graphics raws and static per plugin run.
     server.Get("/sprites/map.json", [](const httplib::Request& req, httplib::Response& res) {
-        // Parsed once from DF's graphics raws (static per plugin run) -- cache the body and its
-        // content-hash ETag on first serve (after DF is loaded), then answer If-None-Match with
-        // a 304 (WA-5) instead of re-sending the whole map. Same conditional pattern the
-        // /tiletype_meta.json / /item_type_meta.json / /frame.jpg routes already use.
-        static const std::string body = sprite_map_json();
-        static const std::string etag = content_etag(body);
+        // Cache the body and its content-hash ETag on first serve, then answer If-None-Match with
+        // a 304. A failed parse is never cached as a browsable body.
+        const ApiResult<std::string>& result = sprite_map_json();
+        if (!result.ok) {
+            send_api_error(result, res);
+            return;
+        }
+        static const std::string etag = content_etag(result.value);
         res.set_header("Cache-Control", "public, max-age=86400");
         res.set_header("ETag", etag);
         if (req.get_header_value("If-None-Match") == etag) {
             res.status = 304;
             return;
         }
-        res.set_content(body, "application/json; charset=utf-8");
+        res.set_content(result.value, "application/json; charset=utf-8");
     });
 
-    // Session meta tables for protocol v1 (WA-5). Enum metadata (tiletype and item_type)
-    // for the browser client to resolve binary wire values back to enum strings.
-    // Cached static per plugin run; long-lived ETag headers.
-    // WA-5 follow-up: these emitted an ETag but ignored If-None-Match, so a repeat GET always
-    // re-sent the full (tiny but non-zero) body instead of a 304 -- same conditional-request
-    // pattern /frame.jpg already implements above.
+    // Enum metadata so the browser can resolve binary wire values back to enum strings. Cached
+    // static per plugin run.
     server.Get("/tiletype_meta.json", [](const httplib::Request& req, httplib::Response& res) {
-        static const std::string cached = build_tiletype_meta_json();
+        static const ApiResult<std::string> cached = build_tiletype_meta_json();
+        if (!cached.ok) {
+            send_api_error(cached, res);
+            return;
+        }
         static const std::string etag = "\"dwf-tiletype-v1\"";
         res.set_header("Cache-Control", "public, max-age=86400");
         res.set_header("ETag", etag);
@@ -887,11 +962,15 @@ void register_routes(httplib::Server& server) {
             res.status = 304;
             return;
         }
-        res.set_content(cached, "application/json; charset=utf-8");
+        res.set_content(cached.value, "application/json; charset=utf-8");
     });
 
     server.Get("/item_type_meta.json", [](const httplib::Request& req, httplib::Response& res) {
-        static const std::string cached = build_item_type_meta_json();
+        static const ApiResult<std::string> cached = build_item_type_meta_json();
+        if (!cached.ok) {
+            send_api_error(cached, res);
+            return;
+        }
         static const std::string etag = "\"dwf-itemtype-v1\"";
         res.set_header("Cache-Control", "public, max-age=86400");
         res.set_header("ETag", etag);
@@ -899,15 +978,11 @@ void register_routes(httplib::Server& server) {
             res.status = 304;
             return;
         }
-        res.set_content(cached, "application/json; charset=utf-8");
+        res.set_content(cached.value, "application/json; charset=utf-8");
     });
 
-    // Serve a DF sprite-sheet PNG by basename, optionally ONE subdirectory level deep (e.g.
-    // "ogres/ogres.png" -- DF stores some large-creature sheets as FILE:images/<subdir>/<x>.png).
-    // SECURITY: only [A-Za-z0-9_]+(/[A-Za-z0-9_]+)?\.png is accepted -- at most one '/', every path
-    // segment non-empty alnum/underscore, so no "." at all (=> no ".."), no absolute path, no
-    // nested traversal. Anything else 404s. Searches vanilla graphics dirs first, then the
-    // mounted dwf web root for generated atlas sheets.
+    // Serves a sheet by basename, optionally ONE subdirectory deep. Only
+    // [A-Za-z0-9_]+(/[A-Za-z0-9_]+)?\.png is accepted, so there is no "." at all and no traversal.
     server.Get(R"(/sprites/img/(.+))", [](const httplib::Request& req, httplib::Response& res) {
         std::string name = req.matches.size() > 1 ? req.matches[1].str() : std::string();
         bool ok = name.size() > 4 && name.compare(name.size() - 4, 4, ".png") == 0;
@@ -932,65 +1007,46 @@ void register_routes(httplib::Server& server) {
             return;
         }
 
-        static const char* kImgDirs[] = {
-            "data/vanilla/vanilla_environment/graphics/images",
-            "data/vanilla/vanilla_plants_graphics/graphics/images",
-            "data/vanilla/vanilla_creatures_graphics/graphics/images",
-            // corpsefix window #12: prehistoric/extinct creature sheets (cambrian trilobites,
-            // cretaceous carnotaurus, etc.) live in their own graphics module -- without this
-            // dir the per-species corpse/creature art for extinct species 404'd.
-            "data/vanilla/vanilla_creatures_extinct_graphics/graphics/images",
-            // corpsefix window #12: gems.png / smallgems.png (the entire cut-gem sprite class)
-            // ship in the descriptors graphics module, not vanilla_items -- without this dir every
-            // cut gem drew the invisible/missing box.
-            "data/vanilla/vanilla_descriptors_graphics/graphics/images",
-            "data/vanilla/vanilla_buildings_graphics/graphics/images",
-            "data/vanilla/vanilla_items_graphics/graphics/images",
-            // Interface sheet dir: the designation-overlay glyphs (designations.png)
-            // live here, so the tile client can load them through the same getSheet().
-            "data/vanilla/vanilla_interface/graphics/images",
-        };
-        // Every sheet URL is stable across web deploys. Revalidate by content rather than
-        // treating a prior response as fresh for a day: localhost otherwise keeps an obsolete
-        // (including blank) vanilla sheet while a tunnel separate origin fetches a new copy.
-        auto serve_png = [&req, &res](const std::string& path) -> bool {
-            std::ifstream f(path, std::ios::binary);
-            if (!f)
-                return false;
-            std::ostringstream ss;
-            ss << f.rdbuf();
-            std::string bytes = ss.str();
-            std::string etag = content_etag(bytes);
-            res.set_header("Cache-Control", "no-cache");
-            res.set_header("ETag", etag);
-            if (req.get_header_value("If-None-Match") == etag) {
-                res.status = 304;
-                return true;
-            }
-            res.set_content(bytes.data(), bytes.size(), "image/png");
-            return true;
-        };
-
-        for (const char* dir : kImgDirs) {
-            if (serve_png(std::string(dir) + "/" + name))
-                return;
-        }
-        if (serve_png(std::string(web_root()) + "/" + name))
+        std::string path = resolve_sprite_png(name);
+        FileStamp stamp;
+        if (path.empty() || !stat_file(path, stamp)) {
+            res.status = 404;
+            res.set_content("not found\n", "text/plain; charset=utf-8");
             return;
-        res.status = 404;
-        res.set_content("not found\n", "text/plain; charset=utf-8");
+        }
+
+        // Revalidate by content rather than treating a prior response as fresh for a day: localhost
+        // would otherwise keep an obsolete sheet while a tunnel origin fetches a new copy.
+        std::string etag, bytes;
+        bool have_bytes = false;
+        if (!sprite_cached_etag(path, stamp, etag)) {
+            if (!read_whole_file(path, bytes)) {
+                res.status = 404;
+                res.set_content("not found\n", "text/plain; charset=utf-8");
+                return;
+            }
+            have_bytes = true;
+            etag = content_etag(bytes);
+            sprite_remember_etag(path, stamp, etag);
+        }
+
+        res.set_header("Cache-Control", "no-cache");
+        res.set_header("ETag", etag);
+        // The point of the cache: a matching ETag returns here after one stat and two map lookups.
+        if (req.get_header_value("If-None-Match") == etag) {
+            res.status = 304;
+            return;
+        }
+        if (!have_bytes && !read_whole_file(path, bytes)) {
+            res.status = 404;
+            res.set_content("not found\n", "text/plain; charset=utf-8");
+            return;
+        }
+        res.set_content(bytes.data(), bytes.size(), "image/png");
     });
 
-    // Catch-all unmatched POST -> a real, fast 404 JSON response (WD-13's finding: GETs to an
-    // unregistered path already 404 cleanly through cpp-httplib's own routing fallback, but an
-    // unmatched POST here got no response at all -- the client's postMaybePending() 4s-abort
-    // workaround exists specifically because of this). httplib's Server::dispatch_request
-    // tries every registered pattern for the method in REGISTRATION order and stops at the
-    // first regex_match, so a ".*" pattern is safe to register here as long as it is the LAST
-    // POST route added (every specific route above -- including everything registered by the
-    // register_*_routes() helpers earlier in this function -- gets first refusal). This turns
-    // every POST that isn't one of ours into a guaranteed, quick, well-formed error instead of
-    // whatever hung/dropped the connection before.
+    // Catch-all unmatched POST -> a real, fast 404 JSON. httplib stops at the first regex_match in
+    // REGISTRATION order, so ".*" is safe only while it is the LAST POST route added.
     server.Post(".*", [](const httplib::Request&, httplib::Response& res) {
         res.status = 404;
         res.set_header("Cache-Control", "no-store");
@@ -999,22 +1055,8 @@ void register_routes(httplib::Server& server) {
     });
 }
 
-// --- FIX 2: WebSocket map-push loop -------------------------------------------------
-// Replaces the ~2/sec GET /mapdata poll with an instant server->client push. Reuses the
-// SAME per-player change signal as the /stream handler (the input-kick CV
-// g_stream_wake_cv + g_input_generation): a push fires the instant the player acts,
-// otherwise it paces at the stream fps, and only sends when the map actually changed
-// (detected by hashing the produced JSON per player). The pushed payload is byte-for-
-// byte what GET /mapdata returns -- same window sizing (per-player w/h), same presence
-// splice, same lock order (capture_state_mutex -> CoreSuspender) -- so WS frames and
-// polled frames are identical and the client feeds both into one draw path.
-// WA-15: the legacy per-player DELTA state (PlayerDeltaState: block-signature cache,
-// last-built window, payload hash) is gone -- protocol v1's world_stream owns ALL
-// per-connection push state now (world_stream.cpp's per-connection stream state).
-// WT24: is the HTTP listen thread still there? Cheap and non-blocking. On Windows a
-// zero-timeout wait on the thread handle returns WAIT_TIMEOUT while the thread runs (parked
-// in accept()) and WAIT_OBJECT_0 once it has terminated -- including a death we never asked
-// for. Elsewhere we can only report the flag the thread sets itself.
+// Is the HTTP listen thread still there? On Windows a zero-timeout wait on its handle returns
+// WAIT_TIMEOUT while it is parked in accept() and WAIT_OBJECT_0 once it has terminated.
 const char* http_thread_liveness() {
 #ifdef _WIN32
     void* h = g_http_thread_handle.load(std::memory_order_relaxed);
@@ -1029,10 +1071,8 @@ const char* http_thread_liveness() {
 #endif
 }
 
-// WT24: the once-a-minute proof of life. ONE file open/write/close per 60 s -- the whole
-// point of the design is that everything it prints was already sitting in an atomic, so an
-// idle, paused fort pays nothing between beats and the beat itself never touches DF's lock.
-// Returns the line it wrote (for the shutdown mark to reuse the same shape).
+// The once-a-minute proof of life: one file open/write/close per 60 s, and everything it prints was
+// already sitting in an atomic, so the beat never touches DF's lock. Returns the line it wrote.
 std::string heartbeat_line(size_t players, uint64_t push_delta, uint64_t cursor_delta,
                            uint64_t frame_delta, uint64_t req_delta) {
     long long start = g_server_start_ms.load(std::memory_order_relaxed);
@@ -1060,21 +1100,17 @@ std::string heartbeat_line(size_t players, uint64_t push_delta, uint64_t cursor_
 }
 
 void ws_push_loop() {
-    // WT24: thread ENTER/EXIT marks. A crash tail that shows ENTER with no EXIT and no
-    // SHUTDOWN-CLEAN means this thread was still up when the process died.
+    // A crash tail showing ENTER with no EXIT and no SHUTDOWN-CLEAN means this thread was still up
+    // when the process died.
     diagnostics_log("THREAD-ENTER push-loop");
-    // FRAME-RATE FIX (pre-v1 history, still the shape of this loop): free-run at ~30Hz and
-    // wake early on player input so an action's next frame isn't stuck behind the interval.
     auto interval = std::chrono::milliseconds(33);       // ~30Hz sampling of the live sim
-    // DEADLINE-BASED scheduling for CONSTANT 30fps: wait until (deadline += interval), not a
-    // fresh `interval` each loop, so the true period stays ~33ms even once a tick's build time
-    // is added in. If we ever fall behind (build > interval), snap the deadline forward so we
-    // don't spin trying to catch up.
+    // Deadline-based scheduling: wait until (deadline += interval), not a fresh interval each loop,
+    // so the true period stays ~33ms. If a build overruns, snap the deadline forward, never spin.
     auto next_deadline = std::chrono::steady_clock::now();
     // Free-run diagnostics: prove the loop actually ticks ~30x/s independent of client input.
     int dbg_iters = 0, dbg_players = 0;
     auto dbg_last = std::chrono::steady_clock::now();
-    // WT24: 60 s crash-evidence heartbeat. Baselines for the per-beat deltas.
+    // 60 s crash-evidence heartbeat. Baselines for the per-beat deltas.
     auto hb_last = std::chrono::steady_clock::now();
     uint64_t hb_push0 = g_push_iters.load(), hb_cursor0 = g_cursor_iters.load();
     uint64_t hb_frames0 = ws_frames_sent_total(), hb_reqs0 = g_http_requests.load();
@@ -1093,7 +1129,7 @@ void ws_push_loop() {
 
         auto connected = ws_connected_players();
         ++dbg_iters; dbg_players += (int)connected.size();
-        g_push_iters.fetch_add(1, std::memory_order_relaxed);   // WT24 liveness counter
+        g_push_iters.fetch_add(1, std::memory_order_relaxed);   // liveness counter
         {
             auto nowd = std::chrono::steady_clock::now();
             if (nowd - dbg_last >= std::chrono::seconds(1)) {
@@ -1102,9 +1138,8 @@ void ws_push_loop() {
                     ", connectedNow=" + std::to_string(connected.size()));
                 dbg_iters = 0; dbg_players = 0; dbg_last = nowd;
             }
-            // WT24: the heartbeat. Unconditional (an idle, paused fort still beats -- silence
-            // is what we are trying to make meaningful), but only once per kHeartbeatSecs, so
-            // it can never spam a paused game the way a per-frame trace would.
+            // Unconditional -- an idle, paused fort still beats, because silence is the signal --
+            // but only once per kHeartbeatSecs, so it can never spam.
             if (nowd - hb_last >= std::chrono::seconds(kHeartbeatSecs)) {
                 uint64_t p = g_push_iters.load(), c = g_cursor_iters.load();
                 uint64_t f = ws_frames_sent_total(), r = g_http_requests.load();
@@ -1115,72 +1150,33 @@ void ws_push_loop() {
             }
         }
 
-        // WA-9/WA-15: protocol-v1 GLOBAL read pass -- ONE sig scan + ONE encode + N cheap
-        // distributions for every v1 connection this tick (no-op with zero v1 clients). This
-        // is now the ONLY map-push path (the legacy per-player build+send loop that used to
-        // run here was removed). Same lock order as /mapdata (capture mutex -> CoreSuspender).
-        //
-        // WT24: every stage below is wrapped in a DiagPhase breadcrumb (atomics only, no I/O).
-        // If DF dies or wedges inside one of them, the heartbeat / stall line names the stage,
-        // and the WER dump's stack says where inside it. This is the "where" half of the
-        // evidence -- B234 was exactly this shape (a tick walking a live native modal).
+        // The v1 GLOBAL read pass: one signature scan, one encode, N cheap distributions per tick,
+        // and the only map-push path. Same lock order as /mapdata (capture mutex -> CoreSuspender).
         { DiagPhase _p("world_stream_tick");
           world_stream_tick(capture_state_mutex(),
                             [](const std::string& p) { return presence_json(p); }); }
 
-        // WP-B: heartbeat stamp + pause reconcile + autosave sample + deferred leave-pause apply.
-        // Placed AFTER world_stream_tick so a save-stalled tick (which blocks inside
-        // world_stream_tick on CoreSuspender) does NOT advance the heartbeat -- that stall is what
-        // the saving-indicator watchdog on ws_cursor_loop detects.
+        // Placed AFTER world_stream_tick so a save-stalled tick does NOT advance the heartbeat --
+        // that stall is exactly what the saving-indicator watchdog detects.
         { DiagPhase _p("pause_push_tick"); pause_push_tick(); }
 
-        // WT14: fortress-elevation vote -- <=1 Hz native-offer detection sample (bounded
-        // ConditionalCoreSuspender, same posture as pause_push_tick's autosave sample),
-        // auto open/close edges, state broadcasts, and late-join sync.
-        { DiagPhase _p("vote_push_tick"); vote_push_tick(); }
-
-        // WT28/B218: native popup mirror -- <=1 Hz sample of world.status.popups (mega/BOX only;
-        // announcement_alert is local host UI and is deliberately NOT mirrored -- see native_popup.h),
-        // change broadcasts {"type":"popup",...}, and sticky late-join sync.
+        // <=1 Hz sample of world.status.popups; announcement_alert is local host UI, never mirrored.
         { DiagPhase _p("popup_push_tick"); popup_push_tick(); }
 
-        // B238: burrow change push -- a <=1 Hz, DF-free (no suspender) compare of the burrow
-        // revision that every /burrow-* write route bumps. Broadcasts {"type":"burrows","seq":N}
-        // on change + sticky late-join sync, so another player's burrow paint appears on your map
-        // without you reopening the panel. Burrows had NO push before this.
+        // <=1 Hz, suspender-free compare of the burrow revision every /burrow-* write bumps, so
+        // another player's burrow paint appears without you reopening the panel.
         { DiagPhase _p("burrow_push_tick"); burrow_push_tick(); }
 
-        // B225: petitions/diplomacy detector + meeting mirror -- <=1 Hz sample of
-        // plotinfo.petitions / plotinfo.dipscript_popups / main_interface.diplomacy,
-        // change-only broadcasts {"type":"diplo",...}, and sticky late-join sync.
-        //
-        // ★ DISABLED 2026-07-14 (B234): DF died with HEAP CORRUPTION (0xc0000374 in ntdll,
-        //   09:59:51 local) ~55 min after win39, while the owner was sitting in the native
-        //   "Make requests for next year's caravan" screen -- i.e. exactly the
-        //   main_interface.diplomacy / dipscript / markup_text structures this tick walks.
-        //   A tick that reads a LIVE native modal's word vectors is the prime suspect, and
-        //   heap corruption is the one class that can also poison a save. The detector is
-        //   off until B234 root-causes it; /diplo (request-driven) still answers, so nothing
-        //   else regresses -- only the auto-detect plaques go dark.
-        // Each DiagPhase guard clears `inside` when its stage returns, so between ticks we are
-        // inside nothing: a "phase .../INSIDE" in a heartbeat or a STALL line therefore always
-        // means genuinely wedged in that stage, never "idling between stages".
+        // kDiploTickEnabled is this tick's kill switch; /diplo stays request-driven either way.
+        // Each DiagPhase clears `inside` on return, so a phase named in a STALL line is truly wedged.
         if (kDiploTickEnabled) { DiagPhase _p("diplo_push_tick"); diplo_push_tick(); }
     }
     diagnostics_log("THREAD-EXIT push-loop iters=" + std::to_string(g_push_iters.load()) +
                     " (g_running=false: normal stop)");
 }
 
-// Smooth-cursor broadcast loop. Runs at a fixed ~25/s (independent of the map-push loop,
-// which only fires on map changes): cursors move constantly while the map is static, so
-// they need their own steady tick. Each pass pushes every player with a live socket a tiny
-// {"type":"cursors","players":[...]} of the OTHER players' precise cursors. Empty ticks are
-// skipped -- the client ages out a cursor it stops hearing about, so nobody's cursor lingers.
-// WT24: push-loop stall watchdog. Lives on the cursor loop for the same reason the saving
-// indicator does -- this loop NEVER takes CoreSuspender, so it keeps running (and keeps being
-// able to WRITE A LOG LINE) exactly when the push loop is wedged inside DF. That makes it the
-// only thread that can name the stage a hang died in. State is function-local statics: only
-// this thread touches them.
+// Lives on the cursor loop because that loop NEVER takes CoreSuspender: it keeps running, and can
+// still write a log line, exactly when the push loop is wedged inside DF.
 void push_stall_watchdog_tick() {
     static bool reported = false;          // one line per stall episode, never a spam loop
     static uint64_t last_seq = 0;
@@ -1221,7 +1217,7 @@ void ws_cursor_loop() {
     while (g_running.load()) {
         std::this_thread::sleep_for(interval);
         if (!g_running.load()) break;
-        g_cursor_iters.fetch_add(1, std::memory_order_relaxed);   // WT24 liveness counter
+        g_cursor_iters.fetch_add(1, std::memory_order_relaxed);   // liveness counter
 
         for (const auto& snap : client_camera_snapshot()) {
             const std::string& player = snap.player;
@@ -1231,22 +1227,15 @@ void ws_cursor_loop() {
             broadcast_to_player(player, "{\"type\":\"cursors\",\"players\":" + arr + "}");
         }
 
-        // WP-B: the saving-indicator + leave-grace watchdogs live HERE precisely because this loop
-        // NEVER takes CoreSuspender (spec §0/§4.4) -- so it keeps flowing (and can keep detecting +
-        // broadcasting) even while the core is blocked writing an autosave. Both are core-free:
-        // the busy watchdog only reads an atomic heartbeat + broadcasts; the leave watchdog only
-        // reads the socket roster + records intent (the actual SetPauseState is deferred to the
-        // push loop's pause_push_tick).
+        // These watchdogs live HERE because this loop never takes CoreSuspender, so they keep
+        // flowing while the core is blocked writing an autosave. Both are core-free.
         pause_busy_watchdog_tick();
         pause_leave_watchdog_tick();
 
-        // WT24: same posture, same reason -- catch a push loop wedged inside DF and name the
-        // stage in the log. Core-free: reads two atomics and (only on an edge) writes one line.
         push_stall_watchdog_tick();
 
-        // WP-D: join/leave chat lines. Core-free (reads the socket roster, broadcasts text). Runs
-        // at ~1 Hz (every 25th 40ms pass) -- the leave grace is seconds, so sub-second cadence adds
-        // nothing but registry-lock churn.
+        // Core-free, at ~1 Hz (every 25th pass): the leave grace is seconds, so a sub-second
+        // cadence would add nothing but registry-lock churn.
         static int chat_presence_div = 0;
         if (++chat_presence_div >= 25) { chat_presence_div = 0; chat_presence_tick(); }
     }
@@ -1282,14 +1271,12 @@ bool start_server(int port, const std::string& bind_address, std::string* err) {
         return false;
     }
 
-    // FIX 2: WsHttpServer overrides process_and_close_socket to intercept `Upgrade:
-    // websocket` on the SAME listen socket; every non-WS request is delegated to base
-    // HTTP handling. It IS a httplib::Server, so register_routes / bind / listen are
-    // unchanged. The "/ws" push route is installed by make_ws_server().
+    // WsHttpServer intercepts `Upgrade: websocket` on the SAME listen socket and delegates every
+    // other request to base HTTP handling, so register_routes / bind / listen are unchanged.
     auto server = make_ws_server();
     register_routes(*server);
 
-    // WA-8/9: provide hello_ack map dims + world_seq to the transport (DF read under the
+    // Provide hello_ack map dims + world_seq to the transport (DF read under the
     // capture lock, off the sim thread).
     set_v1_map_info([] { return world_stream_map_info(capture_state_mutex()); });
 
@@ -1302,7 +1289,7 @@ bool start_server(int port, const std::string& bind_address, std::string* err) {
     g_bind_address = bind_address;
     g_running = true;
     g_server = std::move(server);
-    // WT24: reset the crash-evidence clocks/counters for this server run.
+    // reset the crash-evidence clocks/counters for this server run.
     g_server_start_ms.store(diag_steady_ms(), std::memory_order_relaxed);
     g_push_iters.store(0); g_cursor_iters.store(0); g_http_requests.store(0);
     diagnostics_log("SERVER-START bind=" + bind_address + ":" + std::to_string(port));
@@ -1330,6 +1317,8 @@ void stop_server() {
         std::lock_guard<std::mutex> lock(g_server_mutex);
         if (!g_server)
             return;
+        // Wake accepted sockets BEFORE httplib drains its worker queue: stop() only closes the
+        // listen socket, and an idle keep-alive can hold a pool worker for five seconds.
         g_running = false;
         ws_server_begin_shutdown(*g_server);
         g_server->stop();
@@ -1337,8 +1326,8 @@ void stop_server() {
         thread = std::move(g_server_thread);
     }
 
-    // FIX 2: unblock the push loop (its wait_for) and every WS worker parked in recv(),
-    // then join the push thread before returning.
+    // Unblock the push loop and every WS worker parked in recv(), then join the push thread.
+    g_running = false;
     { std::lock_guard<std::mutex> lk(g_stream_wake_mutex); }
     g_stream_wake_cv.notify_all();
     ws_close_all();
@@ -1350,12 +1339,11 @@ void stop_server() {
     if (thread.joinable())
         thread.join();
     stop_flight_recorder();   // joins the capture thread; no-op when no recording session ran
-    g_http_thread_handle.store(nullptr, std::memory_order_relaxed);   // WT24: handle is dead now
+    g_http_thread_handle.store(nullptr, std::memory_order_relaxed);   // handle is dead now
     g_running = false;
 
-    // WT24: the server's own orderly-stop mark, with the run's totals. plugin_shutdown writes
-    // the final SHUTDOWN-CLEAN line after this (see dwf.cpp) -- that last line is what a
-    // crash tail is read against.
+    // The orderly-stop mark with this run's totals. plugin_shutdown writes the final
+    // SHUTDOWN-CLEAN line after it.
     long long start = g_server_start_ms.load(std::memory_order_relaxed);
     diagnostics_log("SERVER-STOP all threads joined: up=" +
                     std::to_string(start ? (diag_steady_ms() - start) / 1000 : 0) + "s pushIters=" +

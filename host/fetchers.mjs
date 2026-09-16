@@ -27,8 +27,7 @@ export function loadDownloadManifest(file = DOWNLOAD_MANIFEST_PATH) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
-// Manifest schema 2 nests per-platform {url, sha256} under "windows"/"linux"; schema 1 kept them
-// flat (Windows-only). Resolve either shape to a flat {version, manualUrl, url, sha256}.
+// Manifest schema 2 nests per-platform {url, sha256}; schema 1 kept them flat (Windows-only).
 export function platformManifestItem(item = {}) {
   const plat = IS_WIN ? item.windows : item.linux;
   return plat ? { ...item, ...plat } : item;
@@ -63,8 +62,7 @@ function friendlyFailure(error, manualUrl, destination) {
   };
 }
 
-// Default transport. Redirects are followed only over HTTPS and a failed/truncated response
-// rejects pipeline(), leaving cleanup to downloadVerified().
+// Redirects are followed only over HTTPS; a truncated response rejects pipeline().
 export function downloadHttps(url, dest, redirects = 5) {
   return new Promise((resolve, reject) => {
     const req = httpsGet(url, { headers: { "User-Agent": "Dwarf-With-Friends-Setup" } }, (res) => {
@@ -152,7 +150,10 @@ export async function extractZipWindows(archive, destination, run = runFile) {
         `Expand-Archive -LiteralPath '${escapedArchive}' -DestinationPath '${escapedDest}' -Force`]);
       return { tool: "PowerShell Expand-Archive" };
     } catch (powershellError) {
-      throw new Error(`could not unzip with tar.exe or PowerShell (${powershellError.message || tarError.message})`);
+      throw new Error(
+        `could not unzip with tar.exe or PowerShell (${powershellError.message || tarError.message})`,
+        { cause: powershellError },
+      );
     }
   }
 }
@@ -179,7 +180,7 @@ export async function fetchDfhack({
   dfRoot, manifest = loadDownloadManifest(), download = downloadHttps, extract = extractArchive,
 } = {}) {
   const item = platformManifestItem(manifest.dfhack || {});
-  const manualUrl = item.manualUrl || item.url || "https://github.com/DFHack/dfhack/releases/tag/53.15-r2";
+  const manualUrl = item.manualUrl || item.url || `https://github.com/DFHack/dfhack/releases/tag/${DFHACK_VERSION}`;
   if (item.version !== DFHACK_VERSION) {
     return friendlyFailure(`download manifest names DFHack ${item.version || "without a version"}; expected ${DFHACK_VERSION}`,
       manualUrl, dfRoot || "your Dwarf Fortress folder");

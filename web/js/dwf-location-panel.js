@@ -14,20 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// B229 -- Location Details (Places > Locations). A LOCATION is a df::abstract_building
-// (tavern / temple / library / guildhall / hospital) that owns one or more civzones; before this
-// panel the Locations tab was a name + a zone count, and the census graded it E: no occupant
-// counts, no occupation assignment, no temple-deity or craft-guild picker, no rented rooms.
-//
-// Reads /location-detail?id=<abstract_building id>; writes /location-action (occupation-assign,
-// deity, guild). Hospitals still delegate to the richer openHospitalPanel. Opening this panel NEVER
-// recenters the map (B216): the zone-name row is a label, not a deep link.
-//
-// Pure shapers (occupancyText / occupationRows / deityRows / guildRows / roomRows / positionRows /
-// candidateRows) take plain JSON and return display structs with NO DOM dependency, so
-// tools/harness/b229_places_depth_test.mjs can exercise them (incl. seeded-bad rows) offline.
+// dwf-location-panel.js -- Location Details (Places > Locations) for a df::abstract_building.
 
   function _locEsc(s) {
     if (typeof DWFUI !== "undefined" && DWFUI && typeof DWFUI.esc === "function") return DWFUI.esc(s);
@@ -73,10 +65,8 @@
     return parts.length ? head + " · " + parts.join(", ") : head;
   }
 
-  // Occupation rows (census gap 2). A row with id < 0 is a VACANT catalogue slot -- assigning to it
-  // makes the df::occupation. `verified:false` marks a slot we could not establish for this location
-  // kind from df-structures/DFHack; the server refuses to create those (guarded), so the row says so
-  // rather than offering a button that will fail.
+  // A row with id < 0 is a VACANT catalogue slot. `verified:false` marks a slot we could not establish
+  // for this location kind; the server refuses to create those, so the row says so rather than failing.
   function occupationRows(data) {
     var list = (data && Array.isArray(data.occupations)) ? data.occupations.filter(Boolean) : [];
     var allowNew = !!(data && data.allowNewSlots);
@@ -183,30 +173,6 @@
     });
   }
 
-  // Candidate list for an occupation. The SERVER already filtered to living citizens (B214: no
-  // corpses, no ghosts -- is_living_citizen in dfcapture.lua, the twin of the C++
-  // is_assignable_citizen); the client only searches and labels. A defensive filter here would
-  // silently paper over a server regression, so the test asserts the server's filter instead.
-  function candidateRows(data, query) {
-    var list = (data && Array.isArray(data.candidates)) ? data.candidates.filter(Boolean) : [];
-    var q = String(query || "").trim().toLowerCase();
-    return list.filter(function (c) {
-      if (!q) return true;
-      return (String(c.name || "") + " " + String(c.profession || "")).toLowerCase().indexOf(q) >= 0;
-    }).map(function (c) {
-      return {
-        unitId: Number(c.unitId),
-        name: String(c.name || ("Unit " + c.unitId)),
-        profession: String(c.profession || ""),
-        professionColor: Number(c.professionColor),
-        held: String(c.heldOccupation || ""),
-      };
-    });
-  }
-
-  // B276 -- shared by taverns, temples, libraries, guildhalls, and every other location kind.
-  // These are DF's real interface_bits_locations.png cells. A missing host flag omits the action
-  // dataset and disables the DWFUI button, so the controls fail closed instead of looking live.
   var LOCATION_ACCESS = [
     { key: "visitors", word: "VISITORS", label: "All visitors welcome", title: "This option allows visitors from outside the fortress to enter this location." },
     { key: "residents", word: "RESIDENTS", label: "", title: "This option allows long-term residents of the fortress to enter this location." },
@@ -222,24 +188,23 @@
     if (current === "everyone") current = "visitors";
     var enabled = !!(native.guards && native.guards.locationAccess);
     var selected = LOCATION_ACCESS.find(function (a) { return a.key === current; }) || null;
-    var buttons = LOCATION_ACCESS.map(function (a) {
-      var active = !!selected && a.key === selected.key;
-      return DWFUI.artBtnHtml({
-        cls: "loc-access-btn", active: active, disabled: !enabled,
-        sprite: "LOCATION_PERMISSION_" + (active ? "ON_" : "OFF_") + a.word,
-        dataset: enabled ? { locAccess: a.key } : {}, title: a.title, ariaLabel: a.title,
-      });
-    }).join("");
+    var buttons = DWFUI.accessPolicyButtonsHtml({
+      options: LOCATION_ACCESS, current: current, enabled: enabled, datasetKey: "locAccess",
+    });
     var status = !selected
-      ? DWFUI.statusHtml({ tag: "span", cls: "loc-access-state", tone: "dim", text: "Access unavailable" })
+      ? DWFUI.statusHtml({ tag: "span", cls: "location-access-state", tone: "dim", text: "Access unavailable" })
       : (selected.label
-        ? DWFUI.statusHtml({ tag: "span", cls: "loc-access-state", tone: "good", text: selected.label })
+        ? DWFUI.statusHtml({ tag: "span", cls: "location-access-state", tone: "good", text: selected.label })
         : "");
-    return '<div class="loc-access" aria-label="Location access">' + buttons + status + '</div>';
+    var guard = enabled ? "" : DWFUI.statusHtml({
+      tag: "span", cls: "location-access-guard", tone: "dim",
+      text: "Read-only: the host has not enabled location access changes.",
+    });
+    return '<div class="location-access" aria-label="Location access">' + buttons + status + guard + '</div>';
   }
 
   function _locUnavailable(label, cls, reason) {
-    return DWFUI.statusHtml({ cls: "loc-mechanic " + (cls || ""), tone: "dim",
+    return DWFUI.statusHtml({ cls: "location-mechanic " + (cls || ""), tone: "dim",
       text: label + ": unavailable" + (reason ? " (" + reason + ")" : "") });
   }
 
@@ -251,10 +216,10 @@
       : DWFUI.plaqueBtnHtml({ cls: "zone-mini-btn", tone: "grey", disabled: true,
           title: row ? "This occupation slot is guarded until its native write is verified." : "Performer availability was not returned by the server.",
           label: "Assign" });
-    return DWFUI.rowHtml({ chassis: "table", cls: "loc-performer", dataset: { templeRow: "performer" },
+    return DWFUI.rowHtml({ chassis: "table", cls: "location-performer", dataset: { templeRow: "performer" },
       iconCfg: { sprite: "LOCATION_OCCUPATION_PERFORMER", size: 32, nativeCell: true, alt: "" },
       label: "Performer", sub: row ? null : { text: "unavailable", tone: "disabled" }, trailing: trailing }) +
-      (row && state.pickerFor === row.key ? '<div class="loc-picker">' + _locPickerHtml(state, row) + '</div>' : "");
+      (row && state.pickerFor === row.key ? '<div class="location-picker">' + _locPickerHtml(state, row) + '</div>' : "");
   }
 
   function templeMechanicsHtml(data, state) {
@@ -272,73 +237,59 @@
     if (desired != null) desired = Math.max(0, desired);
     var instruments;
     if (stored == null || desired == null) {
-      instruments = _locUnavailable("Stored Instruments (Desired)", "loc-instrument-stepper");
+      instruments = _locUnavailable("Stored Instruments (Desired)", "location-instrument-stepper");
     } else if (native.guards && native.guards.locationInstruments) {
-      instruments = DWFUI.stepperHtml({ cls: "loc-instrument-stepper", label: "Stored Instruments (Desired):",
+      instruments = DWFUI.stepperHtml({ cls: "location-instrument-stepper", label: "Stored Instruments (Desired):",
         value: desired, valueText: stored + " (" + desired + ")", min: 0, max: 100, editable: false, art: true, hash: true,
         hashDataset: { locInstrumentEnter: desired }, plusDataset: { locInstruments: desired + 1 },
         minusDataset: { locInstruments: Math.max(0, desired - 1) } });
     } else {
-      instruments = DWFUI.statusHtml({ cls: "loc-mechanic loc-instruments-guarded", tone: "dim",
+      instruments = DWFUI.statusHtml({ cls: "location-mechanic location-instruments-guarded", tone: "dim",
         text: "Stored Instruments (Desired): " + stored + " (" + desired + ") — host-guarded" });
     }
     var danceWidth = _locNumber(native, "danceFloorWidth");
     var danceHeight = _locNumber(native, "danceFloorHeight");
     var dance = native.danceFloorKnown === true && danceWidth != null && danceHeight != null
       ? danceWidth + "x" + danceHeight : "unavailable";
-    return '<div class="loc-temple-mechanics">' +
-      DWFUI.statusHtml({ cls: "loc-mechanic loc-tier", tone: "good", text: tierText }) +
-      _locUnavailable("Worshippers", "loc-worshippers", "interpretation unverified") +
-      _locUnavailable("Chests in common area", "loc-full", "interpretation unverified") +
+    return '<div class="location-temple-mechanics">' +
+      DWFUI.statusHtml({ cls: "location-mechanic location-tier", tone: "good", text: tierText }) +
+      _locUnavailable("Worshippers", "location-worshippers", "interpretation unverified") +
+      _locUnavailable("Chests in common area", "location-full", "interpretation unverified") +
       instruments +
-      DWFUI.statusHtml({ cls: "loc-mechanic loc-full", text: "Dance floor in common area: " + dance }) +
+      DWFUI.statusHtml({ cls: "location-mechanic location-full", text: "Dance floor in common area: " + dance }) +
       _locPerformerHtml(data, state || {}) + '</div>';
   }
 
-  // B276+ tavern mechanics (oracle LEVER-LINK-2 "The Ageless Rampage"). Same served source of truth
-  // as the temple sheet -- the C++ native block. count/desired instruments are REAL numbers; chests
-  // and the dance floor are explicitly unverified in the structures (chestsVerified/danceFloorKnown
-  // are false), and the goblet counters are not yet on the wire at all. Nothing is fabricated: any
-  // absent datum renders "unavailable", exactly as the temple path does. The desired-instruments
-  // WRITE is temple-only server-side (building_zone.cpp location_native_action refuses non-temples),
-  // so the tavern shows the served counts READ-ONLY instead of an editable stepper that would fail
-  // closed on every click. Row order follows the native capture: Chests, Goblets, Instruments, Dance.
   function tavernMechanicsHtml(data) {
     if (!data || data.kind !== "tavern") return "";
     var native = data.native || {};
     var stored = _locNumber(native, "countInstruments");
     var desired = _locNumber(native, "desiredInstruments");
     var instruments = (stored == null || desired == null)
-      ? _locUnavailable("Stored Instruments (Desired)", "loc-full loc-instrument-stepper")
-      : DWFUI.statusHtml({ cls: "loc-mechanic loc-full loc-instruments-ro", tone: "dim",
+      ? _locUnavailable("Stored Instruments (Desired)", "location-full location-instrument-stepper")
+      : DWFUI.statusHtml({ cls: "location-mechanic location-full location-instruments-ro", tone: "dim",
           text: "Stored Instruments (Desired): " + Math.max(0, stored) + " (" + Math.max(0, desired) + ")" });
-    // Reuse the existing location-mechanics grid (loc-temple-mechanics) so the tavern rows inherit
-    // the same full-width layout with NO new CSS -- the class name is temple-historical; a rename to
-    // a location-generic name is a non-blocking dwf.css handoff (see report). Rows carry loc-full so
-    // each spans the grid like the temple sheet's full-width mechanics.
-    return '<div class="loc-temple-mechanics loc-tavern-mechanics">' +
-      _locUnavailable("Chests in common area", "loc-full", "interpretation unverified") +
-      _locUnavailable("Goblets (Desired)", "loc-full loc-goblet", "host wire pending") +
+    // Reuses the existing location-mechanics grid, so tavern rows inherit the same full-width layout with
+    // no new CSS.
+    return '<div class="location-temple-mechanics location-tavern-mechanics">' +
+      _locUnavailable("Chests in common area", "location-full", "interpretation unverified") +
+      _locUnavailable("Goblets (Desired)", "location-full location-goblet", "host wire pending") +
       instruments +
-      DWFUI.statusHtml({ cls: "loc-mechanic loc-full", text: "Dance floor in common area: unavailable" }) +
+      DWFUI.statusHtml({ cls: "location-mechanic location-full", text: "Dance floor in common area: unavailable" }) +
       '</div>';
   }
 
   // ---- markup -----------------------------------------------------------------------------
 
-  // The native LocationDetails header carries a rename quill (the third observed focus path
-  // `> NameCreator > LocationDetails`). DF exposes no abstract_building rename route to the plugin
-  // yet -- there is no /location-rename twin of /zone-rename (which resolves a df::building, not an
-  // abstract_building). So the quill renders fail-closed (host-assisted): the affordance is where
-  // native puts it, disabled, and its tooltip tells the player to rename from the Steam host. When
-  // the backend gains the route, wire this to a squads-style free-text POST (see report handoff).
+  // The rename quill is fail-closed: DF exposes no abstract_building rename route to the plugin, so the
+  // affordance sits where native puts it, disabled, with a tooltip pointing at the Steam host.
   function _locHeader(title) {
     return DWFUI.headerHtml({
-      cls: "bld-head", title: title || "Location", titleCls: "bld-name",
-      tools: [{ role: "quill", art: "tileQuill", disabled: true, cls: "loc-rename",
+      cls: "building-head", title: title || "Location", titleCls: "building-name",
+      tools: [{ role: "quill", disabled: true, cls: "location-rename",
         title: "Renaming a location isn't available in the browser yet — the host can rename it in the Steam client.",
         ariaLabel: "Rename location (host only)" }],
-      close: { data: "loc-close" },
+      close: { data: "location-close" },
     });
   }
 
@@ -352,35 +303,35 @@
       else if (temple.name) lines.push(String(temple.name));
       else lines.push("Dedication unavailable");
     }
-    return DWFUI.headerHtml({ cls: "bld-head loc-temple-head",
+    return DWFUI.headerHtml({ cls: "building-head location-temple-head",
       icon: DWFUI.iconHtml({ sprite: "ZONE_TEMPLE", size: 32, nativeCell: true, alt: "" }),
-      titleLines: lines, titleCls: "bld-name loc-temple-head-copy", close: { data: "loc-close" } });
+      titleLines: lines, titleCls: "building-name location-temple-head-copy", close: { data: "location-close" } });
   }
 
   function _locPickerHtml(state, row) {
-    var cands = candidateRows(state.data, state.search);
+    var cands = window.DwfLocationModel.candidateRows(state.data, state.search).rows;
     var rows = [
-      '<div class="loc-cand" data-loc-pick="-1" data-loc-slot="' + _locEsc(row.key) + '">— Vacant —</div>',
+      '<div class="location-cand" data-loc-pick="-1" data-loc-slot="' + _locEsc(row.key) + '">— Vacant —</div>',
     ].concat(cands.map(function (c) {
-      return '<div class="loc-cand' + (c.unitId === row.unitId ? " current" : "") + '"' +
+      return '<div class="location-cand' + (c.unitId === row.unitId ? " current" : "") + '"' +
         ' data-loc-pick="' + c.unitId + '" data-loc-slot="' + _locEsc(row.key) + '">' +
         locationCandidateNameHtml(c) +
-        (c.profession ? ' <span class="loc-dim">' + _locEsc(c.profession) + '</span>' : "") +
-        (c.held ? ' <span class="loc-dim">(' + _locEsc(c.held) + ')</span>' : "") +
+        (c.profession ? ' <span class="location-dim">' + _locEsc(c.profession) + '</span>' : "") +
+        (c.held ? ' <span class="location-dim">(' + _locEsc(c.held) + ')</span>' : "") +
         '</div>';
     }));
     var body = cands.length ? rows.join("")
-      : rows[0] + '<div class="bld-note">No eligible living citizens.</div>';
-    return DWFUI.searchHtml({ cls: "loc-cand-search", dataAttr: "loc-search", value: state.search,
+      : rows[0] + '<div class="building-note">No eligible living citizens.</div>';
+    return DWFUI.searchHtml({ cls: "location-cand-search", dataAttr: "location-search", value: state.search,
       placeholder: "Search citizens" }) +
-      DWFUI.scrollHtml({ cls: "loc-cand-list" }, body);
+      DWFUI.scrollHtml({ cls: "location-cand-list" }, body);
   }
 
   function locationCandidateNameHtml(c) {
     var idx = Number(c && c.professionColor);
     var style = Number.isInteger(idx) && idx >= 0 && idx <= 15
       ? ' style="color:' + DWFUI.dfColor(idx) + '"' : '';
-    return '<span class="loc-cand-name"' + style + '>' + _locEsc(c && c.name) + '</span>';
+    return '<span class="location-cand-name"' + style + '>' + _locEsc(c && c.name) + '</span>';
   }
 
   function locationColoredNameHtml(record, name, cls) {
@@ -391,32 +342,62 @@
       _locEsc(name) + '</span>';
   }
 
+  function locationDedicationHtml(data, state) {
+    var s = state || {};
+    var t = deityRows(data);
+    if (!t) return "";
+    var html = '<div class="zone-section-label">Dedication</div>';
+    if (t.dedicated) {
+      return html + '<div class="building-note">Dedicated to ' +
+        _locEsc(t.name || "an unknown power") + '.</div>' +
+        '<div class="building-note location-dim">Dwarf Fortress has no re-dedication: retire this temple and make a new one to change it.</div>';
+    }
+    if (!t.options.length) {
+      return html +
+        '<div class="building-note">A generic temple. Nobody in the fort worships anyone yet, so there is nothing to dedicate it to.</div>';
+    }
+    html += '<div class="building-note">A generic temple — any worshipper may use it. Dedicating it is permanent.</div>' +
+      DWFUI.plaqueBtnHtml({ cls: "building-btn", tone: s.deityOpen ? "green" : "gold",
+        dataset: { locAct: "deity-toggle" },
+        label: s.deityOpen ? "Close" : "Dedicate to a deity or religion" });
+    if (s.deityOpen) {
+      html += DWFUI.scrollHtml({ cls: "location-cand-list" },
+        t.options.map(function (o) {
+          return '<div class="location-cand" data-loc-deity="' + _locEsc(o.spec) + '">' +
+            '<span class="location-cand-name">' + _locEsc(o.name) + '</span>' +
+            ' <span class="location-dim">' + _locEsc(o.kind) + " · " + o.worshippers +
+            " worshipper" + (o.worshippers === 1 ? "" : "s") + '</span></div>';
+        }).join(""));
+    }
+    return html;
+  }
+
   function locationPanelMarkup(state) {
     var s = state || {};
     var d = s.data;
-    if (!d) return _locHeader("Location") + '<div class="bld-status">Loading location…</div>';
+    if (!d) return _locHeader("Location") + '<div class="building-status">Loading location…</div>';
     if (d.ok === false)
-      return _locHeader("Location") + '<div class="bld-status err">' + _locEsc(d.error || "Location unavailable.") + '</div>';
+      return _locHeader("Location") + '<div class="building-status err">' + _locEsc(d.error || "Location unavailable.") + '</div>';
 
-    // A failed write (occupation-assign / deity / guild / access / instruments) used to set
-    // s.error and vanish -- the panel silently re-rendered unchanged and the player never learned
-    // the action was rejected (a fail-silent release blocker). Surface it as one dismissable-by-
-    // next-action alert; every action clears it before retrying (see _locDo / _locNativeDo).
+    // A failed write must be SURFACED: it used to set s.error and vanish, so the panel re-rendered
+    // unchanged and the player never learned the action was rejected. Every action clears it before retrying.
     var errHtml = s.error
-      ? DWFUI.statusHtml({ cls: "loc-action-error", tone: "danger", role: "alert", live: "assertive",
+      ? DWFUI.statusHtml({ cls: "location-action-error", tone: "danger", role: "alert", live: "assertive",
           text: String(s.error) })
       : "";
 
-    // ZONE-TEMPLE-SHRINE-native.png is a dedicated sheet, not the generic location summary with
-    // temple rows prepended. Its final row is Performer; Occupants/zone summary/Occupations and the
-    // browser-authored Dedication prose do not follow it.
+    // The temple sheet is dedicated, not the generic summary with rows prepended -- but an un-dedicated
+    // temple with served options must keep its dedication picker rather than lose it at this early return.
     if (d.kind === "temple") {
-      return _locTempleHeader(d) + errHtml + locationAccessHtml(d) + templeMechanicsHtml(d, s);
+      return _locTempleHeader(d) + errHtml + locationAccessHtml(d) + templeMechanicsHtml(d, s) +
+        locationDedicationHtml(d, s);
     }
 
+    // DEF-080 WIRE GAP: distinct location ids can arrive with the same server-resolved name. Render the
+    // served name verbatim -- a client-side suffix would hide the bad payload and drift between surfaces.
     var head = _locHeader(d.name || d.label || "Location");
     var accessHtml = locationAccessHtml(d);
-    var status = '<div class="bld-status">' + _locEsc(d.label || "Location") +
+    var status = '<div class="building-status">' + _locEsc(d.label || "Location") +
       (Number(d.tier) > 0 ? " · tier " + Number(d.tier) : "") +
       (Number(d.value) > 0 ? " · value " + Number(d.value) : "") + '</div>';
 
@@ -424,8 +405,8 @@
     var zonesKnown = Array.isArray(d.zones);
     var zones = zonesKnown ? d.zones : [];
     var occHtml = '<div class="zone-section-label">Occupants</div>' +
-      '<div class="bld-note">' + _locEsc(occupancyText(d)) + '</div>' +
-      '<div class="bld-note loc-dim">' +
+      '<div class="building-note">' + _locEsc(occupancyText(d)) + '</div>' +
+      '<div class="building-note location-dim">' +
         (!zonesKnown ? "Zone information unavailable."
         : zones.length ? _locEsc(zones.length + " zone" + (zones.length === 1 ? "" : "s") + ": " +
           zones.map(function (z) { return z.name || z.type; }).join(", "))
@@ -434,47 +415,24 @@
     // Occupations + citizen picker.
     var occupationsKnown = Array.isArray(d.occupations);
     var rows = occupationRows(d);
-    var occListHtml = !occupationsKnown ? '<div class="bld-note">Occupation information unavailable.</div>'
+    var occListHtml = !occupationsKnown ? '<div class="building-note">Occupation information unavailable.</div>'
       : rows.length ? rows.map(function (r) {
       var right = r.guarded
         ? DWFUI.plaqueBtnHtml({ cls: "zone-mini-btn", tone: "grey", disabled: true,
             title: "This occupation slot is guarded until its native write is verified.", label: r.action })
         : DWFUI.plaqueBtnHtml({ cls: "zone-mini-btn", tone: s.pickerFor === r.key ? "green" : "gold",
             dataset: { locAssign: r.key }, label: s.pickerFor === r.key ? "Close" : r.action });
-      return '<div class="loc-occ" data-loc-occ="' + _locEsc(r.key) + '">' +
-        '<span class="loc-occ-label">' + _locEsc(r.label) + '</span>' +
-        (r.assigned ? locationColoredNameHtml(r, r.holder || "assigned", "loc-occ-holder")
-          : '<span class="loc-occ-holder"><em>open</em></span>') +
+      return '<div class="location-occ" data-loc-occ="' + _locEsc(r.key) + '">' +
+        '<span class="location-occ-label">' + _locEsc(r.label) + '</span>' +
+        (r.assigned ? locationColoredNameHtml(r, r.holder || "assigned", "location-occ-holder")
+          : '<span class="location-occ-holder"><em>open</em></span>') +
         right + '</div>' +
-        (s.pickerFor === r.key ? '<div class="loc-picker">' + _locPickerHtml(s, r) + '</div>' : "");
-    }).join("") : '<div class="bld-note">This kind of location has no staff positions.</div>';
+        (s.pickerFor === r.key ? '<div class="location-picker">' + _locPickerHtml(s, r) + '</div>' : "");
+    }).join("") : '<div class="building-note">This kind of location has no staff positions.</div>';
     var occupationsHtml = '<div class="zone-section-label">Occupations</div>' + occListHtml;
 
-    // Temple deity.
-    var templeHtml = "";
-    var t = deityRows(d);
-    if (t) {
-      templeHtml = '<div class="zone-section-label">Dedication</div>';
-      if (t.dedicated) {
-        templeHtml += '<div class="bld-note">Dedicated to ' + _locEsc(t.name || "an unknown power") + '.</div>' +
-          '<div class="bld-note loc-dim">Dwarf Fortress has no re-dedication: retire this temple and make a new one to change it.</div>';
-      } else if (!t.options.length) {
-        templeHtml += '<div class="bld-note">A generic temple. Nobody in the fort worships anyone yet, so there is nothing to dedicate it to.</div>';
-      } else {
-        templeHtml += '<div class="bld-note">A generic temple — any worshipper may use it. Dedicating it is permanent.</div>' +
-          DWFUI.plaqueBtnHtml({ cls: "bld-btn", tone: s.deityOpen ? "green" : "gold",
-            dataset: { locAct: "deity-toggle" }, label: s.deityOpen ? "Close" : "Dedicate to a deity or religion" });
-        if (s.deityOpen) {
-          templeHtml += DWFUI.scrollHtml({ cls: "loc-cand-list" },
-            t.options.map(function (o) {
-              return '<div class="loc-cand" data-loc-deity="' + _locEsc(o.spec) + '">' +
-                '<span class="loc-cand-name">' + _locEsc(o.name) + '</span>' +
-                ' <span class="loc-dim">' + _locEsc(o.kind) + " · " + o.worshippers +
-                " worshipper" + (o.worshippers === 1 ? "" : "s") + '</span></div>';
-            }).join(""));
-        }
-      }
-    }
+    // Temple deity (kept for defensive partial payloads whose kind is not normalized yet).
+    var templeHtml = locationDedicationHtml(d, s);
 
     // Craft guild.
     var guildHtml = "";
@@ -482,18 +440,18 @@
     if (g) {
       guildHtml = '<div class="zone-section-label">Guild</div>';
       if (g.dedicated) {
-        guildHtml += '<div class="bld-note">Serves the ' + _locEsc(g.key) + ' guild.</div>';
+        guildHtml += '<div class="building-note">Serves the ' + _locEsc(g.key) + ' guild.</div>';
       } else if (!g.options.length) {
-        guildHtml += '<div class="bld-note">No guild has formed in this fort yet. Guilds petition you once enough citizens share a craft.</div>';
+        guildHtml += '<div class="building-note">No guild has formed in this fort yet. Guilds petition you once enough citizens share a craft.</div>';
       } else {
-        guildHtml += DWFUI.plaqueBtnHtml({ cls: "bld-btn", tone: s.guildOpen ? "green" : "gold",
+        guildHtml += DWFUI.plaqueBtnHtml({ cls: "building-btn", tone: s.guildOpen ? "green" : "gold",
           dataset: { locAct: "guild-toggle" }, label: s.guildOpen ? "Close" : "Assign this hall to a guild" });
         if (s.guildOpen) {
-          guildHtml += DWFUI.scrollHtml({ cls: "loc-cand-list" },
+          guildHtml += DWFUI.scrollHtml({ cls: "location-cand-list" },
             g.options.map(function (o) {
-              return '<div class="loc-cand" data-loc-guild="' + _locEsc(o.key) + '">' +
-                '<span class="loc-cand-name">' + _locEsc(o.name) + '</span>' +
-                ' <span class="loc-dim">' + _locEsc(o.key) + " · " + o.members +
+              return '<div class="location-cand" data-loc-guild="' + _locEsc(o.key) + '">' +
+                '<span class="location-cand-name">' + _locEsc(o.name) + '</span>' +
+                ' <span class="location-dim">' + _locEsc(o.key) + " · " + o.members +
                 " member" + (o.members === 1 ? "" : "s") + '</span></div>';
             }).join(""));
         }
@@ -510,30 +468,28 @@
       roomsHtml = '<div class="zone-section-label">' +
         (rm.roomsKnown ? 'Rented rooms (Total): ' + rentedNow + ' (' + rm.rooms.length + ')' : 'Rented rooms') +
         '</div>';
-      roomsHtml += !rm.roomsKnown ? '<div class="bld-note">Rented-room information unavailable.</div>'
+      roomsHtml += !rm.roomsKnown ? '<div class="building-note">Rented-room information unavailable.</div>'
         : rm.rooms.length ? rm.rooms.map(function (m) {
         var renterHtml = m.rented
-          ? locationColoredNameHtml({ professionColor: m.renterProfessionColor }, m.renter || "someone", "loc-room-renter") +
-            '<span class="loc-dim">' + _locEsc(m.owed > 0 ? " - owes " + m.owed : " - paid up") + '</span>'
-          : '<span class="loc-dim">vacant</span>';
-        return '<div class="loc-room"><span class="loc-occ-label">' + _locEsc(m.label) + '</span>' + renterHtml + '</div>';
-      }).join("") : '<div class="bld-note">No rentable rooms. DF makes one when a bedroom zone belongs to this tavern and a guest pays for it.</div>';
+          ? locationColoredNameHtml({ professionColor: m.renterProfessionColor }, m.renter || "someone", "location-room-renter") +
+            '<span class="location-dim">' + _locEsc(m.owed > 0 ? " - owes " + m.owed : " - paid up") + '</span>'
+          : '<span class="location-dim">vacant</span>';
+        return '<div class="location-room"><span class="location-occ-label">' + _locEsc(m.label) + '</span>' + renterHtml + '</div>';
+      }).join("") : '<div class="building-note">No rentable rooms. DF makes one when a bedroom zone belongs to this tavern and a guest pays for it.</div>';
       if (!rm.canWrite)
-        roomsHtml += '<div class="bld-note loc-dim">Rooms are read-only here (B229 probe 4).</div>';
+        roomsHtml += '<div class="building-note location-dim">Rooms are read-only here (B229 probe 4).</div>';
     }
 
     // Appointed positions.
     var pos = positionRows(d);
     var posHtml = pos.length ? '<div class="zone-section-label">Appointed positions</div>' +
       pos.map(function (p) {
-        return '<div class="loc-occ"><span class="loc-occ-label">' + _locEsc(p.name) + '</span>' +
-          (p.vacant ? '<span class="loc-occ-holder"><em>vacant</em></span>'
-            : locationColoredNameHtml(p, p.holder, "loc-occ-holder")) + '</div>';
+        return '<div class="location-occ"><span class="location-occ-label">' + _locEsc(p.name) + '</span>' +
+          (p.vacant ? '<span class="location-occ-holder"><em>vacant</em></span>'
+            : locationColoredNameHtml(p, p.holder, "location-occ-holder")) + '</div>';
       }).join("") : "";
 
-    // Order follows the native tavern capture: header, (error), access, the mechanics cluster
-    // (chests/goblets/instruments/dance), then the browser's census-depth sections. tavernMechanicsHtml
-    // is inert ("") for non-tavern kinds (library/guildhall), which native gives no such cluster.
+    // tavernMechanicsHtml is inert ("") for library and guildhall kinds, which native gives no such cluster.
     return head + errHtml + accessHtml + tavernMechanicsHtml(d) + status + occHtml + occupationsHtml +
       templeHtml + guildHtml + roomsHtml + posHtml;
   }
@@ -544,7 +500,7 @@
     var r = await fetch(path, { cache: "no-store" });
     var text = await r.text();
     var data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch (_) {}
+    try { data = text ? JSON.parse(text) : {}; } catch { globalThis.DwfErr?.count("location-panel.response-parse"); }
     if (!r.ok) throw new Error(text.trim() || "request failed");
     return data;
   }
@@ -578,7 +534,7 @@
     _locState = { id: id, data: null, busy: false, pickerFor: null, deityOpen: false, guildOpen: false, search: "" };
     _locRender();
     await _locReload();
-    // A hospital has a far richer panel already (supplies, patients, chief medic) -- hand off.
+    // A hospital has its native one-page facility panel (supplies, posts, doctors) -- hand off.
     if (_locState.data && _locState.data.kind === "hospital" && typeof openHospitalPanel === "function") {
       openHospitalPanel(id, { name: _locState.data.name, locationData: _locState.data });
       return;
@@ -694,14 +650,14 @@
     var search = selection.querySelector("[data-loc-search]");
     if (search) search.addEventListener("input", function () {
       s.search = search.value || "";
-      var list = selection.querySelector(".loc-picker");
+      var list = selection.querySelector(".location-picker");
       if (!list) return;
       var row = occupationRows(s.data).find(function (r) { return r.key === s.pickerFor; });
       if (!row) return;
       list.innerHTML = _locPickerHtml(s, row);
       _locWire();
       var next = selection.querySelector("[data-loc-search]");
-      if (next) { next.focus(); try { next.setSelectionRange(next.value.length, next.value.length); } catch (_) {} }
+      if (next) { next.focus(); try { next.setSelectionRange(next.value.length, next.value.length); } catch { globalThis.DwfErr?.count("location-panel.search-caret"); } }
     });
   }
 
@@ -712,10 +668,11 @@
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-      occupancyText, occupationRows, deityRows, guildRows, roomRows, positionRows, candidateRows,
+      occupancyText, occupationRows, deityRows, guildRows, roomRows, positionRows,
+      candidateRows: DwfLocationModel.candidateRows,
       locationCandidateNameHtml,
       locationColoredNameHtml,
-      locationAccessHtml, templeMechanicsHtml, tavernMechanicsHtml,
+      locationAccessHtml, templeMechanicsHtml, tavernMechanicsHtml, locationDedicationHtml,
       locationPanelMarkup,
     };
   }

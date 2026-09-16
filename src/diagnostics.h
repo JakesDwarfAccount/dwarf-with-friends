@@ -80,43 +80,26 @@ struct ViewportProbe {
 };
 
 void diagnostics_log(const std::string& line);
-// Verbose transport tracing (WS connection lifecycle, writer/push-loop counters).
-// Default OFF: every diagnostics_log() is a global mutex + file open/write/close,
-// which is real per-frame cost on the hot push path (it measurably added pan jitter).
-// Toggle at runtime with the `capture-diag-verbose on|off` DFHack command.
+// Verbose transport tracing, toggled at runtime by the `capture-diag-verbose on|off` command.
 bool diagnostics_verbose();
 void set_diagnostics_verbose(bool on);
-// Log only when verbose tracing is on. Checks the flag BEFORE any locking or I/O,
-// so a disabled call site costs one relaxed atomic load (plus building the string
-// argument -- keep heavyweight formatting out of hot paths regardless).
 void diagnostics_log_v(const std::string& line);
 
-// --- WT24: crash-evidence breadcrumbs ------------------------------------------------
-// After the 2026-07-13 STATUS_HEAP_CORRUPTION death we could not tell from dwf.log
-// whether the plugin's threads were even alive at the moment DF died. Heap corruption is
-// detected at an arbitrary LATER free, so the log timeline is the only thing that bounds
-// the window -- and the log was silent for 32 minutes.
-//
-// The breadcrumb records WHICH stage of the push tick we are inside right now. It is pure
-// atomics: a couple of relaxed stores per enter/exit, no allocation, no locking, NO I/O --
-// safe to call on the 30 Hz push path (unlike diagnostics_log, which is a global mutex plus
-// a file open/write/close and has measurably added pan jitter before).
-//
-// The breadcrumb is FLUSHED to the log only by the 60 s heartbeat, the stall watchdog, and
-// the shutdown mark. `name` must be a string LITERAL -- the pointer is stored, not the bytes.
+// --- crash-evidence breadcrumbs ------------------------------------------------
+// diag_phase_enter stores `name` as a POINTER, not a copy: pass a string literal or it dangles.
 long long diag_steady_ms();
 void diag_phase_enter(const char* name);
 void diag_phase_exit();
 
 struct PhaseSnapshot {
     const char* name = "none";   // last phase entered
-    uint64_t seq = 0;            // phase enters since plugin load (proves the loop advances)
+    uint64_t seq = 0;            // phase enters since plugin load
     long long entered_ms = 0;    // diag_steady_ms() at that enter
-    bool inside = false;         // true => we are still inside it (a stuck phase never exits)
+    bool inside = false;         // still inside that phase
 };
 PhaseSnapshot diag_phase_snapshot();
 
-// RAII guard for a push-loop stage. Exits on any path, including an exception.
+// RAII guard for a push-loop stage.
 struct DiagPhase {
     explicit DiagPhase(const char* name) { diag_phase_enter(name); }
     ~DiagPhase() { diag_phase_exit(); }

@@ -1,21 +1,10 @@
 -- ---------------------------------------------------------------------------
--- WT26 -- DFHack command console (browser gui/launcher equivalent)
--- ---------------------------------------------------------------------------
--- SECURITY: the BLOCKLIST LIVES IN C++ (src/console_policy.h), not here. It is enforced twice on
--- the way in -- once in the POST /console/run handler (console_routes.cpp) and once again in the
--- console_run_via_lua bridge fn (lua_bridge.cpp) -- BOTH calling the single
--- dwf::console::command_denied table, and it applies to EVERY caller including the host.
--- Nothing reaches console_run() below that has not already cleared that gate. Do NOT add a second,
--- divergent deny table here: one table, two enforcement sites, is the whole design.
---
--- The catalog is helpdb's own -- literally the data DFHack's native autocomplete ranks against
--- (helpdb.get_commands() = "a list of all commands. used by Core's autocomplete functionality").
--- It is STATIC for a play session, so the client fetches it ONCE and does search-as-you-type
--- entirely offline: no per-keystroke round-trip and, crucially, no per-keystroke CoreSuspender.
--- Only EXECUTING a command touches the core lock.
+-- DFHack command console (browser gui/launcher equivalent)
 
--- Cap what a single command may hand back. `lua`-class output is unbounded and would cross the
--- wire whole; anything huge is truncated with an explicit marker rather than silently cut.
+-- The command blocklist lives in C++ (dwf::console::command_denied) and is enforced before
+-- anything reaches console_run; a second deny table here would diverge from it.
+
+-- Cap on one command's captured output; anything larger is truncated with an explicit marker.
 local CONSOLE_OUTPUT_CAP = 64 * 1024
 
 function console_catalog()
@@ -30,16 +19,8 @@ function console_catalog()
     return '{"ok":true,"commands":[' .. table.concat(out, ',') .. ']}\n'
 end
 
--- Run one already-gate-cleared command line and hand back its captured console text.
--- Returns (status:int, text:string). status: 0 = CR_OK (DFHack's command_result convention);
--- any non-zero is DFHack's own failure code, passed through untouched.
---
--- THE HARD LIMITATION (spec 2026-07-13-dfhack-gui-launcher-spec.md section 7, surfaced to the owner and
--- accepted): dfhack.run_command_silent -> internal.runCommand takes its OWN CoreSuspender, so the
--- command runs synchronously with DF's core lock held for its entire duration and CANNOT be
--- interrupted. There is no cooperative cancellation point, hence no server-side timeout can abort a
--- runaway command. Containment is PREVENTION (the C++ blocklist), not recovery -- and the client
--- states this in the panel before you press Run.
+-- dfhack.run_command_silent holds DF's core lock for the whole command and cannot be
+-- interrupted, so containment is the C++ blocklist, not a server-side timeout.
 function console_run(cmd)
     cmd = tostring(cmd or '')
     if cmd:match('^%s*$') then return -1, 'empty command' end
@@ -64,18 +45,8 @@ function safe_json(fn)
     end
 end
 
--- B228 (missions): bring home squads DF stranded. DF has a long-standing bug where a squad sent on
--- a mission ends up on an army whose controller pointer is null (army.controller_id ~= 0 and
--- army.controller == nil) -- those dwarves never come back and the fort keeps counting them.
---
--- We do NOT reimplement the repair. DFHack ships it (scripts/fix/stuck-squad.lua, declared
--- `--@ module=true`), and its unstick_armies() is the only tested code anywhere that touches the
--- squad <-> army <-> army_controller links. reqscript() loads that module and dfhack.run_script
--- runs the very same entry point the `fix/stuck-squad` command runs; scan_fort_armies() is its
--- exported pre-check, so we can tell the player WHY it will refuse instead of running it blind.
---
--- Returns (rescued:int, text:string). rescued >= 0 = how many stranded squads were carried home;
--- rescued < 0 = a refusal, with the script's own reason in `text` (never a message we invented).
+-- The stuck-squad repair is DFHack's own (fix/stuck-squad, module=true); never reimplement
+-- the squad <-> army <-> army_controller relink here.
 function missions_rescue_stuck()
     local ok, mod = pcall(reqscript, 'fix/stuck-squad')
     if not ok or not mod or type(mod.scan_fort_armies) ~= 'function' then
@@ -94,8 +65,6 @@ function missions_rescue_stuck()
             'back. Send a squad or a messenger on a mission that returns, and rescue once they ' ..
             'have turned for home.'
     end
-    -- run_script goes through DFHack's own script runner, so the repair executes exactly as it
-    -- does from the console; qerror() inside it surfaces here as a pcall failure, not a crash.
     local ran, err = pcall(dfhack.run_script, 'fix/stuck-squad')
     if not ran then
         return -1, tostring(err)
@@ -115,3 +84,4 @@ order_presets = safe_json(order_presets)
 workshop_info = safe_json(workshop_info)
 burial_coffin_info = safe_json(burial_coffin_info)
 console_catalog = safe_json(console_catalog)
+

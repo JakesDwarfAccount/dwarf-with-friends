@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
+import { crc32 } from "../lib/crc32.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIX_DIR = path.resolve(__dirname, "fixtures");
@@ -332,17 +333,7 @@ frame.u32(1);                                    // seq
 frame.bytes(payloadBytes);
 const frameBytes = frame.out();
 
-// Portable CRC32 (IEEE, reflected) -- matches src/wire_v1.cpp::crc32.
-function crc32(u8) {
-  let c, table = crc32.t;
-  if (!table) {
-    table = crc32.t = new Uint32Array(256);
-    for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n] = c >>> 0; }
-  }
-  c = 0xffffffff;
-  for (let i = 0; i < u8.length; i++) c = table[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
+// The fixture's CRC is the same IEEE CRC-32 src/wire_v1.cpp::crc32 computes over the same bytes.
 const crcVal = crc32(frameBytes) >>> 0;
 
 // ---- expected decoded structure (language-agnostic reference) ---------------------

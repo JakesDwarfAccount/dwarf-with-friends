@@ -68,8 +68,6 @@ using namespace DFHack;
 
 namespace {
 
-// Resolve an inorganic (metal) matgloss index to DF's own Solid state name, e.g. "iron".
-// Mirrors menu_oracle.lua: world.raws.inorganics.all[matgloss].material.state_name.Solid.
 std::string inorganic_solid_name(int32_t matgloss) {
     auto world = df::global::world;
     if (!world || matgloss < 0)
@@ -83,17 +81,12 @@ std::string inorganic_solid_name(int32_t matgloss) {
     return raw->material.state_name[df::matter_state::Solid];
 }
 
-// DF's own composed button label, via the text() vmethod. Only called from inside the fully
-// quiesced snapshot window (render thread parked + sim thread core-suspended -- see
-// menu_oracle_quiesced_read below), where executing DF's own composition code cannot race any
-// widget mutation. Same basis as every CoreSuspender-guarded vmethod call in DFHack tools.
 std::string button_text(df::interface_button* btn) {
     std::string s;
     btn->text(&s);
     return s;
 }
 
-// "<type: interface_button_building_new_jobst>" -- byte-identical to lua's tostring(btn._type).
 std::string type_string(df::interface_button* btn) {
     auto id = DFHack::virtual_identity::get(btn);
     std::string name = id ? id->getName() : "?";
@@ -110,9 +103,7 @@ void dump_button(std::ostringstream& body, df::interface_button* btn, bool call_
     if (call_text)
         body << ",\"text\":" << json_string(button_text(btn));
 
-    // Concrete-subclass fields, gated by downcast so absent fields are simply omitted (matching
-    // menu_oracle.lua's per-field nil-guard behavior exactly).
-    int32_t material = 1;   // sentinel < 0 check below only fires when a real field was read
+    int32_t material = 1;
     int32_t matgloss = 1;
     bool have_material = false;
 
@@ -144,8 +135,6 @@ void dump_button(std::ostringstream& body, df::interface_button* btn, bool call_
         body << ",\"custom_category_token\":" << json_string(cc->custom_category_token);
     }
 
-    // Resolve inorganic metal name when this row carries a concrete material+matgloss (the metal
-    // rows and materialized job leaves) -- same guard as the lua tool (material>=0 && matgloss>=0).
     if (have_material && material >= 0 && matgloss >= 0) {
         std::string nm = inorganic_solid_name(matgloss);
         if (!nm.empty())
@@ -170,15 +159,12 @@ void dump_button_vec(std::ostringstream& body,
     body << "]";
 }
 
-// Build the truemenu-oracle-v1 snapshot. MUST only run inside the fully quiesced window
-// established by menu_oracle_quiesced_read (render thread parked AND sim thread core-suspended);
-// it iterates the live vectors and calls vmethods, which is only safe when no DF thread can be
-// mutating them. Returns the JSON body; never throws out (all reads are pointer/bounds guarded).
+// Run ONLY inside menu_oracle_quiesced_read's window (render thread parked AND sim thread
+// suspended): it iterates live button vectors and calls vmethods, which a mutating DF thread frees.
 std::string build_menu_oracle_json(bool call_text) {
     std::ostringstream body;
     auto game = df::global::game;
     if (!game) {
-        // No game loaded -> clean closed snapshot (callers treat open=false as CANNOT-RUN).
         body << "{\"schema\":\"truemenu-oracle-v1\","
              << "\"generated_by\":\"src/menu_oracle.cpp\","
              << "\"call_text\":" << (call_text ? "true" : "false") << ",";
@@ -257,25 +243,16 @@ std::string build_menu_oracle_json(bool call_text) {
     }
     body << "]}";
 
-    // in_transition (ADDITIVE field, 2026-07-08 fix requirement #2): with the snapshot itself now
-    // race-free, `active_id == -1 while button rows exist` can no longer be a TORN read -- but it
-    // remains a real, legitimately observable cross-frame game state (sheet closed, buttons not
-    // yet cleared by the next interface frame). Tag it so consumers (menuwalk recorder) can skip
-    // transition states instead of banking them as menu ground truth.
+    // sheet already closed but its button rows not yet cleared by the next interface frame
     bool in_transition = (vs.active_id == -1) && !b.button.empty();
     body << ",\"in_transition\":" << (in_transition ? "true" : "false");
 
-    // A menu is actually open iff the button vector is non-empty (callers must treat open=false as
-    // CANNOT-RUN, never as PASS) -- identical rule to menu_oracle.lua.
     bool open = !b.button.empty();
     body << ",\"open\":" << (open ? "true" : "false");
     body << "}\n";
     return body.str();
 }
 
-// SEH backstop for the snapshot body: converts any residual access violation into an error
-// result instead of killing DF (same trivial-filter pattern as tile_dump.cpp's dump_atlas).
-// The wrapped function keeps all unwindable C++ locals in the callee (MSVC C2712 rule).
 void build_menu_oracle_json_into(bool call_text, std::string& out) {
     out = build_menu_oracle_json(call_text);
 }
@@ -294,77 +271,9 @@ bool build_menu_oracle_json_seh(bool call_text, std::string& out) {
 #endif
 }
 
-// ------------------------------------------------------------------------------------------------
-// THREADING TRUTH (2026-07-08; fix-batch item #0; full dossier:
-// docs/superpowers/specs/2026-07-08-menuwalk-report.md section 1).
-//
-// Which thread mutates main_interface.building.{button,filtered_button}? Established from
-// crash forensics + the DFHack fork source (<DFHACK_ROOT>), NOT assumed:
-//
-//   * DF exposes exactly two threads to DFHack (library/Hooks.cpp): the SIMULATION thread
-//     (dfhooks_update -> Core::Update, Hooks.cpp:75-80) and the RENDER/"main" thread
-//     (dfhooks_sdl_event / dfhooks_sdl_loop, Hooks.cpp:90-105). runOnRenderThread callbacks
-//     drain on the render thread at DFH_SDL_Loop (Core.cpp:2041-2043) via
-//     runRenderThreadCallbacks (modules/DFSDL.cpp:318-328), which holds ONLY its own
-//     render_cb_lock -- ZERO synchronization against the simulation thread.
-//   * A CoreSuspender parks the SIMULATION thread at its inter-frame boundary: Core::Update
-//     ends with `CoreWakeup.wait(MainThread::suspend(), [toolCount==0])` (Core.cpp:1651-1652),
-//     which is the only point the sim thread releases CoreSuspendMutex.
-//   * Evidence leg 1 -- the B37 RPC-lua crashes (2026-07-08 06:57 + 07:32) ran WITH the sim
-//     thread parked: dfhack-run RPC commands execute under `CoreSuspender suspend;`
-//     (RemoteServer.cpp:353-361, no SF_DONT_SUSPEND on RunCommand) and the lua script body runs
-//     under a second, recursive CoreSuspender inside Lua::RunCoreQueryLoop (LuaTools.cpp:1210
-//     via runLuaScript, Core.cpp:327-336). The buttons were STILL freed mid-read
-//     => a mutation window exists OFF the simulation thread.
-//   * Evidence leg 2 -- crashes #4/#5 (this route's previous shape): the reader ran ON the
-//     render thread (inside a runOnRenderThread callback) and still hit freed-and-reused button
-//     memory mid-iteration (stderr `Class not in symbols.xml: 'std::_Associated_state<int>'` /
-//     `'dummy'` = virtual_cast on garbage) => a mutation window exists OFF the render thread,
-//     i.e. on the simulation thread (click-driven sheet teardown/rebuild). The old comment
-//     "the render thread is the SAME thread that mutates these vectors -- safe by construction"
-//     is empirically FALSE.
-//   => Mutation windows exist on BOTH threads. No single-context read is safe; the snapshot
-//      must exclude both DF threads simultaneously.
-//
-// FIX SHAPE: "park the render thread, THEN core-suspend the sim thread, THEN read on the HTTP
-// worker thread". Chosen over the superficially simpler "hold CoreSuspender + wait on a
-// runOnRenderThread hop" because that inverted order violates this repo's hard-won LAW
-// ("never wait on a render hop while core-suspended" -- hud.cpp:327, placement.cpp:713-714,
-// after the observed 2026-07-07 01:23 full-process wedge documented at http_server.cpp:1031-1035
-// and dwf.cpp:138-143): while we hold the suspension, our callback can be queued BEHIND
-// another route's render-thread work (e.g. /tiledump's capture) that itself blocks on the
-// suspended sim thread -> permanent three-way deadlock. The park-first order cannot wedge:
-//
-//   1. Queue a render-thread callback whose ONLY job is to PARK: flag render_parked, then wait
-//      on the request cv until released (bounded watchdog). It touches no DF state and takes no
-//      DFHack lock, so unlike the tiledump callback it cannot block on the sim thread.
-//   2. The HTTP worker waits (bounded) for render_parked, then HOLDS request->m for the entire
-//      read. While m is held, the parked callback cannot return from cv.wait_for -- even after
-//      its watchdog expires it must reacquire m first -- so the park PROVABLY spans the read.
-//   3. With the render thread captive, acquire the core suspension with BOUNDED attempts
-//      (ConditionalCoreSuspender = toolCount++ then try_lock_for(100ms); Core.h:376-381 +
-//      505-511). Bounded matters: IF DF's sim thread ever needed the (currently parked) render
-//      thread to finish a frame, an unbounded CoreSuspender here would wedge DF permanently;
-//      bounded attempts degrade to an HTTP 503 instead, and the recorder simply retries.
-//   4. Read + serialize on the HTTP worker thread. Sim thread: parked at Core.cpp:1651
-//      (CoreSuspender held). Render thread: captive inside our park callback. Neither DF thread
-//      can execute ANY DF code during the read, so the vectors cannot be torn down mid-iteration
-//      and calling the text() vmethod is safe. SEH backstop converts any residual fault into a
-//      500 instead of a dead DF.
-//   5. Release: set release_render + notify AFTER the suspender scope closes. We never block on
-//      the render thread while suspended (release is a non-blocking notify), keeping the LAW.
-//
-// COST (route is polled at 2-4 Hz): each successful read parks the sim thread for the suspender
-// hold (~sub-ms JSON build; acquisition typically <= one sim frame) and holds the render thread
-// for park-to-release (typically ~10-30 ms total: one render frame to reach the drain point +
-// the suspend acquisition). Per-read quiesce timings are exported in the X-Menu-Oracle-Quiesce
-// response header so the stress harness can bound this empirically.
-// ------------------------------------------------------------------------------------------------
-
-constexpr int PARK_WAIT_MS = 1500;         // HTTP worker's wait for the render thread to park
-constexpr int SUSPEND_ATTEMPTS = 10;       // x try_lock_for(100ms) => <= ~1s suspend budget
-constexpr int RENDER_WATCHDOG_MS = 8000;   // park self-release backstop (only reachable if the
-                                           // HTTP worker abandoned before ever locking m)
+constexpr int PARK_WAIT_MS = 1500;
+constexpr int SUSPEND_ATTEMPTS = 10;       // ConditionalCoreSuspender retries before a 503
+constexpr int RENDER_WATCHDOG_MS = 8000;
 
 struct MenuOracleQuiesce {
     std::mutex m;
@@ -376,14 +285,16 @@ struct MenuOracleQuiesce {
 struct MenuOracleResult {
     bool ok = false;
     int http_status = 200;
-    std::string error;         // set when !ok
-    std::string json;          // set when ok
-    int park_wait_ms = -1;     // time until the render thread was observed parked
-    int suspend_attempts = 0;  // ConditionalCoreSuspender tries used
-    int suspend_wait_ms = -1;  // time to acquire the core suspension
-    int hold_ms = -1;          // suspension hold (the sim-pause cost of this read)
+    std::string error;
+    std::string json;
+    int park_wait_ms = -1;
+    int suspend_attempts = 0;
+    int suspend_wait_ms = -1;
+    int hold_ms = -1;          // suspension hold: the sim-pause cost of this read
 };
 
+// PARK the render thread BEFORE taking the core suspension. Waiting on a runOnRenderThread hop
+// while core-suspended wedges DF: the hop queues behind work that itself blocks on the sim thread.
 MenuOracleResult menu_oracle_quiesced_read(bool call_text) {
     using clock = std::chrono::steady_clock;
     auto ms_since = [](clock::time_point t) {
@@ -398,9 +309,6 @@ MenuOracleResult menu_oracle_quiesced_read(bool call_text) {
         std::unique_lock<std::mutex> lk(q->m);
         q->render_parked = true;
         q->cv.notify_all();
-        // Park DF's render thread here until the HTTP worker finishes its quiesced read (or
-        // until the watchdog, which can only actually fire while the worker does NOT hold m --
-        // i.e. only when the worker already gave up and set release_render, or vanished).
         q->cv.wait_for(lk, std::chrono::milliseconds(RENDER_WATCHDOG_MS),
                        [&]() { return q->release_render; });
         q->render_parked = false;
@@ -412,9 +320,6 @@ MenuOracleResult menu_oracle_quiesced_read(bool call_text) {
                                  [&]() { return q->render_parked; });
     out.park_wait_ms = ms_since(t0);
     if (!parked) {
-        // Render thread never reached our callback (busy/wedged, e.g. a long atlas dump). No
-        // snapshot was taken and none will be: when the callback eventually runs it sees
-        // release_render and exits immediately without a read.
         q->release_render = true;
         q->cv.notify_all();
         out.http_status = 503;
@@ -423,7 +328,7 @@ MenuOracleResult menu_oracle_quiesced_read(bool call_text) {
         return out;
     }
 
-    // From here until we release m, the render thread is captive inside the park callback.
+    // Holding lk is what keeps the render thread captive in the park callback; never release early.
     auto t1 = clock::now();
     bool read_done = false;
     bool seh_fault = false;
@@ -466,13 +371,6 @@ MenuOracleResult menu_oracle_quiesced_read(bool call_text) {
 // differential oracle and removes the transition-overlap safety test, while product UI appears
 // unaffected -- which is precisely why this code can otherwise look disposable.
 void register_menu_oracle_routes(httplib::Server& server) {
-    // GET /menu-oracle[?call_text=0] -> crash-safe QUIESCED snapshot of the currently-open
-    // workshop add-task sheet (building.button / filtered_button rows with class discrimination,
-    // filter_str, hotkey, objection, info, and DF's composed label via text()). Emits a clean
-    // {open:false} snapshot when no sheet is open. Schema = truemenu-oracle-v1 (menu_oracle.lua)
-    // + additive "in_transition" flag. On a missed quiesce window returns 503 with a JSON error
-    // body (no snapshot was attempted -- callers just retry); per-read quiesce timings are in the
-    // X-Menu-Oracle-Quiesce header.
     server.Get("/menu-oracle", [](const httplib::Request& req, httplib::Response& res) {
         bool call_text = true;
         if (req.has_param("call_text")) {

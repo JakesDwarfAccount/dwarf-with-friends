@@ -1,0 +1,253 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.labor {
+  .info-side-item.labor-wd {
+    cursor: pointer;
+    grid-template-columns: 38px minmax(0, 1fr);
+    min-height: 40px;
+    padding: 1px 7px;
+  }
+  .labor-wd-icon {
+    justify-self: center;
+  }
+  .labor-wd-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .labor-detail-head {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 8px;
+    padding: 5px 9px;
+  }
+  .labor-name-wrap {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(160px, 420px) auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .labor-name-input {
+    width: 100%;
+    min-width: 0;
+    height: 28px;
+    box-sizing: border-box;
+  }
+  .labor-detail-skill {
+    color: var(--dwfui-text-secondary);
+    white-space: nowrap;
+  }
+  .labor-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .labor-icon-btn {
+    width: 30px;
+    height: 28px;
+  }
+  .labor-mode-row {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 10px;
+  }
+  .labor-row {
+    display: grid;
+    align-items: center;
+    min-height: 36px;
+    /* mountTableColumns needs shrink-wrapped cells when it reads scrollWidth; auto tracks are load-bearing. */
+    grid-template-columns: auto auto auto auto auto;
+  }
+  .labor-grid {
+    overflow-x: auto;
+  }
+  .labor-grid-head {
+    margin: 2px 0 4px;
+    color: var(--dwfui-text-heading);
+    font-weight: 700;
+  }
+  .labor-grid-head span {
+    padding: 1px 10px;
+  }
+  .labor-assigned {
+    color: var(--dwfui-text-good);
+    font-size: 12px;
+    padding-left: 6px;
+  }
+  .labor-col-spec,
+  .labor-col-do {
+    justify-self: center;
+  }
+  .labor-name {
+    color: var(--dwfui-text-row);
+    font-weight: 700;
+    cursor: pointer;
+    padding-left: 6px;
+  }
+  .labor-name:hover {
+    text-decoration: underline;
+  }
+  .labor-skill {
+    color: var(--dwfui-text-secondary);
+  }
+  .labor-task-panel {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 8px;
+    height: 100%;
+    min-height: 0;
+  }
+  .info-main.labor-task-host {
+    overflow: hidden;
+  }
+  .labor-task-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+  }
+  .labor-task-title {
+    color: var(--dwfui-text-heading);
+    font-weight: 900;
+  }
+  .labor-task-list {
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .labor-task-cat {
+    padding: 6px 10px;
+    color: var(--labor-cat, currentColor);
+    border-left: 3px solid var(--labor-cat, currentColor);
+    font-weight: 900;
+  }
+  .labor-task-row {
+    display: grid;
+    grid-template-columns: minmax(170px, 1fr) minmax(120px, 0.7fr) calc(32px * var(--dwfui-interface-scale)) 42px;
+    align-items: center;
+    min-height: 34px;
+    padding: 2px 8px 2px 9px;
+    border-left: 2px solid var(--labor-cat, currentColor);
+  }
+  .labor-task-name {
+    color: var(--labor-cat, var(--dwfui-text-row));
+    font-weight: 700;
+  }
+  .labor-task-meta {
+    color: var(--dwfui-text-secondary);
+    font-size: 12px;
+  }
+  /* The 36px-tall native cell top-aligns inside its 32px square icon slot. */
+  .labor-task-native {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(36px * var(--dwfui-interface-scale));
+    display: grid;
+    place-items: start center;
+  }
+  .labor-task-check {
+    justify-self: end;
+  }
+  .labor-empty {
+    padding: 12px 10px;
+    color: var(--dwfui-text-secondary);
+  }
+  .unit-workdetails {
+    min-height: 0;
+  }
+  .unit-wd-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .unit-wd-list > .unit-list-grid {
+    margin: 0;
+  }
+  .unit-wd-row {
+    display: grid;
+    grid-template-columns: calc(34px * var(--dwfui-interface-scale)) minmax(120px, 1fr) 30px;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 2px 10px 2px 8px;
+    cursor: pointer;
+  }
+  .unit-wd-row.unit-wd-header {
+    cursor: pointer;
+  }
+  .unit-wd-row.unit-wd-header .unit-wd-name {
+    color: var(--dwfui-text-heading);
+    font-weight: 700;
+  }
+  .unit-wd-icon-slot {
+    display: grid;
+    place-items: center;
+    width: calc(32px * var(--dwfui-interface-scale));
+  }
+  /* The header slot holds a self-framed sprite; a fixed track crushes it. */
+  .unit-wd-row.unit-wd-header .unit-wd-icon-slot {
+    width: auto;
+  }
+  /* The 36px-tall native cell top-aligns so it stays inside the slot. */
+  .unit-wd-row:not(.unit-wd-header) .unit-wd-icon-slot {
+    box-sizing: border-box;
+    place-items: start center;
+    width: calc(32px * var(--dwfui-interface-scale) + 4px);
+    height: calc(36px * var(--dwfui-interface-scale) + 4px);
+  }
+  .unit-wd-icon-blank {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(36px * var(--dwfui-interface-scale));
+  }
+  .unit-wd-anywhere-icon {
+    width: auto;
+    height: auto;
+    padding: 0;
+  }
+  .unit-wd-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--dwfui-text-row);
+  }
+  .unit-wd-check {
+    justify-self: end;
+  }
+  .labor-create-detail {
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.5 * var(--dwfui-cell-drawn-h));
+    max-width: calc(48 * var(--dwfui-cell-drawn-w));
+    padding: calc(0.5 * var(--dwfui-cell-drawn-h)) var(--dwfui-cell-drawn-w);
+  }
+  .labor-create-row {
+    display: grid;
+    grid-template-columns: minmax(calc(18 * var(--dwfui-cell-drawn-w)), 1fr) auto;
+    align-items: center;
+    gap: var(--dwfui-cell-drawn-w);
+  }
+  .labor-create-row .labor-name-input {
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+}

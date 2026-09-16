@@ -19,14 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// W23 -- client mirror of GET /write-guards (dfcapture-hostwrites.json, C++ side).
-//
-// One rule, the B227 justice contract generalized: a guarded write must NEVER look live. Every
-// consumer asks DFWriteGuards.enabled(flag) at render time and FAILS CLOSED -- before the first
-// fetch answers, after a fetch error, on an old server without the route (404), or on any value
-// that is not exactly `true`, the write renders LOCKED. When the host flips a flag the poll picks
-// it up within ~10 s and a "dfwriteguards" window event tells open panels to re-render -- no
-// reload, no rebuild.
+// Client mirror of GET /write-guards. One rule: a guarded write must NEVER look live. Every
+// consumer asks DFWriteGuards.enabled(flag) at render time and FAILS CLOSED.
 (function () {
   "use strict";
 
@@ -69,7 +63,7 @@
     state = next;
     if (changed && typeof window !== "undefined") {
       try { window.dispatchEvent(new CustomEvent("dfwriteguards", { detail: { guards: state } })); }
-      catch (_) {}
+      catch (err) { DwfErr.report("write-guards.changed-event", err); }
     }
     return state;
   }

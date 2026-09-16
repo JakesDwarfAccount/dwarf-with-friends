@@ -18,11 +18,9 @@
 // Full license: see LICENSE. Third-party credits: see NOTICE.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
-//
-// WD-18 ENDPOINT-ADD: GET/POST /standing-orders -- df.global.plotinfo's standing_orders_*
-// booleans (df::global::standing_orders_auto_butcher etc, one extern uint8_t* per toggle),
-// grouped per DF's real Standing Orders screen categories (df::standing_orders_category_type:
-// Workshops/Hauling/Refuse/Forbidding/Petitions/Chores/Other -- 16b-labor-standing-orders.png).
+
+// GET/POST /standing-orders -- the df::global::standing_orders_* toggles, grouped per DF's own
+// standing_orders_category_type.
 
 #pragma once
 

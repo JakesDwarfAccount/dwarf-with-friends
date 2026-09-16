@@ -1,4 +1,4 @@
-// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+﻿// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
 // Copyright (C) 2026 Gabriel Rios
 // Copyright (C) 2026 Jake Taplin
 //
@@ -19,14 +19,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// ===========================================================================
-// SPRITE MAP -- parse DF's premium-graphics raws into a token -> sprite-cell
-// lookup for the browser renderer. Pure text parsing of the user's own DF
-// install (read at plugin runtime, NOT bundled -- the PNGs stay proprietary).
-// ===========================================================================
+// Parses the user's own DF graphics raws into a token -> sprite-cell lookup for the browser.
 
 #include "sprite_map.h"
 #include "diagnostics.h"
+#include "json_util.h"
 
 #include "DataDefs.h"
 #include "df/tiletype.h"
@@ -55,9 +52,7 @@ using namespace DFHack;
 namespace dwf {
 namespace {
 
-// DF graphics raw directories to parse, relative to the plugin CWD (DF root).
-// Environment is the primary (terrain floors/walls/ramps/stairs/liquids); plants
-// adds shrubs/saplings/tree cells. Both use the SAME token grammar.
+// DF graphics raw directories, relative to the plugin CWD (the DF root).
 const char* kGraphicsDirs[] = {
     "data/vanilla/vanilla_environment/graphics",
     "data/vanilla/vanilla_plants_graphics/graphics",
@@ -68,24 +63,8 @@ struct FrameCell {
     int row = 0;
 };
 
-// A token's primary (first-binding) cell, plus -- WC-10 -- any additional
-// animation frames the SAME token re-binds to later in the raws. DF encodes
-// per-tiletype animation two ways (verified against the vanilla raws):
-//   (a) frame number baked into the TOKEN NAME (WINDMILL_S_1/_2, ...) -- these
-//       are already distinct map keys and need no handling here.
-//   (b) the identical TOKEN repeated with a numeric trailing param, e.g.
-//       [TILE_GRAPHICS:EVENT_FLOWS:0:0:FLOW_MIASMA:1] .. `:4]` (frame index
-//       only), or [TILE_GRAPHICS:FLOWS:0:0:BROOK_TO_NW:1:1] .. `:1:16]` then
-//       `:2:1]` .. (a GROUP id followed by a 16-frame index -- DF ships 4
-///      alternate 16-frame groups per BROOK/RIVER direction on separate
-//       pages; only one group is the live animation series, the rest are
-//       unused alternates). The LAST extra param is always the frame's sort
-//       key; everything before it is the "series key" that must match the
-//       token's first frame binding for a later binding to join the series
-//       (this is what keeps BROOK_TO_NW's frames at 16, not 64). A token
-//       whose trailing param(s) are non-numeric (e.g. spatter shape codes
-//       like `FULL_NSWE_A`) is NOT a frame series -- untouched, first-binding
-///      -wins as before (that grammar is WC-11/12 territory).
+// A token's primary (first-binding) cell, plus later re-bindings of the SAME token that continue
+// its animation series. Of a binding's trailing extras, the LAST is the frame index.
 struct Cell {
     std::string sheet;   // png basename, e.g. "floors.png"
     int col = 0;
@@ -129,7 +108,6 @@ std::string basename_of(const std::string& p) {
     return (s == std::string::npos) ? p : p.substr(s + 1);
 }
 
-// Split "A:B:C" into ["A","B","C"].
 std::vector<std::string> split_colon(const std::string& s) {
     std::vector<std::string> out;
     std::string cur;
@@ -181,14 +159,12 @@ std::string to_pascal(const std::string& tok) {
     return out;
 }
 
-std::string json_escape(const std::string& s) {
-    std::string o;
-    o.reserve(s.size());
-    for (char c : s) {
-        if (c == '"' || c == '\\') { o.push_back('\\'); o.push_back(c); }
-        else o.push_back(c);
-    }
-    return o;
+// Name exposed by the PNG-only /sprites/img/ route. floors.bmp is vanilla's one legacy
+// exception; the host-side sprite bake converts that bitmap to floors_alt.png.
+std::string served_sheet_name(const std::string& name) {
+    if (name == "floors.bmp") return "floors_alt.png";
+    if (name.size() > 4 && name.compare(name.size() - 4, 4, ".png") == 0) return name;
+    return std::string();
 }
 
 // Parse all tile_page_*.txt across the dirs: PAGE name -> sheet png basename.
@@ -204,19 +180,21 @@ void collect_pages(const std::vector<std::string>& files,
             if (f[0] == "TILE_PAGE" && f.size() >= 2) {
                 cur_page = f[1];
             } else if (f[0] == "FILE" && f.size() >= 2 && !cur_page.empty()) {
-                pages[cur_page] = basename_of(f[1]);
+                std::string sheet = basename_of(f[1]);
+                std::string served = served_sheet_name(sheet);
+                if (served.empty()) {
+                    diagnostics_log("sprite-map: skipping page " + cur_page + " -> " + sheet +
+                                    " (the /sprites/img/ route serves .png only)");
+                    return;
+                }
+                pages[cur_page] = served;
             }
-            // TILE_DIM / PAGE_DIM / PAGE_DIM_PIXELS are read past but not needed:
-            // each cell's col/row come straight from the TILE_GRAPHICS binding.
         });
     }
 }
 
-// Parse all graphics_*.txt: [TILE_GRAPHICS:PAGE:col:row:TOKEN(:extra...)].
-// Resolve PAGE -> sheet; first binding of a token wins for the primary cell.
-// WC-10: a later binding of the SAME token joins that token's `frames` array
-// instead of being silently dropped, provided it continues the same
-// animation series (see the Cell comment above). Unknown page -> skip.
+// Parse all graphics_*.txt: [TILE_GRAPHICS:PAGE:col:row:TOKEN(:extra...)]. First binding of a
+// token wins the primary cell; a later binding joins `frames` only within the same series.
 void collect_tokens(const std::vector<std::string>& files,
                     const std::map<std::string, std::string>& pages,
                     std::map<std::string, Cell>& tokens) {
@@ -233,10 +211,8 @@ void collect_tokens(const std::vector<std::string>& files,
             auto pit = pages.find(page);
             if (pit == pages.end()) return;          // unresolved page -> skip
 
-            // Trailing extra params (everything after TOKEN). Only treated as
-            // an animation-frame series when EVERY trailing field is numeric
-            // (non-numeric trailing fields are shape/variant qualifiers, not
-            // frame indices -- leave those to first-binding-wins).
+            // Trailing extras are a frame series only when EVERY one is numeric: non-numeric
+            // trailing fields are shape/variant qualifiers and stay first-binding-wins.
             std::vector<int> extras;
             bool extras_numeric = f.size() > 5;
             for (size_t i = 5; extras_numeric && i < f.size(); ++i) {
@@ -248,9 +224,7 @@ void collect_tokens(const std::vector<std::string>& files,
 
             auto it = tokens.find(token);
             if (it == tokens.end()) {
-                // First binding of this token: establishes the primary cell
-                // (back-compat: sheet/col/row unchanged from today) and, if
-                // numeric extras are present, the animation series key.
+                // First binding: the primary cell, plus the series key when extras are numeric.
                 Cell c;
                 c.sheet = pit->second;
                 c.col = col;
@@ -264,14 +238,8 @@ void collect_tokens(const std::vector<std::string>& files,
                 return;
             }
 
-            // Re-binding of a known token. Previously dropped unconditionally
-            // (the frame-collapse bug); now: join the frames array only if
-            // this occurrence continues the SAME series the first binding
-            // established (same page-group/series-key) and carries a numeric
-            // frame index. A different series (e.g. BROOK_TO_NW's alternate
-            // 16-frame groups on FLOWS2/3/4) or a non-numeric re-binding is
-            // still dropped -- first-binding-wins for anything outside the
-            // established series.
+            // Re-binding of a known token: joins `frames` only when it continues the SAME series
+            // the first binding established. Any other re-binding is dropped.
             Cell& existing = it->second;
             if (!existing.has_frames || !is_frame_binding) return;
             std::vector<int> this_series(extras.begin(), extras.end() - 1);
@@ -281,10 +249,8 @@ void collect_tokens(const std::vector<std::string>& files,
     }
 }
 
-// Sort each token's accumulated frame_pool by frame index, drop duplicate
-// indices (keep the first occurrence in raw-file order), and demote
-// single-frame "series" (nothing actually repeated) back to a plain cell so
-// the JSON output stays back-compat for the common case.
+// Sort each token's frame_pool by frame index, drop duplicate indices, and demote a
+// single-frame "series" back to a plain cell.
 void finalize_frames(std::map<std::string, Cell>& tokens) {
     for (auto& kv : tokens) {
         Cell& c = kv.second;
@@ -308,7 +274,7 @@ void finalize_frames(std::map<std::string, Cell>& tokens) {
     }
 }
 
-std::string build_sprite_map_json() {
+ApiResult<std::string> build_sprite_map_json() {
     try {
         std::map<std::string, std::string> pages;   // PAGE name -> png basename
         std::map<std::string, Cell> tokens;         // TOKEN -> sheet/col/row
@@ -324,11 +290,8 @@ std::string build_sprite_map_json() {
         collect_tokens(all_files, pages, tokens);
         finalize_frames(tokens);
 
-        // Add enum-key aliases so the client's wire "ttname" (a df::tiletype enum
-        // key) resolves directly for the tokens whose PascalCase form is a real
-        // tiletype. The graphics-token namespace is mostly disjoint from the
-        // tiletype enum (the live-tile -> token choice is hardcoded in DF), so
-        // only a handful alias; the rest stay reachable by their raw token key.
+        // Alias every token whose PascalCase form is a real df::tiletype key, so the client's
+        // wire "ttname" resolves directly; the rest stay reachable by their raw token.
         std::vector<std::pair<std::string, Cell>> aliases;
         for (const auto& kv : tokens) {
             std::string enum_key = to_pascal(kv.first);
@@ -369,23 +332,23 @@ std::string build_sprite_map_json() {
         note << "sprite-map: " << tokens.size() << " entries from "
              << all_files.size() << " raw files (" << pages.size() << " pages)";
         diagnostics_log(note.str());
-        return js.str();
+        return ApiResult<std::string>::success(js.str());
     }
     catch (const std::exception& e) {
         diagnostics_log(std::string("sprite-map exception: ") + e.what());
-        return "{}";
+        return ApiResult<std::string>::failure(500, "sprite_map_unavailable", e.what());
     }
     catch (...) {
         diagnostics_log("sprite-map: unknown exception");
-        return "{}";
+        return ApiResult<std::string>::failure(500, "sprite_map_unavailable",
+                                               "unknown exception parsing the graphics raws");
     }
 }
 
 } // namespace
 
-const std::string& sprite_map_json() {
-    // Magic static: parsed exactly once, thread-safe, cached for the plugin's life.
-    static const std::string cached = build_sprite_map_json();
+const ApiResult<std::string>& sprite_map_json() {
+    static const ApiResult<std::string> cached = build_sprite_map_json();
     return cached;
 }
 

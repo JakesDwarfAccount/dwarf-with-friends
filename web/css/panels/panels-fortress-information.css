@@ -1,0 +1,458 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.fortress-information {
+  .livestock-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--dwfui-surface);
+  }
+  .livestock-btn {
+    flex: 0 0 auto;
+  }
+  .trainer-chooser-page,
+  .trainer-chooser-scroll {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .trainer-chooser-scroll {
+    overflow-y: auto;
+  }
+  .trainer-choice-row {
+    flex: 0 0 auto;
+    width: 100%;
+    border: 0;
+    cursor: pointer;
+  }
+  .trainer-choice-wildcard {
+    --dwfui-row-min-width: calc(40 * var(--dwfui-cell-drawn-w));
+    --dwfui-row-min-height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  .trainer-choice-named {
+    --dwfui-row-min-height: calc(4 * var(--dwfui-cell-drawn-h));
+  }
+  .trainer-choice-named .trainer-choice-portrait {
+    flex: 0 0 calc(5 * var(--dwfui-cell-drawn-w));
+    width: calc(5 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  .trainer-choice-named .dwfui-copy {
+    --dwfui-copy-min-width: calc(30 * var(--dwfui-cell-drawn-w));
+  }
+  .info-main [data-df-color="0"] { color: var(--df-c0); }
+  .info-main [data-df-color="1"] { color: var(--df-c1); }
+  .info-main [data-df-color="2"] { color: var(--df-c2); }
+  .info-main [data-df-color="3"] { color: var(--df-c3); }
+  .info-main [data-df-color="4"] { color: var(--df-c4); }
+  .info-main [data-df-color="5"] { color: var(--df-c5); }
+  .info-main [data-df-color="6"] { color: var(--df-c6); }
+  .info-main [data-df-color="7"] { color: var(--df-c7); }
+  .info-main [data-df-color="8"] { color: var(--df-c8); }
+  .info-main [data-df-color="9"] { color: var(--df-c9); }
+  .info-main [data-df-color="10"] { color: var(--df-c10); }
+  .info-main [data-df-color="11"] { color: var(--df-c11); }
+  .info-main [data-df-color="12"] { color: var(--df-c12); }
+  .info-main [data-df-color="13"] { color: var(--df-c13); }
+  .info-main [data-df-color="14"] { color: var(--df-c14); }
+  .info-main [data-df-color="15"] { color: var(--df-c15); }
+  /* ledger 0087: the primary name cell is index-carried too. Neutral fallback only, never a pick. */
+  .info-name-main {
+    color: var(--dwfui-text-row);
+    font-weight: 700;
+  }
+  .info-subtitle {
+    color: var(--dwfui-text-secondary);
+    font-size: 12px;
+  }
+  .info-muted {
+    color: var(--dwfui-text-secondary);
+  }
+  .info-status.good {
+    color: var(--dwfui-text-good);
+    font-weight: 700;
+  }
+  .info-status.warn {
+    color: var(--dwfui-text-warning);
+    font-weight: 700;
+  }
+  .info-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .info-badge {
+    color: var(--dwfui-text-good);
+  }
+  .info-footer {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 24px 12px;
+    color: var(--dwfui-text-body);
+  }
+  .info-search {
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) auto;
+  }
+  .info-search input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .info-table-head.creature-row,
+  .info-row.creature-row {
+    grid-template-columns: 40px minmax(150px, 1.1fr) 24px 62px minmax(70px, 0.5fr) minmax(110px, 0.7fr) minmax(
+        170px,
+        1.1fr
+      );
+  }
+  .creature-row.resident-row,
+  .dwfui-sort-head.info-sort-head-row {
+    grid-template-columns: var(--resident-grid-columns);
+  }
+  .creature-identity {
+    min-width: 0;
+    line-height: 1.15;
+    overflow-wrap: normal;
+  }
+  .creature-identity-text {
+    white-space: normal;
+  }
+  .creature-job-text {
+    min-width: 0;
+    line-height: 1.15;
+    white-space: normal;
+  }
+  .creature-job-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .resident-job-actions {
+    display: inline-flex;
+    margin: 0;
+    gap: 0;
+  }
+  .creature-activity-details {
+    display: block;
+    width: 100%;
+    min-height: 1px;
+  }
+  .info-sort-head-row [data-creature-sort] {
+    grid-row: 1;
+  }
+  .info-sort-head-row [data-creature-sort="name"] {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .info-sort-head-row [data-creature-sort="category"] {
+    grid-column: 2;
+    justify-self: center;
+  }
+  .info-sort-head-row [data-creature-sort="profession"] {
+    grid-column: 2;
+    justify-self: end;
+  }
+  .info-sort-head-row [data-creature-sort="status"] {
+    grid-column: 4;
+    justify-self: start;
+  }
+  .info-sort-head-row [data-creature-sort="moodCategory"] {
+    grid-column: 7;
+    justify-self: center;
+  }
+  .creature-sex-glyph {
+    color: var(--dwfui-text-body);
+    font:
+      800 15px/1 ui-monospace,
+      Consolas,
+      monospace;
+    text-align: center;
+  }
+  .creature-actions {
+    margin-top: 0;
+  }
+  .creature-job-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .creature-mood-icon {
+    display: block;
+    flex: 0 0 auto;
+  }
+  .creature-spec {
+    flex: 0 0 auto;
+  }
+  .creature-workdetails {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+  }
+  .creature-workdetail-icon {
+    display: block;
+    flex: 0 0 auto;
+  }
+  /* ledger 0082 R3 gives native's column anchors as absolute cell offsets from the panel's left
+     edge, so this row is expressed in `--dwfui-cell-drawn-w` and does not move with the window. */
+  .info-row.info-task-row {
+    grid-template-columns:
+      calc(24 * var(--dwfui-cell-drawn-w))
+      calc(20 * var(--dwfui-cell-drawn-w))
+      calc(7 * var(--dwfui-cell-drawn-w))
+      calc(30 * var(--dwfui-cell-drawn-w))
+      calc(8 * var(--dwfui-cell-drawn-w))
+      minmax(0, 1fr);
+  }
+  .info-task-row .info-task-jobctl,
+  .info-task-row .info-task-unitctl {
+    margin-top: 0;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+  .info-task-job {
+    color: var(--dwfui-text-active);
+    font-weight: 700;
+    padding-left: 4px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .info-task-name {
+    color: var(--dwfui-text-body);
+    font-weight: 700;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .info-held-item {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-row);
+    font:
+      700 11px/1 ui-monospace,
+      Consolas,
+      monospace;
+    flex: 0 0 auto;
+  }
+  .stocks-window {
+    padding: 8px 12px 12px;
+  }
+  .stocks-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) 1fr;
+    gap: 28px;
+    overflow: hidden;
+  }
+  .stocks-list {
+    overflow: auto;
+    padding: 2px 0;
+    border-right: 2px solid var(--dwfui-slate);
+  }
+  .stocks-row {
+    min-height: 38px;
+    display: grid;
+    grid-template-columns: 1fr 74px;
+    align-items: center;
+    padding: 0 14px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-slab);
+    border: 1px solid var(--dwfui-slate);
+    border-left-color: var(--dwfui-text-numeric);
+    cursor: pointer;
+  }
+  .stocks-row + .stocks-row {
+    margin-top: 2px;
+  }
+  .stocks-row.selected,
+  .stocks-row:hover {
+    border-color: var(--dwfui-text-numeric);
+    box-shadow: 0 0 0 1px var(--dwfui-gold) inset;
+  }
+  .stocks-row.muted {
+    color: var(--dwfui-text-secondary);
+  }
+  .stocks-count {
+    justify-self: end;
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+  }
+  .stocks-main {
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .stocks-search-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 34px;
+    max-width: min(680px, 100%);
+  }
+  .stocks-search-box {
+    height: 34px;
+    width: 100%;
+    border: 2px solid var(--dwfui-silver);
+    box-sizing: border-box;
+    padding: 6px 12px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    font:
+      13px ui-monospace,
+      Consolas,
+      monospace;
+    outline: none;
+  }
+  .stocks-search-box:focus {
+    border-color: var(--dwfui-text-numeric);
+  }
+  .stocks-search-box::placeholder {
+    color: var(--dwfui-text-disabled);
+  }
+  .stocks-search-button {
+    height: 34px;
+    border: 2px solid var(--dwfui-silver);
+    border-left: 0;
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-numeric);
+    display: grid;
+    place-items: center;
+  }
+  .stocks-detail {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    color: var(--dwfui-text-body);
+    overflow: hidden;
+  }
+  .stocks-detail h2 {
+    margin: 0 0 12px;
+    color: var(--dwfui-text-numeric);
+    font-size: 15px;
+  }
+  .stocks-detail-line {
+    margin: 0 0 8px;
+    color: var(--dwfui-text-prose);
+  }
+  .stocks-detail-muted {
+    color: var(--dwfui-text-secondary);
+  }
+  .stocks-item-list {
+    display: grid;
+    gap: 4px;
+  }
+  .stocks-item-row {
+    min-height: 34px;
+    display: grid;
+    grid-template-columns: 34px minmax(220px, 1fr) auto 112px;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 8px;
+    background: var(--dwfui-slab);
+    border: 1px solid var(--dwfui-slate);
+  }
+  .stocks-item-row:nth-child(even) {
+    background: repeating-linear-gradient(-25deg, rgba(255, 255, 255, 0.025) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
+  }
+  .stocks-item-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--dwfui-slab);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-row);
+    font-weight: 900;
+  }
+  .stocks-item-name {
+    color: var(--dwfui-text-row);
+    font-weight: 700;
+  }
+  .stocks-item-subtitle {
+    color: var(--dwfui-text-secondary);
+    font-size: 12px;
+  }
+  .stocks-item-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: end;
+  }
+  .stocks-item-action {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+    font-size: 12px;
+  }
+  .stocks-group-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(4px * var(--dwfui-interface-scale));
+  }
+  .stocks-item-actions .stocks-item-action,
+  .stocks-group-actions .stocks-item-action {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(36px * var(--dwfui-interface-scale));
+    padding: 0;
+    border: 0;
+  }
+  .stocks-group-closed,
+  .stocks-group-loading {
+    margin: 2px 0 6px;
+    cursor: pointer;
+  }
+  .stocks-group-loading {
+    cursor: default;
+  }
+  .stocks-pane-status {
+    margin: -4px 0 10px;
+  }
+}

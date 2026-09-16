@@ -190,8 +190,6 @@ void diagnostics_log(const std::string& line) {
     }
 }
 
-// Verbose transport tracing gate. Relaxed atomics: this is a debug toggle, not a
-// synchronization point -- a late-observed flip only means one extra/missing trace line.
 namespace { std::atomic<bool> g_diag_verbose{false}; }
 
 bool diagnostics_verbose() { return g_diag_verbose.load(std::memory_order_relaxed); }
@@ -200,12 +198,8 @@ void diagnostics_log_v(const std::string& line) {
     if (diagnostics_verbose()) diagnostics_log(line);
 }
 
-// --- WT24: crash-evidence breadcrumbs ------------------------------------------------
-// Relaxed atomics on purpose: this is a post-mortem breadcrumb, not a synchronization
-// point. A reader (heartbeat / stall watchdog) that observes a slightly stale phase only
-// mis-labels one diagnostic line; it can never corrupt anything. Cost per enter: one
-// steady_clock read (a QPC tick) + three relaxed stores -- ~tens of nanoseconds, which is
-// why this is allowed on the 30 Hz push path where diagnostics_log() is not.
+// --- crash-evidence breadcrumbs ------------------------------------------------
+// Relaxed atomics: a reader that observes a slightly stale phase mis-labels one diagnostic line.
 namespace {
 std::atomic<const char*> g_phase_name{"startup"};
 std::atomic<uint64_t> g_phase_seq{0};

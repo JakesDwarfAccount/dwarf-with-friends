@@ -51,9 +51,12 @@ struct InspectResult {
     int tile_py = 0;
     std::string kind = "tile";
     std::string title;
-    // B288/B289: DF-generated art prose carried by the actual /inspect click response. Empty for
-    // selections with no DF prose and when an engraving's required art-image data is unavailable.
+    // DF-generated art prose; empty when the selection carries none.
     std::string description;
+    // A native texpos is process-local and cannot identify browser art, so the creature token is
+    // the portable portrait key here.
+    std::string vermin_token;
+    std::string vermin_caste_token;
     std::vector<std::string> lines;
     int32_t building_id = -1;
     int32_t item_id = -1;
@@ -69,7 +72,7 @@ struct HoverResult {
     int map_z = 0;
     std::string material;
     std::vector<std::string> lines;
-    // B24: per-line category, parallel to `lines` (unit/item/building/plant/terrain/liquid/
+    // per-line category, parallel to `lines` (unit/item/building/plant/terrain/liquid/
     // growth/spatter) -- drives the client's DF-style per-category line colors.
     std::vector<std::string> kinds;
 };
@@ -96,26 +99,19 @@ struct StockItemActionResult {
     int16_t material_type = -1;
     int32_t material_index = -1;
     int32_t location_id = -1;
-    // W3 (wave-4 wire batch): the location row's art. TWO distinct native channels, and they are
-    // NOT interchangeable:
-    //   * a container (barrel/bin/bag) is an ITEM -> a real item sprite ref, same shape as
-    //     `spriteRef` above. `location_sprite_type` empty == no item ref.
-    //   * a STOCKPILE is not an item at all. `steam single-item sheet.png` shows a brown tile with
-    //     the stockpile sign on it -- that is DF's own STOCKPILE_ICON_* interface art, which the
-    //     item channel CANNOT resolve. It ships as an interface TOKEN instead.
+    // Two NON-interchangeable channels: a container is an ITEM and gets a sprite ref, while a
+    // STOCKPILE is not an item at all and the item channel cannot resolve its interface art.
     std::string location_sprite_type;      // item_type token, e.g. "BARREL"; empty when none
     int32_t location_sprite_subtype = -1;
     int16_t location_sprite_mat = -1;
     int32_t location_sprite_mat_index = -1;
     std::string location_sprite_token;     // interface token, e.g. "STOCKPILE_ICON_FOOD"
-    // W2: is THIS player's camera currently following this item (see client_state.h FollowTarget)?
+    // is THIS player's camera currently following this item (see client_state.h FollowTarget)?
     bool following = false;
     bool forbidden = false;
     bool dump = false;
     bool hidden = false;
-    // B07: true when this item is a storage container (bin/barrel/bag/bucket/etc.) so the client
-    // can render DF's container-contents view -- including an explicit "Empty" state when a
-    // container holds nothing (a normal, non-container item stays false and shows no contents box).
+    // storage container (bin/barrel/bag/bucket): the client shows a contents view, "Empty" included
     bool is_container = false;
     std::vector<std::string> lines;
     struct Content {
@@ -124,9 +120,7 @@ struct StockItemActionResult {
         bool forbidden = false;
         bool dump = false;
         bool hidden = false;
-        // W3 (S4 DATA GAP 3): the contained item's own sprite ref. The container sheet's rows have
-        // always been rendered through the item channel (`iconCfg: { item: c.spriteRef }`) and the
-        // wire never sent one, so every contained row painted the fail-loud empty tile.
+        // the contained item's own sprite ref; the container sheet renders rows through it
         std::string sprite_type;
         int32_t sprite_subtype = -1;
         int16_t sprite_mat = -1;
@@ -138,10 +132,8 @@ struct StockItemActionResult {
 
 bool action_on_core_thread(const std::string& action, std::string* err = nullptr);
 
-// Host-only web save (SAVE-ONLY, never exits/loads): sets DF's autosave-request flags on the core
-// thread exactly like DFHack's quicksave.lua; the DF main loop writes the world on a later frame.
-// Returns false with *err set when no world/map is loaded, not fortress mode, or a save is already
-// in progress. See interaction.cpp for the busy-watchdog integration note.
+// SAVE-ONLY, never exits or loads: it sets DF's autosave-request flags and the DF main loop
+// writes the world on a later frame, so a true return does NOT mean the save is on disk.
 bool save_world_on_core_thread(std::string* err = nullptr);
 
 bool stock_item_action_on_core_thread(int32_t item_id,
@@ -168,8 +160,6 @@ std::string inspect_json(const std::string& player, const InspectResult& result)
 std::string hover_json(const std::string& player, const HoverResult& result);
 std::string stock_item_action_json(int32_t item_id, const StockItemActionResult& result);
 
-// Registers this module's HTTP routes (moved verbatim from http_server.cpp's
-// register_routes monolith -- B212, 2026-07-13).
 void register_interaction_routes(httplib::Server& server);
 
 } // namespace dwf

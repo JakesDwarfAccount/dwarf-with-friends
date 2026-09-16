@@ -19,15 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-wire-v1.js -- reference decoder for protocol v1 (W-A foundation spec Part 0).
-//
-// The exact mirror of src/wire_v1.cpp. WA-8 ships + tests it via tools/harness/
-// wire_decode_test.mjs (loaded verbatim through vm.runInThisContext, attaches to the
-// global). WA-12's cache worker importScripts()es the same file to decode BLOCK_SET
-// frames off the wire -- so this is the single source of truth for the client decode.
-//
-// No imports/exports (worker/importScripts + node-vm compatible): it attaches an API
-// object to the global scope as DwfWireV1.
+// dwf-wire-v1.js -- the reference decoder for protocol v1 and the exact mirror of
+// src/wire_v1.cpp. No imports/exports: it attaches DwfWireV1 to the global scope.
 
 (function (root) {
   "use strict";
@@ -40,17 +33,10 @@
     TILE_RECORD_SIZE: 12,
     TILES_PER_BLOCK: 256,
     VOID_TT: 0xffff,
-    // WC-11/WC-15/WC-17/WC-18/WC-19/WC-21: FLOW (0x04), ITEM_SPATTER (0x05), GRASS (0x06),
-    // ENGRAVING (0x07), DESIG_PRIORITY (0x08) and VERMIN (0x09) join the pre-existing
-    // ITEM/PLANT/SPATTER_MAT kinds (src/wire_v1.h's landed kTail* registry -- see its
-    // RECONCILE-R1 note: sequential ids as items claimed them, NOT the WC spec draft's
-    // 0x10+ numbering).
-    // TX1: CONTAINER_PEEK (0x0A) joins the registry -- a BARREL/BIN's representative
-    // contained item, so the renderers can composite native's contents-peek overlay.
     TAIL_ITEM: 0x01, TAIL_PLANT: 0x02, TAIL_SPATTER_MAT: 0x03, TAIL_FLOW: 0x04, TAIL_ITEM_SPATTER: 0x05,
     TAIL_GRASS: 0x06, TAIL_ENGRAVING: 0x07, TAIL_DESIG_PRIORITY: 0x08, TAIL_VERMIN: 0x09,
     TAIL_CONTAINER_PEEK: 0x0A,
-    TAIL_FARM_CROP: 0x0B,
+    TAIL_FARM_CROP: 0x0B, TAIL_TREE_GRAPHICS: 0x0C, TAIL_ITEM_ART: 0x0D,
     F2_ITEM: 0x0001, F2_PLANT: 0x0002, F2_SPATTER: 0x0004, F2_FLOW: 0x0008, F2_ITEM_SPATTER: 0x0010,
     F2_GRASS: 0x0020, F2_ENGRAVING: 0x0040, F2_DESIG_PRIORITY: 0x0080, F2_VERMIN: 0x0100,
     F2_CONTAINER_PEEK: 0x0200,
@@ -102,15 +88,6 @@
     };
   }
 
-  // Decode one sparse tail's kind-specific data (§0.3.2). Unknown kinds -> raw bytes.
-  //
-  // WC-1/WC-11/WC-15: the ITEM and SPATTER_MAT kinds grew additional trailing bytes after
-  // this decoder's original 8-byte reads (src/wire_v1.cpp's make_item_tail/make_spatter_tail
-  // -- ITEM is now 12 bytes with subtype/iflags/stack appended, SPATTER_MAT is now 9 bytes
-  // with a matter_state byte appended). Read defensively by `len` so an older/shorter frame
-  // still decodes its base fields; the extension fields default to their "none" sentinel
-  // when the frame is too short to carry them (never guessed as 0, which is a REAL value
-  // for iflags/state).
   function decodeTailData(kind, dv, o, len) {
     if (kind === C.TAIL_ITEM && len >= 8) {
       var it = { item_type: dv.getInt16(o, true), mat_type: dv.getInt16(o + 2, true),
@@ -120,22 +97,11 @@
       // Expose only the 5 real flag bits (web/forbid/dump/melt/on_fire); bit5 is the internal
       // quality-family presence marker, consumed below -- keeps it.iflags semantics unchanged.
       it.iflags = rawIflags & 0x1f;
-      // CORPSETEX-B195 (CORPSETEX_B195_SKELETAL): iflags bit6 = DF labels this corpse a skeleton.
-      // Kept OUT of it.iflags (whose semantics stay the 5 real flag bits) and exposed as its own
-      // key ONLY when set -- a fresh corpse and an OLD server (which never sends the bit) both
-      // leave it.skeletal UNDEFINED, exactly the additive/optional shape identity+quality use, so
-      // a plain item's decoded shape is byte-for-byte the pre-B195 shape (golden fixtures untouched).
-      // The resolver reads `if (it.skeletal)`: undefined -> the "fresh corpse" body branch (today's
-      // behaviour, never a regression); true -> the skeletal branch.
       if (rawIflags & 0x40) it.skeletal = true;
+      // ITEMDEF-SPRITES: grown wooden items select the definition's WOOD_GROWN art.
+      if (rawIflags & 0x80) it.grown = true;
       it.stack = (len >= 12) ? dv.getUint8(o + 11) : 1;
       var extEnd = len;
-      // ITEM QUALITY FAMILY (2026-07-09): a fixed 3-byte block [quality u8|qflags u8|wear u8]
-      // rides at the very END of the tail when iflags bit5 (kItemFlagHasQuality) is set. Carve
-      // it off FIRST (before gem-shape), presence keyed by the explicit flag bit (quality
-      // applies to many item types, so type-keying like gem-shape cannot signal it). Exposes
-      // it.quality (0-5), it.wear (0-3), it.artifact (bool). Absent when the server had nothing
-      // to say (plain items stay 12 bytes) -- old/plain tails leave these keys undefined.
       if ((rawIflags & 0x20) && extEnd >= 15) {
         it.quality = dv.getUint8(o + extEnd - 3);
         var qf = dv.getUint8(o + extEnd - 2);
@@ -144,20 +110,14 @@
         it.qflags = qf;
         extEnd -= 3;
       }
-      // TIER-2 gem shape (asset/material-parity §4): SMALLGEM(1)/GEM(44) item tails carry a
-      // trailing cut `shape` (i16, -1 = uncut/spawned) as the LAST 2 bytes of what remains after
-      // the quality carve, AFTER the optional identity block. Carve it off (keyed off the gem
-      // item_type + a tail extending past the 12-byte body) so the identity block below parses
-      // only the middle region [12, extEnd) -- unambiguous even for glass gems that carry a shape
-      // but no identity. Old (pre-Tier-2) gem tails were always exactly 12 bytes.
+      // SMALLGEM/GEM item tails carry a trailing cut `shape` (i16, -1 = uncut) as the LAST 2 bytes, AFTER
+      // the optional identity block. Carve it off first, so the identity block parses only [12, extEnd).
       if ((it.item_type === C.ITEM_TYPE_SMALLGEM || it.item_type === C.ITEM_TYPE_GEM) && extEnd >= 14) {
         it.shape = dv.getInt16(o + extEnd - 2, true);
         extEnd -= 2;
       }
-      // Item identity extension (WIRE-TAILS): `ident_kind u8 (1 plant/2 creature/3 inorganic)
-      // | idlen u8 | id bytes`, present only when the server resolved a token. Absent -> no
-      // identKind/ident keys (client falls back to the generic bytype/matvariant chain,
-      // exactly today's behaviour). src/wire_v1.h doc.
+      // Item identity extension: `ident_kind u8 | idlen u8 | id bytes`, present only when the server resolved
+      // a token. Absent means no identKind/ident keys, and the generic fallback chain applies.
       if (extEnd >= 14) {
         var ik = dv.getUint8(o + 12), il = dv.getUint8(o + 13);
         if (ik !== 0 && il > 0 && extEnd >= 14 + il) {
@@ -179,20 +139,18 @@
       var sp = { mat_type: dv.getInt16(o, true), mat_index: dv.getInt32(o + 2, true),
                  amount: dv.getUint16(o + 6, true) };
       sp.state = (len >= 9) ? dv.getInt8(o + 8) : -1;
-      // blood-family color extension: `has_rgb u8` + (r,g,b u8) AFTER the state byte,
-      // present only when len>=13 AND has_rgb!=0 (src/wire_v1.cpp::make_spatter_tail's
-      // second additive extension). Omitted (no `rgb` key) when unresolved -- callers must
-      // fall back (hash pick/default family), never treat a missing key as black.
+      // blood-family colour extension: `has_rgb u8` plus r,g,b AFTER the state byte. Omitted when unresolved
+      // -- callers must fall back, never treat a missing key as black.
       if (len >= 13 && dv.getUint8(o + 9) !== 0) {
         sp.rgb = [dv.getUint8(o + 10), dv.getUint8(o + 11), dv.getUint8(o + 12)];
       }
       return sp;
     }
-    // WC-15: FLOW (mist/smoke/miasma/...), one densest-flow entry per tile.
+    // FLOW (mist/smoke/miasma/...), one densest-flow entry per tile.
     if (kind === C.TAIL_FLOW && len >= 2) {
       return { flow_type: dv.getUint8(o), density: dv.getUint8(o + 1) };
     }
-    // WC-11: ITEM_SPATTER (fallen-leaves/fruit litter).
+    // ITEM_SPATTER (fallen-leaves/fruit litter).
     if (kind === C.TAIL_ITEM_SPATTER && len >= 3) {
       var isp = { growth_class: dv.getUint8(o), item_type: dv.getUint8(o + 1), amount: dv.getUint8(o + 2) };
       if (len >= 7 && dv.getUint8(o + 3) !== 0) {
@@ -200,9 +158,6 @@
       }
       return isp;
     }
-    // WC-17: GRASS coverage. Same idlen+id-bytes layout as TAIL_PLANT (a resolved plant
-    // token STRING, not a raw numeric plant_id -- see src/wire_v1.cpp::make_grass_tail's
-    // doc for why), with a trailing amount (u8) byte.
     if (kind === C.TAIL_GRASS && len >= 1) {
       var gidLen = dv.getUint8(o);
       var gid = "";
@@ -210,17 +165,14 @@
       var gAmountOff = o + 1 + gidLen;
       return { id: gid, amount: (gAmountOff < o + len) ? dv.getUint8(gAmountOff) : 0 };
     }
-    // WC-18: ENGRAVING (eflags u16 LE -- 10 real bits, quality u8).
+    // ENGRAVING (eflags u16 LE -- 10 real bits, quality u8).
     if (kind === C.TAIL_ENGRAVING && len >= 3) {
       return { eflags: dv.getUint16(o, true), quality: dv.getUint8(o + 2) };
     }
-    // WC-19: DESIG_PRIORITY (priority u8, only emitted for non-default priority).
+    // DESIG_PRIORITY (priority u8, only emitted for non-default priority).
     if (kind === C.TAIL_DESIG_PRIORITY && len >= 1) {
       return { priority: dv.getUint8(o) };
     }
-    // TX1: CONTAINER_PEEK -- representative FIRST contained item of a BARREL/BIN (fixed 11
-    // bytes: item_type i16 | mat_type i16 | mat_index i32 | subtype i16 | cflags u8; cflags
-    // bit0 = subterranean plant content). Read defensively by len like ITEM above.
     if (kind === C.TAIL_CONTAINER_PEEK && len >= 8) {
       var cp = { item_type: dv.getInt16(o, true), mat_type: dv.getInt16(o + 2, true),
                  mat_index: dv.getInt32(o + 4, true) };
@@ -228,7 +180,7 @@
       cp.cflags = (len >= 11) ? dv.getUint8(o + 10) : 0;
       return cp;
     }
-    // WC-21: VERMIN (race u16 LE, caste u8, vflags u8 -- bit0 colony, bit1 large swarm).
+    // VERMIN (race u16 LE, caste u8, vflags u8 -- bit0 colony, bit1 large swarm).
     if (kind === C.TAIL_VERMIN && len >= 4) {
       var vm = { race: dv.getUint16(o, true), caste: dv.getUint8(o + 2), vflags: dv.getUint8(o + 3) };
       // Vermin identity extension (WIRE-TAILS): resolved creature token (idlen u8 + bytes)
@@ -243,22 +195,37 @@
       }
       return vm;
     }
-    // TX4: building-owned planted crop. stage 0=seed, 1=sprout, 2=grown;
+    // building-owned planted crop. stage 0=seed, 1=sprout, 2=grown;
     // species is the stable plant_raw.id token used directly by plant_map.json.
     if (kind === C.TAIL_FARM_CROP && len >= 2) {
       var cs = dv.getUint8(o), cl = dv.getUint8(o + 1), cid = "";
       for (var cj = 0; cj < cl && 2 + cj < len; cj++) cid += String.fromCharCode(dv.getUint8(o + 2 + cj));
       return { stage: cs, id: cid };
     }
+    // TREE-KEY: packed native resolver keys. Presence bits are independent because selector/key
+    // zero is valid, and growth value zero means FRUIT_1 rather than "no growth".
+    if (kind === C.TAIL_TREE_GRAPHICS && len >= 7) {
+      var tf = dv.getUint8(o);
+      return {
+        flags: tf,
+        woodKey: dv.getUint16(o + 1, true),
+        leafKey: dv.getUint32(o + 3, true),
+        woodPresent: (tf & 0x01) !== 0,
+        leafPresent: (tf & 0x02) !== 0,
+        growthPresent: (tf & 0x04) !== 0,
+      };
+    }
+    // ITEM-SPRITES-R2: 0..7 = keyboard/stringed/wind/percussion x building/handheld.
+    if (kind === C.TAIL_ITEM_ART && len >= 1) {
+      var ia = { flags: dv.getUint8(o) };
+      if ((ia.flags & 0x01) && len >= 2) ia.instrumentClass = dv.getUint8(o + 1);
+      if (ia.flags & 0x02) ia.specialMaterial = true;
+      if (ia.flags & 0x04) ia.generatedTool = true;
+      return ia;
+    }
     return { raw: true };
   }
 
-  // WC-1/RECONCILE-R2: decode an ITEMDEF_DICT message payload (header already stripped by
-  // the caller) -- `subcat u8 | count u16 LE | count x (id u16 LE | len u8 | token bytes)`
-  // for each of the 14 itemdef subcategories, in Items.cpp's ITEMDEF_VECTORS order (src/
-  // wire_v1.cpp::assemble_itemdef_dict). Returns `[{subcat, entries:[{id, token}, ...]}, ...]`.
-  // Bounded to 14 subcats and to the payload length so a malformed/truncated frame can never
-  // spin an infinite loop -- worst case it just returns fewer subcats than expected.
   function decodeItemDefDict(payload) {
     var dv = new DataView(payload.buffer, payload.byteOffset, payload.length);
     var o = 0;
@@ -281,10 +248,8 @@
     return subcats;
   }
 
-  // Native text treatment for an item name. The map deliberately draws no quality glyphs; these
-  // marks belong only on text surfaces. Artifact names are already proper names from DF, so they
-  // are preserved verbatim rather than given an invented quality wrapper. Wear encloses quality,
-  // matching the native x/X/XX nesting (e.g. X+steel helm+X).
+  // The map deliberately draws no quality glyphs; these marks belong only on text surfaces. Artifact
+  // names are DF's own proper names, preserved verbatim. Wear encloses quality (X+steel helm+X).
   function formatItemName(name, item) {
     var text = String(name == null ? "" : name);
     if (!text) return text;
@@ -298,9 +263,8 @@
     return wearMark ? wearMark + text + wearMark : text;
   }
 
-  // Decode a BLOCK_SET payload (§0.3). `payload` is a Uint8Array of the frame body
-  // (already inflated if the header's deflated flag was set). Returns
-  // { world_seq, block_count, blocks:[{ bx,by,bz,ver,bflags,records:[256],tails:[...] }] }.
+  // `payload` is the frame body, already inflated if the header's deflated flag was set. Returns
+  // { world_seq, block_count, blocks:[{ bx,by,bz,ver,bflags,records,tails }] }.
   function decodeBlockSet(payload) {
     var dv = new DataView(payload.buffer, payload.byteOffset, payload.length);
     var o = 0;
@@ -313,10 +277,6 @@
       var bz = dv.getUint16(o, true); o += 2;
       var ver = dv.getUint32(o, true); o += 4;
       var bflags = dv.getUint8(o); o += 1;
-      // tail_count widened u8->u16 LE (cachefix 2026-07-09): a grass-dense block carries up to
-      // 256 GRASS tails plus its ITEM/etc tails, exceeding the old 255 cap that silently
-      // truncated high-tile_idx ITEM tails server-side (the invisible-item cluster). Mirror of
-      // src/wire_v1.cpp::assemble_block_set.
       var tail_count = dv.getUint16(o, true); o += 2;
       var records = new Array(C.TILES_PER_BLOCK);
       for (var i = 0; i < C.TILES_PER_BLOCK; i++) {

@@ -1,0 +1,362 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.work-orders {
+  .work-order-cols {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.46fr) minmax(420px, 0.54fr);
+    gap: 10px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    font-family: ui-monospace, "Consolas", monospace;
+  }
+  .work-order-screen {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    font: var(--dwfui-font);
+  }
+  .work-order-new-slot {
+    position: absolute;
+    z-index: 2;
+    top: 8px;
+    right: 8px;
+  }
+  .work-order-new-btn {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(36px * var(--dwfui-interface-scale));
+  }
+  .work-order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-right: calc(52px * var(--dwfui-interface-scale));
+    overflow-y: auto;
+  }
+  .work-order-amt-tag {
+    color: var(--dwfui-text-numeric);
+    font-weight: 400;
+    font-size: 12px;
+  }
+  .work-order-newpick {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.42fr) minmax(220px, 0.58fr);
+    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 240px;
+  }
+  .work-order-shoplist {
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 3px;
+  }
+  .work-order-shop {
+    width: 100%;
+  }
+  .work-order-shop-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    image-rendering: pixelated;
+  }
+  .work-order-taskpane {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+  }
+  .work-order-tasks {
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 3px;
+    flex: 1 1 auto;
+  }
+  .work-order-task {
+    width: 100%;
+  }
+  .work-order-section-title {
+    color: var(--dwfui-text-heading);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 12px 0 6px;
+    text-transform: none;
+  }
+  .work-order-section-title:first-child {
+    margin-top: 0;
+  }
+  .work-order-order {
+    display: flex;
+    align-items: center;
+    gap: calc(6px * var(--dwfui-interface-scale));
+    flex-wrap: nowrap;
+    min-height: calc(42px * var(--dwfui-interface-scale));
+    padding: 0 calc(6px * var(--dwfui-interface-scale));
+    cursor: pointer;
+    font: var(--dwfui-font);
+  }
+  .work-order-status-icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+  .work-order-order > .work-order-order-main {
+    flex: 0 0 27%;
+    min-width: calc(190px * var(--dwfui-interface-scale));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+  }
+  .work-order-job {
+    font-weight: 700;
+    color: var(--dwfui-text-active);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .work-order-meta {
+    color: var(--dwfui-text-active);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .work-order-qty,
+  .work-order-maxshops {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+  }
+  .work-order-validation-cell,
+  .work-order-qty-cell,
+  .work-order-reorder-cell,
+  .work-order-cond-cell,
+  .work-order-maxshops-cell {
+    flex: 0 0 auto;
+  }
+  .work-order-validation {
+    display: block;
+  }
+  .work-order-hash {
+    color: var(--dwfui-text-secondary);
+    font-weight: 700;
+  }
+  .work-order-maxval {
+    min-width: 16px;
+    text-align: center;
+    color: var(--dwfui-text-numeric);
+  }
+  .work-order-maxshops {
+    flex-wrap: wrap;
+  }
+  .work-order-maxval-editing {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+  }
+  .work-order-maxval-input {
+    width: calc(28px * var(--dwfui-interface-scale));
+    text-align: right;
+    font: var(--dwfui-font);
+  }
+  .work-order-maxval-echo {
+    color: var(--dwfui-text-numeric);
+  }
+  .work-order-maxval-bracket {
+    color: var(--dwfui-text-secondary);
+  }
+  .work-order-text-cursor {
+    color: var(--dwfui-text-numeric);
+  }
+  .work-order-text-cursor[hidden] {
+    visibility: hidden;
+    display: inline;
+  }
+  .work-order-maxshops-hint {
+    flex: 1 0 100%;
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+  }
+  .work-order-cond-status {
+    padding: 0 calc(3px * var(--dwfui-interface-scale));
+  }
+  .work-order-cond-status-cell,
+  .work-order-cond-checktype-cell,
+  .work-order-detail-status,
+  .work-order-cond-btn,
+  .work-order-remove-btn {
+    flex: 0 0 auto;
+  }
+  .fort-seat {
+    display: inline-block;
+  }
+  .work-order-reorder {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1px;
+    flex: 0 0 auto;
+  }
+  .standing-order-footnote {
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+    font-style: italic;
+    margin-top: 10px;
+  }
+  .work-order-icon {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(36px * var(--dwfui-interface-scale));
+  }
+  .work-order-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .work-order-form-row label {
+    color: var(--dwfui-text-secondary);
+    font-size: 12px;
+  }
+  .work-order-input {
+    width: 66px;
+  }
+  .work-order-status {
+    margin-top: 10px;
+    min-height: 18px;
+    color: var(--dwfui-text-good);
+    font-size: 12px;
+  }
+  .work-order-empty {
+    color: var(--dwfui-text-disabled);
+    padding: 8px 4px;
+    font-style: italic;
+  }
+  .info-body.work-order-empty-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .work-order-manager-required {
+    color: var(--dwfui-text-warning);
+    padding: 0 0 16px 2px;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+  }
+  .work-order-detail-title {
+    color: var(--dwfui-text-active);
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .work-order-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(210px, 1fr));
+    gap: 8px 14px;
+  }
+  .work-order-field {
+    padding-top: 7px;
+  }
+  .work-order-field-title {
+    color: var(--dwfui-text-heading);
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .work-order-cond-list {
+    display: grid;
+    gap: 4px;
+    margin: 6px 0;
+  }
+  .work-order-condition-frequency {
+    color: var(--dwfui-text-row);
+    margin: 2px 0 8px;
+  }
+  .work-order-condition-row {
+    min-height: 44px;
+    align-items: center;
+  }
+  .work-order-cond-tools-slot {
+    position: absolute;
+    z-index: 2;
+    top: 8px;
+    right: 8px;
+  }
+  .work-order-cond-qty-cell,
+  .work-order-cond-cmp-cell,
+  .work-order-cond-tabs-cell {
+    flex: 0 0 auto;
+  }
+  .work-order-cond-qty {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .work-order-cond-tabs {
+    display: inline-flex;
+    gap: 2px;
+  }
+  .work-order-cond-picker {
+    padding: 3px;
+    margin: 2px 0 6px;
+  }
+  .work-order-cond-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: calc(200px * var(--dwfui-interface-scale));
+    overflow-y: auto;
+  }
+  .work-order-suggest-row {
+    min-height: calc(38px * var(--dwfui-interface-scale));
+  }
+  @media (max-width: 720px) {
+    .work-order-cols {
+      grid-template-columns: 1fr;
+      overflow: auto;
+    }
+    .work-order-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .work-order-suggestions {
+    margin-top: auto;
+  }
+  .work-order-suggestions-empty {
+    padding-left: 0;
+  }
+  .work-order-cond-tabs > button {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(36px * var(--dwfui-interface-scale));
+  }
+}

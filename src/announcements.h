@@ -30,11 +30,8 @@
 
 namespace dwf {
 
-// One entry from world->status.reports (the full combat/civilian/production event
-// log DF keeps -- distinct from world->status.announcements, which only holds what
-// scrolled through the top-of-screen banner). Field set mirrors NotificationReport
-// in notifications.h so the client can reuse the same render helpers (dfTextColor,
-// reportText, alertIconStyle) across both /notifications and /reports payloads.
+// One entry from world->status.reports -- the full event log, distinct from
+// world->status.announcements, which holds only what scrolled through the top-of-screen banner.
 struct ReportEntry {
     int32_t id = -1;
     int type = -1;
@@ -58,39 +55,25 @@ struct ReportEntry {
     int32_t activity_id = -1;
     int32_t activity_event_id = -1;
     int32_t speaker_id = -1;
-    // B232: the raws-derived taxonomy (src/announce_taxonomy.gen.h). `section` is a
-    // taxonomy::Section id, `flags` the announcements.txt behaviour flags DF ships for this type
-    // (BOX / ALERT / UCR / ...). Both are O(1) array lookups keyed by `type`.
     int section = 0;            // taxonomy::SECTION_MISC
     int taxonomy_flags = 0;     // taxonomy::AnnounceFlag bitfield
 };
 
-// B232 -- the query the full announcements/reports SCREEN needs, which the original poll-only
-// route could not express. Two cursors, deliberately, because the screen does two different things:
-//
-//   since_id  FOLLOW  -- "what is NEW since I last looked" (id > since_id). Walks the tail.
-//   before_id BACKFILL-- "give me the page OLDER than what I have" (id < before_id). Walks back.
-//
-// Without before_id the client could only ever see the newest max_reports rows: the log was a
-// recent slice pretending to be a history. `next_before_id` is the resume cursor -- it is the id
-// of the OLDEST entry we EXAMINED, not the oldest we MATCHED, so a section filter that matched
-// nothing in this window still advances and the client can keep paging instead of spinning.
 struct ReportsQuery {
     int32_t since_id = -1;    // > this id. -1 = no lower bound.
     int32_t before_id = -1;   // < this id. -1 = no upper bound (start at the newest).
     int category = -1;        // -1 = no filter; else an announcement_alert_type value (0..36)
     int section = -1;         // -1 = no filter; else a taxonomy::Section id (0..6)
     int max_reports = 200;    // cap on matching LEAD entries (continuation tails are free)
-    int scan_budget = 20000;  // hard cap on entries EXAMINED, so one request can never stall the
-                              // render thread on a 100k-report fort (B221: nothing slow under the
-                              // core lock). Exhausting it sets budget_exhausted, not an error.
-    bool want_counts = false; // one extra O(N) classification pass; the client asks for it once,
-                              // on open, not on every 2s poll.
+    int scan_budget = 20000;  // cap on entries EXAMINED, so one request cannot stall the render
+                              // thread on a huge log; exhausting it is not an error
+    bool want_counts = false; // one extra O(N) classification pass
 };
 
 struct ReportsPage {
     int32_t next_report_id = 0;  // pass back as `since` to follow the tail, regardless of filter
-    int32_t next_before_id = -1; // pass back as `before` to fetch the next OLDER page
+    int32_t next_before_id = -1; // resume cursor: the oldest id EXAMINED, not the oldest MATCHED,
+                                 // so a filter that matched nothing still advances
     ReportsQuery query;
     bool truncated = false;         // hit max_reports -- there are more matches in this direction
     bool budget_exhausted = false;  // hit scan_budget -- resume from next_before_id
@@ -106,20 +89,14 @@ bool reports_on_render_thread(const ReportsQuery& query, ReportsPage& page,
                               std::string* err = nullptr);
 std::string reports_json(const std::string& player, const ReportsPage& page);
 
-// Resolves a `section` query param that may be a taxonomy section key ("combat", "sieges", ...)
-// or its numeric id. Returns -1 (no filter) when absent, "all", or unrecognised.
+// section key or numeric id; -1 (no filter) when absent, "all", or unrecognised
 int resolve_section_param(const httplib::Request& req);
 
-// Resolves a `category` query param that may be either a numeric announcement_alert_type
-// value or its enum key name (case-insensitive, e.g. "combat", "COMBAT"). Returns -1
-// (no filter) when the request has no `category` param or it doesn't match anything.
+// numeric announcement_alert_type or its enum key name (case-insensitive); -1 = no filter
 int resolve_category_param(const httplib::Request& req);
 
-// --- Per-unit combat log (COMBAT-LOG DEPTH) --------------------------------------------------
-// A ReportEntry tagged with which of a unit's report logs it came from. `unit.reports.log` is a
-// static-array indexed by unit_report_type {Combat=0, Sparring=1, Hunting=2}; the vector holds
-// LEAD report ids only (continuation-line reports are the next consecutive ids, flagged
-// continuation, and are attached by the collector so multi-line messages arrive whole).
+// --- Per-unit combat log -- `unit.reports.log[type]` holds LEAD report ids only ----------------
+// Continuation lines are the next consecutive ids; the collector attaches them to their lead.
 struct UnitReportEntry {
     ReportEntry report;
     int log_type = -1;      // unit_report_type value (0 Combat / 1 Sparring / 2 Hunting)

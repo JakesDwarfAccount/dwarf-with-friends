@@ -52,29 +52,8 @@ private:
     std::unordered_map<int32_t, df::activity_event*> events_by_unit_;
 };
 
-// B279. DF separates ordinary JOBS (`unit->job.current_job`, a df::job -- mine, haul, brew) from
-// ACTIVITIES (df::activity_entry + its df::activity_event subclasses -- worship, prayer, socialize,
-// play, performance, conversation, sparring, drills, reading, research). Reading only the job
-// vector makes every activity read as idle, which is what B279 was.
-//
-// Activities hang off four purpose-specific unit vectors (df.unit.xml:2686-2689, DF original names
-// in parens):
-//   individual_drills  (personal_activity_id)  -- military drills, service orders
-//   social_activities  (shared_activity_id)    -- worship/prayer/socialize/play/perform/read/...
-//   conversations      (conv_activity_id)
-//   activities         (conflict_activity_id)  -- despite the generic DFHack name, this is CONFLICT
-// `ignored_activities` (ignore_activity_id) is deliberately omitted: DF's own name says it is not
-// current work.
-//
-// An entry holds a parent event plus newer subevents. DFHack's Units::getMainSocialEvent() defines
-// the current social event as the last event of the last social activity (Units.cpp:2017); we use
-// the same last/last rule on the three other unit-owned channels, and DFHack's own helper for the
-// social one rather than reimplementing it.
-//
-// PRECEDENT: DFHack's manipulator plugin establishes current_job before a social activity
-// (plugins/manipulator.cpp:1293-1305). No DFHack/native source available to us establishes an
-// overlap order among the four unit-side vectors, so preserve B292's existing order here instead
-// of silently inventing one. The world index is strictly a fallback after all four cheap channels.
+// Last/last fallback for the three non-social channels (individual_drills, conversations,
+// activities). The social channel must use social_activity_event() instead.
 inline df::activity_event* last_unit_activity_event(const std::vector<int32_t>& activity_ids) {
     for (auto id = activity_ids.rbegin(); id != activity_ids.rend(); ++id) {
         auto activity = df::activity_entry::find(*id);
@@ -86,12 +65,53 @@ inline df::activity_event* last_unit_activity_event(const std::vector<int32_t>& 
     return nullptr;
 }
 
+// True when `unit_id` appears in this event's own participant list. Defined in
+// unit_activity.cpp, where the per-event-type participant extraction already lives.
+bool event_has_participant(df::activity_event* event, int32_t unit_id);
+
+// LEDGER 0063 R1 + R2. DF's own social-activity resolver, reproduced.
+//
+// Plain English: a dwarf can be attending several social things at once, and each of those things
+// has a list of events -- the main one plus any sub-events that spun off it. DF describes the
+// dwarf using the FIRST thing he joined, and within it the NEWEST event he is actually named in.
+// We used to ask DFHack, which gave us the LAST thing he joined and its newest event whether or
+// not he was named in it -- so a dwarf could be described by a conversation happening next to him.
+//
+// NOT reproduced here: R3's abort test (native additionally rejects a candidate whose
+// `checkDrillInvalid` virtual reports a reason -- a demolished library, a removed archery target).
+// Native's implementations of that virtual DISMISS the event as a side effect, so it cannot be
+// called from a read-only serialization path like this one without mutating the world during a
+// GET. We approximate it by skipping events DF's own simulation has already dismissed, which
+// means a stale label can survive until DF next runs the test itself.
+inline df::activity_event* social_activity_event(df::unit* unit) {
+    if (!unit)
+        return nullptr;
+    // forward over the activities -- the EARLIEST the unit joined wins.
+    for (int32_t activity_id : unit->social_activities) {
+        auto* activity = df::activity_entry::find(activity_id);
+        if (!activity)
+            continue;
+        // backward over the events -- the NEWEST acceptable event of that activity wins.
+        for (size_t i = activity->events.size(); i-- > 0;) {
+            auto* event = activity->events[i];
+            if (!event || event->flags.bits.dismissed)
+                continue;
+            // index 0 is the parent event and is accepted without the membership test; every
+            // subevent must name this unit among its own participants.
+            if (i > 0 && !event_has_participant(event, unit->id))
+                continue;
+            return event;
+        }
+    }
+    return nullptr;
+}
+
 inline df::activity_event* unit_current_activity_event(df::unit* unit) {
     if (!unit)
         return nullptr;
 
-    // Use DFHack's canonical helper for the common path instead of reimplementing it.
-    if (auto event = DFHack::Units::getMainSocialEvent(unit))
+    // DF's own resolver, not DFHack's last/last helper.
+    if (auto event = social_activity_event(unit))
         return event;
     if (auto event = last_unit_activity_event(unit->individual_drills))
         return event;
@@ -105,15 +125,31 @@ inline bool is_idle_task_placeholder(const std::string& name) {
            name == "No activity" || name == "No Activity";
 }
 
-// DFHack's Job::getName invokes DF's interface_button_building_new_jobst::text vmethod with the
-// complete live job record, so it can interpolate material, item, reaction, and art-spec details.
-// The enum caption is DF structures' native generic label and is only a safety net. Three current
-// enum captions are themselves idle placeholders (DrinkBlood, HeistItem, AcceptHeistItem), and ten
-// reserved values have no caption; for those impossible/legacy fallbacks, use DF structures' exact
-// generated enum key. No browser-authored wording enters this path.
+// Empty when the sub-code carries no refinement; the caller then keeps DF's own generic wording.
+inline std::string surgery_stage_label(df::job_subtype_surgery stage) {
+    switch (stage) {
+    case df::job_subtype_surgery::StopBleeding:
+        return "Surgery: halt bleeding";
+    case df::job_subtype_surgery::RepairCompoundFracture:
+        return "Surgery: repair compound fracture";
+    case df::job_subtype_surgery::RemoveRottenTissue:
+        return "Surgery: remove decayed tissue";
+    default:
+        return {};
+    }
+}
+
+// DF owns every word of a job label here, except the surgery sub-stage above -- the one wording
+// DWF paraphrases, because DFHack's job-name path cannot carry the sub-code.
 inline std::string native_job_name(df::job* job) {
     if (!job)
         return {};
+
+    if (job->job_type == df::job_type::Surgery) {
+        std::string stage = surgery_stage_label(job->job_subtype);
+        if (!stage.empty())
+            return stage;
+    }
 
     std::string name = DFHack::Job::getName(job);
     if (!is_idle_task_placeholder(name))
@@ -126,9 +162,8 @@ inline std::string native_job_name(df::job* job) {
     return ENUM_KEY_STR(job_type, job->job_type);
 }
 
-// B296 round 3. Native's Residents list colors the current-task label by what produced it, not by
-// the final wording. Keep that provenance beside the name so callers never have to reverse it from
-// strings such as "Eat", "Pray to ...", or a participant-specific demonstration label.
+// What PRODUCED the current-task label, carried beside it so no caller has to re-derive it by
+// pattern-matching the wording.
 enum class UnitTaskColorBucket : uint8_t {
     None,
     Job,
@@ -142,22 +177,8 @@ struct UnitCurrentTask {
     UnitTaskColorBucket color_bucket = UnitTaskColorBucket::None;
 };
 
-// RESIDENTS-NATIVE-20260715.png directly confirms three event mappings:
-//   CONFIRMED  SkillDemonstration -> Training (Watch/Lead Dodging Demonstration)
-//   CONFIRMED  Socialize          -> Social
-//   CONFIRMED  Worship            -> Need
-// It also confirms ordinary df::job labels -> Job. The remaining event mappings have no captured
-// native row yet. They are deliberately explicit so a new oracle can correct one source without
-// touching label composition:
-//   INFERRED TrainingSession, CombatTraining, IndividualSkillDrill, Sparring, RangedPractice
-//            -> Training (the same military-training family as SkillDemonstration)
-//   INFERRED Prayer -> Need (the same devotional/need activity family as Worship)
-//   INFERRED Harassment, Conversation, Conflict, Reunion, Performance, DiscussTopic, TeachTopic,
-//            Read, Play, MakeBelieve, PlayWithToy, Encounter -> Social (interpersonal, recreation,
-//            or voluntary reading; DFHack treats Read as a need-backed social activity)
-//   INFERRED Guard, Research, PonderTopic, FillServiceOrder, Write, CopyWrittenContent, StoreObject
-//            -> Job (duty, formal study, occupation, writing, or object-work activity)
-// NONE is a sentinel rather than a live event and remains uncolored.
+// Only SkillDemonstration, Socialize and Worship are confirmed against a native capture; every
+// other mapping below is inferred from its activity family.
 inline UnitTaskColorBucket activity_task_color_bucket(df::activity_event_type type) {
     switch (type) {
     case df::activity_event_type::TrainingSession:
@@ -211,21 +232,32 @@ inline UnitTaskColorBucket activity_task_color_bucket(df::activity_event_type ty
 // "/Resting" suffix, and the trailing '!' -- and it does so per-unit, which is why the vmethod takes
 // a unit id.
 //
-// The '!' (the `Worship!` oracle): DF appends it itself; we neither add nor strip it. Best evidence
-// for its meaning is DFHack's reverse-engineering of `unitst::have_unbailable_sp_activities`
-// (Units::hasUnbailableSocialActivity, Units.cpp:2046-2087): a social activity is "unbailable" --
-// the unit will NOT abandon it to take a job -- when the driving need's focus penalty is <= -10000.
-// So `Worship!` reads as "worshipping, and too need-starved to be pulled off it", vs plain `Worship`
-// which a job would interrupt. INFERENCE, not proof: get_idle_string is closed DF code and the '!'
-// is appended as a char, not a string literal (it is absent from DF's idle-string literal block at
-// Dwarf Fortress.exe 0x15ddba0-0x15de2f0). Since we call DF, correctness does not depend on it.
+// The '!' (the `Worship!` oracle). CORRECTED by LEDGER 0063 R5. This block used to claim DF's
+// naming virtual appends the marker itself and that we therefore neither add nor strip it. That is
+// wrong: the marker is appended by DF's current-task COMPOSER, outside the naming virtual, gated
+// on the unbailable-social-activity predicate. Because we call the naming virtual directly, our
+// label can never carry it.
+//
+// We deliberately do NOT append it here, for two reasons, and this is a considered omission rather
+// than an oversight:
+//   1. Ledger 0063 grades the marker CHARACTER itself as MEDIUM confidence -- it is read from a
+//      rodata byte the sweep did not resolve -- so appending a literal would be guessing at a word.
+//      Everywhere else in this file, DF owns every character we print.
+//   2. The same fact is already served losslessly as its own field: info_panel.cpp sets
+//      `job_need_driven` from Units::hasUnbailableSocialActivity, and info_panel.h states outright
+//      that it is real DF state rather than punctuation parsed out of a string. A client that wants
+//      to mark these units has the data without us inventing typography.
+// DFHack's helper is also a loose fit: it returns true for ANY unit in more than one social
+// activity and for any activity type it does not special-case, so it over-reports.
 inline UnitCurrentTask unit_current_task(df::unit* unit,
                                          const WorldActivityIndex* world_activities = nullptr) {
     if (!unit)
         return {};
+    // The social channel is resolved first and regardless of the job.
+    df::activity_event* social_event = social_activity_event(unit);
     df::activity_event* unit_event = nullptr;
     df::activity_event* world_event = nullptr;
-    if (!unit->job.current_job) {
+    if (!social_event && !unit->job.current_job) {
         unit_event = unit_current_activity_event(unit);
         if (!unit_event && world_activities)
             world_event = world_activities->find(unit->id);
@@ -238,11 +270,15 @@ inline UnitCurrentTask unit_current_task(df::unit* unit,
         return ENUM_KEY_STR(activity_event_type, event->getType());
     };
     std::string name = activity_detail::resolve_current_task(
+        social_event,
         unit->job.current_job,
         unit_event,
         world_event,
         native_job_name,
         event_name);
+    // colour bucket follows the SAME precedence as the label, or the two disagree on screen.
+    if (social_event)
+        return {std::move(name), activity_task_color_bucket(social_event->getType())};
     if (unit->job.current_job)
         return {std::move(name), UnitTaskColorBucket::Job};
     if (auto event = unit_event ? unit_event : world_event)

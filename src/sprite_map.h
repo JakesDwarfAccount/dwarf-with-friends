@@ -1,4 +1,4 @@
-// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+﻿// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
 // Copyright (C) 2026 Gabriel Rios
 // Copyright (C) 2026 Jake Taplin
 //
@@ -20,27 +20,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #pragma once
+#include "api_result.h"
+
 #include <string>
 
 namespace dwf {
 
-// Premium-sprite lookup for the browser tile renderer.
-//
-// Returns a cached JSON object mapping a tiletype/graphics TOKEN -> the sheet
-// PNG + cell it lives on:  {"<TOKEN>":{"sheet":"floors.png","col":1,"row":1}, ...}
-//
-// Built once (magic-static, thread-safe) by parsing DF's OWN graphics raws,
-// relative to the plugin CWD (the DF root):
-//   data/vanilla/vanilla_environment/graphics/{tile_page_*.txt, graphics_*.txt}
-//   data/vanilla/vanilla_plants_graphics/graphics/{tile_page_*.txt, graphics_*.txt}
-// tile_page_*.txt supplies each TILE_PAGE's FILE (png) + dims; graphics_*.txt
-// supplies the [TILE_GRAPHICS:PAGE:col:row:TOKEN] cell bindings.
-//
-// Keys are the graphics-file TOKEN as-is (e.g. "STONE_FLOOR_5", "BOULDER").
-// Where a token's PascalCase form is a valid df::tiletype ENUM KEY (matching the
-// client's wire "ttname"), an extra alias entry under that enum key is emitted
-// too, so ttname lookups resolve directly. Tokens whose TILE_PAGE has no known
-// FILE are skipped. Missing files -> "{}" (never throws / crashes).
-const std::string& sprite_map_json();
+// Cached TOKEN -> {"sheet","col","row"} JSON, parsed once from DF's own graphics raws. A parse
+// that throws returns a FAILED ApiResult, never "{}" -- no raws and a broken parser must differ.
+const ApiResult<std::string>& sprite_map_json();
 
 } // namespace dwf

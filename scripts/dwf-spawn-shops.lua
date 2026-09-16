@@ -1,13 +1,12 @@
 -- dwf-spawn-shops: spawn one fully-built example of every workshop (and furnace) type,
 -- so their NATIVE task menus can be screenshotted.
 --
--- WHY THIS EXISTS (B255, 2026-07-14): Dwarf Fortress does NOT store per-workshop job lists
--- in the raws or in any readable table -- they are compiled into the DF binary. The ONLY
--- machine-readable oracle is `main_interface.building.button`, which DF populates *only while
--- that shop's task menu is open in the native UI*. So every workshop job list we ship is a
--- curated guess unless it has been pinned to a native capture. B255 proved that: the bowyer
--- was offering bolts it cannot make, and the craftsdwarf was missing bolts, cups, and its
--- entire tool block. B257-B261 are the same disease in five more shops.
+-- WHY THIS EXISTS: Dwarf Fortress does NOT store per-workshop job lists in the raws or in any
+-- readable table -- they are compiled into the DF binary. The ONLY machine-readable oracle is
+-- `main_interface.building.button`, which DF populates *only while that shop's task menu is open
+-- in the native UI*. So every workshop job list we ship is a curated guess unless it has been
+-- pinned to a native capture, and the guesses fail in both directions: rows the shop cannot
+-- actually make, and rows it makes that we never offer.
 --
 -- Usage, from the DFHack console with a fort loaded:
 --     dwf-spawn-shops              -- spawn the shops that still need captures
@@ -56,9 +55,8 @@ local EXTRA = {
 }
 
 -- Buildings spawned by this script are named "DWF <n>: <shop>" -- the PREFIX is what `clear`
--- matches on, and the rest is there so the shop is identifiable on screen. (First version named
--- every building the bare marker, which overwrote the shop names and made the whole grid
--- anonymous. The owner, correctly: "idk what the workshops are lol".)
+-- matches on, and the rest is there so the shop is identifiable on screen. Naming a building the
+-- bare marker overwrites its shop name and leaves the whole spawned grid anonymous.
 local MARKER = "DWF "
 
 local function is_open_floor(x, y, z)

@@ -21,6 +21,7 @@
 
 #include "tile_dump.h"
 #include "camera.h"
+#include "common_util.h"
 #include "diagnostics.h"
 #include "frame.h"
 #include "image_encoder.h"
@@ -33,7 +34,7 @@
 #include "df/global_objects.h"
 #include "df/world.h"
 
-#include <SDL_surface.h>   // SDL2_INCLUDE_DIRS added in CMakeLists (Step 1)
+#include <SDL_surface.h>   // needs SDL2_INCLUDE_DIRS from CMakeLists
 
 #include <chrono>
 #include <cstdint>
@@ -59,29 +60,12 @@ namespace {
 int dwf_seh_filter_local(struct _EXCEPTION_POINTERS*) { return EXCEPTION_EXECUTE_HANDLER; }
 #endif
 
-void mkdirs(const std::string& p) {
-#ifdef _WIN32
-    std::string cur;
-    for (char c : p) {
-        cur.push_back(c);
-        if (c == '/' || c == '\\') _mkdir(cur.c_str());
-    }
-    _mkdir(p.c_str());
-#endif
-}
-
 void put_u32(std::vector<uint8_t>& b, uint32_t v) {
     b.push_back(v & 0xff); b.push_back((v >> 8) & 0xff);
     b.push_back((v >> 16) & 0xff); b.push_back((v >> 24) & 0xff);
 }
 void put_i32(std::vector<uint8_t>& b, int32_t v) { put_u32(b, (uint32_t)v); }
 
-// Object-owning worker for dump_atlas. Kept separate from the SEH wrapper because MSVC
-// forbids __try in a function that owns C++ objects requiring unwinding (C2712).
-// NOTE: the dwf plugin does not link SDL at build time; it reaches SDL through
-// DFHack's DFSDL wrapper module (modules/DFSDL.h). So we normalise via
-// DFSDL_AllocFormat + DFSDL_ConvertSurface + DFSDL_FreeSurface rather than the direct
-// SDL_ConvertSurfaceFormat (which would be an unresolved external at link).
 bool dump_atlas_impl(const std::string& atlas_dir, std::string* err) {
     auto en = df::global::enabler;
     if (!en) { if (err) *err = "no enabler"; return false; }
@@ -94,8 +78,7 @@ bool dump_atlas_impl(const std::string& atlas_dir, std::string* err) {
     for (size_t i = 0; i < raws.size(); ++i) {
         SDL_Surface* s = reinterpret_cast<SDL_Surface*>(raws[i]);
         if (!s || !s->pixels || s->w <= 0 || s->h <= 0) continue;   // null slots -> skip
-        // Normalise to RGBA8888 (byte order R,G,B,A on little-endian) so the offline/JS
-        // side never needs per-surface format math.
+        // Normalise to RGBA8888 so the offline/JS side never needs per-surface format math.
         SDL_Surface* conv = fmt ? DFHack::DFSDL::DFSDL_ConvertSurface(s, fmt, 0) : nullptr;
         SDL_Surface* use = conv ? conv : s;
         std::string path = atlas_dir + "/tex_" + std::to_string(i) + ".rgba";
@@ -118,7 +101,7 @@ bool dump_atlas_impl(const std::string& atlas_dir, std::string* err) {
     return true;
 }
 
-// Runs on the render thread. SEH wrapper only (no unwindable locals) around dump_atlas_impl.
+// SEH wrapper only -- MSVC forbids __try in a function that owns unwindable objects (C2712).
 bool dump_atlas(const std::string& atlas_dir, std::string* err) {
     bool ok = false;
 #ifdef _WIN32
@@ -134,9 +117,6 @@ bool dump_atlas(const std::string& atlas_dir, std::string* err) {
     return ok;
 }
 
-// Marshals dump_atlas onto the render thread. The atlas (enabler->textures.raws) is the
-// persistent tileset table and does NOT depend on the viewport render, so this runs as its
-// own hop, independent of (and unconditionally after) the frame/layer capture.
 bool dump_atlas_rt(const std::string& atlas_dir, std::string* err) {
     auto prom = std::make_shared<std::promise<bool>>();
     auto fut = prom->get_future();
@@ -144,8 +124,7 @@ bool dump_atlas_rt(const std::string& atlas_dir, std::string* err) {
     DFHack::runOnRenderThread([&, prom]() {
         prom->set_value(dump_atlas(atlas_dir, &local_err));
     });
-    // The atlas is ~129k surfaces (~500MB of .rgba files); the render thread is busy for the
-    // whole write. 10s was a spurious-timeout trap -- allow the full one-time export.
+    // the render thread is busy for the whole atlas write -- a short timeout is a false failure
     if (fut.wait_for(std::chrono::seconds(300)) != std::future_status::ready) {
         if (err) *err = "atlas dump timed out on render thread";
         return false;
@@ -168,20 +147,14 @@ bool dump_tile_frame_ex(const std::string& out_dir, const TileDumpOptions& opt, 
 
     Camera cam;
     if (opt.have_camera) {
-        // Explicit camera (calibration sweep / per-player-viewport probe). Seed the rest of
-        // the struct from the host camera so zoom/placement fields stay defaults (no
-        // ViewportZoomGuard activation), then override the position.
+        // seed from the host camera so zoom/placement fields keep their defaults (no
+        // ViewportZoomGuard activation), then override only the position
         if (!read_host_camera(cam, err)) return false;
         cam.x = opt.x; cam.y = opt.y; cam.z = opt.z;
     } else {
         if (!read_host_camera(cam, err)) return false;
     }
 
-    // ONE guarded render-thread capture: same-tick ground-truth frame + VALID layer arrays.
-    // capture_frame_with_tile_layers reuses the live stream's capture_shifted path (live-fort
-    // gate + window setup + ViewportZoomGuard + render_map_for_current_window) and copies the
-    // 26 layer arrays only AFTER the map has been rendered -- never cold. This is the fix for
-    // the SIGSEGV that the previous cold read produced.
     diagnostics_log("tiledump: camera ok (" + std::to_string(cam.x) + "," +
                     std::to_string(cam.y) + "," + std::to_string(cam.z) + "); capturing");
     auto t0 = std::chrono::steady_clock::now();
@@ -211,8 +184,7 @@ bool dump_tile_frame_ex(const std::string& out_dir, const TileDumpOptions& opt, 
     { std::ofstream f(out_dir + "/frame.bin", std::ios::binary);
       f.write(reinterpret_cast<const char*>(out.data()), (std::streamsize)out.size()); }
 
-    // meta.json sidecar: the camera the dump was rendered for (frame.bin's origin fields are
-    // viewport clip values, NOT world coords), plus dims/tick/timing for sweep indexing.
+    // meta.json sidecar: frame.bin's origin fields are viewport CLIP values, not world coords
     {
         int32_t tick = -1;
         if (auto world = df::global::world) tick = world->frame_counter;
@@ -226,8 +198,6 @@ bool dump_tile_frame_ex(const std::string& out_dir, const TileDumpOptions& opt, 
     }
 
     if (opt.with_atlas) {
-        // Atlas: separate render-thread hop, run unconditionally (independent of the frame
-        // capture, so a frame issue can never suppress it -- the failure mode seen in run 1).
         diagnostics_log("tiledump: atlas dump starting (render thread will be busy)");
         std::string atlas_err;
         if (!dump_atlas_rt(out_dir + "/atlas", &atlas_err)) {
@@ -239,11 +209,6 @@ bool dump_tile_frame_ex(const std::string& out_dir, const TileDumpOptions& opt, 
     }
     diagnostics_log("tiledump: DONE " + out_dir);
     return true;
-}
-
-bool dump_tile_frame(const std::string& out_dir, std::string* err) {
-    TileDumpOptions opt;   // defaults: host camera + atlas + ground truth
-    return dump_tile_frame_ex(out_dir, opt, err);
 }
 
 } // namespace dwf

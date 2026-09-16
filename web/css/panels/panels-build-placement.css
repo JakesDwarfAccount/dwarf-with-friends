@@ -1,0 +1,370 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.build-placement {
+  .build-window.build-mode-materials {
+    height: 100%;
+    align-items: stretch;
+  }
+  .build-mode-materials .build-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+  }
+  .build-window {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 1fr;
+    align-items: end;
+  }
+  .build-body {
+    min-height: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .build-mode-placement .build-body,
+  .build-mode-materials .build-body {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    pointer-events: auto;
+  }
+  .build-block {
+    pointer-events: auto;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    height: calc(var(--build-grid-rows, 1) * 3 * var(--build-cell-h));
+    /* min() with 100% is a HARD FLOOR: if the negotiated cell count is ever wrong the block must clip
+     at the host edge rather than run off the screen. */
+    max-width: min(
+      calc(var(--build-block-cells) * var(--build-cell-w)),
+      100%,
+      calc(100vw - 2 * max(6px, var(--panel-dock-left, 6px)))
+    );
+    overflow: hidden;
+  }
+  .build-sep {
+    flex: 0 0 var(--build-cell-w);
+    width: var(--build-cell-w);
+    background: var(--dwfui-buildmenu-separator);
+  }
+  .build-page {
+    flex: 0 0 auto;
+    display: block;
+    width: calc(var(--build-page-cells) * var(--build-cell-w));
+    height: 100%;
+  }
+  .build-page-cols {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(var(--build-grid-rows), calc(3 * var(--build-cell-h)));
+    grid-auto-columns: calc(var(--build-col-cells) * var(--build-cell-w));
+    align-content: start;
+    height: 100%;
+  }
+  .build-btn {
+    display: grid;
+    /* five cells of icon gutter + the caption; the 6th cell of R3's padding is the trailing one. */
+    grid-template-columns: calc(5 * var(--build-cell-w)) minmax(0, 1fr);
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    height: calc(3 * var(--build-cell-h));
+    min-height: calc(3 * var(--build-cell-h));
+    max-height: calc(3 * var(--build-cell-h));
+    padding: 0 var(--build-cell-w) 0 0;
+    margin: 0;
+    cursor: pointer;
+    text-align: left;
+    box-sizing: border-box;
+    font:
+      700 calc(11px * var(--dwfui-interface-scale, 1)) ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .build-page:not(.active-page) .build-btn {
+    color: var(--df-c7);
+    background: var(--dwfui-field-dark);
+  }
+  .build-page.active-page .build-btn {
+    color: var(--df-c15);
+    background: var(--dwfui-surface);
+  }
+  .build-page:not(.active-page) .build-btn--page {
+    color: var(--df-c3);
+  }
+  .build-page.active-page .build-btn--page,
+  .build-page:not(.active-page) .build-btn--page.active {
+    color: var(--df-c11);
+  }
+  .build-btn-ico {
+    justify-self: center;
+  }
+  .build-btn-copy {
+    min-width: 0;
+    display: block;
+  }
+  .build-btn-label {
+    min-width: 0;
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .build-page.icons-only .build-btn-copy {
+    display: none;
+  }
+  .build-cat,
+  .build-item,
+  .build-dir,
+  .build-toggle {
+    cursor: pointer;
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .build-placement {
+    --build-cell-w: calc(8px * var(--dwfui-interface-scale, 1));
+    --build-cell-h: calc(12px * var(--dwfui-interface-scale, 1));
+    width: calc(56 * var(--build-cell-w));
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: var(--build-cell-h) 0;
+  }
+  .build-notice {
+    display: grid;
+    gap: 0;
+    margin-bottom: calc(1 * var(--build-cell-h));
+    padding: 0 calc(2 * var(--build-cell-w));
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .build-notice-line {
+    line-height: var(--build-cell-h);
+    min-height: var(--build-cell-h);
+    overflow: hidden;
+  }
+  .build-notice-line.error {
+    color: var(--dwfui-text-danger);
+  }
+  .build-advisory {
+    margin-bottom: 6px;
+    padding: 0 calc(2 * var(--build-cell-w));
+  }
+  .build-advisory-line {
+    color: var(--dwfui-text-prose);
+    font-size: 11px;
+    line-height: calc(var(--build-cell-h) * 1);
+  }
+  .build-placement-msg {
+    color: var(--df-c15);
+    box-sizing: border-box;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: calc(3 * var(--build-cell-h));
+    min-height: calc(3 * var(--build-cell-h));
+    /* the capture's copy starts two cells inside the rule, same inset as the radios below it. */
+    padding: 0 calc(2 * var(--build-cell-w));
+  }
+  .build-placement-toggle {
+    display: grid;
+    gap: 0;
+    margin: 0 calc(2 * var(--build-cell-w));
+  }
+  .build-matmode {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    height: calc(3 * var(--build-cell-h));
+    padding: 0 calc(2 * var(--build-cell-w));
+    cursor: pointer;
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .build-keep-row .dwfui-check {
+    flex: 0 0 calc(4 * var(--build-cell-w));
+    width: calc(4 * var(--build-cell-w));
+    height: calc(2.8 * var(--build-cell-h));
+    box-sizing: border-box;
+  }
+  .build-keep-row {
+    display: flex;
+    align-items: center;
+    gap: calc(1 * var(--build-cell-w));
+    box-sizing: border-box;
+    height: calc(3 * var(--build-cell-h));
+    padding: 0 calc(2 * var(--build-cell-w));
+    color: var(--dwfui-text-row);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .build-picker {
+    --build-cell-w: calc(8px * var(--dwfui-interface-scale, 1));
+    --build-cell-h: calc(12px * var(--dwfui-interface-scale, 1));
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--build-cell-h) calc(2 * var(--build-cell-w));
+  }
+  .build-picker-head {
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+    margin-bottom: calc(1 * var(--build-cell-h));
+  }
+  .build-picker-line {
+    line-height: var(--build-cell-h);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  /* R13: a 3-row-tall field spanning the content width, with the magnifier abutting its right edge. */
+  .build-picker-search {
+    flex: 0 0 auto;
+    height: calc(3 * var(--build-cell-h));
+    margin-bottom: calc(1 * var(--build-cell-h));
+  }
+  .build-picker-filter {
+    min-width: 0;
+    box-sizing: border-box;
+    height: calc(3 * var(--build-cell-h));
+    padding: 0 calc(1 * var(--build-cell-w));
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  /* The placeholder is a DIM literal `...` -- native's own unfocused-and-empty state (R13). */
+  .build-picker-filter::placeholder {
+    opacity: 1;
+  }
+  .build-picker-rows {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .build-picker-empty {
+    font-size: 11px;
+    padding: calc(1 * var(--build-cell-h)) 0;
+  }
+  .build-pick {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(3 * var(--build-cell-h));
+    min-height: calc(3 * var(--build-cell-h));
+    padding: 0 calc(2 * var(--build-cell-w));
+    margin: 0;
+    text-align: left;
+    cursor: pointer;
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  /* R7: the name is WHITE, on every row, in every state. */
+  .build-pick-text {
+    min-width: 0;
+    display: block;
+  }
+  .build-pick-name {
+    min-width: 0;
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  /* R9: SiegeEngine's direction control is EIGHT buttons in a SINGLE ROW, four columns each. */
+  .build-dir-8way {
+    display: grid;
+    grid-template-columns: repeat(8, calc(4 * 8px));
+    gap: 0;
+    flex-wrap: nowrap;
+  }
+  .build-section-title {
+    color: var(--dwfui-text-heading);
+    font-weight: 700;
+    font-size: 11px;
+    margin: 10px 0 4px;
+  }
+  .build-dir-row,
+  .build-toggle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .build-dir,
+  .build-toggle {
+    min-height: 26px;
+    padding: 4px 6px;
+  }
+  .build-num-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .build-num-label {
+    display: grid;
+    gap: 3px;
+    color: var(--dwfui-text-secondary);
+    font-size: 10px;
+  }
+  .build-num {
+    min-width: 0;
+    height: 26px;
+    box-sizing: border-box;
+    padding: 2px 5px;
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .build-status {
+    min-width: 0;
+    color: var(--dwfui-text-active);
+    font-size: 11px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .build-status.error {
+    color: var(--dwfui-text-danger);
+  }
+}

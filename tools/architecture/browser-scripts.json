@@ -4,89 +4,129 @@
   "scripts": [
     {
       "order": 0,
+      "file": "web/js/dwf-auth-gate.js",
+      "cacheKey": "v=547e81e8",
+      "provides": [
+        "DwfAuthGate"
+      ],
+      "uses": []
+    },
+    {
+      "order": 1,
+      "file": "web/js/dwf-util.js",
+      "cacheKey": "v=064fc876",
+      "provides": [
+        "DwfErr",
+        "DwfUtil"
+      ],
+      "uses": []
+    },
+    {
+      "order": 2,
+      "file": "web/js/dwf-boot-health.js",
+      "cacheKey": "v=04eba8bf",
+      "provides": [
+        "DwfBoot"
+      ],
+      "uses": []
+    },
+    {
+      "order": 3,
+      "file": "web/js/dwf-grid.js",
+      "cacheKey": "v=ac8038c4",
+      "provides": [
+        "DwfGrid"
+      ],
+      "uses": []
+    },
+    {
+      "order": 4,
       "file": "web/js/dwf-bitmap-text.js",
-      "cacheKey": "v=1.1.2-gatec-n0715d-dwfui1",
+      "cacheKey": "v=f5698167",
       "provides": [
         "DFBitmapText"
       ],
       "uses": []
     },
     {
-      "order": 1,
+      "order": 5,
       "file": "web/js/dwf-df-markup.js",
-      "cacheKey": "v=1.0.0-textcolor-n0715d",
+      "cacheKey": "v=88e23acc",
       "provides": [
         "DwfDfMarkup"
       ],
-      "uses": []
+      "uses": [
+        "DWFUI"
+      ]
     },
     {
-      "order": 2,
+      "order": 6,
       "file": "web/js/dwf-ui-components.js",
-      "cacheKey": "v=2.6.0-b252-b254-b276-temple-honesty-n0715d-p0716v1-dwfui1",
+      "cacheKey": "v=bda8eb5e",
       "provides": [
         "DWFUI"
       ],
       "uses": [
-        "DFChrome",
-        "DwfTiles"
+        "DwfBoot"
       ]
     },
     {
-      "order": 3,
+      "order": 7,
       "file": "web/js/dwf-write-guards.js",
-      "cacheKey": "v=1.0.0-w23-n0715d-zdel3-pos0",
+      "cacheKey": "v=bd7e89a6",
       "provides": [
         "DFWriteGuards"
       ],
       "uses": []
     },
     {
-      "order": 4,
+      "order": 8,
       "file": "web/js/dwf-interface-shell.js",
-      "cacheKey": "v=1.0.0-dfcui-n0715d-dwfui1",
+      "cacheKey": "v=2acb386e",
       "provides": [
         "DwfInterfaceShell"
       ],
       "uses": []
     },
     {
-      "order": 5,
+      "order": 9,
       "file": "web/js/dwf-wire-v1.js",
-      "cacheKey": "v=1.1.1-automine",
+      "cacheKey": "v=257983aa",
       "provides": [
         "DwfWireV1"
       ],
       "uses": []
     },
     {
-      "order": 6,
+      "order": 10,
       "file": "web/js/dwf-cache-worker.js",
-      "cacheKey": "v=1.0.10-automine",
+      "cacheKey": "v=a0de8d22",
       "provides": [],
       "uses": []
     },
     {
-      "order": 7,
+      "order": 11,
       "file": "web/js/dwf-cache.js",
-      "cacheKey": "v=2.3.1-automine",
+      "cacheKey": "v=501486f7",
       "provides": [
         "DwfCache"
       ],
       "uses": [
+        "DwfBoot",
         "DwfWS"
       ]
     },
     {
-      "order": 8,
+      "order": 12,
       "file": "web/js/dwf-ws.js",
-      "cacheKey": "v=2.0.7-stabilization-n0719",
+      "cacheKey": "v=f311b606",
       "provides": [
         "DwfSessionInfo",
         "DwfWS"
       ],
       "uses": [
         "DFBurrowSync",
+        "DWFUI",
         "DwfAuth",
         "DwfCache",
         "DwfChat",
@@ -95,42 +135,114 @@
         "DwfJoin",
         "DwfPause",
         "DwfPopup",
-        "DwfVote",
         "DwfWireV1"
       ]
     },
     {
-      "order": 9,
+      "order": 13,
+      "file": "web/js/dwf-gem-variant.js",
+      "cacheKey": "v=e330f1ef",
+      "provides": [
+        "DwfGemVariant"
+      ],
+      "uses": []
+    },
+    {
+      "order": 14,
       "file": "web/js/dwf-adjacency.js",
-      "cacheKey": "v=1.0.1-b36wall.r26.fx-n0715d",
+      "cacheKey": "v=3228e9ef",
       "provides": [
         "DwfAdjacency"
       ],
       "uses": []
     },
     {
-      "order": 10,
+      "order": 15,
+      "file": "web/js/dwf-terrain-variant.js",
+      "cacheKey": "v=85657f61",
+      "provides": [
+        "DwfTerrainVariant"
+      ],
+      "uses": []
+    },
+    {
+      "order": 16,
+      "file": "web/js/dwf-grass-selection.js",
+      "cacheKey": "v=42a14a35",
+      "provides": [
+        "DwfGrassSelection"
+      ],
+      "uses": []
+    },
+    {
+      "order": 17,
+      "file": "web/js/dwf-edge-overgrowth.js",
+      "cacheKey": "v=17c98e04",
+      "provides": [
+        "DwfEdgeOvergrowth"
+      ],
+      "uses": []
+    },
+    {
+      "order": 18,
       "file": "web/js/dwf-animclock.js",
-      "cacheKey": "v=1.0.0-b206-n0715d",
+      "cacheKey": "v=7eb6717d",
       "provides": [
         "DFAnimClock"
       ],
       "uses": []
     },
     {
-      "order": 11,
+      "order": 19,
       "file": "web/js/dwf-farm-crops.js",
-      "cacheKey": "v=1.0.0-tx4.r26.fx-n0715d",
+      "cacheKey": "v=b2c67ded",
       "provides": [
         "DwfFarmCrops"
       ],
       "uses": []
     },
     {
-      "order": 12,
-      "file": "web/js/dwf-tiles.js",
-      "cacheKey": "v=8.4.3-automine-native",
+      "order": 20,
+      "file": "web/js/dwf-item-selection.js",
+      "cacheKey": "v=a2a2f9b6",
       "provides": [
+        "DwfItemSelection"
+      ],
+      "uses": []
+    },
+    {
+      "order": 21,
+      "file": "web/js/dwf-unit-status.js",
+      "cacheKey": "v=efad13f7",
+      "provides": [
+        "DwfUnitStatus"
+      ],
+      "uses": []
+    },
+    {
+      "order": 22,
+      "file": "web/js/dwf-construction-select.js",
+      "cacheKey": "v=6141ea8f",
+      "provides": [
+        "DwfConstructionSelect"
+      ],
+      "uses": []
+    },
+    {
+      "order": 23,
+      "file": "web/js/dwf-designation-job.js",
+      "cacheKey": "v=90b3b88b",
+      "provides": [
+        "DwfDesignationJob"
+      ],
+      "uses": []
+    },
+    {
+      "order": 24,
+      "file": "web/js/dwf-tiles.js",
+      "cacheKey": "v=3e4d8bd7",
+      "provides": [
+        "DwfJson",
         "DwfPresence",
         "DwfTiles"
       ],
@@ -138,249 +250,677 @@
         "DFAnimClock",
         "DwfAdjacency",
         "DwfCache",
+        "DwfConstructionSelect",
+        "DwfDesignationJob",
+        "DwfEdgeOvergrowth",
         "DwfFarmCrops",
+        "DwfGemVariant",
+        "DwfGrassSelection",
+        "DwfItemSelection",
         "DwfLobby",
+        "DwfOverlayBoxes",
+        "DwfPaintSession",
         "DwfRender",
+        "DwfTerrainVariant",
+        "DwfUnitStatus",
         "DwfWS"
       ]
     },
     {
-      "order": 13,
+      "order": 25,
       "file": "web/js/dwf-gl-atlas.js",
-      "cacheKey": "v=1.0.5-spritefresh.r26.fx-n0715d",
+      "cacheKey": "v=462dd0ce",
       "provides": [
         "DwfGLAtlas"
       ],
       "uses": []
     },
     {
-      "order": 14,
+      "order": 26,
       "file": "web/js/dwf-gl.js",
-      "cacheKey": "v=7.6.2-automine-native",
+      "cacheKey": "v=bbd8ef83",
       "provides": [
         "DwfGL"
       ],
       "uses": [
         "DFAnimClock",
-        "DwfCache"
+        "DwfConstructionSelect",
+        "DwfDesignationJob",
+        "DwfGemVariant",
+        "DwfOverlayBoxes",
+        "DwfPaintSession"
       ]
     },
     {
-      "order": 15,
+      "order": 27,
       "file": "web/js/dwf-render.js",
-      "cacheKey": "v=2.3.0-b211-n0715d",
+      "cacheKey": "v=85c889fd",
       "provides": [
         "DwfRender"
       ],
       "uses": [
         "DwfAdjacency",
+        "DwfBoot",
         "DwfCache",
         "DwfGL",
         "DwfGLAtlas",
-        "DwfTiles"
-      ]
-    },
-    {
-      "order": 16,
-      "file": "web/js/dwf-attribution.js",
-      "cacheKey": "v=1.0.1-wpcfix.r26.fx-n0715d",
-      "provides": [],
-      "uses": [
-        "DwfTiles"
-      ]
-    },
-    {
-      "order": 17,
-      "file": "web/js/dwf-core.js",
-      "cacheKey": "v=4.1.6-b232r2-b217r2-n0715d-p0716z1-p0716z2-dwfui1-plist2-wscam1-sprepaintctl1-scrub1",
-      "provides": [
-        "DFDesignationRangeWheel",
-        "DFTouchNav",
-        "DwfSpectate"
-      ],
-      "uses": [
-        "DFPanelFrame",
-        "DFWorld3D",
-        "DWFUI",
-        "DWFUIScale",
-        "DwfAuth",
-        "DwfJoin",
-        "DwfLobby",
-        "DwfPresence",
+        "DwfJson",
         "DwfTiles",
+        "DwfUtil",
         "DwfWS"
       ]
     },
     {
-      "order": 18,
+      "order": 28,
+      "file": "web/js/dwf-attribution.js",
+      "cacheKey": "v=618e6ffc",
+      "provides": [],
+      "uses": [
+        "DwfTiles",
+        "DwfUtil"
+      ]
+    },
+    {
+      "order": 29,
+      "file": "web/js/dwf-drag-preview.js",
+      "cacheKey": "v=4621a361",
+      "provides": [
+        "DwfDragPreview"
+      ],
+      "uses": [
+        "DFDragIntent"
+      ]
+    },
+    {
+      "order": 30,
+      "file": "web/js/dwf-paint-session.js",
+      "cacheKey": "v=06d53706",
+      "provides": [
+        "DwfPaintSession"
+      ],
+      "uses": []
+    },
+    {
+      "order": 31,
+      "file": "web/js/dwf-mode-stack.js",
+      "cacheKey": "v=a00ac5e4",
+      "provides": [
+        "DwfModeStack"
+      ],
+      "uses": []
+    },
+    {
+      "order": 32,
+      "file": "web/js/dwf-safety.js",
+      "cacheKey": "v=ae02c79d",
+      "provides": [
+        "DwfConfirmGate",
+        "DwfPaintModes"
+      ],
+      "uses": []
+    },
+    {
+      "order": 33,
+      "file": "web/js/dwf-gesture.js",
+      "cacheKey": "v=28f4302e",
+      "provides": [
+        "DwfGesture"
+      ],
+      "uses": []
+    },
+    {
+      "order": 34,
+      "file": "web/js/dwf-core.js",
+      "cacheKey": "v=34a54044",
+      "provides": [
+        "DFBackOut",
+        "DFDesignationRangeWheel",
+        "DFDragIntent",
+        "DFTouchNav",
+        "DwfCore",
+        "DwfCoreTransport",
+        "DwfOrder",
+        "DwfReportTransport",
+        "DwfSpectate"
+      ],
+      "uses": [
+        "DFChrome",
+        "DFGestureCameraMoved",
+        "DFLeverLink",
+        "DFPanelFrame",
+        "DFPlacementCursor",
+        "DFPlayerKey",
+        "DFWorld3D",
+        "DWFUI",
+        "DwfAuth",
+        "DwfBoot",
+        "DwfDragPreview",
+        "DwfJoin",
+        "DwfLobby",
+        "DwfPaintSession",
+        "DwfPause",
+        "DwfPresence",
+        "DwfTiles",
+        "DwfUtil",
+        "DwfWS"
+      ]
+    },
+    {
+      "order": 35,
       "file": "web/js/dwf-menu-tree.js",
-      "cacheKey": "v=1.0.0-truemenu.r26.fx-n0715d",
+      "cacheKey": "v=99f3a035",
       "provides": [
         "DwfMenuTree"
       ],
       "uses": []
     },
     {
-      "order": 19,
-      "file": "web/js/dwf-building-zone-stockpile-panels.js",
-      "cacheKey": "v=2.9.0-b229-b231-b217r2-b251-w23-b276-location-access-n0715d-p0716v1-p0716z1-p0716f1-dwfui1-zdel2-sprepaintctl1",
+      "order": 36,
+      "file": "web/js/dwf-building-panel.js",
+      "cacheKey": "v=71576d73",
       "provides": [
-        "DFBuildingOperationsMarkup",
-        "DFStockpileSettings",
-        "DFWsLink"
+        "DFBuildingOperationsMarkup"
       ],
       "uses": [
-        "DFChrome",
-        "DFLocationMarkup",
-        "DFPanelFrame",
-        "DFStockRepaint",
-        "DFZoneRepaint",
-        "DWFUI",
-        "DwfMenuTree",
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 37,
+      "file": "web/js/dwf-machine-panel.js",
+      "cacheKey": "v=ddda8821",
+      "provides": [
+        "DWF_EXTENSION_LABEL"
+      ],
+      "uses": [
+        "DFBuildingOperationsMarkup",
+        "DwfErr"
+      ]
+    },
+    {
+      "order": 38,
+      "file": "web/js/dwf-siege-engine-panel.js",
+      "cacheKey": "v=b444b73a",
+      "provides": [],
+      "uses": [
+        "DFBuildingOperationsMarkup",
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 39,
+      "file": "web/js/dwf-farm-plot-panel.js",
+      "cacheKey": "v=22f1b1ae",
+      "provides": [
+        "FARM_SEED_STACK_WIRE_CAP"
+      ],
+      "uses": [
+        "DwfErr",
         "DwfTiles"
       ]
     },
     {
-      "order": 20,
-      "file": "web/js/dwf-tradedepot-panel.js",
-      "cacheKey": "v=1.2.0-tradescreen.b226-n0715d-dwfui1",
-      "provides": [
-        "DFTradeDepotMarkup"
-      ],
+      "order": 40,
+      "file": "web/js/dwf-lever-link-panel.js",
+      "cacheKey": "v=051a6970",
+      "provides": [],
       "uses": [
-        "DFTradeScreen"
+        "DFBuildingOperationsMarkup",
+        "DFLeverLink",
+        "DwfErr"
       ]
     },
     {
-      "order": 21,
-      "file": "web/js/dwf-tradescreen.js",
-      "cacheKey": "v=1.0.0-tradescreen.b226-n0715d-dwfui1-scrub1",
+      "order": 41,
+      "file": "web/js/dwf-workshop-panel.js",
+      "cacheKey": "v=f52bfef9",
       "provides": [
-        "DFTradeScreen"
+        "DFWsLink"
       ],
       "uses": [
-        "DWFUI"
+        "DwfCoreTransport",
+        "DwfErr",
+        "DwfMenuTree",
+        "DwfModeStack"
       ]
     },
     {
-      "order": 22,
-      "file": "web/js/dwf-hospital-panel.js",
-      "cacheKey": "v=1.0.1-b276-location-access-n0715d-dwfui1",
-      "provides": [
-        "DFHospitalMarkup"
-      ],
+      "order": 42,
+      "file": "web/js/dwf-zone-panel.js",
+      "cacheKey": "v=f00ed8d2",
+      "provides": [],
       "uses": [
-        "DFLocationMarkup"
+        "DFBuildingOperationsMarkup",
+        "DFChrome",
+        "DFLocationMarkup",
+        "DFZoneRepaint",
+        "DWFUI",
+        "DwfErr",
+        "DwfOrder"
       ]
     },
     {
-      "order": 23,
-      "file": "web/js/dwf-location-panel.js",
-      "cacheKey": "v=1.1.1-b276-temple-honesty-n0715d-p0716v1-dwfui1",
+      "order": 43,
+      "file": "web/js/dwf-stockpile-panel.js",
+      "cacheKey": "v=477a06a4",
+      "provides": [],
+      "uses": [
+        "DFPanelFrame",
+        "DFStockRepaint",
+        "DwfConfirmGate",
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 44,
+      "file": "web/js/dwf-stockpile-settings.js",
+      "cacheKey": "v=7aee58f9",
       "provides": [
-        "DFLocationMarkup"
+        "DFStockpileSettings"
+      ],
+      "uses": [
+        "DFPanelFrame",
+        "DwfErr",
+        "DwfModeStack"
+      ]
+    },
+    {
+      "order": 45,
+      "file": "web/js/dwf-trade-model.js",
+      "cacheKey": "v=57b459a9",
+      "provides": [
+        "DwfTradeModel"
       ],
       "uses": []
     },
     {
-      "order": 24,
+      "order": 46,
+      "file": "web/js/dwf-tradedepot-panel.js",
+      "cacheKey": "v=a26da201",
+      "provides": [
+        "DFTradeDepotMarkup"
+      ],
+      "uses": [
+        "DFTradeScreen",
+        "DwfCoreTransport",
+        "DwfErr",
+        "DwfOrder",
+        "DwfTradeModel"
+      ]
+    },
+    {
+      "order": 47,
+      "file": "web/js/dwf-tradescreen.js",
+      "cacheKey": "v=52421754",
+      "provides": [
+        "DFTradeScreen"
+      ],
+      "uses": [
+        "DWFUI",
+        "DwfCoreTransport",
+        "DwfOrder",
+        "DwfTradeModel"
+      ]
+    },
+    {
+      "order": 48,
+      "file": "web/js/dwf-location-model.js",
+      "cacheKey": "v=25d7c0bf",
+      "provides": [
+        "DwfLocationModel"
+      ],
+      "uses": []
+    },
+    {
+      "order": 49,
+      "file": "web/js/dwf-hospital-panel.js",
+      "cacheKey": "v=ef569306",
+      "provides": [
+        "DFHospitalMarkup"
+      ],
+      "uses": [
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 50,
+      "file": "web/js/dwf-location-panel.js",
+      "cacheKey": "v=6dd4ac80",
+      "provides": [
+        "DFLocationMarkup"
+      ],
+      "uses": [
+        "DwfErr",
+        "DwfLocationModel"
+      ]
+    },
+    {
+      "order": 51,
       "file": "web/js/dwf-announcement-format.js",
-      "cacheKey": "v=1.0.0-tx14-n0715d",
+      "cacheKey": "v=d4c3ec33",
       "provides": [
         "DwfAnnouncementFormat"
       ],
       "uses": []
     },
     {
-      "order": 25,
+      "order": 52,
       "file": "web/js/dwf-announce-taxonomy.js",
-      "cacheKey": "v=1.0.1-b232-n0715d",
+      "cacheKey": "v=afe47515",
       "provides": [
         "DwfAnnounceTaxonomy"
       ],
       "uses": []
     },
     {
-      "order": 26,
-      "file": "web/js/dwf-unit-hud-notifications.js",
-      "cacheKey": "v=2.7.3-native-portrait-lifecycle2",
-      "provides": [
-        "DFAnnouncementMarkup",
-        "DFRefreshPauseIcons",
-        "DFUnitProfileMarkup",
-        "DwfUnitFollow"
-      ],
+      "order": 53,
+      "file": "web/js/dwf-unit-portrait.js",
+      "cacheKey": "v=9749e94f",
+      "provides": [],
       "uses": [
-        "DFAnimClock",
-        "DWFUI",
-        "DwfDfMarkup",
-        "DwfLobby",
-        "DwfPresence",
-        "DwfSpectate",
         "DwfTiles"
       ]
     },
     {
-      "order": 27,
-      "file": "web/js/dwf-build-info-panels.js",
-      "cacheKey": "v=2.2.4-b225-b229-b236-b232r2-b254-n0715d-p0716v1-p0716f1-dwfui1",
+      "order": 54,
+      "file": "web/js/dwf-unit-follow.js",
+      "cacheKey": "v=faa9cb36",
       "provides": [
-        "DFBuildPanelMarkup",
-        "DFCancelBuildCornerAnchor"
+        "DwfUnitFollow"
       ],
       "uses": [
-        "DFChrome",
-        "DFHelpPopup",
-        "DFTileList",
         "DWFUI",
-        "DwfWireV1"
+        "DwfTiles"
       ]
     },
     {
-      "order": 28,
-      "file": "web/js/dwf-labor-work-orders.js",
-      "cacheKey": "v=0.9.1-gatec-n0715c-b285w2-recorder-v3-dwfui1-scrub1",
-      "provides": [],
-      "uses": []
-    },
-    {
-      "order": 29,
-      "file": "web/js/dwf-squads.js",
-      "cacheKey": "v=1.2.0-gatec-b233-b252-w23-n0715d-p0716v1-dwfui1-zdel3-pos0",
+      "order": 55,
+      "file": "web/js/dwf-unit-profile.js",
+      "cacheKey": "v=fcdd72eb",
       "provides": [
-        "DFSquadMarkup"
+        "DFUnitProfileMarkup"
       ],
       "uses": [
-        "DFSquadKill",
-        "DFSquadMove",
-        "DFSquadPatrol",
-        "DwfWS"
+        "DFAnnouncementMarkup",
+        "DWFUI",
+        "DwfDfMarkup"
       ]
     },
     {
-      "order": 30,
-      "file": "web/js/dwf-announcements.js",
-      "cacheKey": "v=1.1.0-b232r2-n0715d-dwfui1",
+      "order": 56,
+      "file": "web/js/dwf-fortress-hud.js",
+      "cacheKey": "v=91b7d8c1",
       "provides": [
-        "DFReportsMarkup"
+        "DFRefreshPauseIcons"
       ],
-      "uses": []
+      "uses": [
+        "DFAnimClock",
+        "DwfLobby"
+      ]
     },
     {
-      "order": 31,
-      "file": "web/js/dwf-combatlog-panel.js",
-      "cacheKey": "v=2.2.1-dfcui-scroll-n0715d-dwfui1",
+      "order": 57,
+      "file": "web/js/dwf-minimap.js",
+      "cacheKey": "v=41062e9c",
+      "provides": [],
+      "uses": [
+        "DwfLobby",
+        "DwfPresence",
+        "DwfTiles"
+      ]
+    },
+    {
+      "order": 58,
+      "file": "web/js/dwf-announcement-viewer.js",
+      "cacheKey": "v=4cb41331",
       "provides": [
-        "DFCombatLogMarkup"
+        "DFAnnouncementMarkup"
       ],
       "uses": [
         "DFPanelFrame"
       ]
     },
     {
-      "order": 32,
+      "order": 59,
+      "file": "web/js/dwf-local-panel-router.js",
+      "cacheKey": "v=adbf52d2",
+      "provides": [],
+      "uses": [
+        "DFAnnouncementMarkup"
+      ]
+    },
+    {
+      "order": 60,
+      "file": "web/js/dwf-info-panel.js",
+      "cacheKey": "v=52a30dd8",
+      "provides": [],
+      "uses": [
+        "CREATURE_LIST_KEY",
+        "DFBuildInfoController",
+        "DwfErr",
+        "DwfOrder",
+        "TASK_JOB_ACTION"
+      ]
+    },
+    {
+      "order": 61,
+      "file": "web/js/dwf-creatures-panel.js",
+      "cacheKey": "v=61f4b3fc",
+      "provides": [
+        "CREATURE_LIST_KEY",
+        "DFBuildInfoController"
+      ],
+      "uses": [
+        "DFChrome",
+        "DwfErr",
+        "DwfModeStack",
+        "DwfOrder",
+        "DwfUnitFollow"
+      ]
+    },
+    {
+      "order": 62,
+      "file": "web/js/dwf-vermin-panel.js",
+      "cacheKey": "v=78180e4d",
+      "provides": [],
+      "uses": [
+        "DwfErr"
+      ]
+    },
+    {
+      "order": 63,
+      "file": "web/js/dwf-planned-engraving-panel.js",
+      "cacheKey": "v=14364da5",
+      "provides": [],
+      "uses": []
+    },
+    {
+      "order": 64,
+      "file": "web/js/dwf-item-panel.js",
+      "cacheKey": "v=eab7c7ce",
+      "provides": [],
+      "uses": [
+        "DFTileList",
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 65,
+      "file": "web/js/dwf-stocks-panel.js",
+      "cacheKey": "v=1474b70c",
+      "provides": [],
+      "uses": [
+        "DFHelpPopup",
+        "DwfErr",
+        "DwfOrder",
+        "DwfWireV1"
+      ]
+    },
+    {
+      "order": 66,
+      "file": "web/js/dwf-tasks-panel.js",
+      "cacheKey": "v=3bb0371a",
+      "provides": [
+        "TASK_JOB_ACTION"
+      ],
+      "uses": []
+    },
+    {
+      "order": 67,
+      "file": "web/js/dwf-build-panel.js",
+      "cacheKey": "v=8a45ba17",
+      "provides": [
+        "DFBuildPanelMarkup",
+        "DFCancelBuildCornerAnchor"
+      ],
+      "uses": [
+        "DFChrome",
+        "DFPlacementCursor",
+        "DWFUI",
+        "DwfErr",
+        "DwfGrid"
+      ]
+    },
+    {
+      "order": 68,
+      "file": "web/js/dwf-labor-details.js",
+      "cacheKey": "v=289fe5af",
+      "provides": [],
+      "uses": [
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 69,
+      "file": "web/js/dwf-standing-orders.js",
+      "cacheKey": "v=89d46a8d",
+      "provides": [],
+      "uses": []
+    },
+    {
+      "order": 70,
+      "file": "web/js/dwf-stone-use.js",
+      "cacheKey": "v=b5f38612",
+      "provides": [],
+      "uses": [
+        "DwfErr",
+        "DwfOrder"
+      ]
+    },
+    {
+      "order": 71,
+      "file": "web/js/dwf-work-orders.js",
+      "cacheKey": "v=3ce839d0",
+      "provides": [],
+      "uses": [
+        "DwfCoreTransport",
+        "DwfErr",
+        "DwfModeStack"
+      ]
+    },
+    {
+      "order": 72,
+      "file": "web/js/dwf-squad-positions.js",
+      "cacheKey": "v=810c2134",
+      "provides": [],
+      "uses": [
+        "DFSquadController"
+      ]
+    },
+    {
+      "order": 73,
+      "file": "web/js/dwf-squad-equipment.js",
+      "cacheKey": "v=dfed4045",
+      "provides": [
+        "EQUIP_TABS",
+        "EQUIP_VIEWS",
+        "UNIFORM_CATS"
+      ],
+      "uses": [
+        "DFSquadController",
+        "UNIFORM_CAT_SLOT"
+      ]
+    },
+    {
+      "order": 74,
+      "file": "web/js/dwf-squad-schedule.js",
+      "cacheKey": "v=38b30433",
+      "provides": [],
+      "uses": [
+        "DFSquadController"
+      ]
+    },
+    {
+      "order": 75,
+      "file": "web/js/dwf-squad-emblem.js",
+      "cacheKey": "v=55177a6c",
+      "provides": [],
+      "uses": [
+        "DFSquadController",
+        "SQUAD_SYMBOL_COUNT"
+      ]
+    },
+    {
+      "order": 76,
+      "file": "web/js/dwf-squad-burrow-order.js",
+      "cacheKey": "v=fef1212c",
+      "provides": [],
+      "uses": [
+        "DFSquadController"
+      ]
+    },
+    {
+      "order": 77,
+      "file": "web/js/dwf-squad-patrol-order.js",
+      "cacheKey": "v=3e5d8dd5",
+      "provides": [],
+      "uses": [
+        "DFSquadController",
+        "DFSquadPatrol"
+      ]
+    },
+    {
+      "order": 78,
+      "file": "web/js/dwf-squad-panel.js",
+      "cacheKey": "v=db0e3dcd",
+      "provides": [
+        "DFSquadController",
+        "DFSquadMarkup",
+        "SQUAD_SYMBOL_COUNT",
+        "UNIFORM_CAT_SLOT"
+      ],
+      "uses": [
+        "DFSquadKill",
+        "DFSquadMove",
+        "DFSquadPatrol",
+        "DwfConfirmGate",
+        "DwfErr",
+        "DwfModeStack",
+        "DwfWS",
+        "EQUIP_TABS",
+        "EQUIP_VIEWS",
+        "UNIFORM_CATS"
+      ]
+    },
+    {
+      "order": 79,
+      "file": "web/js/dwf-announcements.js",
+      "cacheKey": "v=5882f65d",
+      "provides": [
+        "DFReportsMarkup"
+      ],
+      "uses": []
+    },
+    {
+      "order": 80,
       "file": "web/js/dwf-analytics-panel.js",
-      "cacheKey": "v=1.0.0-wt13-n0715d-dwfui1",
+      "cacheKey": "v=75ba062a",
       "provides": [],
       "uses": [
         "DFPanelFrame",
@@ -388,205 +928,337 @@
       ]
     },
     {
-      "order": 33,
-      "file": "web/js/dwf-vote.js",
-      "cacheKey": "v=1.0.0-wt14-n0715d-dwfui1",
-      "provides": [
-        "DwfVote"
-      ],
-      "uses": [
-        "DFPanelFrame",
-        "DWFUI"
-      ]
-    },
-    {
-      "order": 34,
+      "order": 81,
       "file": "web/js/dwf-console-panel.js",
-      "cacheKey": "v=1.1.0-w23-n0715d-dwfui1",
+      "cacheKey": "v=f068db7d",
       "provides": [],
       "uses": [
         "DFPanelFrame",
         "DFWriteGuards",
-        "DWFUI"
+        "DWFUI",
+        "DwfUtil"
       ]
     },
     {
-      "order": 35,
+      "order": 82,
       "file": "web/js/dwf-popup.js",
-      "cacheKey": "v=1.0.0-wt28-n0715d-dwfui1",
+      "cacheKey": "v=47524431",
       "provides": [
         "DwfPopup"
       ],
       "uses": [
+        "DFPanelFrame",
         "DwfPause"
       ]
     },
     {
-      "order": 36,
+      "order": 83,
       "file": "web/js/dwf-diplo.js",
-      "cacheKey": "v=1.0.0-b225-n0715d-dwfui1",
+      "cacheKey": "v=1dc709ee",
       "provides": [
         "DwfDiplo"
       ],
       "uses": []
     },
     {
-      "order": 37,
-      "file": "web/js/dwf-fort-panels.js",
-      "cacheKey": "v=0.9.1-nightsync.r26.fx-n0715d-dwfui1",
-      "provides": [],
+      "order": 84,
+      "file": "web/js/dwf-missions.js",
+      "cacheKey": "v=cb202631",
+      "provides": [
+        "DwfMissions"
+      ],
       "uses": []
     },
     {
-      "order": 38,
+      "order": 85,
+      "file": "web/js/dwf-fort-panels.js",
+      "cacheKey": "v=ea83d943",
+      "provides": [],
+      "uses": [
+        "DwfErr"
+      ]
+    },
+    {
+      "order": 86,
       "file": "web/js/dwf-fort-admin.js",
-      "cacheKey": "v=1.2.0-b227-justiceguards-b227-n0715d-dwfui1-pet1-scrub1",
+      "cacheKey": "v=32c14b99",
       "provides": [],
       "uses": [
         "DFHelpPopup"
       ]
     },
     {
-      "order": 39,
+      "order": 87,
       "file": "web/js/dwf-obligations.js",
-      "cacheKey": "v=1.0.0-wt15-n0715d-dwfui1",
+      "cacheKey": "v=b9fb7bda",
       "provides": [],
       "uses": []
     },
     {
-      "order": 40,
+      "order": 88,
       "file": "web/js/dwf-kitchen.js",
-      "cacheKey": "v=0.8.3-gatec-n0715d-dwfui1",
+      "cacheKey": "v=1d735fdd",
       "provides": [],
       "uses": []
     },
     {
-      "order": 41,
+      "order": 89,
       "file": "web/js/dwf-worldmap.js",
-      "cacheKey": "v=2.0.1-win17.r26.fx-n0715d-dwfui1",
+      "cacheKey": "v=35c87207",
       "provides": [
         "DFWorldMapMarkup"
       ],
       "uses": [
-        "DFHelpPopup"
+        "DFHelpPopup",
+        "DwfGrid",
+        "DwfMissions"
       ]
     },
     {
-      "order": 42,
+      "order": 90,
       "file": "web/js/dwf-world3d-model.js",
-      "cacheKey": "v=2.1.0-wt11r-n0715d-n0725a",
+      "cacheKey": "v=bf1714b0",
       "provides": [
         "DFWorld3DModel"
       ],
       "uses": []
     },
     {
-      "order": 43,
+      "order": 91,
       "file": "web/js/dwf-voxelizer.js",
-      "cacheKey": "v=2.1.0-wt11r-n0715d-n0725a",
+      "cacheKey": "v=8cf559cf",
       "provides": [
         "DFVoxelizer"
       ],
       "uses": []
     },
     {
-      "order": 44,
+      "order": 92,
       "file": "web/js/dwf-voxel-mesh.js",
-      "cacheKey": "v=1.1.0-wt11r-n0715d",
+      "cacheKey": "v=fc3e8857",
       "provides": [
         "DFVoxelMesh"
       ],
       "uses": []
     },
     {
-      "order": 45,
+      "order": 93,
       "file": "web/js/dwf-world3d.js",
-      "cacheKey": "v=2.1.0-wt11r-b237-n0715d-dwfui1-n0725e",
+      "cacheKey": "v=02fa5008",
       "provides": [
         "DFWorld3D"
       ],
       "uses": []
     },
     {
-      "order": 46,
+      "order": 94,
       "file": "web/js/dwf-tooltip.js",
-      "cacheKey": "v=1.0.1-wd26.r26.fx-n0715d",
+      "cacheKey": "v=584a51d3",
       "provides": [
         "DFHelpPopup",
         "DFTooltip"
       ],
-      "uses": []
+      "uses": [
+        "DwfModeStack",
+        "DwfUtil"
+      ]
     },
     {
-      "order": 47,
+      "order": 95,
       "file": "web/js/dwf-chrome.js",
-      "cacheKey": "v=0.9.1-wd6.r26.fx-n0715d",
+      "cacheKey": "v=85f0e23a",
       "provides": [
         "DFChrome"
       ],
       "uses": []
     },
     {
-      "order": 48,
+      "order": 96,
       "file": "web/js/dwf-control-shell.js",
-      "cacheKey": "v=1.1.0-toolbar-align-b230-b233-b231-b217r2-b267-b268-w23-n0715d-dwfui1-zdel2",
+      "cacheKey": "v=d6d60c4b",
       "provides": [
         "DwfControlShell"
       ],
-      "uses": [
-        "DFWriteGuards"
-      ]
+      "uses": []
     },
     {
-      "order": 49,
-      "file": "web/js/dwf-controls-placement.js",
-      "cacheKey": "v=4.9.0-b223-pingflow-b230-b233-b231-b238-b267-b268-w23-n0715d-p0716v1-p0716z1-p0716z2-dwfui1-wthr1-plist2-zdel2-drag1-sprepaintctl1-ztransition2",
+      "order": 97,
+      "file": "web/js/dwf-map-chrome-controls.js",
+      "cacheKey": "v=6e9eb6f6",
       "provides": [
-        "DFBurrowSync",
-        "DFCancelBuildCornerAnchor",
-        "DFChatPing",
         "DFClientPrefs",
-        "DFDesignationRangeWheel",
-        "DFPlacementArmed",
+        "DFPlacementController",
         "DFRefreshPauseIcons",
-        "DFSquadKill",
-        "DFSquadMove",
-        "DFSquadPatrol",
-        "DFStockRepaint",
-        "DFToolbarTooltips",
-        "DFWsLink",
-        "DFZoneRepaint",
         "DWFUIScale"
       ],
       "uses": [
         "DFChrome",
         "DFHelpPanel",
-        "DFHelpPopup",
-        "DFKeybinds",
-        "DFPanelFrame",
         "DFSettings",
-        "DFStockpileSettings",
         "DFTileList",
-        "DFWorld3D",
         "DWFUI",
-        "DwfBurrowOverlay",
-        "DwfCache",
-        "DwfControlShell",
-        "DwfGL",
-        "DwfKeymap",
+        "DwfInterfaceShell",
         "DwfLobby",
         "DwfPause",
         "DwfPresence",
         "DwfSpectate",
         "DwfTiles",
         "DwfUnitFollow",
+        "DwfUtil",
         "DwfWeather"
       ]
     },
     {
-      "order": 50,
+      "order": 98,
+      "file": "web/js/dwf-designation-controls.js",
+      "cacheKey": "v=a9e72c5b",
+      "provides": [
+        "DFDesignationRangeWheel",
+        "DFToolbarTooltips"
+      ],
+      "uses": [
+        "DFPlacementController",
+        "DFTooltip",
+        "DWFUI",
+        "DwfCache",
+        "DwfControlShell",
+        "DwfGL",
+        "DwfGesture",
+        "DwfPaintModes",
+        "DwfPause",
+        "DwfTiles",
+        "MODE_STACK"
+      ]
+    },
+    {
+      "order": 99,
+      "file": "web/js/dwf-stockpile-placement.js",
+      "cacheKey": "v=4c008ff3",
+      "provides": [
+        "DFStockRepaint",
+        "DFZoneRepaint",
+        "ZONE_TYPES"
+      ],
+      "uses": [
+        "DFPanelFrame",
+        "DFPlacementController",
+        "DwfBurrowOverlay",
+        "DwfControlShell",
+        "DwfPaintSession"
+      ]
+    },
+    {
+      "order": 100,
+      "file": "web/js/dwf-zone-placement.js",
+      "cacheKey": "v=280159a7",
+      "provides": [],
+      "uses": [
+        "DFHelpPopup",
+        "DFPanelFrame",
+        "DFPlacementController",
+        "DwfConfirmGate",
+        "DwfControlShell",
+        "DwfPaintSession",
+        "ZONE_TYPES"
+      ]
+    },
+    {
+      "order": 101,
+      "file": "web/js/dwf-burrow-panel.js",
+      "cacheKey": "v=d1c27fc3",
+      "provides": [
+        "DFBurrowSync"
+      ],
+      "uses": [
+        "DFHelpPopup",
+        "DFPlacementController",
+        "DwfBurrowOverlay",
+        "DwfConfirmGate",
+        "DwfControlShell",
+        "DwfTiles"
+      ]
+    },
+    {
+      "order": 102,
+      "file": "web/js/dwf-hauling-panel.js",
+      "cacheKey": "v=275ef2d1",
+      "provides": [],
+      "uses": [
+        "DFHelpPopup",
+        "DFPlacementController",
+        "DFStockpileSettings",
+        "DwfControlShell"
+      ]
+    },
+    {
+      "order": 103,
+      "file": "web/js/dwf-map-target-modes.js",
+      "cacheKey": "v=dfd46ecc",
+      "provides": [
+        "DFChatPing",
+        "DFLeverLink",
+        "DFSquadKill",
+        "DFSquadMove",
+        "DFSquadPatrol",
+        "DFWsLink"
+      ],
+      "uses": [
+        "DFPlacementController"
+      ]
+    },
+    {
+      "order": 104,
+      "file": "web/js/dwf-tool-mode-controller.js",
+      "cacheKey": "v=8a2ad72e",
+      "provides": [
+        "DFBackOut",
+        "MODE_STACK"
+      ],
+      "uses": [
+        "DFChatPing",
+        "DFHelpPanel",
+        "DFKeybinds",
+        "DFLeverLink",
+        "DFPanelFrame",
+        "DFPlacementController",
+        "DFSquadKill",
+        "DFSquadMove",
+        "DFSquadPatrol",
+        "DFWorld3D",
+        "DwfConfirmGate",
+        "DwfKeymap",
+        "DwfModeStack"
+      ]
+    },
+    {
+      "order": 105,
+      "file": "web/js/dwf-map-placement-input.js",
+      "cacheKey": "v=ca005236",
+      "provides": [
+        "DFCancelBuildCornerAnchor",
+        "DFDragIntent",
+        "DFGestureCameraMoved",
+        "DFPlacementArmed",
+        "DFPlacementCursor"
+      ],
+      "uses": [
+        "DFPlacementController",
+        "DwfDragPreview"
+      ]
+    },
+    {
+      "order": 106,
+      "file": "web/js/dwf-map-hover.js",
+      "cacheKey": "v=9be4acbf",
+      "provides": [],
+      "uses": [
+        "DFPlacementController"
+      ]
+    },
+    {
+      "order": 107,
       "file": "web/js/dwf-touch.js",
-      "cacheKey": "v=1.0.0-wt20-n0715d",
+      "cacheKey": "v=e3744189",
       "provides": [
         "DFTouch"
       ],
@@ -596,9 +1268,9 @@
       ]
     },
     {
-      "order": 51,
+      "order": 108,
       "file": "web/js/dwf-escmenu.js",
-      "cacheKey": "v=1.1.2-friend-save-n0720",
+      "cacheKey": "v=ff47ff62",
       "provides": [
         "DwfEscMenu"
       ],
@@ -611,9 +1283,9 @@
       ]
     },
     {
-      "order": 52,
+      "order": 109,
       "file": "web/js/dwf-hostpanel.js",
-      "cacheKey": "v=1.1.0-hostpanel-w23-n0715d-dwfui1-zdel3-pos0",
+      "cacheKey": "v=e293aaae",
       "provides": [
         "DwfHostPanel"
       ],
@@ -622,68 +1294,69 @@
         "DFWriteGuards",
         "DWFUI",
         "DwfEscMenu",
+        "DwfModeStack",
         "DwfWS"
       ]
     },
     {
-      "order": 53,
+      "order": 110,
       "file": "web/js/dwf-keymap.js",
-      "cacheKey": "v=1.0.1-wavee.r26.fx.b203-n0715d",
+      "cacheKey": "v=3b54c3e1",
       "provides": [
         "DwfKeymap"
       ],
       "uses": [
-        "DFHelpPanel"
+        "DwfModeStack"
       ]
     },
     {
-      "order": 54,
+      "order": 111,
       "file": "web/js/dwf-help-corpus.js",
-      "cacheKey": "v=3.2.0-b247-helpcorpus-b254-b267-b268-w23-n0715d-sprepaint1",
+      "cacheKey": "v=193c474a",
       "provides": [
         "DFHelpCorpus"
       ],
       "uses": []
     },
     {
-      "order": 55,
+      "order": 112,
       "file": "web/js/dwf-help-curated.js",
-      "cacheKey": "v=1.0.0-b207-n0715d",
+      "cacheKey": "v=71e191b0",
       "provides": [
         "DFHelpCurated"
       ],
       "uses": []
     },
     {
-      "order": 56,
+      "order": 113,
       "file": "web/js/dwf-help-panel.js",
-      "cacheKey": "v=1.0.0-b207-n0715d-dwfui1",
+      "cacheKey": "v=e7f87275",
       "provides": [
         "DFHelpPanel"
       ],
       "uses": []
     },
     {
-      "order": 57,
+      "order": 114,
       "file": "web/js/dwf-lobby.js",
-      "cacheKey": "v=1.1.3-panels.r26.fx-n0715d-dwfui1-plist2-rename1",
+      "cacheKey": "v=1aa73cb1",
       "provides": [
         "DwfLobby"
       ],
       "uses": [
         "DFPanelFrame",
         "DWFUI",
+        "DwfCore",
         "DwfJoin",
         "DwfPresence",
         "DwfSpectate",
-        "DwfTiles",
         "DwfWS"
       ]
     },
     {
-      "order": 58,
+      "order": 115,
       "file": "web/js/dwf-pause.js",
-      "cacheKey": "v=2.1.0-b206-n0715d-dwfui1",
+      "cacheKey": "v=e90df0b0",
       "provides": [
         "DFRefreshPauseIcons",
         "DwfPause"
@@ -695,18 +1368,18 @@
       ]
     },
     {
-      "order": 59,
+      "order": 116,
       "file": "web/js/dwf-digest.js",
-      "cacheKey": "v=1.0.0-wt09.r26.fx-n0715d-dwfui1",
+      "cacheKey": "v=fb4e2894",
       "provides": [
         "DwfDigest"
       ],
       "uses": []
     },
     {
-      "order": 60,
+      "order": 117,
       "file": "web/js/dwf-chat.js",
-      "cacheKey": "v=2.2.1-stabilization-n0719",
+      "cacheKey": "v=900a3670",
       "provides": [
         "DFChatPing",
         "DwfChat"
@@ -715,28 +1388,28 @@
         "DFPanelFrame",
         "DFTileList",
         "DWFUI",
+        "DwfCore",
         "DwfTiles",
         "DwfWS"
       ]
     },
     {
-      "order": 61,
+      "order": 118,
       "file": "web/js/dwf-unitcycle.js",
-      "cacheKey": "v=3.1.1-gatec-n0715d-dwfui1",
+      "cacheKey": "v=1303e1f8",
       "provides": [
         "DFTileList"
       ],
       "uses": [
         "DFPanelFrame",
-        "DFPlayerKey",
         "DWFUI",
         "DwfTiles"
       ]
     },
     {
-      "order": 62,
+      "order": 119,
       "file": "web/js/dwf-hotkeys.js",
-      "cacheKey": "v=1.0.2-panels.r26.sf.fx.b203-n0715d-dwfui1",
+      "cacheKey": "v=0f354bce",
       "provides": [
         "DwfHotkeys"
       ],
@@ -747,18 +1420,18 @@
       ]
     },
     {
-      "order": 63,
+      "order": 120,
       "file": "web/js/dwf-weather.js",
-      "cacheKey": "v=1.1.0-rainjitter-n0715d-wthr1",
+      "cacheKey": "v=f55c52db",
       "provides": [
         "DwfWeather"
       ],
       "uses": []
     },
     {
-      "order": 64,
+      "order": 121,
       "file": "web/js/dwf-audio.js",
-      "cacheKey": "v=1.2.2-win18.r26.fx-n0715d-dwfui1",
+      "cacheKey": "v=fc2876d4",
       "provides": [
         "Audio",
         "DwfAudio"
@@ -766,18 +1439,18 @@
       "uses": []
     },
     {
-      "order": 65,
+      "order": 122,
       "file": "web/js/dwf-panelframe.js",
-      "cacheKey": "v=1.0.4-chrome.r26.sf.fx-n0715d-dwfui1",
+      "cacheKey": "v=14d9e6bc",
       "provides": [
         "DFPanelFrame"
       ],
       "uses": []
     },
     {
-      "order": 66,
+      "order": 123,
       "file": "web/js/dwf-settings.js",
-      "cacheKey": "v=1.0.1-win22.r26.fx.b203-n0715d-dwfui1-wthr2",
+      "cacheKey": "v=b8b3053b",
       "provides": [
         "DFKeybinds",
         "DFSettings"
@@ -785,9 +1458,18 @@
       "uses": []
     },
     {
-      "order": 67,
+      "order": 124,
+      "file": "web/js/dwf-overlay-canvas.js",
+      "cacheKey": "v=bb155cf2",
+      "provides": [
+        "DwfOverlayCanvas"
+      ],
+      "uses": []
+    },
+    {
+      "order": 125,
       "file": "web/js/dwf-overlay-boxes.js",
-      "cacheKey": "v=1.0.0-overlay.r26.fx-n0715d-scrub1",
+      "cacheKey": "v=cdd3afc6",
       "provides": [
         "DwfOverlayBoxes"
       ],
@@ -796,9 +1478,9 @@
       ]
     },
     {
-      "order": 68,
+      "order": 126,
       "file": "web/js/dwf-burrow-overlay.js",
-      "cacheKey": "v=1.1.0-b238-n0715d",
+      "cacheKey": "v=51bf84c5",
       "provides": [
         "DwfBurrowOverlay"
       ],
@@ -807,9 +1489,9 @@
       ]
     },
     {
-      "order": 69,
+      "order": 127,
       "file": "web/js/dwf-join.js",
-      "cacheKey": "v=1.0.1-win18.r26.fx-n0715d-dwfui1-join1-rename1-stalepin1",
+      "cacheKey": "v=f93cee2d",
       "provides": [
         "DwfAuth",
         "DwfJoin"
@@ -817,6 +1499,9 @@
       "uses": [
         "DFCAPTURE_BUILD",
         "DWFUI",
+        "DwfAuthGate",
+        "DwfBoot",
+        "DwfUtil",
         "DwfWS"
       ]
     }

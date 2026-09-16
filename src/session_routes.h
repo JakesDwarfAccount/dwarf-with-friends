@@ -25,9 +25,6 @@
 
 namespace dwf {
 
-// Session / server-meta routes: /, /view (build-stamped shell), /health, /version, /join,
-// /state, /reset, /camera, /follow, /zoom, /action, /save, /join-password, /pause-config,
-// /attrib.
 void register_session_routes(httplib::Server& server);
 
 } // namespace dwf

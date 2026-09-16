@@ -25,18 +25,7 @@
 
 namespace dwf {
 
-// Hospital / health-management domain (Wave 3.3). A hospital is NOT a civzone_type -- it is an
-// abstract_building_hospitalst LOCATION (abstract_building_type::HOSPITAL) attached to a
-// MeetingHall/DiningHall/Bedroom civzone via zone.location_id, exactly like tavern/temple/library
-// (see dwf.lua create_location + scripts/internal/quickfort/zone.lua valid_locations.hospital).
-// Its supply maxima live on location->getContents() (abstract_building_contents): desired_* /
-// count_* / need_more for splints/thread/cloth/crutches/powder(plaster)/buckets/soap. This module
-// exposes the READ surface (supplies, hospital furniture counts, patient list from unit->health,
-// doctors by medical labor, chief-medical-dwarf noble, active medical-job queue) and the safe
-// MUTATION (supply-maxima config -- the exact desired_*/need_more write DF's Locations screen +
-// quickfort perform). Per-dwarf medical-labor toggles reuse the existing /labor* routes; chief
-// medical dwarf assignment reuses the existing /noble-assign + /noble-candidates routes. Additive
-// JSON only; no binary wire changes.
+// Hospital routes: supplies, furniture, patients, doctors, the chief medical dwarf.
 void register_hospital_routes(httplib::Server& server);
 
 } // namespace dwf

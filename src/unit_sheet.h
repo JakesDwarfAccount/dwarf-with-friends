@@ -57,11 +57,7 @@ struct UnitRelation {
     std::string portrait_state;
     std::string portrait_kind;
     std::string color_role;
-    // W4 (wave-4 wire batch): native colours a relation's `Name, Profession` line by the target's
-    // PROFESSION (and red when they are dead) -- not by the relation type. `color_role` is our own
-    // relation-type role and stays exactly as it is; these two are the missing native inputs.
-    // `profession_color` is DF's own 4-bit profession colour index (0-15); -1 == unknown.
-    int8_t profession_color = -1;
+    int8_t profession_color = -1;   // DF's 4-bit profession colour index (0-15); -1 == unknown
     bool dead = false;
     int32_t order = 0;
 };
@@ -79,8 +75,7 @@ struct UnitRoom {
     int32_t building_id = -1;
     std::string name;
     std::string quality;
-    // B176: the civzone's center tile, so the client can zoom the camera to an assigned room
-    // (-1 = unknown/unassigned). On-demand /unit field only -- never part of the per-tick AUX.
+    // The civzone's centre tile, for the client's zoom-to-room jump (-1 = unknown/unassigned).
     int32_t center_x = -1;
     int32_t center_y = -1;
     int32_t center_z = -1;
@@ -108,9 +103,7 @@ struct UnitSkillRecord {
     int32_t experience = 0;
     uint32_t xp_threshold = 0;
     std::string color_role;
-    // DF's native skill-row color: the SKILL's profession color, NOT its level (text-color spec
-    // §2.5, live-verified). -1 when the skill's profession has no color attr -> client themes by
-    // color_role. Serialized as "color".
+    // DF colours a skill row by the SKILL's profession, not its level; -1 -> theme by color_role.
     int native_color = -1;
     int32_t order = 0;
 };
@@ -128,10 +121,8 @@ struct UnitKnowledgeRecord {
 struct UnitTextSpan {
     std::string text;
     std::string role;
-    // Native curses color index (0..15), or -1 = "no native color, theme by role". Serialized as
-    // "color" only when >= 0. Authoritative over `role` for hue (text-color spec §3.1): role stays
-    // for weight/emphasis and back-compat. Emotion spans carry the emotion attr color; other spans
-    // may carry a resolved profession/skill/band color as those surfaces migrate off word lists.
+    // Native curses colour index (0..15), or -1 = "no native colour, theme by role". Authoritative
+    // over `role` for hue; `role` stays for weight and emphasis.
     int color = -1;
 };
 
@@ -178,12 +169,7 @@ struct UnitLaborAnimalRecord {
     std::string portrait_state;
     std::string portrait_kind;
     int32_t order = 0;
-    // B233-2 (work-animal ASSIGNMENT). owner_id is the animal's current work-animal owner --
-    // df.unit.xml:2732 unit.relationship_ids[PetOwner], the field DF's "Assign this creature as a
-    // work animal for a specific citizen or resident" (INFO_ASSIGN_WORK_ANIMAL,
-    // df.d_interface.xml:3742) writes and DFHack's own AssignWorkAnimal overlay reads
-    // (dfhack plugins/lua/sort/info.lua:458 get_work_animal_counts). `assignable` is false with a
-    // `blocked_reason` when the write is not groundable for THIS animal (see set_work_animal_owner).
+    // The animal's work-animal owner: unit.relationship_ids[PetOwner]; -1 == unassigned.
     int32_t owner_id = -1;
     std::string owner_name;
     bool assignable = false;
@@ -204,13 +190,14 @@ struct UnitSheet {
     std::string nickname;
     std::string race;
     std::string profession;
-    int8_t profession_color = -1; // Units::getProfessionColor; authoritative header-name hue.
+    int8_t profession_color = -1; // Units::getProfessionColor
     std::string current_job;
     std::string age;
     std::string sex;
     std::string status;
     std::string training;
     std::string body_summary;
+    bool has_combat_reports = false;
     std::vector<std::string> overview_relation_lines;
     std::vector<std::string> overview_trait_lines;
     std::vector<std::string> overview_position_lines;
@@ -219,8 +206,14 @@ struct UnitSheet {
     std::vector<std::string> overview_need_lines;
     std::vector<std::string> overview_memory_lines;
     std::vector<std::string> flags;
+    // [] means DF prints an empty box; an absent JSON key is the older-DLL case.
+    std::vector<std::string> status_words;
     std::vector<std::string> status_lines;
     std::vector<std::string> inventory_lines;
+    // The chief medical dwarf's DIAGNOSE level: 0 with none appointed, 15 outside fortress mode.
+    int diagnosis_level = 0;
+    // D == 0 whether nobody is appointed or the appointee cannot diagnose; only this flag separates them.
+    bool chief_medical_appointed = false;
     std::vector<std::string> health_lines;
     std::vector<std::string> health_status_lines;
     std::vector<std::string> health_wound_lines;
@@ -269,8 +262,7 @@ UnitSheet build_unit_sheet(df::unit* unit);
 
 void append_unit_sheet_json(std::ostringstream& body, const UnitSheet& unit);
 
-// W2: `following` == this player's FollowTarget is this unit (client_state.h). Defaulted so the
-// signature stays source-compatible with any caller that has no follow state to report.
+// `following` == this player's FollowTarget is this unit.
 std::string unit_sheet_json(const std::string& player,
                             const UnitSheet& unit,
                             const Camera& tile,
@@ -281,8 +273,6 @@ bool unit_sheet_on_render_thread(int32_t unit_id,
                                  Camera& tile,
                                  std::string* err = nullptr);
 
-// Registers this module's HTTP routes (moved verbatim from http_server.cpp's
-// register_routes monolith -- B212, 2026-07-13).
 void register_unit_routes(httplib::Server& server);
 
 } // namespace dwf

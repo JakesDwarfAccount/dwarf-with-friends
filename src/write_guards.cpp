@@ -19,16 +19,16 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// W23 -- see write_guards.h for the model. This file is the cached reader, the one host-only
-// writer (dfhack_console), and its two routes (GET /write-guards, host-only /console-config).
+// The cached hostwrites reader, the one host-only writer, and the /write-guards + /console-config
+// routes. See write_guards.h for the model.
 
 #include "write_guards.h"
 
 #include "diagnostics.h"
 #include "httplib.h"
 #include "json_util.h"
-#include "sound_route.h"   // request_is_local_host / host_header_is_local (pure, fixture-tested)
-#include "websocket.h"     // peer_ip_is_loopback()
+#include "sound_route.h"
+#include "websocket.h"
 
 #include <chrono>
 #include <fstream>
@@ -40,9 +40,7 @@ namespace dwf {
 namespace guards {
 namespace {
 
-// Same relative-path convention as sound_route.cpp's dfhack-config/dfcapture.json: the plugin's
-// working directory is the DF root, which is exactly dfhack.getDFPath() -- so this names the
-// SAME file the Lua hw_flags reads.
+// Relative: the plugin's working directory is the DF root, so this is the file dwf.lua also reads.
 constexpr const char* kHostwritesPath = "dfcapture-hostwrites.json";
 
 std::mutex g_mu;
@@ -50,8 +48,7 @@ std::string g_text;                                   // last file text ("" = mi
 std::chrono::steady_clock::time_point g_stamp{};      // default == "never read"
 bool g_have = false;
 
-// Re-read the file at most every 2 s. Guards must fail closed, so every failure path lands on
-// an empty text (every flag scans false). Caller holds g_mu.
+// Every failure path lands on an empty text, so every flag scans false. Caller holds g_mu.
 const std::string& cached_text_locked() {
     using clock = std::chrono::steady_clock;
     auto now = clock::now();
@@ -72,8 +69,7 @@ const std::string& cached_text_locked() {
     return g_text;
 }
 
-// Set `"<flag>": true|false` inside the (flat) hostwrites JSON text, preserving every other key.
-// Missing/blank/brace-less text is replaced by a fresh flat object. Pure.
+// Preserves every other key. Missing/blank/brace-less text is replaced by a fresh flat object.
 std::string set_flag_in_text(const std::string& text, const std::string& flag, bool on) {
     const std::string value = on ? "true" : "false";
     const std::string key = "\"" + flag + "\"";
@@ -107,9 +103,7 @@ std::string set_flag_in_text(const std::string& text, const std::string& flag, b
     return "{\n  " + key + ": " + value + "\n}\n";
 }
 
-// Write one explicitly allowlisted flag. Callers perform the tunnel-aware host-tab check before
-// reaching this helper. Only dfhack_console has an HTTP route; every other probe guard remains
-// file/orchestrator-only.
+// Callers must perform the host-tab check before reaching this helper -- it does not re-check.
 bool write_allowed_flag(const char* flag, bool on) {
     std::lock_guard<std::mutex> lk(g_mu);
     std::string text;
@@ -129,7 +123,7 @@ bool write_allowed_flag(const char* flag, bool on) {
     } catch (...) {
         return false;
     }
-    g_text = next;                                     // keep the cache honest immediately
+    g_text = next;
     g_stamp = std::chrono::steady_clock::now();
     g_have = true;
     return true;
@@ -137,10 +131,6 @@ bool write_allowed_flag(const char* flag, bool on) {
 
 } // namespace
 
-// Tunnel-aware host-tab detection -- the same recipe sound_route.cpp uses for the licensing
-// gate and music_sync uses for POST /music: loopback peer + no proxy-forwarding header + a
-// loopback-ish Host header. cloudflared terminates on the host and dials 127.0.0.1, so a bare
-// loopback test would wave every TUNNELED remote friend through as "the host".
 bool request_is_host_tab(const httplib::Request& req) {
     return request_has_host_authority(req);
 }
@@ -159,10 +149,7 @@ std::string guarded_refusal_json(const std::string& flag, const std::string& wha
 }
 
 void register_write_guard_routes(httplib::Server& server) {
-    // ---- GET /write-guards ----------------------------------------------------------------------
-    // Read-only flag state for guard-aware clients (the B227 justice contract, generalized): a
-    // locked control must never look live, and must light up on its own when the host flips a
-    // flag. Auth-gated upstream like every non-public route; never settable here.
+    // ---- GET /write-guards: read-only flag state, so a locked control never looks live ----------
     server.Get("/write-guards", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         std::ostringstream body;
@@ -179,10 +166,7 @@ void register_write_guard_routes(httplib::Server& server) {
     });
 
     // ---- GET|POST /console-config[?enabled=on|off] ------------------------------------------------
-    // The host-panel toggle for the dfhack_console POLICY flag -- the only key any route may
-    // write. Reading state is open to any authed player (it is the same bit /write-guards serves);
-    // WRITING requires the host tab (tunnel-aware), so a remote friend can never enable the console
-    // for themselves.
+    // dfhack_console is the only key any route may write, and only from the host tab.
     auto console_config_handler = [](const httplib::Request& req, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         const bool host = request_is_host_tab(req);

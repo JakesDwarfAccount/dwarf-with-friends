@@ -24,19 +24,27 @@
 #include "Core.h"
 #include "http_server.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "modules/Translation.h"
 #include "modules/Units.h"
 
 #include "df/global_objects.h"
+#include "df/building_type.h"
+#include "df/furnace_type.h"
 #include "df/labor_infost.h"
 #include "df/plotinfost.h"
+#include "df/reaction.h"
+#include "df/reaction_flags.h"
 #include "df/unit.h"
 #include "df/unit_labor.h"
+#include "df/workshop_type.h"
 #include "df/world.h"
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -51,26 +59,73 @@ std::recursive_mutex g_standing_orders_mutex;
 
 template <typename Fn>
 bool run_standing_orders_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> lock(g_standing_orders_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_standing_orders_mutex, std::forward<Fn>(fn));
 }
 
-// Every df::global::standing_orders_* field is a `uint8_t*` (DFHack's usual "address of a
-// singleton bool byte" pattern, same shape as df::global::pause_state -- see hud.cpp). The
-// table stores the ADDRESS OF that pointer variable (uint8_t**) so read/write is generic:
-// *addr is the uint8_t* (null if this DF build doesn't expose it), **addr is the live value.
+// The table holds uint8_t** -- the address of DFHack's own pointer variable. *addr is null when
+// this DF build does not expose the toggle; **addr is the live value.
+enum class StandingOrderCapability : uint8_t {
+    Always,
+    AutomaticKitchen,
+    AutomaticTannery,
+    AutomaticKiln,
+    AutomaticSmelter,
+    AutomaticOther,
+};
+
 struct StandingOrderDef {
     const char* key;
     uint8_t** addr;
-    const char* label;
     const char* group_id;
-    // R9 (CIM-labor-standing-orders-petitions.jpg): petition orders are a 3-state cycle
-    // (prompt=0 / accept=1 / reject=2), not a bool. tristate items serve a raw value and accept
-    // 0/1/2 on POST; every other order stays boolean.
-    bool tristate = false;
+    uint8_t state_count;
+    std::array<const char*, 4> states;
+    StandingOrderCapability capability = StandingOrderCapability::Always;
 };
+
+struct WorkshopCapabilities {
+    bool kitchen = false;
+    bool tannery = false;
+    bool kiln = false;
+    bool smelter = false;
+    bool other = false;
+};
+
+WorkshopCapabilities workshop_capabilities() {
+    WorkshopCapabilities result;
+    auto world = df::global::world;
+    if (!world)
+        return result;
+    for (auto* reaction : world->raws.reactions.reactions) {
+        if (!reaction || !reaction->flags.is_set(df::reaction_flags::AUTOMATIC))
+            continue;
+        const size_t count = std::min(reaction->building.type.size(), reaction->building.subtype.size());
+        for (size_t i = 0; i < count; ++i) {
+            const auto type = reaction->building.type[i];
+            const int32_t subtype = reaction->building.subtype[i];
+            if (type == df::building_type::Workshop) {
+                result.kitchen |= subtype == static_cast<int32_t>(df::workshop_type::Kitchen);
+                result.tannery |= subtype == static_cast<int32_t>(df::workshop_type::Tanners);
+                result.other |= subtype == static_cast<int32_t>(df::workshop_type::Custom);
+            } else if (type == df::building_type::Furnace) {
+                result.kiln |= subtype == static_cast<int32_t>(df::furnace_type::Kiln);
+                result.smelter |= subtype == static_cast<int32_t>(df::furnace_type::Smelter);
+                result.other |= subtype == static_cast<int32_t>(df::furnace_type::Custom);
+            }
+        }
+    }
+    return result;
+}
+
+bool order_available(const StandingOrderDef& def, const WorkshopCapabilities& capabilities) {
+    switch (def.capability) {
+    case StandingOrderCapability::AutomaticKitchen: return capabilities.kitchen;
+    case StandingOrderCapability::AutomaticTannery: return capabilities.tannery;
+    case StandingOrderCapability::AutomaticKiln: return capabilities.kiln;
+    case StandingOrderCapability::AutomaticSmelter: return capabilities.smelter;
+    case StandingOrderCapability::AutomaticOther: return capabilities.other;
+    default: return true;
+    }
+}
 
 struct StandingOrderGroup {
     const char* id;
@@ -92,70 +147,117 @@ const std::vector<StandingOrderGroup>& groups() {
     return value;
 }
 
-// Field -> (label, group) table. Labels for the 8 fields visible in the captured fort's
-// Workshops tab are pinned verbatim from 16b-labor-standing-orders.png; the rest (fields this
-// fort's build menu didn't surface, e.g. no smelter/kiln built yet) are derived from the
-// field's own DF-structures name/semantics -- best-effort, not independently screenshot-pinned.
 const std::vector<StandingOrderDef>& order_defs() {
+    using C = StandingOrderCapability;
     static const std::vector<StandingOrderDef> value = {
-        // Workshops (AUTOMATED_WORKSHOPS)
-        {"auto_loom", &df::global::standing_orders_auto_loom, "Automatically weave all thread", "workshops"},
-        {"use_dyed_cloth", &df::global::standing_orders_use_dyed_cloth, "Use any cloth", "workshops"},
-        {"auto_collect_webs", &df::global::standing_orders_auto_collect_webs, "Automatically collect webs", "workshops"},
-        {"auto_slaughter", &df::global::standing_orders_auto_slaughter, "Slaughter any marked animal", "workshops"},
-        {"auto_butcher", &df::global::standing_orders_auto_butcher, "Automatically butcher carcasses", "workshops"},
-        {"auto_fishery", &df::global::standing_orders_auto_fishery, "Automatically clean fish", "workshops"},
-        {"auto_kitchen", &df::global::standing_orders_auto_kitchen, "Automate kitchen", "workshops"},
-        {"auto_tan", &df::global::standing_orders_auto_tan, "Automate tannery", "workshops"},
-        {"auto_smelter", &df::global::standing_orders_auto_smelter, "Automate smelter", "workshops"},
-        {"auto_kiln", &df::global::standing_orders_auto_kiln, "Automate kiln", "workshops"},
-        {"auto_other", &df::global::standing_orders_auto_other, "Automate other workshops", "workshops"},
+        // Workshops
+        {"auto_loom", &df::global::standing_orders_auto_loom, "workshops", 3,
+            {"No automatic weaving", "Automatically weave dyed thread", "Automatically weave all thread"}},
+        {"use_dyed_cloth", &df::global::standing_orders_use_dyed_cloth, "workshops", 2,
+            {"Use any cloth", "Use only dyed cloth"}},
+        {"auto_collect_webs", &df::global::standing_orders_auto_collect_webs, "workshops", 2,
+            {"No automatic web collection", "Automatically collect webs"}},
+        {"auto_slaughter", &df::global::standing_orders_auto_slaughter, "workshops", 2,
+            {"No automatic slaughter", "Slaughter any marked animal"}},
+        {"auto_butcher", &df::global::standing_orders_auto_butcher, "workshops", 2,
+            {"No automatic butchery", "Automatically butcher carcasses"}},
+        {"auto_fishery", &df::global::standing_orders_auto_fishery, "workshops", 2,
+            {"No automatic fish cleaning", "Automatically clean fish"}},
+        {"auto_kitchen", &df::global::standing_orders_auto_kitchen, "workshops", 2,
+            {"Do not automate kitchen", "Automate kitchen"}, C::AutomaticKitchen},
+        {"auto_tan", &df::global::standing_orders_auto_tan, "workshops", 2,
+            {"Do not automate tannery", "Automate tannery"}, C::AutomaticTannery},
+        {"auto_smelter", &df::global::standing_orders_auto_smelter, "workshops", 2,
+            {"Do not automate smelter", "Automate smelter"}, C::AutomaticSmelter},
+        {"auto_kiln", &df::global::standing_orders_auto_kiln, "workshops", 2,
+            {"Do not automate kiln", "Automate kiln"}, C::AutomaticKiln},
+        {"auto_other", &df::global::standing_orders_auto_other, "workshops", 2,
+            {"Do not automate other shops", "Automate other shops"}, C::AutomaticOther},
         // Hauling
-        {"gather_wood", &df::global::standing_orders_gather_wood, "Gather wood", "hauling"},
-        {"gather_food", &df::global::standing_orders_gather_food, "Gather food", "hauling"},
-        {"gather_furniture", &df::global::standing_orders_gather_furniture, "Gather furniture", "hauling"},
-        {"gather_minerals", &df::global::standing_orders_gather_minerals, "Gather minerals", "hauling"},
-        {"gather_animals", &df::global::standing_orders_gather_animals, "Gather stray animals", "hauling"},
-        {"gather_refuse", &df::global::standing_orders_gather_refuse, "Gather refuse", "hauling"},
-        {"gather_refuse_outside", &df::global::standing_orders_gather_refuse_outside, "Gather refuse from the outside", "hauling"},
-        {"gather_vermin_remains", &df::global::standing_orders_gather_vermin_remains, "Gather vermin remains", "hauling"},
-        {"zoneonly_drink", &df::global::standing_orders_zoneonly_drink, "Haul drinks to food stockpiles only", "hauling"},
-        {"zoneonly_fish", &df::global::standing_orders_zoneonly_fish, "Haul fish to food stockpiles only", "hauling"},
+        {"gather_wood", &df::global::standing_orders_gather_wood, "hauling", 2,
+            {"Workers ignore wood", "Workers gather wood"}},
+        {"gather_food", &df::global::standing_orders_gather_food, "hauling", 2,
+            {"Workers ignore food", "Workers gather food"}},
+        {"gather_furniture", &df::global::standing_orders_gather_furniture, "hauling", 2,
+            {"Workers ignore furniture", "Workers gather furniture"}},
+        {"gather_minerals", &df::global::standing_orders_gather_minerals, "hauling", 2,
+            {"Workers ignore minerals", "Workers gather minerals"}},
+        {"gather_animals", &df::global::standing_orders_gather_animals, "hauling", 2,
+            {"Workers ignore animals", "Workers gather animals"}},
+        {"gather_refuse", &df::global::standing_orders_gather_refuse, "hauling", 2,
+            {"Workers ignore refuse", "Workers gather refuse"}},
+        {"gather_refuse_outside", &df::global::standing_orders_gather_refuse_outside, "hauling", 2,
+            {"Workers ignore outdoor refuse", "Workers gather outdoor refuse"}},
+        {"gather_vermin_remains", &df::global::standing_orders_gather_vermin_remains, "hauling", 2,
+            {"Workers ignore outdoor vermin remains", "Workers gather outdoor vermin remains"}},
+        {"zoneonly_drink", &df::global::standing_orders_zoneonly_drink, "hauling", 2,
+            {"Prefer zones for water drinking", "Drink water only from designed zones"}},
+        {"zoneonly_fish", &df::global::standing_orders_zoneonly_fish, "hauling", 2,
+            {"Prefer zones for fishing", "Fish only in designated zones"}},
         // Refuse
-        {"gather_bodies", &df::global::standing_orders_gather_bodies, "Gather bodies for burial", "refuse"},
-        {"dump_bones", &df::global::standing_orders_dump_bones, "Dump bones", "refuse"},
-        {"dump_corpses", &df::global::standing_orders_dump_corpses, "Dump corpses", "refuse"},
-        {"dump_hair", &df::global::standing_orders_dump_hair, "Dump hair", "refuse"},
-        {"dump_shells", &df::global::standing_orders_dump_shells, "Dump shells", "refuse"},
-        {"dump_skins", &df::global::standing_orders_dump_skins, "Dump skins", "refuse"},
-        {"dump_skulls", &df::global::standing_orders_dump_skulls, "Dump skulls", "refuse"},
-        {"dump_other", &df::global::standing_orders_dump_other, "Dump other refuse", "refuse"},
+        {"gather_bodies", &df::global::standing_orders_gather_bodies, "refuse", 2,
+            {"Workers ignore bodies", "Workers gather bodies"}},
+        {"dump_bones", &df::global::standing_orders_dump_bones, "refuse", 2,
+            {"Workers save bones", "Workers dump bones"}},
+        {"dump_corpses", &df::global::standing_orders_dump_corpses, "refuse", 2,
+            {"Workers save corpses", "Workers dump corpses"}},
+        {"dump_hair", &df::global::standing_orders_dump_hair, "refuse", 2,
+            {"Workers save hair and wool", "Workers dump hair and wool"}},
+        {"dump_shells", &df::global::standing_orders_dump_shells, "refuse", 2,
+            {"Workers save shells", "Workers dump shells"}},
+        {"dump_skins", &df::global::standing_orders_dump_skins, "refuse", 2,
+            {"Workers save skins", "Workers dump skins"}},
+        {"dump_skulls", &df::global::standing_orders_dump_skulls, "refuse", 2,
+            {"Workers save skulls", "Workers dump skulls"}},
+        {"dump_other", &df::global::standing_orders_dump_other, "refuse", 2,
+            {"Workers save other objects", "Workers dump other objects"}},
         // Forbidding
-        {"forbid_own_dead", &df::global::standing_orders_forbid_own_dead, "Forbid own dead", "forbidding"},
-        {"forbid_own_dead_items", &df::global::standing_orders_forbid_own_dead_items, "Forbid own dead's belongings", "forbidding"},
-        {"forbid_other_dead_items", &df::global::standing_orders_forbid_other_dead_items, "Forbid other's dead items", "forbidding"},
-        {"forbid_other_nohunt", &df::global::standing_orders_forbid_other_nohunt, "Forbid hunting others' wildlife", "forbidding"},
-        {"forbid_used_ammo", &df::global::standing_orders_forbid_used_ammo, "Forbid used ammo", "forbidding"},
-        {"forbid_rearming_traps", &df::global::standing_orders_forbid_rearming_traps, "Forbid rearming of traps", "forbidding"},
-        {"forbid_trap_cleaning", &df::global::standing_orders_forbid_trap_cleaning, "Forbid trap cleaning", "forbidding"},
-        {"forbid_cages_from_sprung_traps", &df::global::standing_orders_forbid_cages_from_sprung_traps, "Forbid cages from sprung traps", "forbidding"},
-        {"forbid_toppled_building_items", &df::global::standing_orders_forbid_toppled_building_items, "Forbid items from toppled buildings", "forbidding"},
-        {"forbid_floor_and_wall_cleaning", &df::global::standing_orders_forbid_floor_and_wall_cleaning, "Forbid floor and wall cleaning", "forbidding"},
-        // Petitions -- 3-state (prompt/accept/reject); labels + order pinned to the oracle
-        // (CIM-labor-standing-orders-petitions.jpg). The state suffix is rendered client-side.
-        {"petition_citizenship", &df::global::standing_orders_petition_citizenship, "Citizenship petitions", "petitions", true},
-        {"petition_resident_performer", &df::global::standing_orders_petition_resident_performer, "Performer petitions", "petitions", true},
-        {"petition_resident_monster_hunter", &df::global::standing_orders_petition_resident_monster_hunter, "Monster slayer petitions", "petitions", true},
-        {"petition_resident_mercenary", &df::global::standing_orders_petition_resident_mercenary, "Mercenary petitions", "petitions", true},
-        {"petition_resident_scholar", &df::global::standing_orders_petition_resident_scholar, "Scholar petitions", "petitions", true},
-        {"petition_resident_sanctuary", &df::global::standing_orders_petition_resident_sanctuary, "Sanctuary petitions", "petitions", true},
+        {"forbid_own_dead", &df::global::standing_orders_forbid_own_dead, "forbidding", 3,
+            {"Claim your dead", "Forbid your dead", "Forbid your dead during sieges"}},
+        {"forbid_own_dead_items", &df::global::standing_orders_forbid_own_dead_items, "forbidding", 3,
+            {"Claim your death items", "Forbid your death items", "Forbid your death items during sieges"}},
+        {"forbid_other_dead_items", &df::global::standing_orders_forbid_other_dead_items, "forbidding", 3,
+            {"Claim other death items", "Forbid other death items", "Forbid other death items during sieges"}},
+        {"forbid_other_nohunt", &df::global::standing_orders_forbid_other_nohunt, "forbidding", 3,
+            {"Claim other dead", "Forbid other non-hunted dead", "Forbid other non-hunted dead during sieges"}},
+        {"forbid_used_ammo", &df::global::standing_orders_forbid_used_ammo, "forbidding", 3,
+            {"Claim used ammunition", "Forbid used ammunition", "Forbid used ammunition during sieges"}},
+        {"forbid_rearming_traps", &df::global::standing_orders_forbid_rearming_traps, "forbidding", 3,
+            {"Allow trap rearming", "Forbid trap rearming", "Forbid trap rearming during sieges"}},
+        {"forbid_trap_cleaning", &df::global::standing_orders_forbid_trap_cleaning, "forbidding", 3,
+            {"Allow trap cleaning", "Forbid trap cleaning", "Forbid trap cleaning during sieges"}},
+        {"forbid_cages_from_sprung_traps", &df::global::standing_orders_forbid_cages_from_sprung_traps, "forbidding", 3,
+            {"Claim cages from sprung traps", "Forbid cages from sprung traps", "Forbid cages from sprung traps during sieges"}},
+        {"forbid_toppled_building_items", &df::global::standing_orders_forbid_toppled_building_items, "forbidding", 3,
+            {"Claim toppled building items", "Forbid toppled building items", "Forbid toppled building items during sieges"}},
+        {"forbid_floor_and_wall_cleaning", &df::global::standing_orders_forbid_floor_and_wall_cleaning, "forbidding", 3,
+            {"Allow floor/wall cleaning", "Forbid floor/wall cleaning", "Forbid floor/wall cleaning during sieges"}},
+        // Petitions
+        {"petition_citizenship", &df::global::standing_orders_petition_citizenship, "petitions", 3,
+            {"Citizenship petitions: reject", "Citizenship petitions: prompt", "Citizenship petitions: accept"}},
+        {"petition_resident_performer", &df::global::standing_orders_petition_resident_performer, "petitions", 3,
+            {"Performer petitions: reject", "Performer petitions: prompt", "Performer petitions: accept"}},
+        {"petition_resident_monster_hunter", &df::global::standing_orders_petition_resident_monster_hunter, "petitions", 3,
+            {"Monster slayer petitions: reject", "Monster slayer petitions: prompt", "Monster slayer petitions: accept"}},
+        {"petition_resident_mercenary", &df::global::standing_orders_petition_resident_mercenary, "petitions", 3,
+            {"Mercenary petitions: reject", "Mercenary petitions: prompt", "Mercenary petitions: accept"}},
+        {"petition_resident_scholar", &df::global::standing_orders_petition_resident_scholar, "petitions", 3,
+            {"Scholar petitions: reject", "Scholar petitions: prompt", "Scholar petitions: accept"}},
+        {"petition_resident_sanctuary", &df::global::standing_orders_petition_resident_sanctuary, "petitions", 3,
+            {"Sanctuary petitions: reject", "Sanctuary petitions: prompt", "Sanctuary petitions: accept"}},
         // Chores
-        {"farmer_harvest", &df::global::standing_orders_farmer_harvest, "Farmers harvest and plant automatically", "chores"},
-        {"ignore_damp_stone", &df::global::standing_orders_ignore_damp_stone, "Ignore damp stone when dumping", "chores"},
-        {"ignore_warm_stone", &df::global::standing_orders_ignore_warm_stone, "Ignore warm stone when dumping", "chores"},
+        {"farmer_harvest", &df::global::standing_orders_farmer_harvest, "chores", 2,
+            {"Only farmers harvest", "Everybody harvests"}},
+        {"ignore_damp_stone", &df::global::standing_orders_ignore_damp_stone, "chores", 2,
+            {"Mining cancelled near new damp stone", "Mining continues through new damp stone"}},
+        {"ignore_warm_stone", &df::global::standing_orders_ignore_warm_stone, "chores", 2,
+            {"Mining cancelled near new warm stone", "Mining continues through new warm stone"}},
         // Other
-        {"job_cancel_announce", &df::global::standing_orders_job_cancel_announce, "Announce job cancellations", "other"},
-        {"mix_food", &df::global::standing_orders_mix_food, "Dwarves mix food types when eating", "other"},
+        {"job_cancel_announce", &df::global::standing_orders_job_cancel_announce, "other", 4,
+            {"Announce no job cancellations", "Announce some job cancellations",
+             "Announce most job cancellations", "Announce all job cancellations"}},
+        {"mix_food", &df::global::standing_orders_mix_food, "other", 2,
+            {"Do not mix similar food in barrels", "Mix similar foods in barrels"}},
     };
     return value;
 }
@@ -169,33 +271,55 @@ const StandingOrderDef* find_def(const std::string& key) {
 
 std::string build_standing_orders_json() {
     std::ostringstream body;
-    body << "{\"ok\":true,\"groups\":[";
-    bool first_group = true;
-    for (const auto& group : groups()) {
-        if (!first_group) body << ",";
-        first_group = false;
-        body << "{\"id\":" << json_string(group.id) << ",\"label\":" << json_string(group.label) << ",\"items\":[";
-        bool first_item = true;
-        for (const auto& def : order_defs()) {
-            if (std::string(def.group_id) != group.id)
-                continue;
-            if (!def.addr || !*def.addr)
-                continue; // field not present in this DF build -- omit rather than fabricate
-            if (!first_item) body << ",";
-            first_item = false;
-            int raw = static_cast<int>(**def.addr);
-            bool value = raw != 0;
-            // raw + tristate are additive: bool `value` stays the legacy contract; a 3-state
-            // petition client reads `raw` (0/1/2) + `tristate` to render prompt/accept/reject.
-            body << "{\"key\":" << json_string(def.key) << ",\"label\":" << json_string(def.label)
-                 << ",\"value\":" << (value ? "true" : "false")
-                 << ",\"raw\":" << raw
-                 << ",\"tristate\":" << (def.tristate ? "true" : "false") << "}";
+    const bool ok = run_standing_orders_locked([&]() -> bool {
+        const auto capabilities = workshop_capabilities();
+        body << "{\"ok\":true,\"groups\":[";
+        bool first_group = true;
+        for (const auto& group : groups()) {
+            if (!first_group) body << ",";
+            first_group = false;
+            body << "{\"id\":" << json_string(group.id) << ",\"label\":" << json_string(group.label) << ",\"items\":[";
+            bool first_item = true;
+            for (const auto& def : order_defs()) {
+                if (std::string(def.group_id) != group.id)
+                    continue;
+                if (!def.addr || !*def.addr)
+                    continue;
+                const bool available = order_available(def, capabilities);
+                if (!available)
+                    continue;
+                if (!first_item) body << ",";
+                first_item = false;
+                const int raw = static_cast<int>(**def.addr);
+                const char* label = raw >= 0 && raw < def.state_count ? def.states[raw] : def.states[0];
+                body << "{\"key\":" << json_string(def.key) << ",\"label\":" << json_string(label)
+                     << ",\"value\":" << (raw != 0 ? "true" : "false")
+                     << ",\"raw\":" << raw
+                     << ",\"stateCount\":" << static_cast<int>(def.state_count)
+                     << ",\"states\":[";
+                for (uint8_t i = 0; i < def.state_count; ++i) {
+                    if (i) body << ",";
+                    body << json_string(def.states[i]);
+                }
+                body << "]}";
+            }
+            body << "]}";
         }
-        body << "]}";
-    }
-    body << "]}\n";
+        body << "]}\n";
+        return true;
+    });
+    if (!ok)
+        return "{\"ok\":false,\"error\":\"world unavailable\"}\n";
     return body.str();
+}
+
+bool parse_integer_exact(const std::string& text, int& value) {
+    if (text.empty())
+        return false;
+    const char* first = text.data();
+    const char* last = first + text.size();
+    const auto parsed = std::from_chars(first, last, value);
+    return parsed.ec == std::errc{} && parsed.ptr == last;
 }
 
 bool set_standing_order(const std::string& key, int raw, std::string* err) {
@@ -203,24 +327,20 @@ bool set_standing_order(const std::string& key, int raw, std::string* err) {
         const StandingOrderDef* def = find_def(key);
         if (!def) { if (err) *err = "unknown standing-order key"; return false; }
         if (!def->addr || !*def->addr) { if (err) *err = "field unavailable in this DF build"; return false; }
-        if (def->tristate) {
-            // R9: petitions accept 0/1/2 (prompt/accept/reject); anything else is a 400.
-            if (raw < 0 || raw > 2) { if (err) *err = "petition value must be 0, 1 or 2"; return false; }
-            **def->addr = static_cast<uint8_t>(raw);
-        } else {
-            **def->addr = raw != 0 ? 1 : 0;
+        if (!order_available(*def, workshop_capabilities())) {
+            if (err) *err = "order unavailable for this world's reactions";
+            return false;
         }
+        if (raw < 0 || raw >= def->state_count) {
+            if (err) *err = "value is outside this order's state range";
+            return false;
+        }
+        **def->addr = static_cast<uint8_t>(raw);
         return true;
     });
 }
 
-// ---- R8 (CIM-labor-standing-orders-chores.jpg): children roster + chore-type flags ----------
-// Backed by plotinfo.labor_info (df.plotinfo.xml:1025 -> labor_infost, :617-627):
-//   flags.children_do_chores  -- the global "Children do/don't do chores" toggle
-//   chores[unit_labor]        -- per chore-type enable (the 14 native chore labors below)
-//   chores_exempted_children  -- unit ids of children opted OUT (so enabled == NOT exempt)
-// The 14 chore types + their native captions + order are pinned to the oracle (the captions match
-// df.d_basics.xml unit_labor item-attr caption values exactly).
+// ---- children roster + chore-type flags, off plotinfo.labor_info ----------------------------
 struct ChoreType {
     const char* key;
     const char* label;
@@ -357,7 +477,7 @@ void register_standing_orders_routes(httplib::Server& server) {
         res.set_content(build_standing_orders_json(), "application/json; charset=utf-8");
     });
 
-    // POST /standing-orders?key=&value=1|0 -> flip one toggle.
+    // POST /standing-orders?key=&value=<raw-state> -> select one validated native state.
     auto toggle_handler = [](const httplib::Request& req, httplib::Response& res) {
         if (!req.has_param("key")) {
             res.status = 400;
@@ -365,8 +485,12 @@ void register_standing_orders_routes(httplib::Server& server) {
             return;
         }
         std::string key = req.get_param_value("key");
-        int value = 1;
-        query_int(req, "value", value);
+        int value = 0;
+        if (!req.has_param("value") || !parse_integer_exact(req.get_param_value("value"), value)) {
+            res.status = 400;
+            res.set_content("{\"ok\":false,\"error\":\"invalid value\"}\n", "application/json; charset=utf-8");
+            return;
+        }
         std::string err;
         if (!set_standing_order(key, value, &err)) {
             res.status = 400;
@@ -379,16 +503,11 @@ void register_standing_orders_routes(httplib::Server& server) {
     };
     server.Post("/standing-orders", toggle_handler);
 
-    // R8: GET /chores -> children-do-chores toggle + 14 chore-type flags + fort children roster.
     server.Get("/chores", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(build_chores_json(), "application/json; charset=utf-8");
     });
 
-    // R8: POST /chores -- one of:
-    //   ?global=0|1                  toggle "Children do/don't do chores"
-    //   ?chore=<key>&value=0|1       toggle one chore type
-    //   ?child=<unitId>&value=0|1    toggle one child (value=1 => does chores; 0 => exempt)
     server.Post("/chores", [](const httplib::Request& req, httplib::Response& res) {
         std::string err;
         bool ok = false;

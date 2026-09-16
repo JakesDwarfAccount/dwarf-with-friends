@@ -29,7 +29,7 @@
 //   - B34 (zones): make a zone in native DF, delete it from the browser -> DF walks a freed
 //     building_civzonest on its next frame (game.main_interface.civzone.cur_bld/list/
 //     zone_just_created).
-//   - stockpile UAF, dump-proven 2026-07-16: a freed building_stockpilest sat in
+//   - stockpile UAF, dump-proven: a freed building_stockpilest sat in
 //     game.main_interface.custom_stockpile.sp at crash time and the faulting instruction was
 //     building->getName() (vmethod slot 49) in the interface renderer. Browser stockpile
 //     remove AND repaint/resize both deconstruct the pile while the host may have the custom

@@ -1,0 +1,181 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.trade {
+  .trade-screen-window,
+  .depot-goods-window {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .trade-screen-window .trade-screen-close,
+  .depot-goods-window .depot-goods-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
+  }
+
+  /* header: portrait | name / yellow quote / mood line (barter-1..4) */
+  .trade-screen-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 10px 44px 10px 14px;
+    border-bottom: 2px solid var(--dwfui-gold);
+    position: relative;
+  }
+  .trade-screen-head .trade-screen-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+  }
+  .trade-screen-portrait {
+    flex: 0 0 auto;
+    width: 48px;
+    min-height: 56px;
+    display: block;
+  }
+  .trade-screen-portrait img {
+    max-width: 48px;
+    image-rendering: pixelated;
+  }
+  .trade-screen-head-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding-top: 2px;
+  }
+  .trade-screen-head-quote {
+    color: var(--dwfui-text-numeric);
+  }
+  .trade-screen-head-mood {
+    color: var(--dwfui-text-row);
+  }
+
+  /* two goods panels side by side (left merchant, right fortress) */
+  .trade-screen-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 8px 10px 0;
+  }
+  .trade-screen-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+  .trade-screen-side .trade-screen-search {
+    margin-bottom: 4px;
+  }
+  .trade-screen-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .trade-screen-row-icon,
+  .depot-goods-row-icon {
+    background: var(--dwfui-plum);
+  }
+  .trade-screen-contains {
+    color: var(--dwfui-text-numeric);
+  }
+  .depot-goods-gap-note {
+    border-top: 1px solid var(--dwfui-slab);
+  }
+
+  /* bottom bar: totals blocks + per-side Mark/Unmark + centre Seize/Trade/Offer (barter-1..4) */
+  .trade-screen-window-footer {
+    padding: 6px 12px 10px;
+    border-top: 2px solid var(--dwfui-gold);
+  }
+  .trade-screen-footer-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .trade-screen-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .trade-screen-totals-loss,
+  .trade-screen-totals-excess {
+    color: var(--dwfui-text-warning);
+  }
+  .trade-screen-totals-weight {
+    color: var(--dwfui-text-row);
+  }
+  .trade-screen-markalls {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding-top: 2px;
+  }
+  .trade-screen-footer-commits {
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  .trade-screen-host-close {
+    margin-top: 2px;
+  }
+
+  /* bring-goods screen: search + native tool tiles on top, grouped list below (depot-1..7) */
+  .depot-goods-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 44px 6px 10px;
+    position: relative;
+  }
+  .depot-goods-top .depot-goods-search {
+    flex: 1 1 auto;
+  }
+  .depot-goods-top .depot-goods-close {
+    top: 8px;
+  }
+  .depot-goods-tools {
+    flex: 0 0 auto;
+  }
+  .depot-goods-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0 10px;
+  }
+  /* inline container expansion (depot-3): children indented, no distance, no checkbox */
+  .depot-goods-children {
+    margin-left: 46px;
+    border-left: 1px solid var(--dwfui-slab);
+  }
+}

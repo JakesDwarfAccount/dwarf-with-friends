@@ -21,11 +21,12 @@
 
 #include "websocket.h"
 
-#include "auth.h"           // JOIN SECURITY: hello-token gate + hello_ack build stamp
-#include "chat.h"           // WP-D: chat_post relay on inbound {"type":"chat"}
+#include "auth.h"           // hello-token gate + hello_ack build stamp
+#include "chat.h"           // chat_post relay on inbound {"type":"chat"}
 #include "client_state.h"   // set_player_precise_cursor: store inbound smooth cursors + camera authority
+#include "common_util.h"
 #include "http_server.h"    // notify_player_input: wake the push loop on a WS-borne camera move
-#include "json_util.h"      // json_escape: hello_ack.player (B09(a) name dedup)
+#include "json_util.h"      // json_escape: hello_ack.player (name dedup)
 #include "request_origin.h"
 #include "sdl_capture.h"    // clamp_camera: mirror POST /camera's bounds clamp for WS-borne moves
 #include "wire_v1.h"        // v1 frame header build (writer stamps seq at send)
@@ -49,9 +50,8 @@
 #include "diagnostics.h"
 #include "json_mini.h"
 
-// httplib.h (included via websocket.h) already pulls in <winsock2.h> on Windows and
-// the BSD socket headers on POSIX, so ::recv / ::send / MSG_PEEK / closesocket are
-// available here without adding platform includes.
+// httplib.h (via websocket.h) already pulls in the platform socket headers, so ::recv / ::send /
+// MSG_PEEK / closesocket are available here without adding any.
 
 namespace dwf {
 
@@ -66,14 +66,8 @@ std::map<std::string, std::vector<std::shared_ptr<WsConnection>>> g_registry;
 // very-late socket teardown cannot resurrect an already-removed ghost; registry_add erases one.
 std::map<std::string, long long> g_roster_grace_deadline;
 
-// isHostClient() hook (WD-27 follow-up): the only host-identity signal in this codebase
-// (grepped -- see dwf-escmenu.js's header comment for the prior "no host concept exists
-// yet" state this replaces). Definition: the connection whose real TCP peer is loopback IS the
-// host -- true for the Steam/DFHack machine's own browser (localhost:8765 or 127.0.0.1:8765),
-// false for every tunnel (cloudflared) or LAN peer, since those always present their own real
-// address to accept(), never 127.0.0.1 -- nothing a client can spoof via headers/URL params.
-// Reuses httplib's own already-vetted peer lookup (get_remote_ip_and_port, used internally by
-// httplib::Server for its own remote_addr) rather than hand-rolling sockaddr parsing again.
+// The connection whose real TCP peer is loopback IS the host: a tunnel or LAN peer always presents
+// its own address to accept(), so nothing a client sends in headers or the URL can spoof this.
 bool socket_is_loopback_peer(::socket_t sock) {
     std::string ip;
     int port = 0;
@@ -85,19 +79,17 @@ std::mutex g_auth_mu;
 WsAuthFn g_auth;                                    // unset => allow all
 
 std::mutex g_v1_info_mu;
-V1MapInfoFn g_v1_map_info;                          // WA-8: hello_ack map dims + world_seq provider
+V1MapInfoFn g_v1_map_info;                          // hello_ack map dims + world_seq provider
 
 // Monotonic session-id counter for v1 hello_ack "session" (uuid-ish, per connection).
 std::atomic<uint64_t> g_session_counter{0};
 
-// WT24: every WS frame this process has successfully written to a socket. One relaxed
-// fetch_add per frame, next to a blocking socket write -- unmeasurable. The 60 s heartbeat
-// prints the DELTA, which is how a crash tail proves the transport was still moving bytes
-// (or had gone silent) in the minute before DF died.
+// Every WS frame successfully written to a socket. The 60 s heartbeat prints the DELTA, which is
+// how a crash tail proves the transport was still moving bytes in the minute before DF died.
 std::atomic<uint64_t> g_ws_frames_sent{0};
-constexpr size_t kReqblocksGlobalMax = 1024;
+std::atomic<size_t> g_reqblocks_map_capacity{0};  // total blocks in the loaded map; zero when unavailable
 std::atomic<size_t> g_reqblocks_queued_total{0};
-std::atomic<uint64_t> g_reqblocks_dropped_rate{0};
+std::atomic<uint64_t> g_reqblocks_coalesced{0};
 std::atomic<uint64_t> g_reqblocks_dropped_cap{0};
 std::atomic<uint64_t> g_chat_dropped_rate{0};
 std::atomic<uint64_t> g_ws_upgrade_misclassified{0};
@@ -141,10 +133,8 @@ struct Sha1 {
         while (n) { buf[bi++] = *p++; n--; if (bi == 64) { block(buf); bi = 0; } }
     }
     void finish(uint8_t out[20]) {
-        // Capture the ORIGINAL message bit-length BEFORE appending padding. The
-        // add() calls below each advance `len`, so reading it after padding would
-        // encode the padded length into the final block and corrupt the digest
-        // (the bug that produced a wrong Sec-WebSocket-Accept).
+        // Capture the ORIGINAL message bit-length BEFORE padding: the add() calls below advance
+        // `len`, so reading it afterwards encodes the padded length and corrupts the digest.
         uint64_t ml = len;
         uint8_t pad = 0x80; add(&pad, 1);
         uint8_t z = 0; while (bi != 56) add(&z, 1);
@@ -159,20 +149,6 @@ struct Sha1 {
     }
 };
 
-std::string base64(const uint8_t* d, size_t n) {
-    static const char* t =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    std::string o;
-    int val = 0, bits = -6;
-    for (size_t i = 0; i < n; i++) {
-        val = (val << 8) + d[i]; bits += 8;
-        while (bits >= 0) { o.push_back(t[(val >> bits) & 0x3f]); bits -= 6; }
-    }
-    if (bits > -6) o.push_back(t[((val << 8) >> (bits + 8)) & 0x3f]);
-    while (o.size() % 4) o.push_back('=');
-    return o;
-}
-
 std::string ws_accept(const std::string& key) {
     std::string s = key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     Sha1 h; h.add(reinterpret_cast<const uint8_t*>(s.data()), s.size());
@@ -180,10 +156,8 @@ std::string ws_accept(const std::string& key) {
     return base64(dg, 20);
 }
 
-// Self-test of the handshake crypto against fixed known-answer vectors. Returns true
-// iff SHA-1, base64 and the RFC6455 Sec-WebSocket-Accept derivation all match. Kept
-// callable so the plugin can assert it once at startup (see ws_selftest()); a failure
-// here means no browser/Cloudflare would ever accept our Upgrade.
+// Known-answer self-test of SHA-1, base64 and the RFC6455 Accept derivation. A failure here means
+// no browser or edge would ever accept our Upgrade.
 bool ws_crypto_selftest() {
     // 1) SHA-1("abc") == a9993e36 4706816a ba3e2571 7850c26c 9cd0d89d
     static const uint8_t kAbc[20] = {
@@ -200,9 +174,8 @@ bool ws_crypto_selftest() {
     return true;
 }
 
-// Run the crypto self-test once at plugin load. This both keeps ws_crypto_selftest()
-// referenced (so it isn't dead-stripped) and surfaces any handshake-crypto regression
-// loudly on stderr the moment the DLL loads, rather than as a silent failed Upgrade.
+// Run once at load: it keeps ws_crypto_selftest() referenced, so it is not dead-stripped, and
+// surfaces a handshake-crypto regression loudly instead of as a silent failed Upgrade.
 const bool g_ws_crypto_ok = [] {
     bool ok = ws_crypto_selftest();
     if (!ok)
@@ -212,14 +185,7 @@ const bool g_ws_crypto_ok = [] {
 }();
 
 // ---- raw socket helpers --------------------------------------------------------
-// httplib leaves accepted sockets in NON-BLOCKING mode. Our raw WS I/O helpers previously
-// treated ::recv/::send returning -1/EWOULDBLOCK as a dead peer and returned false. That was
-// THE root cause of "stream only updates while I feed it input": an idle WebSocket sends no
-// inbound frames, so the recv loop's recv_all hit EWOULDBLOCK, reported the connection closed,
-// and handle_ws_connection tore it down -- which also killed the push writer's send (0 frames).
-// Continuous client input kept recv_all returning data, keeping the connection (and the
-// outbound stream) alive. Fix: EWOULDBLOCK is not an error -- wait for the socket to become
-// ready via select() and retry, so these behave like true blocking I/O regardless of mode.
+// Used on sockets this file set non-blocking, so EWOULDBLOCK means "not yet", not a dead peer.
 #ifdef _WIN32
 inline int sock_last_err() { return WSAGetLastError(); }
 inline bool sock_would_block(int e) { return e == WSAEWOULDBLOCK; }
@@ -228,41 +194,20 @@ inline int sock_last_err() { return errno; }
 inline bool sock_would_block(int e) { return e == EWOULDBLOCK || e == EAGAIN; }
 #endif
 
-// ROOT CAUSE (2026-07-05, proven): on this Winsock stack, a thread parked in a LONG-BLOCKING
-// socket call on a handle -- a blocking ::recv(), or select() with an infinite/long timeout --
-// serializes ANY concurrent socket op (send/select/recv) on that SAME handle from another
-// thread. Our two-thread design (connection thread draining inbound via recv_all; writer thread
-// pushing map frames via send_all) put both threads on ONE socket. An idle client left the
-// recv thread parked forever, which blocked the writer's send -> 0 frames until the client sent
-// inbound bytes (each byte briefly released recv, letting exactly one frame out = the "updates
-// only while I move the mouse" stall). Fix: NEVER hold the socket in a long-blocking call.
-// Socket stays non-blocking; both recv_all and send_all use short non-blocking attempts with a
-// brief SLEEP between retries (no select, no blocking recv). Quick non-blocking ::recv/::send
-// return in microseconds, so the two threads never serialize behind each other.
+// NEVER hold the socket in a long-blocking call: on this Winsock stack a thread parked in one
+// serializes every concurrent op on the SAME handle, which froze the writer behind the recv thread.
 constexpr int kPollSleepMs = 4;          // retry cadence when a non-blocking op would block
 constexpr int kSendStallCapMs = 10000;   // give up on a send that can't drain for this long
-// Per-connection send-buffer cap. Windows autotunes SO_SNDBUF to several MB, so ::send to a
-// black-holed/half-open peer keeps SUCCEEDING (copying into the kernel send buffer) for tens of
-// seconds before it finally fills and ::send blocks -- which is when the A2 zombie prune can
-// fire. Bounding the send buffer makes ::send block (and the stall cap + writer close() prune)
-// within a couple seconds of the peer going dark, and -- the §D transport point -- restores
-// server-side backpressure so a capacity-collapsed path self-limits to ~256 KiB of queued
-// state instead of megabytes of buffer-bloat. 256 KiB is ~2 s of a 30 fps stream: ample for
-// fast clients (each keyframe is ~30 KiB compressed), tight enough to prune a dead one fast.
+// Windows autotunes SO_SNDBUF to megabytes, so ::send to a black-holed peer keeps succeeding for
+// tens of seconds. Bounding it restores backpressure and lets the stall cap prune a dead peer.
 constexpr int kSendBufBytes = 262144;    // 256 KiB
 
-// Keepalive (WA-3): server PING cadence and the inbound-silence deadline. Browsers auto-PONG
-// protocol pings, so any live client refreshes last_inbound within one interval; a vanished
-// client (sleep/wake, tunnel path death, black-holed edge) goes silent and is swept at 45 s.
+// Browsers auto-PONG protocol pings, so any live client refreshes last_inbound within one interval;
+// a vanished client goes silent and is swept at kSilenceCloseMs.
 constexpr long long kPingIntervalMs = 10000;
 constexpr long long kSilenceCloseMs = 45000;
 constexpr long long kRosterGraceMs = 5000;   // absorb refresh/reconnect flaps without row flicker
 constexpr int kHttpIoTimeoutMs = 5000;       // bound dead HTTP peers; never held under DF locks
-
-long long steady_ms() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-}
 
 bool recv_all(::socket_t s, uint8_t* p, size_t n) {
     while (n) {
@@ -278,15 +223,8 @@ bool recv_all(::socket_t s, uint8_t* p, size_t n) {
     return true;
 }
 bool send_all(::socket_t s, const uint8_t* p, size_t n) {
-    // ABSOLUTE per-frame cap (not "continuous-block" cap). A half-open / wedged peer whose TCP
-    // window dribbles open a few bytes per RTO would keep an r>0 "made progress, reset the
-    // stall timer" loop alive indefinitely -- so the zombie (A2) would prune only tens of
-    // seconds after the peer went dark (measured: ~25-30 s on a loopback half-open), not within
-    // kSendStallCapMs as intended. Bounding the TOTAL time for a single frame's send makes a
-    // dead peer's send fail within kSendStallCapMs of first blocking, so writer_loop's close()
-    // (this item) prunes promptly. A healthy client drains any frame in microseconds and never
-    // approaches the cap; a legitimately slow but progressing frame that needs >10 s is already
-    // pathological (keyframes are ~30 KB compressed and the 30 fps gate passes over the tunnel).
+    // An ABSOLUTE per-frame cap, not a "made progress" reset: a half-open peer dribbling a few
+    // bytes per RTO would keep the stall timer alive and delay the zombie prune indefinitely.
     auto call_start = std::chrono::steady_clock::now();
     while (n) {
         int r = ::send(s, reinterpret_cast<const char*>(p), (int)n, 0);
@@ -303,33 +241,12 @@ bool send_all(::socket_t s, const uint8_t* p, size_t n) {
     }
     return true;
 }
-// Clear any inherited receive timeout on an upgraded WebSocket socket. httplib set a read
-// timeout on the accepted socket for HTTP request parsing; our WS drain loop uses raw
-// blocking ::recv, so that timeout makes recv() fail on INBOUND SILENCE and we tear the
-// socket down. But a WebSocket is long-lived and a well-behaved client legitimately sends
-// nothing for long stretches (it only emits cursor/control frames while the user is active).
-// Symptom of NOT clearing it: the stream hangs the instant the user stops moving the mouse,
-// because that's when the browser stops sending and the server times out the read. Server->
-// client pushes run on the push-loop thread and are unaffected by this.
+// Clear the read timeout httplib set for HTTP request parsing: a WebSocket is long-lived, and a
+// well-behaved client legitimately sends nothing for long stretches.
 void clear_socket_read_timeout(::socket_t s) {
-    // CRITICAL: httplib leaves the accepted socket in NON-BLOCKING mode (it drives its own
-    // HTTP I/O with select()). But our WS uses raw blocking-style recv_all/send_all, which
-    // on a non-blocking socket FAIL immediately with EWOULDBLOCK -- recv_all drops the moment
-    // the client is quiet, and send_all fails whenever a frame can't be buffered in one shot.
-    // Put the socket back into BLOCKING mode so recv_all waits for data and send_all waits for
-    // buffer space (the per-connection writer thread means a blocked send only stalls itself).
-    // SEND TIMEOUT: bound how long a single blocking send can stall the per-connection writer.
-    // A slow client (or a client whose async inflate backs up, filling the tunnel's buffer)
-    // would otherwise make ::send block for MINUTES holding send_mu_, which also starves the
-    // keepalive pong -> the connection dies anyway (1006), just slowly. With SO_SNDTIMEO the
-    // send fails after a few seconds; the writer closes the socket and the client reconnects
-    // cleanly. Fast clients complete each send in microseconds and never hit this.
 #ifdef _WIN32
-    // ROOT CAUSE FIX (2026-07-05): keep the socket NON-BLOCKING so ::recv/::send return
-    // EWOULDBLOCK immediately instead of parking. recv_all/send_all then sleep-poll on
-    // EWOULDBLOCK (see their comment) -- NEITHER thread ever holds the socket in a long-blocking
-    // call, which is the only thing that serialized the writer behind the recv thread and caused
-    // the idle stall. TCP_NODELAY disables Nagle so small delta frames go out immediately.
+    // Keep the socket NON-BLOCKING so neither thread ever parks in a long-blocking call; recv_all
+    // and send_all sleep-poll instead. TCP_NODELAY disables Nagle so small frames leave at once.
     u_long nonblocking = 1;   // 1 => non-blocking
     int rc = ::ioctlsocket(s, FIONBIO, &nonblocking);
     BOOL one = TRUE;
@@ -364,9 +281,8 @@ bool set_socket_nonblocking(::socket_t s, bool enabled) {
 }
 
 void configure_http_socket(::socket_t s) {
-    // cpp-httplib writes a completed Response only after the route handler has returned, so no
-    // capture mutex/CoreSuspender is live here. Bound the kernel call anyway: a dead reader may
-    // consume one HTTP worker for at most this deadline, never the whole server indefinitely.
+    // No capture mutex or CoreSuspender is live here, but bound the kernel call anyway: a dead
+    // reader may hold one HTTP worker for at most this deadline, never the server indefinitely.
     (void)set_socket_nonblocking(s, false);
 #ifdef _WIN32
     DWORD timeout = kHttpIoTimeoutMs;
@@ -445,33 +361,17 @@ std::string req_player(const std::string& head) {
     std::string p = target.substr(qp + 7);
     auto amp = p.find('&');
     if (amp != std::string::npos) p = p.substr(0, amp);
-    // IDENTITY ENCODING (camera snap-back root cause, 2026-07-17): the browser builds this /ws URL
-    // with encodeURIComponent(name), so a display name with a space/`&`/unicode arrives PERCENT-
-    // ENCODED here (e.g. "Your Friend" -> "Your%20Friend"). httplib decodes ordinary HTTP query
-    // params exactly once (detail::decode_url(val, true) in its parser), but this raw /ws-upgrade
-    // parser did NOT -- so the connection (and thus the registry name, presence_json, hello_ack.player)
-    // registered under the LITERAL "Your%20Friend". The client then adopted that as its player key and
-    // re-encoded it on every HTTP ?player= (-> "Your%2520Friend"), which query_player's is_safe_player_id
-    // guard rejected -> silently mapped to "default" -> POST /camera wrote a phantom camera while the
-    // WS streamed the real one -> reconcileAuxCam snapped the view back ~1s after every move. Decode
-    // here with the SAME rule httplib uses for HTTP params so both transports canonicalize one identical
-    // RAW identity. (Chrome "worked" only because the owner's name had no space to encode.)
+    // The browser builds this URL with encodeURIComponent, so decode here with the SAME rule
+    // httplib uses for HTTP params: both transports must canonicalize one identical raw identity.
     p = httplib::detail::decode_url(p, /*convert_plus_to_space=*/true);
-    // R1: validate the DECODED identity with the exact same gate HTTP uses (is_safe_player_id via
-    // query_player). Without this, a control-char name ("x%0AINJECTED") would decode to a
-    // newline-bearing identity that registers fine on the WS but that every HTTP ?player= route maps
-    // to "default" -- the phantom split resurrected for hostile/malformed names -- and would forge
-    // newlines into the "ws hello DENIED ... player=" diagnostics_log line. Fall back to "guest" (this
-    // parser's existing rejection value) so both transports agree on rejection; a legit client then
-    // adopts "guest" from hello_ack and keys HTTP on it too, so they still converge.
+    // Validate the DECODED identity with the same gate HTTP uses, or a control-char name registers
+    // on the WS while every HTTP ?player= maps it to "default". Rejection falls back to "guest".
     if (p.empty() || !is_safe_player_id(p))
         return std::string("guest");
     return p;
 }
 
-// Extract an integer query param (?name=NN) from the request target. Returns `def`
-// when absent/unparseable. Used to read the client's desired tile-window w/h off the
-// /ws URL so pushed frames match its canvas (same sizing as GET /mapdata?w=&h=).
+// An integer query param off the request target; `def` when absent or unparseable.
 int req_int(const std::string& head, const char* name, int def) {
     auto sp = head.find(' ');
     if (sp == std::string::npos) return def;
@@ -509,10 +409,6 @@ void registry_add(const std::shared_ptr<WsConnection>& c) {
         g_registry[c->player()].push_back(c);
         g_roster_grace_deadline.erase(c->player());   // reconnect re-adopts the row immediately
     }
-    // WA-15: the legacy per-player keyframe-resync flag (ws_request_keyframe) is gone -- a
-    // fresh v1 connection's catch-up is entirely driven by its HELLO `have` (§0.6 resume) and
-    // the interest-window scan (§0.8), which already re-offers every in-window block a new
-    // connection hasn't been sent yet.
 }
 void registry_remove(const std::shared_ptr<WsConnection>& c) {
     bool last_gone = false;
@@ -528,34 +424,19 @@ void registry_remove(const std::shared_ptr<WsConnection>& c) {
             last_gone = true;
         }
     }
-    // A8/WA-15: when a player's LAST socket departs, drop its /diag v1.players row (WA-12/13's
-    // finding: it survives a disconnect -- cosmetic, since /diag's connections:0 already proves
-    // no live socket, but stale rows are confusing). world_stream_forget only erases a diag-row
-    // map entry keyed by player, so it's safe under no other lock.
+    // When a player's LAST socket departs, drop its /diag row. world_stream_forget only erases a
+    // map entry keyed by player, so it is safe under no other lock.
     if (last_gone) {
         world_stream_forget(c->player());
     }
 }
 
-// ---- B09(a): server-side player-name dedup --------------------------------------
-// Per-player server state is keyed on the player NAME: g_player_cameras (client_state.cpp),
-// the frame-delta baseline g_frame_cache (sdl_capture.cpp), g_dismissed_alert_keys, the /diag
-// row, AND the push loop's interest window (world_stream.cpp uses camera_for_player(player)).
-// Two DIFFERENT live connections sharing a name (same invite link -> same ?player=) would thus
-// share ONE camera + ONE delta baseline -> panning one yanks the other's viewport and their
-// deltas corrupt each other. At HELLO we rename any name already held by a DIFFERENT live
-// connection to the first free "name-2"/"name-3"/... and return the final name in
-// hello_ack.player; the client adopts it for every HTTP ?player= + its display. A page REFRESH
-// sends the SAME client-id (sessionStorage) as its own lingering ghost connection, so we SKIP a
-// same-id holder and the refresh keeps (reuses) its slot rather than incrementing off its ghost.
-// The dedup suffix uses '-' purely as a readable convention; the name is the HTTP ?player= key, but
-// is_safe_player_id() now accepts any non-control byte (spaces/parens/UTF-8 included), so this is a
-// style choice, not a safety constraint.
+// Per-player server state is keyed on the player NAME, so two live connections sharing a name would
+// share one camera and one delta baseline. At HELLO a colliding name becomes "name-2", "name-3", ...
 std::mutex g_dedup_mu;
 
-// Move `c` from its current registry bucket to `newName`'s bucket and update player_ atomically
-// wrt the registry (so a later registry_remove -- which finds the bucket via player() -- and the
-// push loop see a consistent name). Caller holds g_dedup_mu.
+// Moves `c` between registry buckets and updates player_ atomically with respect to the registry,
+// so registry_remove and the push loop can never see two different names. Caller holds g_dedup_mu.
 void ws_rename_connection(const std::shared_ptr<WsConnection>& c, const std::string& newName) {
     std::lock_guard<std::mutex> lk(g_registry_mu);
     std::string oldName = c->player();
@@ -591,12 +472,8 @@ void dedup_player_name(const std::shared_ptr<WsConnection>& conn, const std::str
     }
 }
 
-// Build + enqueue the v1 hello_ack (§0.5) onto CH_CTRL. Map dims + world_seq come from
-// the registered provider (DF-derived, cached); session/tick_ms/limits are protocol facts.
-// NOTE (WA-16): `limits.k` is advertised as its FLOOR value (3) -- accurate at hello time,
-// since no RTT sample exists yet -- but window_open() (websocket.cpp) now scales the real
-// admission window up with the connection's measured RTT, up to 16. The client doesn't
-// currently consume `limits.k` for anything, so this stays informational/unchanged.
+// hello_ack: map dims and world_seq come from the registered provider, the rest are protocol facts.
+// `limits.k` is advertised at its FLOOR value -- window_open() scales the real admission window.
 void send_hello_ack(const std::shared_ptr<WsConnection>& conn) {
     V1MapInfo mi;
     { V1MapInfoFn fn;
@@ -604,32 +481,23 @@ void send_hello_ack(const std::shared_ptr<WsConnection>& conn) {
       if (fn) mi = fn(); }
     std::string ack =
         "{\"type\":\"hello_ack\",\"proto\":1,\"world_seq\":" + std::to_string(mi.world_seq) +
-        // B09(a): the authoritative (possibly deduped) player name. The client adopts this for
-        // every HTTP ?player= key + its display, so its per-player state stops colliding with a
-        // same-named peer. Sent on EVERY hello_ack (incl. reconnects) so the client self-heals.
-        // R2: emit BYTE-CLEAN (chat_escape, not json_escape) -- the name arrived from the browser
-        // already UTF-8, and json_escape's DF2UTF CP437->UTF-8 transcode would mojibake it ("Zoe"
-        // with a diaeresis -> "ZoA<<"), so the client would adopt a DIFFERENT string than the raw
-        // identity the WS registered under -> HTTP ?player= keys on the mojibake -> phantom split for
-        // every non-ASCII name. chat_escape passes UTF-8 bytes through so adopted == registered.
+        // The authoritative, possibly deduped, player name, sent on EVERY hello_ack so a client
+        // self-heals. chat_escape, not json_escape, whose DF2UTF transcode would mojibake UTF-8.
         ",\"player\":\"" + chat_escape(conn->player()) + "\"" +
         ",\"session\":\"" + conn->session() + "\",\"tick_ms\":33,\"map\":{\"w\":" +
         std::to_string(mi.w) + ",\"h\":" + std::to_string(mi.h) + ",\"z\":" +
         std::to_string(mi.z) + "},\"limits\":{\"k\":3,\"bulk_bytes\":262144,\"ack_every\":1}" +
-        // isHostClient() hook (WD-27 follow-up): server-computed, peer-address-derived signal
-        // (see socket_is_loopback_peer() / WsConnection::is_host_) -- NOT reflecting anything
-        // the client claimed. dwf-ws.js surfaces this as DwfWS.isHost().
+        // Server-computed from the peer address; never anything the client claimed.
         ",\"isHost\":" + std::string(conn->is_host() ? "true" : "false") +
-        // VERSION-MISMATCH GATE: the server build stamp (wire CRC + git short hash). The client
-        // compares it to its own baked window.DFCAPTURE_BUILD and shows a "refresh -- stale tab"
-        // banner on mismatch. Additive field; an old client ignores it.
+        // The server build stamp. The client compares it to its own baked window.DFCAPTURE_BUILD
+        // and shows the stale-tab banner on mismatch. Additive -- an old client ignores it.
         ",\"build\":\"" + json_escape(auth::build_stamp()) + "\"}";
     conn->enqueue_frame(WsConnection::CH_CTRL,
                         std::vector<uint8_t>(ack.begin(), ack.end()), /*binary=*/false);
 }
 
 // Route one decoded text frame from a connection. Legacy sessions understand cursor +
-// reqkey; v1 sessions add hello/ack/cam/pong (§0.4). Anything else is ignored.
+// reqkey; v1 sessions add hello/ack/cam/pong. Anything else is ignored.
 void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::string& payload) {
     if (payload.size() > 4096) return;   // control JSON is tiny; ignore anything huge
     const std::string& player = conn->player();
@@ -662,15 +530,11 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
         return result == json_mini::Get::Ok;
     };
 
-    // ---- protocol v1 control (§0.4) --------------------------------------------------
+    // ---- protocol v1 control ---------------------------------------------------------
     if (conn->is_v1()) {
         if (is_type("hello")) {
-            // JOIN SECURITY: when a passphrase is configured, the hello MUST carry the shared
-            // credential (`token`). This gates a DIRECT ws:// connection that bypasses the join
-            // screen (the pre-routing HTTP gate can't see /ws -- the upgrade is intercepted below
-            // httplib routing). Legit clients set the same value in a cookie for HTTP, so the two
-            // paths use one shared secret. On failure: tell the client (auth_fail) then close, so a
-            // stored-but-stale credential re-shows the join screen instead of silently reconnecting.
+            // With a passphrase configured the hello MUST carry it: the pre-routing HTTP gate
+            // cannot see /ws. On failure, tell the client (auth_fail) and then close.
             if (dwf::auth::enabled()) {
                 std::string tok;
                 get_string(doc.root, "token", tok);
@@ -695,7 +559,7 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             double cw = 0, ch = 0, cx = 0, cy = 0, cz = 0;
             bool has_cam = get_number(*cam_scope, "w", cw) & get_number(*cam_scope, "h", ch);
             get_number(*cam_scope, "x", cx); get_number(*cam_scope, "y", cy); get_number(*cam_scope, "z", cz);
-            // S5 capability is additive: old clients send no caps and keep full AUX.
+            // The capability list is additive: old clients send no caps and keep full AUX.
             bool wants_auxd = false;
             const auto caps_it = doc.root.object.find("caps");
             if (caps_it != doc.root.object.end() && caps_it->second.type == json_mini::Type::Array) {
@@ -707,9 +571,8 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             conn->set_wants_auxd(wants_auxd);
             conn->mark_hello((uint32_t)(have < 0 ? 0 : have), has_cam,
                              (int)cx, (int)cy, (int)cz, (int)cw, (int)ch);
-            // B09(a): capture the stable per-tab id, then dedup this connection's name against
-            // OTHER live connections (renaming to name-2/... on a real collision). mark_hello
-            // was called first so a concurrent hello sees this conn as an established name.
+            // mark_hello ran first, so a concurrent hello already sees this connection as an
+            // established name when the dedup scan runs.
             std::string cid;
             if (get_string(doc.root, "id", cid)) {
                 if (cid.size() > 64) cid.resize(64);
@@ -719,21 +582,13 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             send_hello_ack(conn);
             return;
         }
-        // In-session RENAME (players list -> "Rename" your own row). Small + safe: it reuses the
-        // exact machinery a fresh join already uses. We move this connection's registry bucket to
-        // the requested name, run the same dedup (a live collision on a DIFFERENT client-id suffixes
-        // name-2/...; our own reconnect ghost is skipped), carry the name-keyed camera/cursor/follow
-        // state across so the view doesn't snap to the host camera, and reply with a hello_ack whose
-        // authoritative `player` the client adopts. The ~30Hz presence AUX re-advertises the new
-        // registry key to every other client, and the server keys the smooth cursor on the live
-        // connection name, so remote rosters + this player's cursor label update with NO ~40s ghost
-        // (the old name leaves the registry immediately -- a web-only rejoin could not avoid that).
+        // In-session rename reuses the join machinery: move the registry bucket, run the same
+        // dedup, carry the name-keyed camera/cursor/follow state, and reply with a hello_ack.
         if (is_type("rename")) {
             std::string requested;
             if (!get_string(doc.root, "name", requested)) return;
-            // Same validation contract as the join card: trim, non-empty, maxlength 32. The name is
-            // the HTTP ?player= key; is_safe_player_id (checked after dedup) now rejects only control
-            // chars, so spaces/parens/UTF-8 in a rename are accepted just like on the join card.
+            // Same validation contract as the join card: trim, non-empty, maxlength 32.
+            // is_safe_player_id rejects only control chars, so spaces and UTF-8 are accepted.
             size_t b = requested.find_first_not_of(" \t\r\n");
             if (b == std::string::npos) return;                 // empty after trim -> ignore
             size_t e = requested.find_last_not_of(" \t\r\n");
@@ -763,31 +618,16 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
             if (has_dims || has_pos)
                 conn->update_cam(has_pos, (int)cx, (int)cy, (int)cz,
                                  has_dims ? (int)cw : 0, has_dims ? (int)ch : 0);
-            // PRIMARY CAMERA TRANSPORT (camera snap-back fix, 2026-07-17). Historically a cam message
-            // carried DIMS ONLY: browsers panned via a separate HTTP POST /camera, and the streamer's
-            // interest POSITION came from that POST authority (client_state g_player_cameras) while this
-            // conn snapshot's xyz stayed stale/zero (world_stream.cpp:1082 reads camera_for_player, not
-            // get_cam's position). When the HTTP POST silently failed (blocked, 401, or -- the real
-            // culprit here -- a phantom double-encoded ?player=), the WS kept streaming the UNMOVED
-            // authoritative camera and reconcileAuxCam snapped the player back. Fix: when a cam message
-            // carries a position, apply it to the SAME per-player authority POST /camera writes, keyed
-            // on the connection's RAW registry identity (conn->player()) -- so it can never miss the
-            // is_safe_player_id/URL round-trip a browser-built ?player= can. This mirrors POST /camera's
-            // ABSOLUTE branch (session_routes.cpp) exactly: seed from the player's current camera to
-            // preserve zoom_factor/placement fields, overwrite x/y/z, floor z at 0, clamp_camera, break
-            // any follow (no client sends follow=1 today), set, and wake the push loop. NO feedback
-            // loop: the client sends its own optimistic desiredCam absolute, the ~30Hz AUX echoes that
-            // exact clamped camera back, and reconcileAuxCam (dwf-tiles.js) sees desiredCam == aux.cam
-            // -> not diverged -> no snap. The old HTTP POST remains as a socket-down fallback.
+            // PRIMARY CAMERA TRANSPORT: a cam message carrying a position writes the SAME
+            // per-player camera authority POST /camera writes, keyed on conn->player().
             if (has_pos) {
                 Camera camera;
                 std::string cam_err;
                 if (camera_for_player(player, camera, &cam_err)) {
                     camera.x = (int)cx;
                     camera.y = (int)cy;
-                    // Mirror POST /camera's absolute branch: only overwrite z when the message carried
-                    // it (POST leaves the seeded camera's z untouched when `z` is absent). The client
-                    // always sends z today, so this is latent -- but it keeps the two paths identical.
+                    // Mirror POST /camera's absolute branch: overwrite z only when the message
+                    // carried one.
                     if (has_z)
                         camera.z = (int)cz;
                     if (camera.z < 0)
@@ -818,24 +658,18 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
                 json_mini::int_triples(doc.root, "blocks", triples, 64);
             if (blocks_result == json_mini::Get::Malformed)
                 malformed("field 'blocks' must contain integer triples");
-            if (!triples.empty()) conn->queue_reqblocks(triples);   // rate-limited (>=250ms/msg)
+            if (!triples.empty()) conn->queue_reqblocks(triples);   // map-bounded + coalesced; all pending handed off <=1/250ms
             return;
         }
         if (is_type("reqkey")) {
-            // §0.4/WA-15: reqkey is permanently "treated as reqblocks for the interest
-            // window". The interest window is already re-offered every tick regardless of
-            // this message (WA-9's in-view scan keeps re-queuing any block this connection
-            // hasn't been sent at its current ver -- world_stream.cpp), so there is nothing
-            // extra to queue here.
+            // reqkey is treated as reqblocks for the interest window, and that window is already
+            // re-offered every tick, so there is nothing extra to queue here.
             return;
         }
     }
 
-    // ---- WP-D chat ({"type":"chat","text":"..."}) -- any session (v1 falls through here) -------
-    // The WS handshake already authenticated this connection (hello token / cookie), so a live
-    // socket is trusted; chat needs no further auth. Rate-limited per connection; a refusal is sent
-    // back on the control channel so the composer does not falsely look successful. chat_post
-    // trims/clamps + rejects an empty line; on acceptance it broadcasts to all.
+    // The WS handshake already authenticated this connection, so chat needs no further auth. A
+    // rate refusal is sent back on the control channel so the composer never looks successful.
     if (is_type("chat")) {
         long long retry_after_ms = 0;
         if (!conn->chat_rate_ok(&retry_after_ms)) {
@@ -863,26 +697,17 @@ void handle_client_text(const std::shared_ptr<WsConnection>& conn, const std::st
 }
 
 // ---- the connection handler for /ws --------------------------------------------
-// Push-only from the server's point of view: we register the socket, then block draining
-// client control frames (pings, cursor/hello/ack/cam JSON). The actual map data is written
-// by protocol v1's world_stream push. A v1 connection
-// (`?proto=1`) sends `hello` and is streamed binary BLOCK_SET/AUX frames; a non-v1 connection
-// (used only by a couple of raw-socket test probes that don't care about map data, e.g.
-// wedge_probe.py/we5_ws_leak_probe.py) just sits here answering cursor/protocol-ping control
-// forever -- there is no map data left to seed or push to it. We return when the socket closes.
+// Push-only from the server's side: register the socket, then drain client control frames.
 void handle_ws_connection(std::shared_ptr<WsConnection> conn) {
     registry_add(conn);
 
-    // Drain inbound control frames until the peer closes. Non-binary payloads are
-    // currently ignored (reserved for future camera/chat control); ping/pong/close
-    // are handled inside recv().
+    // Drain inbound control frames until the peer closes; ping/pong/close live inside recv().
     diagnostics_log_v("recv-loop ENTER player=" + conn->player());
     std::string payload;
     bool is_binary = false;
     std::string err;
     while (conn->recv(payload, is_binary, &err)) {
-        // Text frames are small control JSON (cursor/hello/ack/cam). Binary from the client
-        // is reserved and ignored here.
+        // Text frames are small control JSON; binary from the client is reserved and ignored.
         if (!is_binary) handle_client_text(conn, payload);
     }
     diagnostics_log_v("recv-loop EXIT player=" + conn->player() + " reason=" + err);
@@ -900,9 +725,8 @@ public:
             std::lock_guard<std::mutex> lk(ws_threads_mu_);
             ws_stopping_ = true;
         }
-        // httplib::Server::stop() closes only the listen socket. Its thread pool still drains
-        // every accepted connection, and an idle keep-alive can hold each worker for five
-        // seconds. Wake active HTTP sockets and make queued workers close immediately.
+        // stop() closes only the listen socket: the pool still drains every accepted connection,
+        // and an idle keep-alive can hold a worker for five seconds. Wake them instead.
         {
             std::lock_guard<std::mutex> lk(http_sockets_mu_);
             http_stopping_ = true;
@@ -912,8 +736,8 @@ public:
     }
 
     ~WsHttpServer() override {
-        // Enforce the no-new-upgrades side of teardown even if a future httplib version changes
-        // task-queue destruction ordering. Closing the registry then unblocks every recv loop.
+        // Enforce the no-new-upgrades side of teardown even if httplib changes its task-queue
+        // destruction order. Idempotent, so it also covers destruction without begin_shutdown.
         begin_shutdown();
         std::vector<std::pair<std::shared_ptr<std::atomic<bool>>, std::thread>> threads;
         { std::lock_guard<std::mutex> lk(ws_threads_mu_); threads.swap(ws_threads_); }
@@ -921,15 +745,11 @@ public:
     }
 
 protected:
-    // process_and_close_socket is a PRIVATE virtual on httplib::Server (httplib.h:543).
-    // Overriding a private virtual is legal (NVI). We MSG_PEEK the accepted socket:
-    // a WebSocket Upgrade is taken over here; anything else is handed back to the base
-    // HTTP handling. Because the base method is private we cannot name/call
-    // httplib::Server::process_and_close_socket() from a derived class, so the
-    // delegate path replicates the base body (httplib.h:3708) using the *protected*
-    // members keep_alive_max_count_/read_timeout_sec_/read_timeout_usec_/process_request
-    // and the accessible httplib::detail::process_and_close_socket() free function.
+    // process_and_close_socket is a PRIVATE virtual on httplib::Server. Overriding it is legal but
+    // CALLING it is not, so the non-WS path replicates the base body via the protected members.
     bool process_and_close_socket(::socket_t sock) override {
+        // Register with the shutdown tracker before anything that can block: a worker arriving
+        // after begin_shutdown must not enter the classifier or the keep-alive wait at all.
         {
             std::lock_guard<std::mutex> lk(http_sockets_mu_);
             if (http_stopping_) {
@@ -948,41 +768,16 @@ protected:
         if (!set_socket_nonblocking(sock, true)) {
             configure_http_socket(sock);   // fallback remains bounded even if FIONBIO failed
         }
-        // Peek (without consuming) until the FULL request header block has arrived, so a
-        // WebSocket Upgrade whose handshake is split across multiple TCP segments is still
-        // recognized. The old code did a SINGLE MSG_PEEK and required "\r\n\r\n" to already
-        // be present; a browser routinely sends the request line and headers in separate
-        // segments, so that one peek saw a partial request, the WS check failed, and the
-        // connection fell through to the plain-HTTP handler -> 404 on /ws -> the browser's
-        // WebSocket aborted (1006) and the client silently dropped to slow HTTP polling.
-        // That was the real "WS never connects / view frozen until input" root cause.
-        // MSG_PEEK never consumes, so the bytes stay queued for whichever path we pick.
-        //
-        // CAPACITY (2026-07-16): the classifier must see the WHOLE header block to find its
-        // "\r\n\r\n" terminator. A block that overflows this buffer never matches, so a real /ws
-        // Upgrade is misclassified as non-WS, falls through to the plain-HTTP handler -> 404 /ws
-        // -> the browser aborts the socket (1006) and the client silently drops to slow HTTP
-        // /mapdata polling (which renders units/buildings but NOT terrain -> "units floating in a
-        // black void"). The browser attaches the ENTIRE same-HOST cookie jar to the handshake, and
-        // cookies are host-scoped, NOT port-scoped: a single big cookie set by ANOTHER app that
-        // shares the "localhost" hostname (observed live: a ~2.5 KB Supabase "sb-<ref>-auth-token"
-        // from a dev app on localhost:<other-port>) pushes the block past 2 KiB. 127.0.0.1 and the
-        // tunnel hostname carry no such cookie, so they worked while "localhost" did not. Size for a
-        // realistic worst-case header block (large cookie jar), not a bare request line. 16 KiB
-        // matches the headroom common HTTP front-ends (e.g. nginx large_client_header_buffers) give
-        // the request head; anything the base HTTP path would accept, this must also classify.
+        // PEEK until the WHOLE header block has arrived: a browser splits the handshake across TCP
+        // segments, and a block larger than this buffer misclassifies a real /ws Upgrade as HTTP.
         constexpr size_t kWsUpgradePeekBytes = 16384;
         std::array<char, kWsUpgradePeekBytes> peek{};
         int n = 0;
         for (int tries = 0; tries < 200; ++tries) {   // up to ~200ms for the header block
             int r = ::recv(sock, peek.data(), (int)peek.size() - 1, MSG_PEEK);
             if (r < 0) {
-                // A5 (defensive): if httplib leaves the accepted socket non-blocking, a
-                // MSG_PEEK issued before the request bytes arrive returns EWOULDBLOCK. Treat
-                // that as "header not here yet" and keep waiting instead of falling through to
-                // the plain-HTTP handler (which would 404 a /ws upgrade split across TCP
-                // segments). Verified non-reproducing live, but this removes the reliance on
-                // httplib's internal socket mode across the upgrade.
+                // A MSG_PEEK issued before the request bytes arrive returns EWOULDBLOCK on a
+                // non-blocking socket. That means "header not here yet", never "not a WebSocket".
                 if (sock_would_block(sock_last_err())) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     continue;
@@ -1002,6 +797,8 @@ protected:
             for (auto& c : up) c = (char)std::tolower((unsigned char)c);
             if (up.find("websocket") != std::string::npos &&
                 head.find("\r\n\r\n") != std::string::npos) {
+                // Hand off to the WS registry, which has its own shutdown tracking
+                // (ws_stopping_ / ws_close_all); this socket is no longer HTTP's to wake.
                 untrack_http();
                 launch_upgrade(sock, head);
                 return true;   // WS lifetime no longer consumes a shared HTTP pool worker
@@ -1018,9 +815,8 @@ protected:
                     " bytes=" + std::to_string(n) + " request=" + request_line);
             }
         }
-        // Not a WebSocket. MSG_PEEK consumed nothing, so the bytes are still queued
-        // for the base parser -- delegate byte-for-byte. Restore blocking I/O with kernel
-        // deadlines so a dead reader/writer releases this worker within kHttpIoTimeoutMs.
+        // Not a WebSocket. MSG_PEEK consumed nothing, so the bytes are still queued for the base
+        // parser. Restore blocking I/O with kernel deadlines so a dead peer releases this worker.
         configure_http_socket(sock);
         bool result = httplib::detail::process_and_close_socket(
             /*is_client_request=*/false, sock, keep_alive_max_count_,
@@ -1041,8 +837,8 @@ private:
             close_fd(sock);
             return;
         }
-        // Join completed connection threads now instead of retaining one OS thread handle per
-        // historical reconnect until server shutdown. Active threads remain managed below.
+        // Join completed connection threads now, rather than holding one OS thread handle per
+        // historical reconnect until shutdown.
         for (auto it = ws_threads_.begin(); it != ws_threads_.end(); ) {
             if (!it->first->load()) { ++it; continue; }
             if (it->second.joinable()) it->second.join();
@@ -1088,16 +884,12 @@ private:
             return true;
         }
 
-        // A WS is long-lived: clear the inherited HTTP read timeout so inbound silence
-        // (client idle / mouse not moving) doesn't get mistaken for a dead peer and dropped.
+        // A WS is long-lived: clear the inherited HTTP read timeout, or an idle client reads as a
+        // dead peer and gets dropped.
         clear_socket_read_timeout(sock);
 
-        // §0.1: `&proto=1` on the /ws URL selects a protocol-v1 session. Absence => a
-        // non-v1 connection (WA-15: no longer a "legacy" map wire -- there is none left --
-        // just cursors/protocol-ping control; used only by a couple of raw-socket test
-        // probes that don't care about map data). A stray `?w=&h=` on the URL is now
-        // ignored -- a v1 connection's interest window comes from HELLO's `cam`, never
-        // pre-HELLO URL dims.
+        // `&proto=1` selects a protocol-v1 session; without it there is no map wire at all, just
+        // cursor and ping control. A stray ?w=&h= is ignored -- the window comes from HELLO's cam.
         bool proto_v1 = req_int(head, "proto", 0) == 1;
         const bool forwarded = !header_val(head, "X-Forwarded-For").empty() ||
             !header_val(head, "CF-Connecting-IP").empty() ||
@@ -1111,10 +903,8 @@ private:
         return true;
     }
 
-    // Lifecycle: launch_upgrade owns spawning and opportunistically joins only threads whose
-    // `done` flag is set; the destructor rejects new upgrades, closes live connections, then
-    // joins every remaining thread. handle_upgrade owns the accepted socket until its one final
-    // close_fd; WsConnection::close performs shutdown only.
+    // launch_upgrade spawns and opportunistically joins finished threads; the destructor rejects
+    // new upgrades, closes live connections, then joins the rest. handle_upgrade owns the socket.
     std::mutex ws_threads_mu_;
     bool ws_stopping_ = false;
     std::vector<std::pair<std::shared_ptr<std::atomic<bool>>, std::thread>> ws_threads_;
@@ -1125,9 +915,8 @@ private:
 
 } // namespace
 
-// isHostClient() peer test shared by the socket path (socket_is_loopback_peer, above) and HTTP
-// callers (the /action pause route passes req.remote_addr). Nothing a client can spoof via
-// headers/URL params -- it is the real accept()/connection peer IP.
+// The real accept() peer IP, shared by the socket path and by HTTP callers. Nothing a client can
+// spoof through headers or URL params.
 bool peer_ip_is_loopback(const std::string& ip) {
     if (ip.empty()) return false;
     if (ip.rfind("127.", 0) == 0) return true;                 // 127.0.0.0/8 (always 127.0.0.1 in practice)
@@ -1137,7 +926,9 @@ bool peer_ip_is_loopback(const std::string& ip) {
 
 std::string ws_drop_counters_json() {
     std::ostringstream out;
-    out << "{\"reqblocksRate\":" << g_reqblocks_dropped_rate.load(std::memory_order_relaxed)
+    const uint64_t reqblocks_coalesced = g_reqblocks_coalesced.load(std::memory_order_relaxed);
+    out << "{\"reqblocksRate\":" << reqblocks_coalesced   // compatibility: rate-limit events, not drops
+        << ",\"reqblocksCoalesced\":" << reqblocks_coalesced
         << ",\"reqblocksCap\":" << g_reqblocks_dropped_cap.load(std::memory_order_relaxed)
         << ",\"reqblocksQueued\":" << g_reqblocks_queued_total.load(std::memory_order_relaxed)
         << ",\"chatRate\":" << g_chat_dropped_rate.load(std::memory_order_relaxed)
@@ -1156,8 +947,8 @@ WsConnection::WsConnection(::socket_t sock, std::string player, bool proto_v1, b
     connect_ms_ = now;
     last_app_ping_ms_ = now;
     if (proto_v1_) {
-        // Per-connection session id (uuid-ish): time + counter, hex. Enough to distinguish
-        // this connection in hello_ack / logs without a real UUID dependency.
+        // Per-connection session id: time plus counter, in hex. Enough to tell this connection
+        // apart in hello_ack and the logs without a real UUID dependency.
         uint64_t n = g_session_counter.fetch_add(1);
         char buf[40];
         std::snprintf(buf, sizeof(buf), "v1-%llx-%llx",
@@ -1179,9 +970,8 @@ WsConnection::~WsConnection() {
 
 bool WsConnection::send_frame(uint8_t opcode, const uint8_t* data, size_t len) {
     if (closed_.load()) return false;
-    // NOTE: no per-frame logging here. The 2026-07-05 diagnosis briefly logged around this
-    // lock; at 30 Hz that was ~60 mutex-serialized file open/write/close per second per
-    // player (visible as pan jitter). Error paths below still log unconditionally.
+    // No per-frame logging here: at 30 Hz that is ~60 mutex-serialized file open/write/close per
+    // second per player, and it showed up as pan jitter. Error paths below still log.
     std::lock_guard<std::mutex> lk(send_mu_);
     if (closed_.load()) return false;   // re-check under the lock (close() may have raced)
     std::vector<uint8_t> h;
@@ -1211,7 +1001,7 @@ bool WsConnection::send_frame(uint8_t opcode, const uint8_t* data, size_t len) {
 #endif
         closed_.store(true); return false;
     }
-    g_ws_frames_sent.fetch_add(1, std::memory_order_relaxed);   // WT24
+    g_ws_frames_sent.fetch_add(1, std::memory_order_relaxed);
     return true;
 }
 
@@ -1223,16 +1013,10 @@ bool WsConnection::send_binary(const uint8_t* data, size_t len) {
 }
 
 // ---- per-connection outbound writer --------------------------------------------
-// Drains the coalescing queue with BLOCKING sends. Only this connection's thread ever
-// blocks here, so a slow client can never stall the shared push loop or other players.
 void WsConnection::writer_loop() {
     diagnostics_log_v("writer START player=" + player_);
     int sent_count = 0;
-    // Priority order the writer drains channels in, one frame per wake: control first (tiny,
-    // latency-critical), then the bulk map stream, then cursors. When a send completes the loop
-    // re-evaluates the predicate, which stays true while any channel still has a pending frame,
-    // so all channels drain without one ever starving another.
-    static const int kDrainOrder[CH_N] = { CH_CTRL, CH_AUX, CH_MAP, CH_CURSORS };
+    static const int kDrainOrder[CH_N] = { CH_CTRL, CH_DICT, CH_AUX, CH_MAP, CH_CURSORS };
     for (;;) {
         std::vector<uint8_t> frame;
         bool binary = true;
@@ -1246,17 +1030,17 @@ void WsConnection::writer_loop() {
                 for (int ch = 0; ch < CH_N; ++ch) if (out_[ch].has) return true;
                 return false;
             };
-            // Bounded wait (WA-3): wake at least every second so the keepalive ping + inbound-
+            // Bounded wait: wake at least every second so the keepalive ping + inbound-
             // silence sweep run even on an otherwise idle connection.
             out_cv_.wait_for(lk, std::chrono::milliseconds(1000),
                              [&] { return any_pending() || out_stop_; });
             if (out_stop_ && !any_pending()) {
                 diagnostics_log_v("writer EXIT(stop) player=" + player_ + " sent=" + std::to_string(sent_count));
                 lk.unlock();   // don't hold out_mu_ across close()'s socket I/O
-                close();       // A2: close on EVERY exit path (idempotent)
+                close();       // close on EVERY exit path (idempotent)
                 return;
             }
-            // JOIN SECURITY: hello-token denied -- close once the auth_fail CTRL frame has drained
+            // Hello-token denied -- close once the auth_fail CTRL frame has drained
             // (any_pending() false => the deny frame we queued has been sent this or a prior wake).
             if (deny_after_flush_.load() && !any_pending()) {
                 diagnostics_log("writer EXIT(auth-deny) player=" + player_);
@@ -1264,15 +1048,16 @@ void WsConnection::writer_loop() {
                 close();
                 return;
             }
-            // Pick order: CTRL (tiny hello_ack/ping) -> v1 AUX (30 Hz, latency-critical) ->
-            // v1 BLOCK_SET FIFO -> legacy AUX/MAP/CURSORS slots. One frame per wake; the
-            // predicate stays true while anything remains, so nothing starves.
+            // Pick order: CTRL -> dictionary -> chat FIFO -> v1 AUX -> v1 BLOCK_SET FIFO -> the
+            // legacy slots. One frame per wake, and the predicate keeps anything left from starving.
             if (out_[CH_CTRL].has) {
                 frame.swap(out_[CH_CTRL].bytes); binary = out_[CH_CTRL].binary;
                 out_[CH_CTRL].has = false; got = true;
+            } else if (out_[CH_DICT].has) {
+                frame.swap(out_[CH_DICT].bytes); binary = out_[CH_DICT].binary;
+                out_[CH_DICT].has = false; got = true;
             } else if (!chat_fifo_.empty()) {
-                // WP-D: reliable chat FIFO -- right after CTRL (tiny, latency-sensitive), before
-                // the bulk map/aux/cursor streams. Never coalesced (that's the whole point).
+                // Reliable chat FIFO: before the bulk streams, and never coalesced.
                 frame.swap(chat_fifo_.front()); chat_fifo_.pop_front();
                 binary = false; got = true;
             } else if (v1_aux_has_) {
@@ -1286,16 +1071,16 @@ void WsConnection::writer_loop() {
                 }
             }
         }
-        // ---- keepalive maintenance (WA-3), OUTSIDE out_mu_ (send_frame takes send_mu_) ----
+        // ---- keepalive maintenance, OUTSIDE out_mu_ (send_frame takes send_mu_) ----
         long long now = steady_ms();
-        // §0.1: a v1 connection that never sends `hello` within 5 s is dropped (close 1002).
+        // A v1 connection that never sends `hello` within 5 s is dropped (close 1002).
         if (proto_v1_ && !hello_received_.load() && now - connect_ms_ > 5000) {
             diagnostics_log("writer EXIT(no-hello) player=" + player_);
             close();
             return;
         }
         if (now - last_inbound_ms_.load() > kSilenceCloseMs) {
-            // A3: no inbound frame (data OR the browser's auto-PONG to our PINGs) for 45 s ==
+            // no inbound frame (data OR the browser's auto-PONG to our PINGs) for 45 s ==
             // a dead path even if sends still "succeed" into a black-holed edge. Prune it.
             diagnostics_log("writer EXIT(silence) player=" + player_ +
                             " silentMs=" + std::to_string(now - last_inbound_ms_.load()));
@@ -1305,9 +1090,8 @@ void WsConnection::writer_loop() {
         if (now - last_ping_ms_ >= kPingIntervalMs && !closed_.load()) {
             last_ping_ms_ = now;
             if (proto_v1_) {
-                // WA-10: app-level PING on CH_CTRL. The client answers {"type":"pong","ts",...}
-                // and the recv thread computes rttMs + clock offset (§0.4/0.5). Replaces the
-                // protocol-ping RTT for v1; protocol pings remain for legacy below.
+                // App-level PING on CH_CTRL. The client answers {"type":"pong"} and the recv
+                // thread computes rttMs and the clock offset.
                 std::string ping = "{\"type\":\"ping\",\"ts\":" + std::to_string(now) + "}";
                 enqueue_frame(CH_CTRL, std::vector<uint8_t>(ping.begin(), ping.end()), /*binary=*/false);
                 last_app_ping_ms_ = now;
@@ -1324,12 +1108,11 @@ void WsConnection::writer_loop() {
         if (!got && !got_v1) continue;   // woke on the 1 s timer with nothing queued: re-wait
         if (closed_.load()) {
             diagnostics_log_v("writer EXIT(closed) player=" + player_ + " sent=" + std::to_string(sent_count));
-            close();   // A2: idempotent; guarantees the fd is shut so the recv thread unblocks
+            close();   // idempotent; guarantees the fd is shut so the recv thread unblocks
             return;
         }
-        // v1 sequenced frame: stamp the seq NOW (§0.6 -- at actual send, so coalesced AUX
-        // never orphans a seq), prepend the 10-byte header, send as ONE binary WS frame,
-        // then account the wire bytes against the pacing window.
+        // Stamp the seq NOW -- at actual send, so a coalesced-away AUX never orphans one -- then
+        // prepend the 10-byte header and account the wire bytes against the pacing window.
         if (got_v1) {
             uint32_t seq = next_seq();
             uint8_t flags = v1frame.deflated ? wire::kFlagDeflated : 0;
@@ -1353,11 +1136,8 @@ void WsConnection::writer_loop() {
             // when a player reports a frozen view.
             diagnostics_log("writer EXIT(send-fail) player=" + player_ + " sent=" + std::to_string(sent_count) +
                             " frameBytes=" + std::to_string(frame.size()));
-            // A2 ZOMBIE FIX: on send failure `send_frame` sets closed_ but nobody closed the
-            // fd, so the recv thread kept sleep-polling a half-open socket forever and the push
-            // loop kept burning ~10 ms of CoreSuspender per tick building frames for a dead
-            // player (measured 300 ms/s, 35 s after the writer died). close()'s closesocket()
-            // makes the recv thread's ::recv error out -> normal teardown -> registry removal.
+            // On a send failure send_frame only sets closed_. Without this close() the recv thread
+            // polls a half-open socket forever and the push loop keeps paying CoreSuspender for it.
             close();
             return;
         }
@@ -1417,7 +1197,7 @@ bool WsConnection::enqueue_v1_aux(std::vector<uint8_t> payload, bool deflated) {
     return replaced_unsent;
 }
 
-// ---- protocol v1 negotiation + pacing (WA-8/9/10) ------------------------------------
+// ---- protocol v1 negotiation + pacing ------------------------------------------------
 void WsConnection::mark_hello(uint32_t have, bool has_cam, int x, int y, int z, int w, int h) {
     hello_have_.store(have);
     if (has_cam) update_cam(true, x, y, z, w, h);
@@ -1439,41 +1219,53 @@ bool WsConnection::get_cam(int& x, int& y, int& z, int& w, int& h) const {
     return true;
 }
 
-// ---- REQ_BLOCKS (WA-11.3) ------------------------------------------------------------
+// ---- REQ_BLOCKS ----------------------------------------------------------------------
 bool WsConnection::queue_reqblocks(const std::vector<std::array<int, 3>>& triples) {
-    long long now = steady_ms();
-    if (now - last_reqblocks_ms_ < 250) {
-        reqblocks_rate_drops_.fetch_add(triples.size(), std::memory_order_relaxed);
-        g_reqblocks_dropped_rate.fetch_add(triples.size(), std::memory_order_relaxed);
-        return false;   // rate-limited: drop the whole message
+    const long long now = steady_ms();
+    if (last_reqblocks_window_ms_ && now - last_reqblocks_window_ms_ < 250) {
+        reqblocks_coalesced_.fetch_add(1, std::memory_order_relaxed);
+        g_reqblocks_coalesced.fetch_add(1, std::memory_order_relaxed);
+    } else {
+        last_reqblocks_window_ms_ = now;
     }
-    last_reqblocks_ms_ = now;
+
     std::lock_guard<std::mutex> lk(reqblocks_mu_);
-    const size_t local_space = kReqblocksQueueDepth - reqblocks_queue_.size();
-    size_t wanted = std::min(local_space, triples.size());
-    size_t reserved = 0;
-    size_t total = g_reqblocks_queued_total.load(std::memory_order_relaxed);
-    while (wanted && total < kReqblocksGlobalMax) {
-        reserved = std::min(wanted, kReqblocksGlobalMax - total);
-        if (g_reqblocks_queued_total.compare_exchange_weak(
-                total, total + reserved, std::memory_order_relaxed)) break;
-        reserved = 0;
+    const size_t map_capacity = g_reqblocks_map_capacity.load(std::memory_order_acquire);
+    size_t dropped = 0;
+    for (const auto& triple : triples) {
+        if (reqblocks_members_.find(triple) != reqblocks_members_.end())
+            continue;
+
+        // With one slot for every block in the loaded map, valid unique demand cannot reach here:
+        // a hit means bad map dims or bad client coordinates. Never evict live demand for newer ids.
+        if (map_capacity == 0 || reqblocks_queue_.size() >= map_capacity) {
+            ++dropped;
+            continue;
+        }
+        reqblocks_queue_.push_back(triple);
+        reqblocks_members_.insert(triple);
+        g_reqblocks_queued_total.fetch_add(1, std::memory_order_relaxed);
     }
-    for (size_t i = 0; i < reserved; ++i) reqblocks_queue_.push_back(triples[i]);
-    const size_t dropped = triples.size() - reserved;
     if (dropped) {
         reqblocks_overflow_drops_.fetch_add(dropped, std::memory_order_relaxed);
         g_reqblocks_dropped_cap.fetch_add(dropped, std::memory_order_relaxed);
     }
-    return reserved != 0;
+    return !reqblocks_queue_.empty();
 }
 
 std::vector<std::array<int, 3>> WsConnection::take_reqblocks() {
     std::lock_guard<std::mutex> lk(reqblocks_mu_);
+    const long long now = steady_ms();
     std::vector<std::array<int, 3>> out;
-    out.swap(reqblocks_queue_);
-    if (!out.empty())
-        g_reqblocks_queued_total.fetch_sub(out.size(), std::memory_order_relaxed);
+    if (reqblocks_queue_.empty() ||
+        (last_reqblocks_drain_ms_ && now - last_reqblocks_drain_ms_ < 250))
+        return out;
+    const size_t count = reqblocks_queue_.size();
+    out.assign(reqblocks_queue_.begin(), reqblocks_queue_.end());
+    reqblocks_queue_.clear();
+    reqblocks_members_.clear();
+    last_reqblocks_drain_ms_ = now;
+    g_reqblocks_queued_total.fetch_sub(count, std::memory_order_relaxed);
     return out;
 }
 
@@ -1482,7 +1274,7 @@ size_t WsConnection::reqblocks_queued() const {
     return reqblocks_queue_.size();
 }
 
-// ---- WP-D chat outbound --------------------------------------------------------------
+// ---- Chat outbound --------------------------------------------------------------
 bool WsConnection::chat_rate_ok(long long* retry_after_ms) {
     long long now = steady_ms();
     long long elapsed = now - last_chat_ms_;
@@ -1514,8 +1306,8 @@ void WsConnection::enqueue_chat(std::vector<uint8_t> text_frame) {
     out_cv_.notify_all();
 }
 
-// Pacing (§0.6). All under out_mu_ so the writer's window check and the recv thread's ACK
-// application are consistent, and an ACK wakes a window-blocked writer via out_cv_.
+// Pacing. All under out_mu_ so the writer's window check and the recv thread's ACK application stay
+// consistent, and an ACK wakes a window-blocked writer through out_cv_.
 uint32_t WsConnection::next_seq() {
     std::lock_guard<std::mutex> lk(out_mu_);
     return ++last_sent_seq_;
@@ -1550,31 +1342,11 @@ int WsConnection::inflight_frames() const {
     return (int)(last_sent_seq_ - last_acked_seq_);
 }
 
-size_t WsConnection::inflight_bytes() const {
-    std::lock_guard<std::mutex> lk(out_mu_);
-    return inflight_bytes_;
-}
-
 bool WsConnection::window_open(bool is_block_set) const {
     std::lock_guard<std::mutex> lk(out_mu_);
     constexpr size_t kBulkBytes = 262144;      // 256 KiB byte window (BLOCK_SET only)
-    // WA-16 (idle-fps fix, 2026-07-07): the original fixed K=3 in-flight cap (§0.6) was
-    // tuned/gated against near-zero-RTT test rigs (loopback, same-LAN tunnel). AUX and
-    // BLOCK_SET share this ONE window (both are sequenced frames, same seq space), and a
-    // real-WAN client is throughput-capped to roughly K/RTT frames/sec TOTAL, split ~evenly
-    // between the two types. Measured live: a remote player at ~113-128ms RTT (confirmed via
-    // /diag + an isolated rtt_probe.py A/B against this server) got only ~13 BLOCK_SET/s and
-    // ~13 AUX/s at K=3 (vs ~30/s each at ~0ms RTT) -- matching the reported "idle ~17fps"
-    // symptom exactly (the client's draw() is gated on new AUX/BLOCK_SET data while the
-    // camera is still; panning "fixes" it only because a local camera move redraws from
-    // cache immediately, without waiting on the wire -- see dwf-tiles.js mapDirty).
-    // Fix: scale K with the connection's OWN measured app-level RTT (rtt_ms_app_, already
-    // tracked for /diag) so the window is just large enough to sustain ~60 fps combined
-    // (~30 each) over one round trip -- a small bandwidth-delay-product window, not an
-    // unbounded one. Floored at 3 (unchanged behavior at near-zero RTT -- every existing
-    // gate_perf phase runs at that floor, so this is a no-op there) and ceilinged at 16
-    // (bounds worst-case buffered/in-flight bytes on a very bad link; still tiny in absolute
-    // bytes since AUX/BLOCK_SET frames are small and the byte cap below still applies).
+    // K scales with this connection's own measured app-level RTT, floored at 3 and ceilinged at 16.
+    // AUX and BLOCK_SET share this ONE window, so a fixed K capped a WAN client to ~K/RTT frames/s.
     constexpr uint32_t kKMin = 3;
     constexpr uint32_t kKMax = 16;
     long long rtt = rtt_ms_app_.load();
@@ -1632,7 +1404,7 @@ bool WsConnection::recv(std::string& payload, bool& is_binary, std::string* err)
         if (masked)
             for (size_t i = 0; i < data.size(); i++) data[i] ^= mask[i & 3];
 
-        // WA-3: ANY inbound frame proves the path is alive -> refresh the silence clock.
+        // ANY inbound frame proves the path is alive -> refresh the silence clock.
         last_inbound_ms_.store(steady_ms());
 
         if (opcode == 0x8) {            // close
@@ -1665,9 +1437,8 @@ bool WsConnection::recv(std::string& payload, bool& is_binary, std::string* err)
 
 void WsConnection::close() {
     const bool was_closed = closed_.exchange(true);
-    // closed_ is logical protocol state, not descriptor ownership. send_frame() sets it before
-    // returning failure, so the old early-return skipped closesocket/shutdown and stranded the
-    // recv worker in the HTTP pool. Always execute transport shutdown exactly once.
+    // closed_ is logical protocol state, not descriptor ownership: send_frame sets it before
+    // returning failure, so transport shutdown still has to run here, exactly once.
     std::lock_guard<std::mutex> lk(send_mu_);
     if (!was_closed) {
         uint8_t f[2] = {0x88, 0x00};    // best-effort close frame; send_all is time-bounded
@@ -1676,17 +1447,14 @@ void WsConnection::close() {
     if (!socket_shutdown_.exchange(true)) shutdown_fd(sock_);
 }
 
-bool WsConnection::is_closed() const { return closed_.load(); }
-
 // ---- module API ----------------------------------------------------------------
-void set_ws_auth(WsAuthFn fn) {
-    std::lock_guard<std::mutex> lk(g_auth_mu);
-    g_auth = std::move(fn);
-}
-
 void set_v1_map_info(V1MapInfoFn fn) {
     std::lock_guard<std::mutex> lk(g_v1_info_mu);
     g_v1_map_info = std::move(fn);
+}
+
+void set_reqblocks_map_capacity(size_t blocks) {
+    g_reqblocks_map_capacity.store(blocks, std::memory_order_release);
 }
 
 size_t broadcast_to_player(const std::string& player, const std::string& msg) {
@@ -1696,11 +1464,8 @@ size_t broadcast_to_player(const std::string& player, const std::string& msg) {
         auto it = g_registry.find(player);
         if (it != g_registry.end()) targets = it->second;   // copy shared_ptrs
     }
-    // A1 FIX: enqueue into each connection's CURSORS channel instead of send_text()ing on the
-    // shared cursor-loop thread. A wedged client's full send buffer used to block send_all here
-    // for up to kSendStallCapMs, freezing EVERY player's cursor stream (measured 10,044 ms).
-    // Now the blocking send happens only on that one connection's writer thread; a cursor frame
-    // also can never clobber a still-unsent map frame (separate latest-wins slots).
+    // Enqueue per connection instead of sending on the shared cursor-loop thread: one wedged
+    // client's full send buffer used to freeze EVERY player's cursor stream.
     std::vector<uint8_t> payload(msg.begin(), msg.end());
     size_t queued = 0;
     for (auto& c : targets) {
@@ -1711,7 +1476,7 @@ size_t broadcast_to_player(const std::string& player, const std::string& msg) {
     return queued;
 }
 
-// WP-D: enqueue a chat text frame on EVERY live connection's reliable chat FIFO.
+// enqueue a chat text frame on EVERY live connection's reliable chat FIFO.
 size_t broadcast_chat_to_all(const std::string& msg) {
     std::vector<std::shared_ptr<WsConnection>> targets;
     {
@@ -1725,14 +1490,7 @@ size_t broadcast_chat_to_all(const std::string& msg) {
     return targets.size();
 }
 
-// WA-15: the legacy map-frame compression/broadcast helpers (deflate_envelope,
-// broadcast_map_frame) and the send_map_update/send_ws_keyframe/send_ws_delta/
-// ws_request_keyframe/ws_take_keyframe API they backed were removed along with the rest
-// of the legacy per-player JSON push wire. Protocol v1's world_stream owns compression
-// (deflate_wire_payload, below) and delivery (WsConnection::enqueue_v1_block_set/
-// enqueue_v1_aux) for the only map-push path left.
-
-uint64_t ws_frames_sent_total() {   // WT24
+uint64_t ws_frames_sent_total() {
     return g_ws_frames_sent.load(std::memory_order_relaxed);
 }
 
@@ -1800,9 +1558,8 @@ std::vector<std::string> ws_roster_players() {
     const long long now = steady_ms();
     std::map<std::string, bool> visible;
 
-    // A player is live when at least one socket has answered traffic inside the keepalive
-    // deadline. On the first unhealthy observation, start the same grace used for a detected
-    // socket removal. A fresh reconnect/heartbeat cancels that pending removal.
+    // A player is live when at least one socket answered inside the keepalive deadline. The first
+    // unhealthy observation starts the same grace a socket removal does; a reconnect cancels it.
     for (const auto& kv : g_registry) {
         long long freshest = -1;
         for (const auto& c : kv.second) {

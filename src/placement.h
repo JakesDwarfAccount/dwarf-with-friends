@@ -52,8 +52,7 @@ struct DesignationResult {
 bool designate_on_render_thread(const Camera& camera, const DesignationRequest& request,
                                 DesignationResult& result, std::string* err = nullptr);
 
-// Registers this module's HTTP routes (moved verbatim from http_server.cpp's
-// register_routes monolith -- B212, 2026-07-13).
+// Registers this module's HTTP routes.
 void register_placement_routes(httplib::Server& server);
 
 } // namespace dwf

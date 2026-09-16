@@ -19,21 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-  // WT15 Obligations board: a summonable, always-current running list of the fort's standing
-  // obligations, aggregated from two existing wires (NO new server work):
-  //   1. NOBLE MANDATES  -- the `mandates` array already on /nobles (who, item, made/required,
-  //      time state). Same source noblesBody derives its demand/mandate icons from.
-  //   2. GUILD HALLS & TEMPLES -- Location-type agreements on /petitions (B191 pending+continuing
-  //      union). Continuing Location agreements are the accepted guildhall/temple obligations;
-  //      pending ones are outstanding requests.
-  // Summoned like the other client-only panels (Shift+B, mirroring Petitions' Shift+G): a keydown
-  // case + the settings keybind registry + the hotkey overlay. It stays current while open by
-  // re-polling both routes on a guarded interval (the hostpanel/combatlog refresh pattern) and
-  // re-rendering only when the payload actually changed (no scroll thrash on an idle fort).
-  //
-  // ALL row/structure markup goes through DWFUI (rowHtml); the window chrome reuses the shared
-  // fortRenderWindow skin (same as Petitions/Kitchen). No hand-rolled row grammar, no color/glyph
-  // literals in this file.
+  // Obligations board: the fort's standing obligations, aggregated from the `mandates` array on
+  // /nobles and the Location-type agreements on /petitions. No new server work.
 
   let oblTimer = null;          // live-refresh interval handle
   let oblLastSig = null;        // last-rendered payload signature (skip redundant re-renders)
@@ -54,10 +41,8 @@
 
   // ---- PURE DATA: normalize the two wires into obligation rows (DOM-free, unit-tested) ----------
 
-  // Noble mandates from a /nobles payload. Mirrors noblesBody's mandate semantics: `what` is the
-  // material+item the mandate names, export bans carry no made/required (they are a standing ban),
-  // and daysRemaining < 0 (or absent) means ongoing/no deadline. Returns [] when the payload has no
-  // mandates array (old DLL, or a /nobles error) so the caller renders the honest empty state.
+  // Export bans carry no made/required -- they are a standing ban -- and daysRemaining < 0 or absent means
+  // no deadline. Returns [] with no mandates array, so the caller renders the honest empty state.
   function mandateObligations(noblesData) {
     const mandates = (noblesData && Array.isArray(noblesData.mandates)) ? noblesData.mandates : [];
     return mandates.map((m, i) => {
@@ -88,10 +73,6 @@
     });
   }
 
-  // Feature-detect the B191 pending+continuing coverage. The continuing (accepted) guildhall/temple
-  // obligations only exist on a server that unions plotinfo->continuing_agreement_id; an older
-  // server serves pending petitions only, with no agreementCoverage and no inContinuingList flags.
-  // Detect on the coverage witness first (present even when zero rows), then on the per-row flag.
   function obligationsFeatureSupported(petData) {
     if (!petData) return false;
     if (typeof petData.agreementCoverage === "string" && /continuing/i.test(petData.agreementCoverage)) return true;
@@ -99,20 +80,14 @@
     return rows.some(r => typeof r.inContinuingList === "boolean");
   }
 
-  // A petition row is a guildhall/temple obligation when its agreement carries a Location detail.
-  // The wire's `summary` is the joined agreement_details_type key(s) (fort_admin.cpp
-  // agreement_detail_summary), so Location agreements read "Location" there while Residency/
-  // Citizenship petitions read their own type -- those belong to the Petitions panel, not here.
+  // A petition row is a guildhall or temple obligation when its agreement carries a Location detail;
+  // the wire's `summary` is the joined agreement_details_type key.
   function isLocationAgreement(row) {
     return !!row && /location/i.test(String(row.summary || ""));
   }
 
-  // Guildhall/temple obligations from a /petitions payload. { supported, items }.
-  //   supported=false  -> old server without continuing coverage (caller shows "needs update").
-  //   items            -> Location agreements only, each with request/established state.
-  // site/purpose are rendered when the server carries them; on the current server Location details
-  // are not enriched (petition_detail only fills site/purpose for Citizenship/Residency), so those
-  // fall back gracefully to the petitioner + state.
+  // { supported, items }: supported=false is an old server without continuing coverage. Location details
+  // are not enriched today, so site and purpose fall back to the petitioner plus state.
   function locationObligations(petData) {
     const supported = obligationsFeatureSupported(petData);
     const rows = (petData && Array.isArray(petData.petitions)) ? petData.petitions : [];
@@ -141,13 +116,13 @@
   // ---- RENDER: DWFUI rows only ------------------------------------------------------------------
   function mandateRowHtml(m) {
     const progress = m.progressText ? `<span class="fort-dim">${oblEsc(m.progressText)}</span>` : "";
-    const trailing = `<span class="obl-trailing">${progress}` +
+    const trailing = `<span class="obligation-trailing">${progress}` +
       `<span class="fort-badge ${m.ongoing ? "fort-badge-open" : "fort-badge-open"}">${oblEsc(m.deadlineText)}</span></span>`;
     const subHtml = `${oblEsc(m.kind)} &middot; By ${oblUnitRef(m.unitId, m.by)}` +
       (m.punishMultiple ? ` &middot; multiple offenders punished` : "");
     return DWFUI.rowHtml({
-      cls: "obl-row obl-mandate-row",
-      copyCls: "obl-copy", labelCls: "fort-cell-main",
+      cls: "obligation-row obligation-mandate-row",
+      copyCls: "obligation-copy", labelCls: "fort-cell-main",
       label: m.title,
       sub: { html: subHtml, cls: "fort-dim" },
       trailing,
@@ -156,14 +131,14 @@
 
   function locationRowHtml(item) {
     const badge = item.pending ? "fort-badge-open" : "fort-badge-done";
-    const trailing = `<span class="obl-trailing"><span class="fort-badge ${badge}">${oblEsc(item.stateLabel)}</span></span>`;
+    const trailing = `<span class="obligation-trailing"><span class="fort-badge ${badge}">${oblEsc(item.stateLabel)}</span></span>`;
     const subParts = [];
     if (item.purposeText) subParts.push(oblEsc(item.purposeText));
     if (item.petitioner && item.primary !== item.petitioner) subParts.push(`Requested by ${oblEsc(item.petitioner)}`);
     const sub = subParts.length ? { html: subParts.join(" &middot; "), cls: "fort-dim" } : null;
     return DWFUI.rowHtml({
-      cls: "obl-row obl-location-row",
-      copyCls: "obl-copy", labelCls: "fort-cell-main",
+      cls: "obligation-row obligation-location-row",
+      copyCls: "obligation-copy", labelCls: "fort-cell-main",
       label: item.primary,
       sub,
       trailing,
@@ -193,7 +168,7 @@
     }
 
     return `<div id="obligationsRoot">
-      <div id="fortStatus" class="info-message fort-status" style="display:none"></div>
+      <div id="fortStatus" class="info-message fort-status"></div>
       <div class="fort-note">Standing fort obligations, kept current while this panel is open: demands and mandates from your nobles, plus guild hall and temple agreements requested by petitioning groups.</div>
       <div class="fort-section-title">Noble mandates</div>${mandateRows}
       <div class="fort-section-title">Guild halls &amp; temples</div>${locRows}

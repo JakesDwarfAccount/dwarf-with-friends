@@ -28,9 +28,7 @@
 namespace dwf {
 
 constexpr int DEFAULT_STREAM_PORT = 8765;
-// Target client refresh rate. The per-player frame cache and adaptive render throttle in
-// capture_camera_jpeg_cached() keep the render-thread cost bounded, so a higher poll rate
-// only costs cheap cache hits / HTTP 304s when nothing changed.
+// target client refresh rate
 constexpr int DEFAULT_STREAM_FPS = 24;
 constexpr const char* DEFAULT_BIND_ADDRESS = "127.0.0.1";
 
@@ -39,8 +37,7 @@ void stop_server();
 bool server_running();
 std::string server_url();
 std::string server_url(const std::string& bind_address, int port);
-// Wakes every in-flight /stream push loop early (input-kick), so a player's action shows up in
-// the next pushed frame instead of waiting out the pacing interval. Safe to call from any thread.
+// Wakes every in-flight /stream push loop early. Safe to call from any thread.
 void notify_player_input();
 
 } // namespace dwf

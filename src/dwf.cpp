@@ -72,10 +72,6 @@ void print_line(color_ostream& out, const std::string& text) {
     out.print("%s", text.c_str());
 }
 
-// JOIN SECURITY (ship-blocker): the host's shared join passphrase. Sourced (in priority order)
-// from an explicit `capture-join-password` command, else the config file dfcapture_join_password.txt
-// in the DF working directory (first non-blank line). No file / empty => auth stays DISABLED
-// (dev-friendly open behavior) and we log a LOUD warning -- the SHIP default should be a password.
 const char* kJoinPasswordFile = dwf::auth::kPasswordFile;   // single source of truth (auth.h)
 
 void load_join_password_from_file(color_ostream& out) {
@@ -84,7 +80,6 @@ void load_join_password_from_file(color_ostream& out) {
     if (f) {
         std::string line;
         while (std::getline(f, line)) {
-            // trim
             size_t b = 0, e = line.size();
             while (b < e && (unsigned char)line[b] <= ' ') ++b;
             while (e > b && (unsigned char)line[e - 1] <= ' ') --e;
@@ -183,11 +178,6 @@ command_result cmd_capture_at(color_ostream& out, std::vector<std::string>& args
 
 command_result cmd_tiledump(color_ostream& out, std::vector<std::string>& args) {
 #ifdef _WIN32
-    // usage: capture-tiledump [x y z] [dir=NAME] [noatlas] [nogt]
-    //   no args        -> host camera, full dump (atlas + ground truth), dir dwf_tiledump
-    //   x y z          -> render THAT camera's viewport (render-buffer feasibility probe)
-    //   dir=NAME       -> output directory (relative to DF root)
-    //   noatlas / nogt -> skip the ~129k-file atlas / the ground-truth PNG (sweep dumps)
     dwf::TileDumpOptions opt;
     std::string dir = "dwf_tiledump";
     std::vector<int> nums;
@@ -209,12 +199,8 @@ command_result cmd_tiledump(color_ostream& out, std::vector<std::string>& args) 
         out.printerr("capture-tiledump: bad dir\n");
         return CR_WRONG_USAGE;
     }
-    // DEADLOCK GUARD (2026-07-07): console commands run with the core suspended; waiting on
-    // the render-thread capture from here wedges DF permanently (the native map re-render
-    // blocks against the suspended main thread — observed full-process hang, dwf.log
-    // 01:23 "camera ok; capturing" then nothing). So the console command is FIRE-AND-FORGET
-    // on a detached worker; the HTTP GET /tiledump route is the synchronous interface (it
-    // runs on an httplib worker thread, the same proven context as /frame.jpg).
+    // Console commands run with the core suspended, so waiting on the render-thread capture from
+    // here wedges DF. Fire-and-forget on a detached worker; GET /tiledump is the synchronous path.
     std::thread([dir, opt]() {
         std::string err;
         if (!dwf::dump_tile_frame_ex(dir, opt, &err))
@@ -230,9 +216,6 @@ command_result cmd_tiledump(color_ostream& out, std::vector<std::string>& args) 
 }
 
 command_result cmd_mapdump(color_ostream& out, std::vector<std::string>& args) {
-    // WS2 map-data pivot: crash-safe read of the current host viewport window via
-    // the stable Maps/MapCache/units/buildings APIs (NOT render-buffer scraping).
-    // usage: capture-mapdump [width] [height]   (0/omitted => auto from screen grid)
     int width = 0, height = 0;
     if (args.size() >= 1) width = std::atoi(args[0].c_str());
     if (args.size() >= 2) height = std::atoi(args[1].c_str());
@@ -280,14 +263,11 @@ command_result cmd_start(color_ostream& out, std::vector<std::string>& args) {
         return CR_FAILURE;
     }
 
-    // JOIN SECURITY: load the shared passphrase (file) unless one was already set via command.
     if (dwf::auth::enabled())
         print_line(out, "dwf: join security ON (passphrase set earlier this session).\n");
     else
         load_join_password_from_file(out);
 
-    // Restore the host's durable pause flags (hostUnpauseOnly / autopause) from the prior session
-    // (item 5). No-op when the file is absent -> compiled defaults (hostunpause off, autopause on).
     dwf::pause_load_persisted_flags();
 
     std::string err;
@@ -298,10 +278,6 @@ command_result cmd_start(color_ostream& out, std::vector<std::string>& args) {
     }
 
     dwf::bake_sweep_arm_auto();
-    // WE-1/WE-2 (issue #1 "naked dwarves"): the per-unit clothed composites shipped with BOTH
-    // feature flags default-OFF and no production path ever enabled them, so every fort fell
-    // back to the static base creature art. The copy path is SEH-guarded with fault caps now;
-    // enable with the stream. capture-unit-census / capture-unit-sprites stay as kill switches.
     dwf::set_unit_census_enabled(true);
     dwf::set_unit_sprite_export_enabled(true);
     dwf::diagnostics_log("server started " +
@@ -331,10 +307,6 @@ command_result cmd_stop(color_ostream& out, std::vector<std::string>&) {
 }
 
 command_result cmd_diag_verbose(color_ostream& out, std::vector<std::string>& args) {
-    // Toggle the verbose WS-transport tracing (connection lifecycle, writer/push-loop
-    // counters) that is compiled in but gated OFF by default -- each trace line is a
-    // mutex-serialized file open/write/close of dwf.log, so it stays off unless
-    // actively diagnosing. Usage: capture-diag-verbose [on|off]  (no arg = show state).
     if (!args.empty()) {
         const std::string& a = args[0];
         if (a == "on" || a == "1" || a == "true")       dwf::set_diagnostics_verbose(true);
@@ -356,9 +328,6 @@ command_result cmd_bake_sweep(color_ostream& out, std::vector<std::string>&) {
 }
 
 command_result cmd_portrait_sweep(color_ostream& out, std::vector<std::string>& args) {
-    // PORTRAITS-ROOT (B128): the sweep arms itself from the unit scan; this command is
-    // for observability (`status`, the default) and recovery (`rearm` forgets dropped
-    // units so the next scan re-offers everything still at portrait_texpos 0).
     if (!args.empty() && args[0] == "rearm") {
         dwf::portrait_sweep_rearm();
         out.print("capture-portrait-sweep: rearmed; next stream tick re-offers all units without portraits.\n");
@@ -366,7 +335,7 @@ command_result cmd_portrait_sweep(color_ostream& out, std::vector<std::string>& 
     }
     if (!args.empty() && (args[0] == "on" || args[0] == "off")) {
         dwf::portrait_sweep_set_enabled(args[0] == "on");
-        // NOTE: this DFHack's color_ostream::print is fmt-based ("{}"), not printf ("%s").
+        // DFHack's color_ostream::print is fmt-based ("{}"), not printf ("%s").
         out.print("capture-portrait-sweep: background generation {}.\n", args[0]);
         return CR_OK;
     }
@@ -391,9 +360,6 @@ command_result cmd_portrait_sweep(color_ostream& out, std::vector<std::string>& 
 }
 
 command_result cmd_unit_census(color_ostream& out, std::vector<std::string>& args) {
-    // WE-1: toggle the per-unit texture census + dirty tracker (unit_sprites.h/.cpp).
-    // Default OFF -- a no-op read pass compiled in but gated, same pattern as
-    // capture-diag-verbose. Usage: capture-unit-census [on|off]  (no arg = show state).
     if (!args.empty()) {
         const std::string& a = args[0];
         if (a == "on" || a == "1" || a == "true")       dwf::set_unit_census_enabled(true);
@@ -409,9 +375,6 @@ command_result cmd_unit_census(color_ostream& out, std::vector<std::string>& arg
 }
 
 command_result cmd_unit_sprites(color_ostream& out, std::vector<std::string>& args) {
-    // WE-2: toggle the per-unit composite export worker (unit_sprites.h/.cpp). Consumes
-    // WE-1's dirty queue -- also enable `capture-unit-census on` for this to do anything.
-    // Default OFF. Usage: capture-unit-sprites [on|off]  (no arg = show state).
     if (!args.empty()) {
         const std::string& a = args[0];
         if (a == "on" || a == "1" || a == "true")       dwf::set_unit_sprite_export_enabled(true);
@@ -427,12 +390,7 @@ command_result cmd_unit_sprites(color_ostream& out, std::vector<std::string>& ar
 }
 
 command_result cmd_wire_selftest(color_ostream& out, std::vector<std::string>&) {
-    // WA-8: encode the deterministic synthetic 2-block fixture (void, water 7, magma 3,
-    // hidden, all desig bits, item/plant/spatter tails, plant id "OAK"/"", clamp, negative
-    // mats, u16 bx>255) via the PURE wire codec -- no DF world needed, runs at the title
-    // screen. Writes dwf_wire_fixture.bin next to dwf.log and asserts its CRC32
-    // against the embedded golden constant (which the JS generator gen_wire_fixture.mjs +
-    // the node decode test share). PASS proves the C++ + JS encoders agree byte-for-byte.
+    // Pure codec, no DF world needed: this one runs at the title screen.
     uint32_t world_seq = 0;
     std::vector<uint8_t> frame = dwf::wire::build_selftest_fixture(&world_seq);
     uint32_t crc = dwf::wire::crc32(frame.data(), frame.size());
@@ -453,22 +411,15 @@ command_result cmd_wire_selftest(color_ostream& out, std::vector<std::string>&) 
 }
 
 command_result cmd_chat_selftest(color_ostream& out, std::vector<std::string>&) {
-    // WP-D: exercise chat_sanitize (trim, empty-reject, XSS-seed passthrough, overlong clamp,
-    // UTF-8 boundary) with NO DF/world access -- runs at the title screen. PASS proves the
-    // server-side chat text validation matches the client-side offline test's expectations.
+    // Pure string validation, no DF world needed: this one runs at the title screen.
     bool ok = dwf::chat_selftest();
     print_line(out, std::string("capture-chat-selftest: ") + (ok ? "PASS\n" : "FAIL\n"));
     return ok ? CR_OK : CR_FAILURE;
 }
 
 command_result cmd_itemdef_dump(color_ostream& out, std::vector<std::string>&) {
-    // WC-1: build the ITEMDEF_DICT (14 raw itemdef subcategories -> id/token pairs, Items.cpp
-    // ITEMDEF_VECTORS order) from the CURRENTLY LOADED world's raws and write both the raw
-    // wire bytes (dwf_itemdef_dict.bin, byte-identical to what world_stream.cpp sends
-    // each v1 connection once) and a greppable "SUBCAT_INDEX ID TOKEN" listing
-    // (dwf_itemdef_dict.txt) -- the acceptance-gate artifact for
-    // `grep -c ITEM_WEAPON_ dwf_itemdef_dict.txt` (WC-1 spec §2, "Item check").
-    // Requires a loaded world (itemdef raws are per-save); title screen -> no world -> error.
+    // Writes the exact ITEMDEF_DICT bytes a v1 connection is sent once, plus a greppable listing.
+    // Requires a loaded world: itemdef raws are per-save.
     dwf::wire::ItemDefSubcat subcats[dwf::wire::kItemDefSubcatCount];
     {
         CoreSuspender suspend;
@@ -599,6 +550,8 @@ DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginC
         "requires a loaded save",
         cmd_itemdef_dump));
 
+    // The plugin can be loaded after a fort is up, in which case SC_WORLD_LOADED has already fired
+    // and will not fire again until the next reload.
     dwf::world_stream_set_world_loaded(Core::getInstance().isWorldLoaded());
     out.print("dwf: loaded. Start browser streaming after a fort is loaded with: capture-stream-start\n");
     return CR_OK;
@@ -611,13 +564,8 @@ DFhackCExport command_result plugin_shutdown(color_ostream&) {
     dwf::stop_server();
     dwf::restore_overlay_after_stream();
     dwf::shutdown_image_encoder();
-    dwf::unit_sprite_export_shutdown();  // WE-2: join the background export worker
-    // WT24: THE clean-exit mark, and deliberately the LAST thing dwf ever writes.
-    // DFHack calls plugin_shutdown when the plugin is unloaded and when DF exits normally, so:
-    //   tail ends with SHUTDOWN-CLEAN  -> DF (or the plugin) stopped on purpose.
-    //   tail ends with anything else   -> DF was killed or crashed; the last HEARTBEAT bounds
-    //                                     the time of death to a <=60 s window, and the phase /
-    //                                     STALL lines say which stage the threads were in.
+    dwf::unit_sprite_export_shutdown();  // join the background export worker
+    // Deliberately the LAST thing dwf ever writes.
     dwf::diagnostics_log("SHUTDOWN-CLEAN dwf unloaded (DF exiting or plugin "
                                "unloaded) -- a log that does NOT end here ended in a crash/kill");
 #endif
@@ -626,18 +574,16 @@ DFhackCExport command_result plugin_shutdown(color_ostream&) {
 
 DFhackCExport command_result plugin_onstatechange(color_ostream&, state_change_event event) {
     if (event == SC_WORLD_UNLOADED) {
-        // Close the stream gate first: reset/save cleanup must never reopen a window where the
-        // push worker can enter CoreSuspender while DF is dismantling world state.
+        // Close the stream gate FIRST: the cleanup below must never leave a window where the push
+        // worker can enter CoreSuspender while DF is dismantling world state.
         dwf::world_stream_set_world_loaded(false);
         dwf::portrait_sweep_abort_active();
     }
     if (event == SC_WORLD_LOADED || event == SC_WORLD_UNLOADED)
         dwf::save_barrier_reset();
     if (event == SC_WORLD_LOADED) {
-        // Old saves can carry stockpiles whose enabled categories have under-sized material
-        // lists (pre-hardening piles, including friends' saves); DF dereferences those lists
-        // blind, so heal all three settings holders before play resumes. Runs on the core
-        // thread, after the save barrier reset above so it cannot be skipped as mid-save.
+        // Old saves carry stockpiles whose enabled categories have under-sized material lists, and
+        // DF dereferences those lists blind. Heal all three settings holders before play resumes.
         int holders = 0, categories = 0;
         std::string repair_err;
         if (dwf::repair_stockpile_settings_via_lua(holders, categories, &repair_err)) {
@@ -647,14 +593,14 @@ DFhackCExport command_result plugin_onstatechange(color_ostream&, state_change_e
         } else {
             dwf::diagnostics_log("stockpile-repair-on-load FAILED: " + repair_err);
         }
+        // Reopen the gate only after the repair has run, so the first push tick reads prepared state.
         dwf::world_stream_set_world_loaded(true);
     }
     return CR_OK;
 }
 
 DFhackCExport command_result plugin_save_site_data(color_ostream&) {
-    // DFHack calls this on the rising edge of both manual and automatic saves, before DF starts
-    // serializing world memory. It is the earliest authoritative lifecycle signal available.
+    // DFHack fires this before DF starts serializing world memory -- the earliest save signal there is.
     dwf::portrait_sweep_abort_active();
     dwf::save_barrier_begin();
     return CR_OK;
