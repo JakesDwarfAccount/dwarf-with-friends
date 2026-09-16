@@ -1,6 +1,6 @@
 # Dwarf With Friends
 
-[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE) [![Latest release](https://img.shields.io/github/v/release/JakesDwarfAccount/dwarf-with-friends)](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/latest) [![Windows native build](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml/badge.svg?branch=main)](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE) [![Release: beta 4](https://img.shields.io/badge/release-v1.0.0--beta.4-blue)](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.4) [![Windows native build](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml/badge.svg?branch=main)](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml)
 
 ### Download beta 4: [Windows](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.4/DwarfWithFriends-v1.0.0-beta.4.zip) · [Linux](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.4/DwarfWithFriends-v1.0.0-beta.4-linux.zip)
 
