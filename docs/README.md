@@ -15,4 +15,4 @@
 - [Contributing](../CONTRIBUTING.md) and [agent guidance](../AGENTS.md).
 - [Architecture](ARCHITECTURE.md), [source map](MAP.md), and [naming](NAMING.md).
 - [Browser dependencies](BROWSER-DEPENDENCIES.md), [native memory access](DF-ACCESS.md), and [wire protocol](PROTOCOL-V1.md).
-- [Support](../.github/SUPPORT.md), [security](../.github/SECURITY.md), and [upstream credit](../UPSTREAM.md).
+- [Upstream credit](../UPSTREAM.md).

@@ -26,8 +26,7 @@ Beta 4 has known interface rough edges, including Labor layout and selection sty
 The project grew directly from Gabriel Rios's
 [SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that
 project's copyright and AGPL license. [UPSTREAM.md](UPSTREAM.md) records what was inherited and what
-Dwarf With Friends subsequently added; [SECURITY.md](.github/SECURITY.md) explains the trusted-friends
-threat model and why this is not intended as a public server.
+Dwarf With Friends subsequently added.
 
 ![Two players building a fort together, each with their own labeled cursor](media/two-players.gif)
 
