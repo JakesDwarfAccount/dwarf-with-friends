@@ -21,6 +21,5 @@ RequestOrigin classify_request_origin(bool peer_is_loopback, bool has_forwarded_
 RequestOrigin request_origin(const httplib::Request& req);
 bool request_has_host_authority(const httplib::Request& req);
 bool origin_has_host_authority(RequestOrigin origin);
-const char* request_origin_name(RequestOrigin origin);
 
 } // namespace dwf

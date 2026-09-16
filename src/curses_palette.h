@@ -23,12 +23,8 @@
 
 #include <string>
 
-// DF's live 16-color curses palette (df::global::gps->uccolor[16][3]), the curses index -> RGB
-// table that reflects the player's data/init/colors.txt. This was previously private to
-// burrows_panel.cpp (B230 burrow swatches); factored out here (text-color spec §2.3, §3.2) so the
-// same bytes ship on the /version handshake for every native color index the client renders
-// (report colors, emotion attrs, profession/skill colors, [C:] tokens) instead of the browser
-// hardcoding a copy of a palette the player is free to edit.
+// The home for DF's live 16-color curses palette (gps->uccolor): every curses index -> RGB read
+// belongs here, never a hardcoded copy -- the player is free to edit the palette.
 namespace dwf {
 namespace curses {
 
@@ -36,9 +32,8 @@ constexpr int kColors = 16;
 
 struct Rgb { int r; int g; int b; };
 
-// True on success. Returns false when gps is unavailable (headless / early boot) or the index is
-// out of range -- callers must then NOT substitute an invented color (they leave bytes alone or
-// ship an empty palette), matching the burrow-swatch contract.
+// False when gps is unavailable or the index is out of range; a caller must then leave the bytes
+// alone or ship an empty palette, never substitute an invented color.
 bool rgb(int index, Rgb& out);
 
 // The palette as a JSON array literal: "[[r,g,b],[r,g,b],...]" (16 entries) or "[]" when gps is

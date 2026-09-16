@@ -19,25 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-adjacency.js -- WB-6 (docs/superpowers/specs/2026-07-07-WB-renderer-spec.md,
-// "shared 8-neighbor adjacency + wall-join upgrade"). ONE renderer-agnostic, worker-loadable
-// primitive for every "does this tile have a wall/hidden/whatever neighbor in direction D"
-// question in the client: wall-join sprite selection (dwf-tiles.js's drawWallJoin),
-// the WB-7 shadow-decal tables (wall/ramp/vision), and (per RECONCILE-WA §0) the SAME
-// function W-A's ingest worker will eventually run over chunk+ring to populate a
-// `derived.joinMask` field once the world cache lands -- so this file intentionally does
-// NOT close over any renderer/DOM/cache state; it is pure functions of a caller-supplied
-// `lookup(x, y) -> tile|null` accessor.
-//
-// DUAL-MODE FILE (same convention as dwf-cache-worker.js): a plain <script> in the
-// browser (`window.DwfAdjacency`), a dedicated Worker (`self.DwfAdjacency`), or
-// loaded via vm.runInThisContext in a Node unit test (tools/spikes/webgl/adjacency-test.mjs).
-//
-// Bit order (fog report §1 / render-buffer verdict): shadow_flag bits 2..9 decode to
-// wall-at N,S,W,E,NW,NE,SW,SE, in that exact order -- BIT.N is bit index 0 of mask8,
-// matching shadow_flag bit 2; BIT.SE is bit index 7, matching shadow_flag bit 9. Keeping the
-// SAME order here means a mask8 value can be compared directly (mask8 << 2) against a raw
-// tiledump's shadow_flag for the empirical cross-check scripts (WB-7 acceptance).
+// dwf-adjacency.js -- the shared 8-neighbour adjacency primitive: pure functions of a
+// caller-supplied `lookup(x, y) -> tile|null`, with no renderer, DOM or cache state closed over.
 (function (root) {
   "use strict";
 
@@ -54,71 +37,71 @@
   const DIR_NAMES = ["N", "S", "W", "E", "NW", "NE", "SW", "SE"];
   const CARDINAL_BITS = BIT.N | BIT.S | BIT.W | BIT.E;
   const DIAGONAL_BITS = BIT.NW | BIT.NE | BIT.SW | BIT.SE;
+  const ENG_W = 0x0002, ENG_E = 0x0004, ENG_N = 0x0008, ENG_S = 0x0010,
+        ENG_NW = 0x0040, ENG_NE = 0x0080, ENG_SW = 0x0100, ENG_SE = 0x0200;
+  const ENG_CARDINAL_BITS = ENG_N | ENG_S | ENG_W | ENG_E;
 
-  // Default join predicate (coverage §1.1 wallnbr semantics, carried forward unchanged):
-  // only shape==="WALL" neighbors join. Fortifications are a DISTINCT shape ("FORTIFICATION")
-  // and closed doors/bridges are BUILDINGS overlaid on a non-WALL floor tile -- neither ever
-  // satisfies this check, so both are correctly excluded without special-casing them here.
+  // Only shape === "WALL" joins. Fortifications are a distinct shape and closed doors and bridges are
+  // buildings over a non-WALL floor, so both are excluded without special-casing them here.
   function isJoiningWall(t) {
     return !!t && t.shape === "WALL";
   }
 
-  // Hidden-neighbor predicate (WB-7's vision-shadow table uses the identical machinery with
+  // Hidden-neighbor predicate (the vision-shadow table uses the identical machinery with
   // this predicate instead of isJoiningWall).
   function isHiddenTile(t) {
     return !!t && !!t.hidden;
   }
 
-  // B36 wall-face predicate: DF's directional wall cells (SOIL_WALL_N / _W_E / _N_S_W_E, the
-  // corner NW..SE, etc.) draw the rocky texture strip on the EXPOSED faces -- the edges where
-  // the wall borders open, passable space -- NOT on the faces buried against another wall. So
-  // wall-cell selection feeds this predicate's mask (the INVERSE of isJoiningWall) to
-  // cardinalSuffix/diagOnlyToken. A wall tile is "open toward" a neighbour when that neighbour
-  // exists, is discovered, and is not itself a joining wall. A null/unaddressable neighbour
-  // (viewport edge) and a still-hidden neighbour both count as NOT open (treated as solid) so
-  // no spurious rock edge is drawn at the window boundary or along the fog-of-war line -- the
-  // same safe-direction handling of the 1-tile edge artifact both renderers already use.
+  // The INVERSE of isJoiningWall. A null or still-hidden neighbour counts as SOLID, so no spurious rock
+  // face is drawn at the window boundary or along the fog-of-war line.
   function isOpenNeighbor(t) {
     if (!t || t.hidden || t.shape === "WALL") return false;
-    // WT25's in-bounds tt<0 cache placeholder is undiscovered rock, but has no `hidden` bit.
-    // Treating it as open paints a false material-coloured wall face toward every cache hole.
+    // An in-bounds tt<0 cache placeholder is undiscovered rock with no `hidden` bit: treating it as open
+    // paints a false material-coloured wall face toward every cache hole.
     return typeof t.tt !== "number" || t.tt >= 0;
   }
 
-  // B36: given a wall tile's 8-bit OPEN-neighbour mask (computeMask8 with isOpenNeighbor, or the
-  // equivalent grid mask), return the DF wall-cell direction infix -- the exposed-cardinal join
-  // ("N", "N_S", "W_E", "N_S_W_E", ...) when any cardinal face is exposed, else a lone exposed
-  // corner ("NW".."SE"), else null when the wall is FULLY BURIED (no exposed cardinal or corner
-  // -> the renderer draws only the darkened base fill, DF's dark wall interior). Shared by both
-  // renderers so their wall-cell choice is byte-identical for the same adjacency.
+  // Returns the DF wall-cell direction infix: the exposed-cardinal join, else a lone exposed corner,
+  // else null when the wall is FULLY BURIED. Shared so both renderers pick the same cell.
   function wallCellSuffix(openMask8) {
     var s = cardinalSuffix(openMask8);
     if (s) return s;
     return diagOnlyToken(openMask8); // null when fully buried
   }
 
-  // Compute the 8-bit adjacency mask around (x,y) via a caller-supplied lookup(x,y) -> tile|
-  // null accessor (today: a closure over the screen-window tileBuf; once W-A's cache lands:
-  // a chunk+ring reader run inside the ingest worker -- this function must not care which).
-  // `predicate(tile) -> boolean` decides whether a given neighbor counts (default: wall-join
-  // rule above). A neighbor outside the caller's addressable window (lookup returns null/
-  // undefined) never sets its bit -- the same 1-tile viewport-edge artifact DF itself shows
-  // (render-buffer §B), not a bug to fix here.
+  function engravingWallToken(mask) {
+    const cardinal = mask & ENG_CARDINAL_BITS;
+    if (cardinal) {
+      const parts = [];
+      if (cardinal & ENG_N) parts.push("N");
+      if (cardinal & ENG_S) parts.push("S");
+      if (cardinal & ENG_W) parts.push("W");
+      if (cardinal & ENG_E) parts.push("E");
+      return "ENGRAVED_STONE_WALL_" + parts.join("_");
+    }
+    if (mask & ENG_NW) return "ENGRAVED_STONE_WALL_NW";
+    if (mask & ENG_NE) return "ENGRAVED_STONE_WALL_NE";
+    if (mask & ENG_SW) return "ENGRAVED_STONE_WALL_SW";
+    if (mask & ENG_SE) return "ENGRAVED_STONE_WALL_SE";
+    return null;
+  }
+
+  // A neighbour outside the caller's addressable window never sets its bit -- the same one-tile viewport
+  // edge artifact DF itself shows, not a bug to fix here.
   function computeMask8(lookup, x, y, predicate) {
     const pred = predicate || isJoiningWall;
     let mask = 0;
     for (let i = 0; i < 8; i++) {
       const d = DELTA[i];
       let t;
-      try { t = lookup(x + d[0], y + d[1]); } catch (_) { t = null; }
+      try { t = lookup(x + d[0], y + d[1]); } catch { t = null; }
       if (pred(t)) mask |= (1 << i);
     }
     return mask;
   }
 
-  // Cardinal-only suffix string in DF's own token order (N,S,W,E), e.g. mask8 with N|E set
-  // -> "N_E" (matches STONE_WALL_N_E / ORE_VEIN_WALL_N_E / VISION_SHADOW_N_E, ...). Returns
-  // "" when no cardinal bit is set (today's 4-bit wallSuffix, unchanged, just fed by mask8).
+  // Cardinal-only suffix in DF's own token order (N,S,W,E); "" when no cardinal bit is set.
   function cardinalSuffix(mask8) {
     const parts = [];
     if (mask8 & BIT.N) parts.push("N");
@@ -128,12 +111,8 @@
     return parts.join("_");
   }
 
-  // Bare corner-cap token (coverage #10: "_NE/_SE/..." need the 4 diagonals") for the
-  // DIAGONAL-ONLY case: a tile whose only DF-adjacent neighbor (of the same joining kind) is
-  // at a corner, no cardinal neighbor at all -- the old 4-bit mask had no bit to represent
-  // this, so these tiles always fell back to the default/no-decal art. Priority when more
-  // than one diagonal bit is set with zero cardinals (rare, undocumented in the raws): NW,
-  // NE, SW, SE in that order -- any single real corner sprite beats the previous "" bail.
+  // The DIAGONAL-ONLY case: no cardinal neighbour at all. With several diagonals set the priority is
+  // NW, NE, SW, SE -- any real corner sprite beats the previous empty bail.
   function diagOnlyToken(mask8) {
     if (mask8 & CARDINAL_BITS) return null;   // cardinal case handled by cardinalSuffix
     if (mask8 & BIT.NW) return "NW";
@@ -146,12 +125,9 @@
   const api = {
     DIR, BIT, DELTA, DIR_NAMES, CARDINAL_BITS, DIAGONAL_BITS,
     isJoiningWall, isHiddenTile, isOpenNeighbor,
-    computeMask8, cardinalSuffix, diagOnlyToken, wallCellSuffix,
+    computeMask8, cardinalSuffix, diagOnlyToken, wallCellSuffix, engravingWallToken,
   };
 
-  try { root.DwfAdjacency = api; } catch (_) { /* non-browser/worker context */ }
-  // CommonJS export path for the Node unit test's alternate require() convenience (the test
-  // itself uses the vm.runInThisContext + globalThis convention like the other harness tests,
-  // but exporting here too costs nothing and keeps this module importable either way).
+  try { root.DwfAdjacency = api; } catch { /* Node loads through module.exports below */ }
   if (typeof module === "object" && module && module.exports) module.exports = api;
 })(typeof self !== "undefined" ? self : this);

@@ -3,29 +3,13 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// host/bake_sprites.mjs -- W11 (sprite provenance): produce the web client's
-// composite sprites (dwarf.png family, item_*_composite.png, animal_people_flat.png,
-// favicon.png) ON THE HOST'S MACHINE, from the host's own Dwarf Fortress art.
-//
-// Those PNGs are composites of the paid DF graphics, so the repository may not
-// ship their pixels. It ships host/sprite_recipe.json instead -- crop/blit/
-// palette-remap COORDINATES emitted by tools/ws2/emit_sprite_recipe.py -- and
-// this script replays the recipe at install time. Plain node, ZERO npm deps
-// (PNG codec: host/pnglite.mjs, written for this repo on node:zlib).
-//
-//   node host/bake_sprites.mjs --df-root "<DF folder>" [--out <dir>] [--recipe <file>] [--json]
-//
-// Default --out is <df-root>/hack/dfcapture-web (the deployed web root).
-// install.mjs calls bakeSprites() after copying the release; the setup wizard
-// (W12) surfaces it as its "Sprites" step.
-//
-// Compositing math is bit-for-bit Pillow's alpha_composite (PRECISION_BITS=7),
-// because the recipe was authored against Pillow output and the bar is
-// pixel-identical results. Verified against the original baked PNGs 2026-07-14.
+// Bake the web client's generated sprites on the host's machine from the host's own DF art.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { colorKey, decodeBmp24 } from "./bmplite.mjs";
 import { decodePng, encodePng } from "./pnglite.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -87,9 +71,8 @@ function scaleNearest(img, s) {
   return { width: w, height: h, data };
 }
 
-// Palette remap exactly as tools/ws2/bake_dwarf.py remap(): every pixel with
-// alpha > 0 whose RGB equals key-row[slot] becomes to-row[slot] (alpha kept).
-// Later slots override earlier on duplicate key colors (dict-comprehension order).
+// Palette remap as tools/ws2/bake_dwarf.py remap(): every pixel with alpha > 0 whose RGB equals
+// key-row[slot] becomes to-row[slot]. Later slots override earlier on duplicate key colors.
 function buildLut(palImg, fromRow, toRow) {
   const lut = new Map();
   for (let s = 0; s < palImg.width; s++) {
@@ -129,8 +112,30 @@ export function bakeSprites({ dfRoot, outDir, recipePath, log = () => {} } = {})
     return { ok: false, written, problems: [`unsupported recipe version ${recipe.version}`] };
   }
 
-  // Resolve + decode every referenced source up front so a host with missing
-  // art (e.g. DF Classic, no premium graphics) gets ONE clear message.
+  const conversions = [];
+  for (const spec of recipe.bmpConversions || []) {
+    const abs = path.join(dfRoot, ...spec.source.split("/"));
+    if (!existsSync(abs)) {
+      problems.push(`BMP source missing: ${spec.source}`);
+      continue;
+    }
+    const bytes = readFileSync(abs);
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    if (sha256 !== spec.sha256) {
+      problems.push(`BMP source hash mismatch: ${spec.source} (got ${sha256})`);
+      continue;
+    }
+    try {
+      conversions.push({
+        output: spec.output,
+        image: colorKey(decodeBmp24(bytes, spec.source), spec.transparentRgb),
+      });
+    } catch (e) {
+      problems.push(`cannot convert ${spec.source}: ${e.message}`);
+    }
+  }
+
+  // Resolve + decode every referenced source up front so a host with missing art gets ONE message.
   const sources = [];
   const missing = [];
   for (const rel of recipe.sources) {
@@ -161,6 +166,11 @@ export function bakeSprites({ dfRoot, outDir, recipePath, log = () => {} } = {})
   }
 
   mkdirSync(outDir, { recursive: true });
+  for (const conversion of conversions) {
+    writeFileSync(path.join(outDir, conversion.output), encodePng(conversion.image));
+    written.push(conversion.output);
+    log(`  converted ${conversion.output} (${conversion.image.width}x${conversion.image.height})`);
+  }
   const baked = {}; // name -> image (favicon references dwarf.png)
   for (const [name, spec] of Object.entries(recipe.outputs)) {
     const img = { width: spec.w, height: spec.h, data: new Uint8Array(spec.w * spec.h * 4) };
@@ -198,8 +208,7 @@ export function bakeSprites({ dfRoot, outDir, recipePath, log = () => {} } = {})
   return { ok: true, written, problems, outDir };
 }
 
-// Install-state probe for install.mjs --check: can this DF root bake, and are
-// the baked outputs present in the deployed web dir? Touches nothing.
+// Install-state probe for install.mjs --check. Touches nothing.
 export function spriteBakeState({ dfRoot, outDir, recipePath } = {}) {
   recipePath = recipePath || DEFAULT_RECIPE;
   outDir = outDir || (dfRoot ? path.join(dfRoot, "hack", "dfcapture-web") : "");
@@ -208,9 +217,10 @@ export function spriteBakeState({ dfRoot, outDir, recipePath } = {}) {
   if (!recipe || !dfRoot) {
     return { bakeable: false, recipeOk: !!recipe, missingSources: [], missingBaked: [], bakedPresent: [] };
   }
-  const missingSources = recipe.sources.filter(
+  const conversionSources = (recipe.bmpConversions || []).map((c) => c.source);
+  const missingSources = [...recipe.sources, ...conversionSources].filter(
     (rel) => !existsSync(path.join(dfRoot, ...rel.split("/"))));
-  const names = Object.keys(recipe.outputs);
+  const names = [...(recipe.bmpConversions || []).map((c) => c.output), ...Object.keys(recipe.outputs)];
   const missingBaked = names.filter((n) => !existsSync(path.join(outDir, n)));
   return {
     bakeable: missingSources.length === 0, recipeOk: true, missingSources,

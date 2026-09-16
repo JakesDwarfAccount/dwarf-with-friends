@@ -25,6 +25,8 @@
 #include "LuaTools.h"
 #include "console_policy.h"
 #include "diagnostics.h"
+#include "panel_http.h"
+#include "route_helpers.h"
 #include "save_barrier.h"
 #include "sdl_capture.h"
 
@@ -125,7 +127,8 @@ bool validate_named_returns(lua_State* L, const char* function_name, int returns
             "workshop_profile_set", "burial_coffin_action", "queue_memorial_slab",
             "zone_location_action", "location_action", "import_order_preset", "cancel_order",
             "adjust_order", "add_item_condition", "edit_item_condition",
-            "add_order_condition", "remove_condition", "set_order_max_workshops",
+            "add_order_condition", "edit_order_condition",
+            "remove_condition", "set_order_max_workshops",
             "set_order_workshop", "reorder_order"})) {
         return returns == 2 && validate_returns(L, function_name, {{'b', false}, {'s', true}}, err);
     }
@@ -155,25 +158,12 @@ bool validate_named_returns(lua_State* L, const char* function_name, int returns
 
 template <typename Fn>
 bool run_lua_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> module_lock(g_lua_bridge_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    // A request can enter HTTP just before DF raises its save callback and then wait here for the
-    // core. Re-check after acquiring the core lock so it cannot execute in the post-save cleanup
-    // boundary even if it passed the outer HTTP barrier before the save began.
-    if (save_barrier_active()) return false;
-    return fn();
-}
-
-// BUGFIX (cursor/selection misalignment): was clamping/rescaling against
-// effective_capture_viewport_dims (DF's own tiny native viewport) instead of the client's own
-// frame_w/frame_h -- see interaction.cpp's pixel_to_tile_coord banner for the root cause. px is
-// already a plain tile-grid index into the client's rendered window (0..frame-1); clamp against
-// that window, never DF's native viewport size.
-int pixel_to_tile(int pixel, int frame) {
-    if (frame <= 0)
-        return 0;
-    return std::max(0, std::min(frame - 1, pixel));
+    return run_panel_locked(g_lua_bridge_mutex, [&]() -> bool {
+        // Re-check after taking the core lock: a request can clear the outer HTTP barrier just
+        // before DF raises its save callback and then execute inside the post-save cleanup window.
+        if (save_barrier_active()) return false;
+        return fn();
+    });
 }
 
 bool pixel_rect_to_world_tiles(const Camera& camera, int px, int py, int px2, int py2,
@@ -188,10 +178,10 @@ bool pixel_rect_to_world_tiles(const Camera& camera, int px, int py, int px2, in
         return false;
     }
 
-    int tx1 = pixel_to_tile(std::min(px, px2), frame_w);
-    int ty1 = pixel_to_tile(std::min(py, py2), frame_h);
-    int tx2 = pixel_to_tile(std::max(px, px2), frame_w);
-    int ty2 = pixel_to_tile(std::max(py, py2), frame_h);
+    int tx1 = pixel_to_tile_index(std::min(px, px2), frame_w);
+    int ty1 = pixel_to_tile_index(std::min(py, py2), frame_h);
+    int tx2 = pixel_to_tile_index(std::max(px, px2), frame_w);
+    int ty2 = pixel_to_tile_index(std::max(py, py2), frame_h);
 
     x1 = camera.x + tx1;
     y1 = camera.y + ty1;
@@ -205,6 +195,45 @@ std::string lua_output_text(DFHack::buffered_color_ostream& out) {
     for (const auto& frag : out.fragments())
         text += frag.second;
     return text;
+}
+
+// The shared Lua-error boundary for every plugins.dwf entry point.
+std::string one_line_lua_error(const std::string& details, const char* function_name) {
+    // First non-empty line, minus any "<path>:<line>: " source prefix (Windows paths carry a drive
+    // colon, so anchor on the ":<digits>: " that Lua itself emits).
+    std::string line;
+    for (size_t i = 0; i <= details.size(); ++i) {
+        char c = i < details.size() ? details[i] : '\n';
+        if (c == '\r' || c == '\n') {
+            if (!line.empty()) break;
+            continue;
+        }
+        line += c;
+    }
+    size_t scan = 0;
+    size_t cut = std::string::npos;
+    while ((scan = line.find(':', scan)) != std::string::npos) {
+        size_t digits = scan + 1;
+        while (digits < line.size() && std::isdigit(static_cast<unsigned char>(line[digits])))
+            ++digits;
+        if (digits > scan + 1 && digits < line.size() && line[digits] == ':') {
+            cut = digits + 1;
+            scan = digits + 1;
+            continue;   // keep going: the deepest "path:line:" prefix wins
+        }
+        ++scan;
+    }
+    if (cut != std::string::npos)
+        line = line.substr(cut);
+    size_t first = line.find_first_not_of(" \t");
+    size_t last = line.find_last_not_of(" \t");
+    line = first == std::string::npos ? std::string() : line.substr(first, last - first + 1);
+    if (line.empty())
+        return std::string("lua bridge call failed: ") + function_name;
+    constexpr size_t kMaxLen = 160;
+    if (line.size() > kMaxLen)
+        line = line.substr(0, kMaxLen - 3) + "...";
+    return std::string(function_name) + " failed: " + line;
 }
 
 template <typename Args, typename ResultFn>
@@ -222,12 +251,14 @@ bool call_lua(const char* function_name, Args&& args, int returns,
         });
     if (!called) {
         g_lua_call_failures.fetch_add(1, std::memory_order_relaxed);
-        if (err) {
-            std::string details = lua_output_text(lua_out);
-            *err = details.empty()
-                ? std::string("lua bridge call failed: ") + function_name
-                : details;
-        }
+        // Full traceback to the server log, ONE line to the player. Cold path (a lua failure),
+        // never per frame. "(trap-options-v1)" is this change's unique deploy witness.
+        std::string details = lua_output_text(lua_out);
+        diagnostics_log(std::string("DIAG lua-bridge call failed (trap-options-v1): ") + function_name +
+                        (details.empty() ? std::string(" (no lua output)")
+                                         : std::string("\n") + details));
+        if (err)
+            *err = one_line_lua_error(details, function_name);
         return false;
     }
     if (!signature_ok) {
@@ -360,9 +391,6 @@ bool place_building_via_lua(const Camera& camera, int px, int py, int px2, int p
                         std::to_string(x2) + "," + std::to_string(y2) +
                         " z=" + std::to_string(camera.z));
         // 5 returns: count(-5), first-id(-4), err(-3), created-id table(-2), invariant audit(-1).
-        // WP-C reads the id
-        // list to attribute EVERY tile of a multi-tile placement; error paths return 3 values, so
-        // the padded trailing values are nil and out_ids/audit simply stay empty.
         bool ok = call_lua("place_building",
             std::make_tuple(x1, y1, x2, y2, camera.z, token, direction, options, selected_item_id), 5,
             [&](lua_State* L) {
@@ -458,10 +486,6 @@ bool create_zone_via_lua(const Camera& camera, int px, int py, int px2, int py2,
     });
 }
 
-// Same lua-side "create_stockpile" as create_stockpile_via_lua, but takes an already-resolved
-// WORLD tile rectangle (no pixel/viewport conversion). Used by /stockpile-repaint mode=replace
-// (stockpile_panel.cpp), which receives the exact repaint footprint world-addressed from the
-// client and must not depend on where the requesting player's camera happens to be.
 bool create_stockpile_at_world_rect_via_lua(int x1, int y1, int x2, int y2, int z,
                                             const std::string& preset, int& out_id,
                                             std::string* err) {
@@ -581,10 +605,7 @@ bool stockpile_toggle_all_via_lua(int32_t id, const std::string& cat,
     return result_ok;
 }
 
-// ---- B231: hauling-stop desired items -------------------------------------------------------
-// Thin (route_id, stop_id) twins of the stockpile settings calls above. The Lua they reach
-// (dwf.lua: hauling_stop_*) resolves the stop and hands it to the SAME sp_* primitives the
-// stockpile editor uses, because df::hauling_stop.settings IS a df::stockpile_settings.
+// ---- Hauling-stop desired items -------------------------------------------------------------
 std::string hauling_stop_settings_snapshot_via_lua(int32_t route_id, int32_t stop_id,
                                                    std::string* err) {
     std::string json;
@@ -818,7 +839,7 @@ bool zone_location_action_via_lua(int32_t zone_id, const std::string& action,
     return result_ok;
 }
 
-// B229: location detail + location actions (occupation assignment, temple deity, craft guild).
+// Location detail + location actions (occupation assignment, temple deity, craft guild).
 std::string location_detail_json_via_lua(int32_t location_id, std::string* err) {
     return json_returning_lua_int("location_detail_json", location_id, err);
 }
@@ -874,7 +895,7 @@ bool create_order_via_lua(const std::string& key, int32_t amount,
                           std::string* msg, std::string* err, std::vector<int32_t>* out_ids) {
     bool result_ok = false;
     std::string result_msg;
-    // 3 returns: ok(-3), msg(-2), created-id table(-1). WP-C/WT06 reads the id list to stamp
+    // 3 returns: ok(-3), msg(-2), created-id table(-1). Attribution reads the id list to stamp
     // attribution; older callers that pass no out_ids simply ignore the extra return.
     bool ok = run_lua_locked([&]() -> bool {
         return call_lua("create_order", std::make_tuple(key, amount, frequency, workshop_id), 3,
@@ -983,7 +1004,7 @@ bool add_item_condition_via_lua(int32_t id, const std::string& compare, int32_t 
     return result_ok;
 }
 
-// B285 wave-2: edit a stock condition IN PLACE. Same shape as add; `index` addresses the entry.
+// Edit a stock condition IN PLACE. Same shape as add; `index` addresses the entry.
 bool edit_item_condition_via_lua(int32_t id, int32_t index, const std::string& compare,
                                  int32_t value, const std::string& item,
                                  const std::string& material, const std::string& adjective,
@@ -1022,6 +1043,27 @@ bool add_order_condition_via_lua(int32_t id, int32_t other_id, const std::string
         return false;
     if (!result_ok && err)
         *err = result_msg.empty() ? "add dependency failed" : result_msg;
+    return result_ok;
+}
+
+// Flip an existing dependency's check type IN PLACE. Distinct from add: no new condition
+// is created, and the row keeps its position in the order's condition list.
+bool edit_order_condition_via_lua(int32_t id, int32_t index, const std::string& type,
+                                  std::string* err) {
+    bool result_ok = false;
+    std::string result_msg;
+    bool ok = run_lua_locked([&]() -> bool {
+        return call_lua("edit_order_condition", std::make_tuple(id, index, type), 2,
+            [&](lua_State* L) {
+                result_ok = lua_toboolean(L, -2) != 0;
+                if (lua_isstring(L, -1))
+                    result_msg = lua_tostring(L, -1);
+            }, err);
+    });
+    if (!ok)
+        return false;
+    if (!result_ok && err)
+        *err = result_msg.empty() ? "edit dependency failed" : result_msg;
     return result_ok;
 }
 
@@ -1099,7 +1141,7 @@ bool reorder_order_via_lua(int32_t id, int32_t direction, std::string* err) {
     return result_ok;
 }
 
-// ---- B228 missions: DFHack's own stuck-squad repair --------------------------------------------
+// ---- Missions: DFHack's own stuck-squad repair -------------------------------------------------
 
 bool mission_rescue_stuck_via_lua(int& out_rescued, std::string& out_text, std::string* err) {
     int rescued = 0;
@@ -1127,7 +1169,7 @@ bool mission_rescue_stuck_via_lua(int& out_rescued, std::string& out_text, std::
     return true;
 }
 
-// ---- WT26 DFHack command console --------------------------------------------------------------
+// ---- DFHack command console --------------------------------------------------------------
 
 std::string console_catalog_json_via_lua(std::string* err) {
     return json_returning_lua("console_catalog", err);
@@ -1135,11 +1177,8 @@ std::string console_catalog_json_via_lua(std::string* err) {
 
 bool console_run_via_lua(const std::string& command, int& out_status, std::string& out_text,
                          std::string* err) {
-    // *** THE GATE, RE-APPLIED AT THE BRIDGE. *** console_routes.cpp already refused a blocked
-    // command with a 403 before we got here; this second call to the SAME table
-    // (dwf::console::command_denied -- there is only one) makes it structurally impossible for
-    // any future C++ caller of this bridge to reach dfhack.run_command_silent without the gate. It
-    // takes no host/loopback parameter, so the host is bound by it exactly as a friend is.
+    // The gate, re-applied at the bridge. It takes no host/loopback parameter: the host is bound
+    // by it exactly as a remote friend is.
     console::Denial gate = console::command_denied(command);
     if (gate.denied) {
         if (err) *err = gate.reason;
@@ -1168,12 +1207,8 @@ bool console_run_via_lua(const std::string& command, int& out_status, std::strin
     return true;
 }
 
-// ---- HOST-WRITES (B226/B227) --------------------------------------------------------------------
-// All four entries return the Lua side's self-describing JSON (ok/error/guarded/retry). The
-// justice drive is a multi-frame state machine: hw_justice_action returns {"retry":true} whenever
-// it needs native frames to run (widget arrange, deferred unit-list builds), so the drive loop
-// below releases the core suspension between steps and sleeps a beat. One drive at a time,
-// globally -- two players convicting at once through one shared native UI would interleave input.
+// ---- HOST-WRITES --------------------------------------------------------------------------------
+// One drive at a time, globally: two players driving the one shared native UI interleave input.
 
 namespace {
 std::mutex g_hostwrites_drive_mutex;

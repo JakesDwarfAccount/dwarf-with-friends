@@ -41,8 +41,11 @@
 
 #include <zlib.h>
 
+#include "common_util.h"
 #include "diagnostics.h"
+#include "fnv.h"
 #include "json_util.h"
+#include "unit_status.h"   // unit_is_animate -- NOT_LIVING is not "corpse" (vampire fix)
 
 #include "Core.h"
 #include "DataDefs.h"
@@ -72,26 +75,6 @@ namespace dwf {
 
 namespace {
 
-// ---------------------------------------------------------------------------------------------
-// Small self-contained helpers (kept local; websocket.cpp's base64 is in its own TU's anon ns).
-
-const char kB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-std::string base64(const uint8_t* d, size_t n) {
-    std::string out;
-    out.reserve(((n + 2) / 3) * 4);
-    for (size_t i = 0; i < n; i += 3) {
-        uint32_t v = uint32_t(d[i]) << 16;
-        if (i + 1 < n) v |= uint32_t(d[i + 1]) << 8;
-        if (i + 2 < n) v |= uint32_t(d[i + 2]);
-        out.push_back(kB64[(v >> 18) & 63]);
-        out.push_back(kB64[(v >> 12) & 63]);
-        out.push_back(i + 1 < n ? kB64[(v >> 6) & 63] : '=');
-        out.push_back(i + 2 < n ? kB64[v & 63] : '=');
-    }
-    return out;
-}
-
 // zlib-deflate a raw buffer. Returns empty on failure (caller then emits the plane raw).
 std::vector<uint8_t> deflate_buf(const uint8_t* d, size_t n) {
     uLongf cap = compressBound(static_cast<uLong>(n));
@@ -100,11 +83,6 @@ std::vector<uint8_t> deflate_buf(const uint8_t* d, size_t n) {
         return {};
     out.resize(cap);
     return out;
-}
-
-inline uint64_t fnv1a(uint64_t h, const uint8_t* d, size_t n) {
-    for (size_t i = 0; i < n; ++i) { h ^= d[i]; h *= 1099511628211ULL; }
-    return h;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -271,17 +249,13 @@ int64_t now_ms() {
                std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-// ---------------------------------------------------------------------------------------------
-// The screen pass runs on DF's render thread. It hashes first and copies only on change, with
-// no CoreSuspender and no capture_state_mutex (taking that mutex in a render callback can deadlock
-// against capture_camera_frame, whose worker holds it while waiting for the render callback).
+// The screen pass takes no CoreSuspender and no capture_state_mutex: capture_camera_frame's worker
+// holds that mutex while waiting for a render callback, so taking it in ours deadlocks.
 
 struct VpPlane { const char* name; const void* arr; int elem; };
 
-// Stable texture-selection planes for the text/UI grid. `lower` and `anchored` are not
-// derivable from screentexpos: DF's renderer composes controls from all of these arrays.
-// Keep their names and generated graphic fields together so the hash and copy paths cannot
-// silently drift apart.
+// `lower` and `anchored` are not derivable from screentexpos -- DF composes controls from all of
+// these arrays -- so the hash and the copy paths must share this one list.
 std::vector<VpPlane> gps_texture_planes(df::graphic* gps, bool top) {
     if (!gps) return {};
     std::vector<VpPlane> planes = {
@@ -364,7 +338,7 @@ bool sample_screen(uint64_t previous_hash, uint64_t previous_route_stamp, bool f
     for (const VpPlane& p : gps_tex_planes)
         if (!p.arr) return false;
 
-    uint64_t h = 1469598103934665603ULL;
+    uint64_t h = kFnvOffsetBasis;
     h = fnv1a(h, reinterpret_cast<const uint8_t*>(&dimx), sizeof(dimx));
     h = fnv1a(h, reinterpret_cast<const uint8_t*>(&dimy), sizeof(dimy));
     hash_plane(h, gps->screen, cells * 8);
@@ -421,11 +395,8 @@ bool sample_screen(uint64_t previous_hash, uint64_t previous_route_stamp, bool f
                 break;
             }
         }
-        // The condition editor and its suggestion vector are render-owned UI state. Copy them
-        // here, while the render callback owns that thread. The worker later resolves the stable
-        // order id under ConditionalCoreSuspender and copies only simulation-owned order data.
-        // Splitting ownership this way avoids the impossible "park render, then suspend core"
-        // handshake: DF's simulation thread can be waiting for render before it yields the core.
+        // Render-owned UI state, so it must be copied here inside the render callback: the worker
+        // cannot fetch it later, because parking render and then suspending the core deadlocks.
         if (df::gamest* game = df::global::game) {
             auto& conditions = game->main_interface.info.work_orders.conditions;
             if (conditions.open && conditions.wq) {
@@ -436,7 +407,8 @@ bool sample_screen(uint64_t previous_hash, uint64_t previous_route_stamp, bool f
                 // vector<T*>. Native construction and rendering both use pointer elements. Keep
                 // this compatibility view local until the authoritative XML correction lands.
                 // Copy the three-pointer vector representation instead of type-punning two
-                // vector specializations, which violates GCC's strict-aliasing rules.
+                // vector specializations, which violates GCC's strict-aliasing rules (and now
+                // matters: GCC is the Linux compiler for this plugin).
                 struct SuggestionPtrRange {
                     df::manager_order_condition_item** begin;
                     df::manager_order_condition_item** end;
@@ -540,9 +512,7 @@ bool sample_screen_on_render_thread(uint64_t previous_hash, uint64_t previous_ro
     return true;
 }
 
-// Render validation is scheduled only after ConditionalCoreSuspender has been destroyed. Reusing
-// the hash-gated sampler with the candidate stamps avoids a second grid copy: an exact match returns
-// after recomputing the hashes and fixed-size v3 route scalars.
+// Call only after the ConditionalCoreSuspender has been destroyed -- never while core-suspended.
 bool validate_rich_record_on_render_thread(const Record& candidate, bool with_vp) {
     Record validation;
     uint64_t ui_hash = candidate.ui_hash;
@@ -592,7 +562,7 @@ bool enrich_rich_record(Record& out) {
     df::world* world = df::global::world;
     if (world && out.map_dim_x > 0 && out.map_dim_y > 0) {
         for (df::unit* u : world->units.active) {
-            if (!u || !DFHack::Units::isAlive(u) || u->pos.z != out.win_z) continue;
+            if (!u || !unit_is_animate(u) || u->pos.z != out.win_z) continue;
             if (u->pos.x < out.win_x || u->pos.x >= out.win_x + out.map_dim_x ||
                 u->pos.y < out.win_y || u->pos.y >= out.win_y + out.map_dim_y + 1)
                 continue;
@@ -658,10 +628,8 @@ bool enrich_rich_record_seh(Record& out) {
 #endif
 }
 
-// The render callback has completed before this function runs. It already copied render-owned
-// focus, texture, and condition-suggestion state. Acquire the core only for the short copy of
-// simulation-owned unit and manager-order vectors. Never wait on a render callback while holding
-// this suspender (the tile-dump deadlock law), and retry on the next changed-frame tick if busy.
+// Holds the core only for the short copy of simulation-owned unit and manager-order vectors.
+// Never wait on a render callback while holding this suspender: that deadlocks DF.
 bool suspended_enrich_rich_record(Record& out) {
     DFHack::ConditionalCoreSuspender suspend;
     if (!suspend) {
@@ -847,13 +815,9 @@ void capture_loop(std::string path, bool rich, bool with_vp, int hz, int state_h
         if (!changed) { g_rec.skips.fetch_add(1, std::memory_order_relaxed); continue; }
         if (state_only) g_rec.state_only_attempts.fetch_add(1, std::memory_order_relaxed);
 
-        // Screen + UI-owned focus/texture/suggestion metadata were copied together on render.
-        // Cheap mode needs no suspension. Rich mode then briefly suspends simulation to copy only
-        // unit and manager-order vectors; it never parks or waits on render while core-suspended.
         const bool enriched = !rich || suspended_enrich_rich_record(rec);
         if (!enriched) {
-            // Keep the old stamps so an unchanged next tick retries. The v3 frame is still useful:
-            // its explicit busy/fault envelope is a queryable evidence gap, never an inferred join.
+            // Deliberately does not advance the stamps, so an unchanged next tick retries.
             g_rec.misses.fetch_add(1, std::memory_order_relaxed);
             g_rec.enrichment_misses.fetch_add(1, std::memory_order_relaxed);
         }

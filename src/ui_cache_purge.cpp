@@ -40,106 +40,11 @@ using namespace DFHack;
 
 namespace dwf {
 
-// The complete audit of main_interface.h (df.d_interface.xml, DF 683c721d / v0.53.15) for raw
-// building-pointer caches. A "*" row is a df::building* (subtype) our deconstruct paths can free
-// and so is purged here; an "id" row is a bld_id/int reference DFHack reindexes on free and is
-// therefore SAFE and deliberately left alone.
-//
-//   sub-interface                     field                         type                       purge?
-//   --------------------------------- ----------------------------- -------------------------- ------
-//   civzone_interfacest               cur_bld                       building_civzonest*        YES (B34)
-//   civzone_interfacest               list[]                        building_civzonest*        YES (B34)
-//   civzone_interfacest               zone_just_created[]           building_civzonest*        YES (B34)
-//   custom_stockpile_interfacest      abd                           building_stockpilest*      YES (dump 2026-07-16)
-//   custom_stockpile_interfacest      sp                            stockpile_settings*        YES -- &bld->settings, dangles on free
-//       [offset correction 2026-07-17: the 2026-07-16 dump analysis cited custom_stockpile.sp at
-//        gamest+0x2c10 via the STALE typed-Ghidra layout; an MSVC offsetof probe against the dfhack
-//        headers this plugin compiles against puts it at gamest+0x2cb0. Nothing here depends on the
-//        raw number -- this file purges cs.abd / cs.sp / stockpile.cur_bld BY FIELD NAME, so the
-//        compiler resolves the true offsets; the correction matters only to dump forensics.]
-//   stockpile_interfacest             cur_bld                       building_stockpilest*      YES
-//   info_interfacest.buildings        list[mode][]                  building*                  YES (render-UAF; see below)
-//   job_details_interfacest           bld                           building*                  YES
-//   buildjob_interfacest              display_furniture_bld         building_display_furniturest* YES
-//   assign_display_item_interfacest   display_bld                   building_display_furniturest* YES
-//   trade_interfacest                 bld                           building_tradedepotst*     YES
-//   assign_trade_interfacest          trade_depot_bld               building_tradedepotst*     YES
-//   ----------------------------------------------------------------------------------------- SAFE
-//   building_interfacest              button/press_button/          interface_button* whose    no -- SAFE (see below)
-//                                     filtered_button[] -> .bd       subclass holds building* bd
-//   view_sheets_interfacest           viewing_unid/itid/...         int32_t id                 no (id)
-//   stockpile_link_interfacest        (bld_id ints only)            int32_t id                 no (id)
-//   stockpile_tools_interfacest       (bld_id ints only)            int32_t id                 no (id)
-//   create_work_order_interfacest     forced_bld_id / building[]    int32_t id / cwo_buildingst* no (id; cwo_buildingst is a template, not a building)
-//   squads_interfacest                (squad/bld ids)               int32_t id                 no (id)
-//   location_list/details/selector    valid_ab/selected_ab          abstract_building*         no (own cache) -- BUT see dependent-view sweep: location_selector is a dependent VIEW of civzone.cur_bld and IS closed
-//
-// DEPENDENT-VIEW SWEEP (2026-07-16, dump 97692). The rows above classify each field by its OWN
-// cached pointer. That is necessary but not sufficient: a sub-interface can hold NO building
-// pointer of its own yet still assume, in its per-frame renderer, that ANOTHER purged cache is
-// non-null -- it is a *dependent view* of that cache. The location_selector proved this class:
-// context ZONE_MEETING_AREA_ASSIGNMENT holds no zone pointer, but FUN_1403b7cf0 dereferences
-// civzone.cur_bld->location_id unguarded while open, so nulling cur_bld without closing the picker
-// turned the freed-zone UAF into a null-deref crash (exe+0x3b9bc1). Rule adopted here: for every
-// purged building* cache, if a sub-interface with an `open` flag treats that cache (or its own
-// same-building cache) as a non-null subject, CLOSE it (open=false) when -- and only when -- that
-// subject IS the dying building. Sweep result:
-//   interface (open flag?)      subject cache            decision
-//   --------------------------- ------------------------ --------------------------------------------
-//   location_selector (open)    civzone.cur_bld          CLOSE (+context=NONE) -- dump-proven crash
-//   custom_stockpile  (open)    abd / &bld->settings     CLOSE -- pre-existing, dump-proven 2026-07-16
-//   assign_display_item (open)  display_bld              CLOSE -- dependent view, subject building freed
-//   trade             (open)    bld (depot)              CLOSE -- subject depot freed under an open trade
-//   assign_trade      (open)    trade_depot_bld          CLOSE -- subject depot freed under an open picker
-//   job_details       (open)    bld                      CLOSE -- subject building freed under an open panel
-//   stockpile         (no open) cur_bld                  null only -- stockpile_interfacest is the paint-mode
-//                                                        struct {doing_rectangle,box_on_left,erasing,repainting,
-//                                                        cur_bld} with NO open flag, so there is no dependent
-//                                                        view to close; nulling is the pre-existing, already-
-//                                                        shipped treatment and unchanged here. (The analogous
-//                                                        civzone ZONE_PAINT per-frame consumer null-checks its
-//                                                        cur_bld -- FUN_1403bafd0 case 4 `if (cur_bld && ...)`.)
-//   buildjob          (no open) display_furniture_bld    null only -- no open flag; its sibling picker
-//                                                        (assign_display_item) is the open view and IS closed above
-//   info.buildings    (no open) list[mode][]             list fully erased; struct has no cur_bld/selected pointer,
-//                                                        only mode + per-mode scrolling_position (clamped), so
-//                                                        erasing the vectors is the complete fix
-// Closing is safe by construction: each close is guarded by identity against the dying building, so
-// it can fire only in the precise remote-delete-while-locally-open race and never dismisses an
-// unrelated panel; a spurious dismissal in that race is strictly better than a render-thread crash.
-// The 5 squad interfaces (squads.cpp) are out of this helper's scope: they cache squad*/unit*/
-// assignment ids around squad lifecycle, not building* our deconstruct paths free, so a building
-// deconstruct cannot dangle them.
-//
-// info_interfacest.buildings.list (df.d_interface.xml:2009-2012, verified against the crash build
-// 683c721d AND b12f73a) is a static-array[buildings_mode_type] of stl-vector<building*> -- the
-// per-mode (ZONES/LOCATIONS/STOCKPILES/WORKSHOPS/FARMPLOTS/SIEGE_ENGINES) Buildings-tab inventory,
-// reached via main_interface.info.buildings (xml:2448/5500). It persists across frames (each mode
-// keeps a sibling scrolling_position) and the info-tab RENDERER walks it every frame drawing each
-// building's name -> the exact dump-proven render-thread UAF. Purged below over ALL modes.
-//
-// building_interfacest.button/press_button/filtered_button (xml:5464 building_interfacest) are
-// vectors of interface_button*, and the interface_button_buildingst subclass (xml:295-297) carries
-// a raw `building* bd`. Classified SAFE for the RELEASE-BLOCKER (render-thread) UAF class with
-// direct decomp evidence from 683c721d: bd is set to a real in-world building by
-// building_workshopst::fillSidebarMenu (FUN_1408c3a60: `*(bd_off)=this`), and it IS reachable in
-// principle via /building-action remove -- BUT the build-sidebar RENDER function (FUN_1408d7ae0)
-// iterates these vectors through the buttons' OWN text/render vmethods and never dereferences
-// ->bd; ->bd is touched ONLY inside the press handlers (FUN_1408c0d20 / 1408c0c40 / 1408c2200),
-// i.e. on a user CLICK, not on the render thread. So it is not the dump's mechanism. We do NOT
-// mutate it here on purpose: the same button object is push_back'd into BOTH button and
-// press_button (FUN_1407c3f60), so a naive erase/delete would dangle or double-free the shared
-// object, and nulling ->bd would only convert a stale-menu click from a possible UAF into a
-// guaranteed null-deref -- strictly not safer, and building_interfacest has no `open` flag to
-// gate cleanly. The residual (clicking a material/color selector in a build sidebar whose target
-// building was remotely removed mid-placement) is user-input-gated, off the render thread, and
-// needs a live DF build to fix correctly (reset the build interface as DF does on cancel); logged
-// as a follow-up rather than blind-patched.
-//
-// abstract_building* caches are intentionally excluded: abstract_building (temple/hospital/guild
-// location) is a distinct object DFHack's building deconstruct never frees. If a location-removal
-// path is ever added it needs its OWN purge (selected_ab/valid_ab) -- flagged here so that future
-// path does not silently reopen this bug class for locations.
+// Nulls every main_interface raw building* cache that names the dying building. id-based caches
+// are left alone: DFHack reindexes those on free.
+
+// Deconstruct never frees an abstract_building, so selected_ab/valid_ab are absent by design; a
+// location-removal path needs its own purge for those or it reopens this bug class.
 void purge_ui_caches_for_building(df::building* b) {
     if (!b)
         return;
@@ -157,15 +62,8 @@ void purge_ui_caches_for_building(df::building* b) {
         auto& civ = mi.civzone;
         if (civ.cur_bld == b) {
             civ.cur_bld = nullptr;
-            // DEPENDENT VIEW (dump-proven 2026-07-16 22:25, dump 97692): the zone sheet's
-            // location-assignment picker (main_interface.location_selector, context
-            // ZONE_MEETING_AREA_ASSIGNMENT) holds NO zone pointer of its own -- its contract is
-            // "civzone.cur_bld is the zone I'm assigning a location to". Its renderer FUN_1403b7cf0
-            // (@ exe+0x3b9bc1) reads civzone.cur_bld->location_id (+0x118) UNGUARDED whenever it is
-            // open with context==0, so nulling cur_bld above without closing the picker converts a
-            // freed-zone UAF into a guaranteed null-deref the very next render frame. Close it, as
-            // native DF's own dismiss path does. Guarded by cur_bld identity + the exact context, so
-            // only the picker that was pointed at THIS dying zone is dismissed.
+            // Never null cur_bld without closing this picker: while open it reads
+            // cur_bld->location_id unguarded, so a bare null crashes the next render frame.
             auto& ls = mi.location_selector;
             if (ls.open && ls.context ==
                     df::location_selector_context_type::ZONE_MEETING_AREA_ASSIGNMENT) {
@@ -192,7 +90,7 @@ void purge_ui_caches_for_building(df::building* b) {
             if (mode_list[i] == b)
                 mode_list.erase(mode_list.begin() + i);
 
-    // --- stockpiles: dump-proven UAF 2026-07-16. custom_stockpile.sp is a stockpile_settings*
+    // --- stockpiles: dump-proven UAF. custom_stockpile.sp is a stockpile_settings*
     //     pointing INTO the pile (&bld->settings), so freeing the pile dangles it even though it
     //     is not itself a building pointer; abd + stockpile.cur_bld are building_stockpilest*.
     //     Close custom_stockpile (open=false) as native DF does on dismiss -- the renderer reads
@@ -209,8 +107,8 @@ void purge_ui_caches_for_building(df::building* b) {
     }
 
     // --- generic building panels: the /building-action remove route frees ANY building type, so
-    //     the inspected-building caches on the generic panels can dangle too. DEPENDENT-VIEW SWEEP
-    //     (2026-07-16): the location_selector crash taught us that nulling a cache is only half the
+    //     the inspected-building caches on the generic panels can dangle too. The
+    //     location_selector crash taught us that nulling a cache is only half the
     //     contract when an OPEN sub-interface's renderer treats that cache as its non-null subject.
     //     Each interface below that carries its own `open` flag AND whose subject is the dying
     //     building is therefore CLOSED, not merely nulled -- guarded by pointer identity so only the

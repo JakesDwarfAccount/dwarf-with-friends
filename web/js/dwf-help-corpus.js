@@ -2,12 +2,25 @@
 // Copyright (C) 2026 Gabriel Rios
 // Copyright (C) 2026 Jake Taplin
 //
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 // GENERATED FILE -- do not edit by hand. Regenerate with:
 //   node tools/harness/help_corpus_extractor.mjs
-// It is the baked tooltip corpus for the ? help reference (B207). The drift guard
-// (tools/harness/help_reference_test.mjs) fails if this file falls out of sync with source.
 (function (root) {
   "use strict";
   var DFHelpCorpus = {
@@ -20,32 +33,37 @@
         "entries": [
           {
             "control": "[ / ]",
-            "text": "Zoom in/out",
+            "text": "Zoom in / out",
             "group": "Camera"
           },
           {
-            "control": "Arrows (Shift = fast)",
+            "control": "Arrows",
             "text": "Pan",
             "group": "Camera"
           },
           {
-            "control": "e/c (E/C fast)",
-            "text": "Z-level up/down (alt.)",
+            "control": "e / c",
+            "text": "Z-level up / down",
+            "group": "Camera"
+          },
+          {
+            "control": "E / C",
+            "text": "Z-level up / down, 10 at a time",
             "group": "Camera"
           },
           {
             "control": "Home",
-            "text": "Reset to host",
+            "text": "Reset to host camera (client extra)",
             "group": "Camera"
           },
           {
             "control": "PageUp / PageDown",
-            "text": "Z-level up/down",
+            "text": "Z-level up / down (client alias)",
             "group": "Camera"
           },
           {
             "control": "w a s d",
-            "text": "Pan (client extra)",
+            "text": "Pan (Shift = 2x, like DF's W A S D)",
             "group": "Camera"
           },
           {
@@ -174,23 +192,43 @@
             "group": "Mouse controls"
           },
           {
+            "control": "Ctrl + wheel, or pinch",
+            "text": "Zoom the view",
+            "group": "Mouse controls"
+          },
+          {
             "control": "Left drag",
             "text": "Draw a designation or placement",
             "group": "Mouse controls"
           },
           {
-            "control": "Middle/right drag",
+            "control": "Middle click",
+            "text": "Centre on that tile (client extra)",
+            "group": "Mouse controls"
+          },
+          {
+            "control": "Middle drag",
             "text": "Pan the map",
             "group": "Mouse controls"
           },
           {
+            "control": "Right click",
+            "text": "Back out one layer",
+            "group": "Mouse controls"
+          },
+          {
+            "control": "Right drag",
+            "text": "Pan the map (client extra)",
+            "group": "Mouse controls"
+          },
+          {
             "control": "Shift + wheel",
-            "text": "Change elevation",
+            "text": "Z-level up / down, 10 at a time",
             "group": "Mouse controls"
           },
           {
             "control": "Wheel",
-            "text": "Zoom the view",
+            "text": "Z-level up / down",
             "group": "Mouse controls"
           },
           {
@@ -262,17 +300,12 @@
           },
           {
             "control": "",
-            "text": "Dig stairs: select both z-level endpoints",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Discard this stockpile repaint",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Discard this zone paint",
+            "text": "Done painting this zone",
             "hotkey": ""
           },
           {
@@ -303,6 +336,11 @@
           {
             "control": "",
             "text": "Paint freehand to extend this zone",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Path cost of [key] traffic. Type an exact value.",
             "hotkey": ""
           },
           {
@@ -629,7 +667,17 @@
           },
           {
             "control": "",
+            "text": "8 layers above and 8 below the live camera",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Close (Esc)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Every cached map chunk across every z-level your fort has dug or built on",
             "hotkey": ""
           },
           {
@@ -645,6 +693,11 @@
           {
             "control": "",
             "text": "Rebuild from the current world state (R)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "The top 8 z-levels of your fort",
             "hotkey": ""
           }
         ]
@@ -703,12 +756,12 @@
         "entries": [
           {
             "control": "",
-            "text": "Assign a specific trainer",
+            "text": "Artwork selection is not available in the browser yet",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Back to [active category label]",
+            "text": "Assign a specific trainer",
             "hotkey": ""
           },
           {
@@ -728,11 +781,6 @@
           },
           {
             "control": "",
-            "text": "Close",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Engrave memorial slab",
             "hotkey": ""
           },
@@ -748,17 +796,22 @@
           },
           {
             "control": "",
+            "text": "Forbid / unforbid group",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Hide / show",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Keep building after placement",
+            "text": "Hide / show group",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "literal",
+            "text": "Keep building after placement",
             "hotkey": ""
           },
           {
@@ -778,6 +831,11 @@
           },
           {
             "control": "",
+            "text": "Mark / cancel dump for group",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Open / manage",
             "hotkey": ""
           },
@@ -789,6 +847,11 @@
           {
             "control": "",
             "text": "Recenter on the task's building",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Recenter on this unit",
             "hotkey": ""
           },
           {
@@ -850,12 +913,17 @@
         "entries": [
           {
             "control": "",
+            "text": "[label]: [words] on screen",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "[title]: on/off",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Allow every category",
+            "text": "Add a give/take link",
             "hotkey": ""
           },
           {
@@ -925,42 +993,12 @@
           },
           {
             "control": "",
-            "text": "Close",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Close the task picker",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Disable every item in this list",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Disable everything in this category",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Disallow every category",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Done",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Enable every item in this list",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Enable everything in this category",
             "hotkey": ""
           },
           {
@@ -990,12 +1028,32 @@
           },
           {
             "control": "",
+            "text": "Generated by a manager work order",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Give to a stockpile: click a stockpile on the map to link it",
             "hotkey": ""
           },
           {
             "control": "",
             "text": "Go to seed stack",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "How many general work orders may run here (0-99)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "How many to make (0-9999)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Item filters",
             "hotkey": ""
           },
           {
@@ -1030,17 +1088,32 @@
           },
           {
             "control": "",
+            "text": "Next frequency",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Next skill level",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Next zone on this tile",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "One-off FertilizeField job scheduling is not exposed by this client yet",
+            "text": "Park facing [...] on screen",
             "hotkey": ""
           },
           {
             "control": "",
             "text": "Part of this building",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Part of this engine",
             "hotkey": ""
           },
           {
@@ -1051,6 +1124,21 @@
           {
             "control": "",
             "text": "Pond (fill with water)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Power networks",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Previous frequency",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Previous skill level",
             "hotkey": ""
           },
           {
@@ -1070,17 +1158,17 @@
           },
           {
             "control": "",
-            "text": "Remove stockpile",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Remove task",
             "hotkey": ""
           },
           {
             "control": "",
             "text": "Remove this farm plot",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Remove this siege engine",
             "hotkey": ""
           },
           {
@@ -1101,6 +1189,11 @@
           {
             "control": "",
             "text": "Rename stockpile",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Rename this engine -- UNVERIFIED: the server exposes no siege-engine rename route",
             "hotkey": ""
           },
           {
@@ -1150,12 +1243,12 @@
           },
           {
             "control": "",
-            "text": "Stockpile links (give to / take from)",
+            "text": "Stockpile links",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Stockpile settings",
+            "text": "Stockpile links (give to / take from)",
             "hotkey": ""
           },
           {
@@ -1170,12 +1263,27 @@
           },
           {
             "control": "",
+            "text": "Task details (native meaning of this slot is unread -- see ledger 0078 Q5)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Toggle everything in [label]",
             "hotkey": ""
           },
           {
             "control": "",
+            "text": "Toggle fertilizing this farm every season",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Toggle repeat",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Unavailable: a safe native unlink operation has not been verified.",
             "hotkey": ""
           },
           {
@@ -1186,6 +1294,11 @@
           {
             "control": "",
             "text": "View seed stack",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Workshop",
             "hotkey": ""
           },
           {
@@ -1229,27 +1342,32 @@
       },
       {
         "id": "combat",
-        "label": "Combat log",
+        "label": "Combat reports",
         "kind": "tooltips",
         "entries": [
           {
             "control": "",
-            "text": "Combat log",
+            "text": "Alerts",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Combat reports",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Open unit sheet",
+            "text": "Open all announcements",
             "hotkey": ""
           },
           {
             "control": "",
             "text": "Recenter",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "View this fighter's reports",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "View this fighter's unit sheet",
             "hotkey": ""
           }
         ]
@@ -1272,50 +1390,38 @@
         ]
       },
       {
-        "id": "vote",
-        "label": "Fortress vote",
-        "kind": "tooltips",
-        "entries": [
-          {
-            "control": "",
-            "text": "Close",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Close the vote and freeze the tally",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Fortress vote",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Open a yes/no vote for everyone connected",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Vote no",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Vote yes",
-            "hotkey": ""
-          }
-        ]
-      },
-      {
         "id": "hospital",
         "label": "Hospital",
         "kind": "tooltips",
         "entries": [
           {
             "control": "",
+            "text": "' + _hospEsc(r.unitNote) + '",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Close",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Remove",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "This option allows long-term residents of the fortress to enter this location.",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "This option allows visitors from outside the fortress to enter this location.",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "This option indicates that the location is only open to fortress citizens.",
             "hotkey": ""
           }
         ]
@@ -1328,11 +1434,6 @@
           {
             "control": "",
             "text": "[name] cannot be [verb].",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Kitchen",
             "hotkey": ""
           },
           {
@@ -1379,17 +1480,7 @@
         "entries": [
           {
             "control": "",
-            "text": "Active (a worker is on it)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Add suggested condition",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Awaiting manager validation",
             "hotkey": ""
           },
           {
@@ -1405,6 +1496,11 @@
           {
             "control": "",
             "text": "Change comparison",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Change how often this order repeats",
             "hotkey": ""
           },
           {
@@ -1439,6 +1535,11 @@
           },
           {
             "control": "",
+            "text": "Decrease quantity",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Delete work detail",
             "hotkey": ""
           },
@@ -1450,6 +1551,11 @@
           {
             "control": "",
             "text": "Fewer workshops",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Increase quantity",
             "hotkey": ""
           },
           {
@@ -1525,11 +1631,6 @@
           {
             "control": "",
             "text": "Select to use in non-economic jobs",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Validated",
             "hotkey": ""
           }
         ]
@@ -1618,12 +1719,22 @@
           },
           {
             "control": "",
-            "text": "Pardon commutes this convict's serving sentence and clears any pending",
+            "text": "Dwarf Fortress must create the report and apply skill, relationship, crime, and plot effects together.",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Petitions",
+            "text": "Effective/Ineffective; [...]; unread",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Interrogation reports are write-once records; changing one would desynchronise the linked evidence.",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Pardon commutes this convict's serving sentence and clears any pending",
             "hotkey": ""
           },
           {
@@ -1633,7 +1744,17 @@
           },
           {
             "control": "",
+            "text": "Return to the case",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Sort by name",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "This cosmetic write is guarded until its native write site is verified.",
             "hotkey": ""
           },
           {
@@ -1745,408 +1866,6 @@
         ]
       },
       {
-        "id": "squads",
-        "label": "Squads & military",
-        "kind": "tooltips",
-        "entries": [
-          {
-            "control": "",
-            "text": "[label] -- [N] item(s) assigned/MISSING (no item assigned)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "A patrol route needs two different points",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Abandon the defend-burrow order",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Abandon the kill order",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Abandon the patrol route",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Add a [label] requirement",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Add ammunition below",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Add this [label] requirement to the template",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Add this ammunition spec",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Add, rename or delete fort military routines",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Ammo type",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Apply the cycled template to this position",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Assign [name] to position [pos]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Cancel this order",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Change squad emblem",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Choose a citizen for position [N]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Choose the dye colour",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Choose the material",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Clear this position's uniform",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Click to unmark",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Combat",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Combat ammunition",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Copying routine orders is not served by the current game bridge",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Copying routine-month orders is not served by the current game bridge",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Create a new fort military routine",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Create a new fort uniform template",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Defend [name]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Delete [name]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Delete this routine (all squads lose it)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Delete this template (irreversible; squads that already applied it keep their copy)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Delete uniform template",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "DF effective military-skill order (exact native squad suitability is not exposed)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Disband this squad (irreversible)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Dye color (0-15, -1 none)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Edit this routine-month's training order",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Edit this routine's current-month order",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Enter a name to save this uniform",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Equip: [label]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Inspect this position's equipment",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Issue defend order for the checked burrows",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Issue the kill order for every marked target",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Kill order: select one or more units on the map",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Material",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Name and save the uniform before adding equipment requirements",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Name this uniform",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Native equipment refresh; automatic in Dwarf With Friends",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "New [title]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Open equipment details",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Partial matches okay",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Position",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Positions",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Remove",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Remove [name] from position [pos]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Remove every ammunition spec",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Remove item",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Remove point [N]",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Remove this equipment requirement",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Rename squad",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Rename this routine",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Rename this template",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Return to squad equipment",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Save becomes available after naming the uniform",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Save the two template flags",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Save this emblem",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Save this routine-month's schedule",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Save this row",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Select at least one unit",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Select squad",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Squad emblem (change unavailable — this build serves no emblem data)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Subtype",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "The squad payload does not expose native's category field",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "This squad-position policy is not served by the current game bridge",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Train",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Train order",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Training ammunition",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Type a new squad name and press Enter (the row's quill tile focuses this field)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Uniform template",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "View this squad's monthly schedule",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Worn over clothing",
-            "hotkey": ""
-          }
-        ]
-      },
-      {
         "id": "topbar",
         "label": "Top bar & toolbar",
         "kind": "tooltips",
@@ -2178,7 +1897,17 @@
           },
           {
             "control": "",
+            "text": "Convert existing designations to marker mode",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "Convert existing designations to marker mode (server endpoint pending)",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Convert existing designations to standard mode",
             "hotkey": ""
           },
           {
@@ -2248,11 +1977,6 @@
           },
           {
             "control": "",
-            "text": "Down one elevation",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Engrave artwork into smooth stone",
             "hotkey": ""
           },
@@ -2278,11 +2002,6 @@
           },
           {
             "control": "",
-            "text": "Mark for uninterrupted digging through damp or warm tiles (Ctrl+d)",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Marker mode: place designations as blueprint markers (not active until toggled live)",
             "hotkey": ""
           },
@@ -2298,7 +2017,7 @@
           },
           {
             "control": "",
-            "text": "More plant order options (priority)",
+            "text": "More plant order options (marker and priority)",
             "hotkey": ""
           },
           {
@@ -2319,16 +2038,6 @@
           {
             "control": "",
             "text": "Paint mode: rectangle corners",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Recenter on the deepest discovered area",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Recenter on the surface at this location",
             "hotkey": ""
           },
           {
@@ -2372,8 +2081,13 @@
             "hotkey": ""
           },
           {
-            "control": "",
-            "text": "Up one elevation",
+            "control": "0x177",
+            "text": "Recenter on the surface at this location",
+            "hotkey": ""
+          },
+          {
+            "control": "0x178",
+            "text": "Recenter on the deepest discovered area",
             "hotkey": ""
           },
           {
@@ -2403,7 +2117,7 @@
           },
           {
             "control": "liquidNumbersBtn",
-            "text": "Toggle liquid numerals (DISPLAY_TOGGLE_LIQUID_NUMBERS)",
+            "text": "Toggle liquid numerals",
             "hotkey": ""
           },
           {
@@ -2414,6 +2128,16 @@
           {
             "control": "minimapGrid",
             "text": "Click to center your camera here",
+            "hotkey": ""
+          },
+          {
+            "control": "minimapZoomInBtn",
+            "text": "Zoom in ([)",
+            "hotkey": ""
+          },
+          {
+            "control": "minimapZoomOutBtn",
+            "text": "Zoom out (])",
             "hotkey": ""
           },
           {
@@ -2433,7 +2157,7 @@
           },
           {
             "control": "rampArrowsBtn",
-            "text": "Toggle ramp-down arrows (DISPLAY_TOGGLE_RAMP_ARROWS)",
+            "text": "Toggle ramp-down arrows",
             "hotkey": ""
           },
           {
@@ -2499,11 +2223,6 @@
           {
             "control": "uiScaleResetBtn",
             "text": "Reset UI scale",
-            "hotkey": ""
-          },
-          {
-            "control": "voteBtn",
-            "text": "Fortress vote",
             "hotkey": ""
           },
           {
@@ -2629,27 +2348,12 @@
           },
           {
             "control": "",
-            "text": "Close",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Combat history",
             "hotkey": ""
           },
           {
             "control": "",
-            "text": "Customize nickname",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Dismiss",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Dismiss this alert",
+            "text": "Customize identity",
             "hotkey": ""
           },
           {
@@ -2659,17 +2363,7 @@
           },
           {
             "control": "",
-            "text": "Open the announcements log",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Open this unit",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Recenter",
             "hotkey": ""
           },
           {
@@ -2691,6 +2385,11 @@
             "control": "",
             "text": "Zoom to this room and open it",
             "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Zoom to this unit",
+            "hotkey": ""
           }
         ]
       },
@@ -2702,11 +2401,6 @@
           {
             "control": "",
             "text": "Back to civilizations",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Back to missions",
             "hotkey": ""
           },
           {
@@ -2726,6 +2420,11 @@
           },
           {
             "control": "",
+            "text": "Native composes each sentence from about twenty-one fragments; the server has to",
+            "hotkey": ""
+          },
+          {
+            "control": "",
             "text": "News and rumors",
             "hotkey": ""
           },
@@ -2736,7 +2435,7 @@
           },
           {
             "control": "",
-            "text": "Pick a target, a mission type and the squads to send.",
+            "text": "Reports",
             "hotkey": ""
           }
         ]

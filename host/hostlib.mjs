@@ -3,16 +3,7 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// host/hostlib.mjs -- WT17 host-tooling core (the PURE, fixture-tested half).
-//
-// Everything the one-click installer (install.mjs) and the host management panel
-// (host_panel.mjs) share: manifest resolution, DFHack detection, DF auto-detect,
-// install-receipt read/write, round-tripping of the three plugin config files, the
-// cloudflared-URL parser, atomic writes, and port fallback. Zero npm dependencies
-// (node >= 18 stdlib only) -- the same constraint the game client lives under.
-//
-// The config-file names + semantics MIRROR the plugin source (single source of truth
-// noted per constant); if the plugin changes a filename this file must change with it.
+// Host-tooling core: everything install.mjs and host_panel.mjs share (the PURE, fixture-tested half).
 
 import {
   readFileSync, writeFileSync, existsSync, mkdirSync,
@@ -21,44 +12,28 @@ import {
 import path from "node:path";
 
 // ---------------------------------------------------------------- plugin file names
-// All are read by the plugin relative to DF's WORKING DIRECTORY (the DF root). Each constant
-// MIRRORS a C++ constant EXACTLY (single source of truth cited with file:line). The mixed
-// `dfcapture` / `dwf` stems below are BY DESIGN, not drift: the ratified W9 rebrand renames only the
-// PLUGIN-FILE identity (dll, lua bridge files, web dir) to `dwf`; the RUNTIME identifiers -- console
-// commands (capture-stream-*, capture-join-password) and the config FILES they name -- deliberately
-// stay `dfcapture` this wave. So hostlib mirrors each C++ constant VERBATIM; do NOT "fix" a name
-// here without changing the paired C++ constant, or the host tooling and the running plugin would
-// read/write different files.
 
-// src/auth.h:63  kPasswordFile = "dfcapture_join_password.txt" -- first non-blank, non-'#' line ==
-// the shared join passphrase. Loaded at plugin init and on `capture-join-password reload`; empty
-// file => auth DISABLED. RUNTIME identifier -- stays `dfcapture` (ratified W9 scope); mirror it.
+// Each name mirrors a C++ constant; renaming one here without its C++ pair makes the host
+// tooling and the running plugin read and write different files.
+
 export const PASSWORD_FILE = "dfcapture_join_password.txt";
 
-// src/pause_arbiter.cpp:421  kHostFlagsFile = "dwf_host_flags.txt" -- two `key=on|off` lines. Loaded
-// ONCE at plugin init (compiled defaults: hostunpause off, autopause on); a rewrite takes effect on
-// next DF restart. Already on the `dwf` stem in the C++; hostlib agrees.
+// Loaded ONCE at plugin init; a rewrite takes effect on the next DF restart.
 export const HOST_FLAGS_FILE = "dwf_host_flags.txt";
 
-// src/sound_route.cpp:43  kConfigPath = "dfhack-config/dfcapture.json" -- {"audio_remote": bool}.
-// DEFAULT ON; only an explicit `false` disables. Re-read live on a 3s TTL, so an edit here takes
-// effect WITHOUT a restart. RUNTIME identifier -- stays `dfcapture` (ratified W9 scope); mirror it.
 export const SOUND_CONFIG_FILE = path.join("dfhack-config", "dfcapture.json");
 // Host-tooling only (no C++ reader): the host panel's own port config.
 export const PANEL_CONFIG_FILE = path.join("dfhack-config", "dwf-host-panel.json");
 
-// Install receipt (written by install.mjs into the DF root so state travels with the install).
-// Host-tooling only (no C++ reader).
+// Install receipt, written into the DF root so state travels with the install.
 export const RECEIPT_FILE = "dwf_install_receipt.json";
 
 // The game server the plugin serves.
 export const SERVER_PORT = 8765;
-export const AUTH_COOKIE = "dfcap_auth";   // src/http_server.cpp:451,499 cookie_value(..., "dfcap_auth")
-export const DFHACK_VERSION = "53.15-r2";
+export const AUTH_COOKIE = "dfcap_auth";
+export const DFHACK_VERSION = "53.16-r1";
 
 // ---------------------------------------------------------------- platform names
-// One switch per platform-shaped filename. Windows keeps its historical names; Linux uses the
-// native Steam depot (`dwarfort`) + Linux DFHack (`dfhack` launcher script, .plug.so plugins).
 export const IS_WIN = process.platform === "win32";
 export const PLUGIN_BINARY = IS_WIN ? "dwf.plug.dll" : "dwf.plug.so";
 export const DF_EXE_NAME = IS_WIN ? "Dwarf Fortress.exe" : "dwarfort";
@@ -66,23 +41,9 @@ export const DFHACK_LAUNCHER = IS_WIN ? "dfhack.exe" : "dfhack";
 export const CLOUDFLARED_BIN = IS_WIN ? "cloudflared.exe" : "cloudflared";
 
 // ---------------------------------------------------------------- manifest resolution
-// Release layout (what a packaged dwf release contains, post-W9 rename):
-//   <release>/dwf.plug.dll          (CMake OUTPUT_NAME dwf -> dwf.plug.dll)
-//   <release>/dwf.lua               (DFHack matches the lua module to the plugin BY FILENAME)
-//   <release>/gui/dwf.lua           (the `gui/dwf` launcher script)
-//   <release>/web/**                (the whole client tree)
-// Deploy targets under <dfRoot>:
-//   hack/plugins/dwf.plug.dll
-//   hack/lua/plugins/dwf.lua        (the REAL path the plugin require()s)
-//   hack/scripts/dwf.lua            (legacy path; kept in sync so the drift check stays green)
-//   hack/scripts/gui/dwf.lua        (the `gui/dwf` launcher -- what users type to open the panel)
-//   hack/dfcapture-web/**           (served web root)
-// The web dir is deliberately NOT renamed to dwf-web (ratified wave-wide): the shipped plugin serves
-// from a HARD-CODED path (src/web_assets.cpp:31  kWebRoot = "hack/dfcapture-web") that the pkg-rename
-// lane was told NOT to touch this wave. Deploying to hack/dwf-web would make the running plugin 404
-// index.html and fall back to its "web UI not found" stub. The deployed dir name MUST match what the
-// plugin opens -> stays dfcapture-web.
-// PURE: path arithmetic only -- resolvable and testable with no files on disk.
+
+// The served web-root dir name must match the plugin's hard-coded kWebRoot; any other name
+// makes the running plugin 404 index.html and serve its "web UI not found" stub.
 export function resolveManifest(dfRoot, releaseDir) {
   const j = path.join;
   return [
@@ -100,7 +61,7 @@ export function resolveManifest(dfRoot, releaseDir) {
       dest: j(dfRoot, "hack", "scripts", "gui", "dwf.lua") },
     { role: "web", kind: "dir",
       src: j(releaseDir, "web"),
-      dest: j(dfRoot, "hack", "dfcapture-web") },   // NOT dwf-web -- see note above (web_assets.cpp:31)
+      dest: j(dfRoot, "hack", "dfcapture-web") },
   ];
 }
 
@@ -140,17 +101,15 @@ export function checkDfhack(dfRoot, exists = existsSync) {
   return { ok: problems.length === 0, problems, markers: m };
 }
 
-// Best-effort version detection for existing installs. DFHack distributions have changed their
-// docs layout over time, so inspect a small set of known text markers. Unknown is distinct from
-// compatible: callers can warn without falsely identifying an install as the wrong version.
+// Best-effort version detection: unknown is distinct from compatible, so callers can warn
+// without falsely identifying an install as the wrong version.
 export function inspectDfhackVersion(dfRoot, exists = existsSync, read = readFileSync) {
   const candidates = [
     path.join(dfRoot, ".dwf-dfhack-version"),
     path.join(dfRoot, "dfhack-version.txt"),
     path.join(dfRoot, "hack", "dfhack-version.txt"),
-    // Official 53.15 zips ship NO docs pages at all, but hack/news.rst always opens with
-    // "DFHack <version>" -- without this marker a stock manual install is undetectable, and an
-    // undetected wrong version sailed straight through setup (issue #1).
+    // Official 53.15 zips ship no docs pages, but hack/news.rst always opens with "DFHack <version>";
+    // without this marker a stock manual install is undetectable.
     path.join(dfRoot, "hack", "news.rst"),
     path.join(dfRoot, "hack", "docs", "docs", "index.html"),
     path.join(dfRoot, "hack", "docs", "docs", "about", "Changelog.html"),
@@ -167,8 +126,6 @@ export function inspectDfhackVersion(dfRoot, exists = existsSync, read = readFil
 }
 
 // ---------------------------------------------------------------- DF auto-detect
-// Common Steam locations across the usual drive letters (Windows) or the standard Steam
-// homes (Linux). PURE list builder (no disk touch).
 export function steamDfCandidates(drives = ["C", "D", "E", "F", "G", "H"]) {
   if (!IS_WIN) {
     const home = process.env.HOME || "";
@@ -192,9 +149,8 @@ export function steamDfCandidates(drives = ["C", "D", "E", "F", "G", "H"]) {
   return out;
 }
 
-// Steam records every library folder it knows about in libraryfolders.vdf. Reading it finds
-// installs on drives/paths the fixed list above never guesses (the whole point: strangers do not
-// have their library where we do). PURE-ish: file readers are injectable for tests.
+// Steam records every library folder it knows about in libraryfolders.vdf, which finds installs
+// the fixed list above never guesses.
 export const STEAM_VDFS = IS_WIN ? [
   "C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf",
   "C:\\Program Files\\Steam\\steamapps\\libraryfolders.vdf",
@@ -222,16 +178,15 @@ export function steamLibraryDfCandidates(
   return out;
 }
 
-// A folder is a DF install if it holds the game exe OR the vanilla raws. Deliberately WIDER than
-// checkDfhack: the raws/art oracles in tools/ need only `data/vanilla`, not a DFHack install.
+// A folder is a DF install if it holds the game exe OR the vanilla raws -- deliberately wider
+// than checkDfhack, because the raws oracles need only data/vanilla.
 export function isDfRoot(dfRoot, exists = existsSync) {
   if (!dfRoot) return false;
   return exists(path.join(dfRoot, DF_EXE_NAME)) ||
          exists(path.join(dfRoot, "data", "vanilla"));
 }
 
-// An explicit DWF_DF_ROOT wins, then Steam's own library list (authoritative on a stranger's
-// machine), then the fixed guesses.
+// An explicit DWF_DF_ROOT wins, then Steam's own library list, then the fixed guesses.
 export function dfCandidates(exists = existsSync, readText = (p) => readFileSync(p, "utf8")) {
   const env = process.env.DWF_DF_ROOT ? [process.env.DWF_DF_ROOT] : [];
   return [...env, ...steamLibraryDfCandidates(exists, readText), ...steamDfCandidates()];
@@ -248,8 +203,9 @@ export function autodetectDfRoot(candidates = null, exists = existsSync,
 }
 
 // ---------------------------------------------------------------- DFHack build-tree auto-detect
-// W22 uses the same split as DF-root resolution: this shipped host library owns the detection
-// engine; tools/lib/dfroot.* owns argv/env precedence and failure policy.
+
+// This shipped host library owns the detection engine; tools/lib/dfroot.* owns argv/env
+// precedence and failure policy.
 export const DFHACK_BUILD_NAMES = ["build-msvc", "build", "build-vs2022", "build-vs2026"];
 
 export function dfhackBuildCandidates(repoRoot = process.cwd()) {
@@ -271,7 +227,7 @@ export function isDfhackBuild(buildRoot, exists = existsSync) {
   if (!buildRoot) return false;
   return exists(path.join(buildRoot, "CMakeCache.txt")) ||
          exists(path.join(buildRoot, "plugins", "external", "multi-dwarf", "Release",
-                          "dwf.plug.dll")) ||   // CMake OUTPUT_NAME dwf (W9) -> dwf.plug.dll
+                          "dwf.plug.dll")) ||   // CMake OUTPUT_NAME dwf -> dwf.plug.dll
          exists(path.join(buildRoot, "plugins", "external", "multi-dwarf", "dwf.plug.so"));
 }
 
@@ -332,8 +288,7 @@ export function formatPassword(pw) {
   return t ? t + "\n" : "";
 }
 export function passwordFilePath(dfRoot) { return path.join(dfRoot, PASSWORD_FILE); }
-// A short memorable join password (word-word-NN). Not a cryptographic secret: it gates a
-// friends-only tunnel URL that is itself unguessable; memorability beats entropy here.
+// Not a cryptographic secret: it gates a friends-only tunnel URL that is itself unguessable.
 const PW_ADJ = ["amber", "bold", "copper", "dusty", "flint", "golden", "iron", "jolly", "mossy", "rusty", "stone", "swift"];
 const PW_NOUN = ["anvil", "badger", "beacon", "cavern", "dwarf", "forge", "hammer", "lantern", "marmot", "pick", "raven", "tunnel"];
 export function generatePassword(rand = Math.random) {
@@ -412,20 +367,13 @@ export function writePanelConfig(dfRoot, config) {
 }
 
 // ---------------------------------------------------------------- cloudflared parsing
-// Quick tunnels print a https://<random>.trycloudflare.com URL to stderr/log. Pull the first one.
 export function parseCloudflaredUrl(text) {
   if (!text) return null;
   const m = String(text).match(/https:\/\/[a-z0-9][a-z0-9-]*\.trycloudflare\.com/i);
   return m ? m[0] : null;
 }
-// Decide what the hosting flow should do while a tunnel is up but no friend URL is known yet.
-// PURE (all inputs injected) so the deadlock/timeout policy is fixture-testable:
-//   "ready"      -- we have the URL.
-//   "no-tunnel"  -- nothing is running; caller should start one.
-//   "unreadable" -- a cloudflared we did NOT start is running and there is no log we can read:
-//                   waiting would deadlock forever (the owner hit exactly this). Surface it NOW.
-//   "timeout"    -- we have waited past timeoutMs; surface the log tail + a retry, never hang.
-//   "wait"       -- keep polling.
+// Verdicts: "ready", "no-tunnel", "unreadable" (a foreign cloudflared with no readable log --
+// waiting would deadlock forever), "timeout", "wait".
 export const LINK_WAIT_TIMEOUT_MS = 30000;
 export function tunnelWaitVerdict({ url, running, logExists, startedByPanel, waitedMs,
                                     timeoutMs = LINK_WAIT_TIMEOUT_MS }) {
@@ -436,11 +384,8 @@ export function tunnelWaitVerdict({ url, running, logExists, startedByPanel, wai
   return "wait";
 }
 
-// When `capture-stream-start` fails, DFHack's raw output ("capture-stream-start is not a
-// recognized command" -- issue #1) tells the host nothing actionable. That output means the dwf
-// plugin never loaded; the two known causes are a DFHack version the DLL was not built for and a
-// missing/never-installed DLL. PURE -- caller supplies the facts; returns null when the raw
-// output is not a recognized-command failure (caller keeps its own message).
+// A "not a recognized command" reply means the dwf plugin never loaded; returns null when the
+// output is not that failure, so the caller keeps its own message.
 export function explainStreamStartFailure({ output, dllDeployed, version }) {
   if (!/not a recognized command/i.test(String(output || ""))) return null;
   if (version?.detected && version.compatible === false) {
@@ -457,42 +402,10 @@ export function explainStreamStartFailure({ output, dllDeployed, version }) {
     `the DFHack console or stderr.log, or run DWF Setup to repair the install.`;
 }
 
-// From a running cloudflared command line, recover the tunnel TARGET (`--url http://localhost:8765`),
-// so the panel can tell "this cloudflared is pointing at our game server" vs. some other tunnel.
-export function parseCloudflaredTarget(cmdline) {
-  if (!cmdline) return null;
-  const m = String(cmdline).match(/--url[=\s]+"?(https?:\/\/[^\s"]+)"?/i);
-  return m ? m[1] : null;
-}
-
 // ---------------------------------------------------------------- job-object tunnel wrapper (Windows)
-// THE GUARANTEE: cloudflared must NEVER outlive the host panel, no matter HOW the panel dies --
-// Ctrl+C, cmd's "Terminate batch job (Y/N)?" answered Y (which force-kills node MID-cleanup),
-// clicking the console window's X (CTRL_CLOSE_EVENT, which node surfaces unreliably and with a
-// short OS deadline), a crash, or taskkill. Signal handlers cannot promise that: they only run
-// for the signals node actually delivers, and 'exit' handlers must be synchronous. So the panel
-// does not spawn cloudflared directly. It spawns THIS powershell wrapper as a plain (NOT
-// detached) child, and the OS does the cleanup:
-//
-//   1. The wrapper creates a Win32 Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE and holds
-//      its ONLY handle. It assigns itself and the cloudflared it starts into that job.
-//   2. When the wrapper process dies -- for ANY reason, graceful or TerminateProcess -- Windows
-//      closes its handles. Closing the last job handle fires KILL_ON_JOB_CLOSE and the kernel
-//      terminates every process in the job, i.e. cloudflared. No user code runs on this path.
-//   3. The wrapper ties ITS lifetime to the panel's by polling the panel pid (HasExited): the
-//      moment the panel is gone -- exited, killed, or terminated by the console closing -- the
-//      wrapper exits, the job handle closes, cloudflared dies. Belt: it also Kill()s cloudflared
-//      explicitly before exiting, so even a job-assignment failure still cleans up on this path.
-//
-// So the kill chain is panel dies (any means) -> wrapper notices (<=300ms) or is itself killed
-// -> job handle closes -> KERNEL kills cloudflared. Nothing in the chain depends on which signal
-// fired or on node running cleanup code. PURE builder (no spawn here) so it is fixture-testable;
-// all variable data rides in env vars, never interpolated into the script (no quoting surface).
-//
-// TRADEOFF, on purpose: a tunnel started by the panel now ALWAYS dies with the panel, so a
-// restarted panel can no longer adopt its previous run's tunnel (it is already dead). Adoption
-// of a FOREIGN cloudflared (one the host started by hand) still surfaces via tunnelWaitVerdict's
-// "unreadable" path. Guaranteed cleanup beats cross-restart adoption -- owner-ratified.
+
+// cloudflared must never outlive the panel, so it runs inside a wrapper holding the only handle
+// to a KILL_ON_JOB_CLOSE job: when the wrapper dies by any means the kernel kills cloudflared.
 export const JOB_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;   // winnt.h JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 const TUNNEL_WRAPPER_PS = `
 $ErrorActionPreference = 'Continue'
@@ -549,10 +462,8 @@ while (($panel -ne $null) -and (-not $panel.HasExited) -and (-not $cf.HasExited)
 if (-not $cf.HasExited) { try { $cf.Kill() } catch {} }
 exit 0
 `;
-// POSIX twin of the job-object wrapper: a plain sh loop that starts cloudflared, polls the panel
-// pid with kill -0, and kills cloudflared the moment the panel is gone. Weaker than the Windows
-// kernel guarantee (a SIGKILLed wrapper orphans the tunnel), but the panel's own exit handlers
-// remain the graceful path, and the wrapper covers every normal death.
+// POSIX twin of the job-object wrapper: a sh loop that polls the panel pid with kill -0.
+// A SIGKILLed wrapper orphans the tunnel, so the panel's own exit handlers remain the path.
 const TUNNEL_WRAPPER_SH = `
 "$DWF_TUNNEL_EXE" "$@" &
 cf=$!
@@ -589,18 +500,7 @@ export function tunnelWrapperCommand({ exe, args, panelPid }) {
   };
 }
 
-// ---------------------------------------------------------------- port fallback
-// First p in [start, start+tries) for which isFree(p) is truthy; -1 if none. PURE (isFree injected).
-export function pickPort(start, isFree, tries = 50) {
-  for (let i = 0; i < tries; i++) {
-    const p = start + i;
-    if (isFree(p)) return p;
-  }
-  return -1;
-}
-
 // ---------------------------------------------------------------- recursive copy (installer)
-// Copy a file or directory tree src -> dest. Calls onFile(destPath) per file copied. Returns count.
 export function copyTree(src, dest, onFile) {
   let n = 0;
   const st = statSync(src);
@@ -616,7 +516,7 @@ export function copyTree(src, dest, onFile) {
   return n;
 }
 
-// A filesystem-safe timestamp for backup dir names: 2026-07-11T03-14-09-123Z
+// A filesystem-safe timestamp for backup dir names.
 export function tsStamp(d = new Date()) {
   return d.toISOString().replace(/:/g, "-").replace(/\./g, "-");
 }

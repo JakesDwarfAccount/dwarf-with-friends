@@ -59,11 +59,6 @@ uintmax_t directory_bytes(const std::filesystem::path& root) {
 }
 } // namespace
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
 void register_oracle_routes(httplib::Server& server) {
     server.Get("/host-state", [](const httplib::Request&, httplib::Response& res) {
         HostState state;
@@ -93,7 +88,7 @@ void register_oracle_routes(httplib::Server& server) {
         res.set_content(viewport_probe_json(probe), "application/json; charset=utf-8");
     });
 
-    // DELIBERATE RELEASE-BINARY TEST ORACLE -- KEEP (W4). The browser does not consume this JPEG
+    // DELIBERATE RELEASE-BINARY TEST ORACLE -- KEEP. The browser does not consume this JPEG
     // route; tools/harness/gate_parity.py does. It is the only renderer-parity oracle that can
     // run unattended: the window oracle requires a visible native DF window and changes DF's
     // own camera. Removing /frame.jpg or the capture_camera_jpeg*/encode_jpeg path behind it
@@ -130,11 +125,8 @@ void register_oracle_routes(httplib::Server& server) {
         res.set_content(reinterpret_cast<const char*>(jpeg.data()), jpeg.size(), "image/jpeg");
     });
 
-    // Render-buffer feasibility probe (§6.6, 2026-07-07): screentexpos dump over HTTP.
-    // MUST run on an httplib worker thread (same context as /frame.jpg) -- running the dump
-    // from a dfhack-run console command DEADLOCKS DF: console commands hold the core
-    // suspension, and the render-thread native map re-render blocks against the suspended
-    // main thread (observed hang 2026-07-07 01:23, dwf.log "camera ok; capturing").
+    // MUST stay on an httplib worker thread: from a dfhack-run console command (which holds the
+    // core suspension) the dump's render hop blocks on the suspended sim thread and DF hangs.
     server.Get("/tiledump", [](const httplib::Request& req, httplib::Response& res) {
         TileDumpOptions opt;
         if (req.has_param("x") && req.has_param("y") && req.has_param("z")) {
@@ -143,8 +135,6 @@ void register_oracle_routes(httplib::Server& server) {
             opt.y = std::atoi(req.get_param_value("y").c_str());
             opt.z = std::atoi(req.get_param_value("z").c_str());
         }
-        // The full atlas is roughly 129k files / 500 MiB and remains a maintainer command, not an
-        // HTTP operation. A local browser dump is deliberately one viewport only.
         if (req.get_param_value("atlas") == "1") {
             res.status = 400;
             res.set_content("{\"ok\":false,\"err\":\"atlas export is not available over HTTP\"}\n",
@@ -191,7 +181,8 @@ void register_oracle_routes(httplib::Server& server) {
         if (!ok) std::filesystem::remove_all(output, cleanup_error);
         std::ostringstream body;
         body << "{\"ok\":" << (ok ? "true" : "false");
-        if (!ok) body << ",\"err\":" << json_string(err);
+        if (!ok) body << ",\"reason\":" << json_string(err)
+                      << ",\"err\":" << json_string(err);
         body << ",\"dir\":" << json_string(dir) << "}\n";
         res.status = ok ? 200 : 503;
         res.set_content(body.str(), "application/json; charset=utf-8");

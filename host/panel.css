@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  *
  * host panel styling. Visual kinship with the in-game DWFUI (gold-on-charcoal): token values
- * hand-copied from web/css/dwf.css so the host app feels like the same product.
+ * hand-copied from web/css/dwf-*.css so the host app feels like the same product.
  */
 :root {
   --bg:        #050505;      /* game body background */

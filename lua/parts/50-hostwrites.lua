@@ -1,44 +1,14 @@
 -- ================================================================================================
--- HOST-WRITES (B226 browser barter / B227 justice convict+interrogate)
---
--- Design principle: THE PLUGIN NEVER HAND-WRITES a trade or conviction record. Both write-sets
--- are DF-native object graphs (item ownership/trader flags + caravan value counters + entity
--- resources + history events for barter; crime.punishment + plotinfo.punishments + a
--- history_event_hf_convictedst for conviction) that even DFHack itself never reconstructs --
--- its own trade UI (scripts/internal/caravan/trade.lua) only flips selection bits and leaves the
--- barter to the native button, and no DFHack API convicts anyone. Instead we drive the NATIVE
--- code through the same channels a local player uses:
---
---   * selection state (trade.goodflag[side][idx].selected, widget cursor_idx, scroll) is plain
---     UI state -- DFHack's caravan/sort/confirm tools write these exact fields routinely;
---   * the commits (barter confirm, conviction) are delivered by calling the native viewscreen's
---     feed() with the real interface keys / enabler mouse state -- the byte-identical path a
---     local keyboard+mouse takes (gui.simulateInput; precedent: DFHack ci/test.lua clicks
---     native title-screen buttons, scripts/hide-tutorials.lua clicks native popups).
---
--- So every record written during a barter or conviction is written BY DWARF FORTRESS, with all
--- of its invariants. The plugin's failure mode is "nothing happened + an honest error", never a
--- half-written record.
---
--- Runtime guards: risky steps stay OFF until host-side live probes verify them on the
--- host (file dfcapture-hostwrites.json next to the DF exe; see hw_flags below). The guarded
--- endpoints return {"guarded":true} with a plain-English reason until then. The probe list lives
--- in docs/superpowers/specs/2026-07-14-hostwrites-B226-B227.md (internal spec; see docs/NAMING.md).
--- ================================================================================================
+-- HOST-WRITES (browser barter / justice convict+interrogate)
+
+-- Never hand-write a trade or conviction record: every commit is delivered to the native
+-- viewscreen's feed(), so DF writes the record itself with all of its invariants.
 
 local hw_gui = require('gui')
 local hw_json = require('json')
 
--- ---- runtime guard flags -----------------------------------------------------------------------
--- dfcapture-hostwrites.json, next to the DF executable, host-controlled (NOT settable over HTTP;
--- a browser-flippable guard would not be a guard). Orchestrator flips a flag to true after the
--- matching probe passes. Missing file = everything guarded.
---   { "trade_select": true,      -- goodflag selection writes (DFHack-parity; default-on if file exists)
---     "trade_confirm": true,     -- clicking Trade / Offer / Seize on the native trade screen
---     "trade_open": true,        -- opening the native trade screen by state-write (probe P-T1)
---     "justice_convict": true,   -- the full native convict drive (probes P-J1..P-J3)
---     "justice_interrogate": true,
---     "click_without_text_assert": true }  -- only if probe P-T3 finds screen text unreadable
+-- Host-controlled dfcapture-hostwrites.json beside the DF executable; a missing file guards
+-- everything. It must never become settable over HTTP.
 function hw_flags()
     local path = dfhack.getDFPath() .. '/dfcapture-hostwrites.json'
     local f = io.open(path, 'r')
@@ -59,6 +29,10 @@ local function hw_err(msg)
     return '{"ok":false,"error":' .. json_string(msg) .. '}\n'
 end
 
+local function hw_putter(parts)
+    return function(k, v) parts[#parts + 1] = '"' .. k .. '":' .. v end
+end
+
 local function hw_guarded(flag, what)
     return '{"ok":false,"unsupported":true,"guarded":true,"flag":' .. json_string(flag) ..
         ',"error":' .. json_string(what .. ' is implemented but locked behind the host-side ' ..
@@ -71,9 +45,7 @@ local function hw_retry(stage)
     return '{"ok":false,"retry":true,"stage":' .. json_string(stage) .. '}\n'
 end
 
--- ---- native input delivery ----------------------------------------------------------------------
--- All of these end in viewscreen::feed() on the DF viewscreen -- the native input path. No OS
--- input is synthesized (no cursor moves, no focus theft; operator-at-keyboard rule intact).
+-- ---- native input delivery ----
 
 local function hw_screen()
     return dfhack.gui.getDFViewscreen(true)
@@ -83,8 +55,6 @@ local function hw_feed(key)
     hw_gui.simulateInput(hw_screen(), key)
 end
 
--- Click at UI-grid tile (x, y). Same recipe as DFHack ci/test.lua click_top_title_button and
--- scripts/hide-tutorials.lua: gps mouse tile+pixel coords, then _MOUSE_L through feed().
 local function hw_click_at(x, y)
     local gps = df.global.gps
     gps.mouse_x, gps.mouse_y = x, y
@@ -97,10 +67,8 @@ local function hw_click_rect_center(x1, y1, x2, y2)
     hw_click_at(math.floor((x1 + x2) / 2), math.floor((y1 + y2) / 2))
 end
 
--- DFHack's `confirm` overlay intercepts exactly the inputs we feed (convict SELECT/_MOUSE_L,
--- trade-confirm/offer/seize clicks) and would swallow them into a dialog no remote player can
--- see. Temporarily disable the named specs around fn, restoring after. If confirm isn't
--- installed/enabled this is a no-op.
+-- DFHack's confirm overlay intercepts exactly the inputs fed here and would swallow them into
+-- a dialog no remote player can see, so the named specs are disabled around fn.
 local function hw_with_confirms_disabled(ids, fn)
     local ok_req, confirm = pcall(dfhack.reqscript, 'confirm')
     local restore = {}
@@ -112,22 +80,24 @@ local function hw_with_confirms_disabled(ids, fn)
             for _, conf in pairs(data) do
                 if type(conf) == 'table' and want[conf.id] and conf.enabled then
                     restore[#restore + 1] = conf.id
-                    pcall(confirm.set_enabled, conf.id, false)
+                    -- A failed disable can hang the write on a native confirm prompt.
+                    dwf_pcall('lua.hostwrite.confirm-disable',
+                              confirm.set_enabled, conf.id, false)
                 end
             end
         end
     end
     local ok, err = pcall(fn)
     for _, id in ipairs(restore) do
-        pcall(confirm.set_enabled, id, true)
+        -- A failed re-enable silently strips the host's confirm protection for the session.
+        dwf_pcall('lua.hostwrite.confirm-restore', confirm.set_enabled, id, true)
     end
     if not ok then error(err) end
 end
 
 -- ---- screen geometry + text ---------------------------------------------------------------------
 
--- Replicates DFHack gui.get_interface_rect() (library/lua/gui.lua:124): the UI grid area the
--- native interface (and the confirm plugin's intercept frames) are laid out against.
+-- Replicates DFHack gui.get_interface_rect(): the UI grid the native interface lays out against.
 local function hw_interface_rect()
     local sw, sh = dfhack.screen.getWindowSize()
     local l, w = 0, sw
@@ -140,10 +110,8 @@ local function hw_interface_rect()
     return l, 0, w, sh
 end
 
--- Native trade-screen button rects, replicated from DFHack's confirm plugin intercept frames
--- (scripts/internal/confirm/specs.lua: trade-confirm-trade / trade-offer / trade-seize), which
--- ship as correct for DF 53.15. Frame spec semantics per gui.compute_frame_rect: l&r both set ->
--- horizontally centered in [l, W-r]; only b set -> bottom-anchored.
+-- Native trade-screen button frames, replicated from DFHack's confirm specs. Frame semantics:
+-- l and r both set -> horizontally centered in [l, W-r]; only b set -> bottom-anchored.
 local HW_TRADE_BUTTONS = {
     trade = { l = 0, r = 23, b = 4, w = 11, h = 3, label = 'trade' },
     offer = { l = 40, r = 5, b = 4, w = 19, h = 3, label = 'offer' },
@@ -156,8 +124,8 @@ local function hw_button_rect(spec)
     local sh = ih - (spec.t or 0) - spec.b
     local rqw = math.min(sw, spec.w)
     local rqh = math.min(sh, spec.h)
-    local ax = math.floor((sw - rqw) * 0.5) -- l and r both present -> centered
-    local ay = sh - rqh                     -- b only -> bottom
+    local ax = math.floor((sw - rqw) * 0.5)
+    local ay = sh - rqh
     local x1 = il + spec.l + ax
     local y1 = it + (spec.t or 0) + ay
     return x1, y1, x1 + rqw - 1, y1 + rqh - 1
@@ -177,7 +145,6 @@ local function hw_rect_text(x1, y1, x2, y2)
     return table.concat(lines, '\n')
 end
 
--- Find a word on the interface grid (case-insensitive); returns center tile or nil.
 local function hw_find_screen_text(word, y_from, y_to)
     local il, it, iw, ih = hw_interface_rect()
     y_from = y_from or it
@@ -213,9 +180,6 @@ local function hw_visible_child(container)
     return nil
 end
 
--- Depth-first hunt for the first widget_scroll_rows in a subtree, skipping subtrees rooted at a
--- widget named skip_name (used to find the open-cases case list without wandering into the
--- Right panel's own scroll lists).
 local function hw_find_scroll_rows(w, skip_name, depth)
     depth = depth or 0
     if not w or depth > 8 then return nil end
@@ -237,7 +201,7 @@ local function hw_widget_json(w, depth, max_depth)
     if not w then return 'null' end
     depth = depth or 0
     local parts = {}
-    local function put(k, v) parts[#parts + 1] = '"' .. k .. '":' .. v end
+    local put = hw_putter(parts)
     put('name', json_string(w.name or ''))
     put('type', json_string(tostring(w._type):gsub('^<type: ', ''):gsub('>$', '')))
     local ok_rect, rect = pcall(function() return w.rect end)
@@ -270,7 +234,7 @@ local function hw_widget_json(w, depth, max_depth)
     return '{' .. table.concat(parts, ',') .. '}'
 end
 
--- Probe instrument: dump a named widget tree as JSON. GET /justice-convict?widgets=1 serves this.
+-- Dump a named widget tree as JSON; served by GET /justice-convict?widgets=1.
 function hw_widget_dump(which)
     local mi = df.global.game.main_interface
     local root
@@ -280,9 +244,7 @@ function hw_widget_dump(which)
     return '{"ok":true,"root":' .. json_string(which) .. ',"tree":' .. hw_widget_json(root, 0, 8) .. '}\n'
 end
 
--- ================================================================================================
--- B226: the native trade screen (game.main_interface.trade, df.d_interface.xml:871)
--- ================================================================================================
+-- The native trade screen (game.main_interface.trade).
 
 local function hw_trade()
     return df.global.game.main_interface.trade
@@ -292,21 +254,6 @@ local function hw_trade_focus_ok()
     return dfhack.gui.matchFocusString('dwarfmode/Trade', hw_screen())
 end
 
--- B226 trade-screen enrichment (all reads, all pcall-guarded, all ADDITIVE -- an older client
--- ignores the extra keys; a newer client falls back gracefully when a key is absent):
---   * per-row weight (mirrors src/interaction.cpp item_weight_text: weight_computed -> whole /
---     "<1" fraction, else getBaseWeight; the fraction is served so the client can do the
---     footer Allowed/Excess-Weight arithmetic the native bottom bar shows),
---   * per-row group = the df.item_type key (native's panel group headers -- Bars / Cut gems /
---     ... -- follow item-type runs in the native list order),
---   * per-row spriteRef in the same four-field shape the stock-item wire ships (interaction.cpp
---     stock_item_action_json), so DWFUI.iconHtml({item}) paints the native item tile,
---   * caravan capacity (caravan_state.total_capacity, massst kg/mg -- df.plotinfo.xml:442) for
---     the native Allowed Weight / Excess Weight footer line,
---   * the native screen's own display strings (trade_interfacest title/talker/fortname/place,
---     df.d_interface.xml) + the merchant negotiator's name -- header parity without inventing
---     copy. Their live contents are unprobed (P-T1 notes them); the client must treat each as
---     optional.
 local function hw_item_weight(item)
     -- returns whole_kg, fraction_mg, text ("", "<1", "N") -- item_weight_text parity.
     local ok, w, f = pcall(function()
@@ -320,13 +267,11 @@ local function hw_item_weight(item)
     return 0, 0, ''
 end
 
--- Full trade-session state, including both goods tables. side 0 = caravan, 1 = fort (native
--- ordering, same as trade.good/goodflag). Values are caravan-adjusted when DFHack can compute
--- them (Items::getValue(item, caravan) -- the same call DFHack's trade UI uses).
+-- side 0 = caravan, 1 = fort (native trade.good/goodflag ordering).
 function hw_trade_state()
     local tr = hw_trade()
     local parts = { '"ok":true' }
-    local function put(k, v) parts[#parts + 1] = '"' .. k .. '":' .. v end
+    local put = hw_putter(parts)
     put('open', json_bool(tr.open))
     local flags = hw_flags()
     put('guards', string.format(
@@ -369,8 +314,6 @@ function hw_trade_state()
     put_str('merchantName', function()
         return tr.merchant_trader and dfhack.units.getReadableName(tr.merchant_trader) or ''
     end)
-    -- The oracle footer shows the caravan civ's NATIVE-language name ("Merchants from
-    -- Sarvabôk"); merchantCiv above is the translated form. Serve both, invent neither.
     put_str('merchantCivNative', function()
         return tr.civ and dfhack.translation.translateName(tr.civ.name, false) or ''
     end)
@@ -378,8 +321,7 @@ function hw_trade_state()
     put('merchantTraderId', tostring(ok_mid and mid or -1))
     local ok_ha, ha = pcall(function() return tr.handle_appraisal end)
     put('handleAppraisal', tostring(ok_ha and ha or 0))
-    -- Caravan carrying capacity (massst: whole=kg, fraction=mg) for the Allowed/Excess
-    -- Weight footer. -1 = unavailable (client omits the weight line rather than faking one).
+    -- Caravan capacity (massst: whole = kg, fraction = mg); -1 = unavailable.
     local ok_cap, cap_w, cap_f = pcall(function()
         return tr.mer.total_capacity.whole, tr.mer.total_capacity.fraction
     end)
@@ -429,7 +371,6 @@ function hw_trade_state()
         end
         put('counterOfferItems', '[' .. table.concat(rows, ',') .. ']')
     end
-    -- Button rects (probe evidence + text-assert transparency).
     local btns = {}
     for name, spec in pairs(HW_TRADE_BUTTONS) do
         local x1, y1, x2, y2 = hw_button_rect(spec)
@@ -440,8 +381,6 @@ function hw_trade_state()
     return '{' .. table.concat(parts, ',') .. '}\n'
 end
 
--- Set/clear the native selection bit on items by id. EXACTLY what DFHack's trade UI writes
--- (scripts/internal/caravan/trade.lua toggle_item_base: trade.goodflag[side][idx].selected).
 local function hw_trade_select(side, ids_csv, on)
     local tr = hw_trade()
     if not tr.open then return hw_err('no trade session is open') end
@@ -464,8 +403,7 @@ local function hw_trade_select(side, ids_csv, on)
     return string.format('{"ok":true,"changed":%d,"missing":%d}\n', hit, missing)
 end
 
--- Count selected items per side (container contents follow their selected bin -- native
--- for_selected_item semantics, mirrored from caravan/trade.lua).
+-- Container contents follow their selected bin (native for_selected_item semantics).
 local function hw_trade_selected_count(side)
     local tr = hw_trade()
     local count, in_selected_container = 0, false
@@ -477,9 +415,6 @@ local function hw_trade_selected_count(side)
     return count
 end
 
--- Click one of the native trade-screen commit buttons. Belt and suspenders: the click only
--- fires if the replicated confirm-plugin rect ALSO carries the expected label on screen (unless
--- the host explicitly set click_without_text_assert after probe P-T3 found text unreadable).
 local function hw_trade_confirm(which)
     if not hw_flag('trade_confirm') then return hw_guarded('trade_confirm', 'the barter commit') end
     local spec = HW_TRADE_BUTTONS[which]
@@ -520,9 +455,6 @@ local function hw_trade_confirm(which)
         before0, before1, #tr.good[0], #tr.good[1])
 end
 
--- Merchant counter-offer: native draws Accept/Refuse controls on the trade screen. Their frames
--- are not in confirm's specs, so we locate the label text on the live grid and refuse to act if
--- it isn't found. Probe P-T4 pins the real labels/positions.
 local function hw_trade_counter(accept)
     if not hw_flag('trade_confirm') then return hw_guarded('trade_confirm', 'the counter-offer reply') end
     local tr = hw_trade()
@@ -542,11 +474,7 @@ local function hw_trade_counter(accept)
         json_bool(accept), json_bool(tr.counter_offer), json_bool(tr.open))
 end
 
--- Open the native trade screen without the host keyboard. HYPOTHESIS (guarded until probe P-T1
--- diffs a native open): the depot sheet's Trade button seeds the fields below and the native
--- logic builds the goods lists when `buildlists` is set. Everything here is interface state --
--- no save-owned structure is touched; if the hypothesis is wrong the native logic closes the
--- screen or leaves it empty, and the caller reports that honestly.
+-- Interface state only -- no save-owned structure is written here.
 local function hw_trade_open(depot_id)
     if not hw_flag('trade_open') then return hw_guarded('trade_open', 'opening the trade screen remotely') end
     local tr = hw_trade()
@@ -600,9 +528,7 @@ function hw_trade_action(action, arg1, arg2, arg3)
     return hw_err('unknown trade action: ' .. tostring(action))
 end
 
--- ================================================================================================
--- B227: justice convict / interrogate (game.main_interface.info.justice, widgetized in 53.15)
--- ================================================================================================
+-- Justice convict / interrogate (game.main_interface.info.justice).
 
 local function hw_justice()
     return df.global.game.main_interface.info.justice
@@ -613,11 +539,6 @@ local function hw_justice_widget(...)
     if ok then return w end
     return nil
 end
-
--- The widget paths below are the ones DFHack itself ships against DF 53.15:
---   Tabs / 'Open cases' / 'Right panel' / 'Convict'  + 'Unit List'/1 rows whose child 0 is a
---   widget_unit_portrait carrying .u  -- scripts/internal/confirm/specs.lua (convict spec) and
---   plugins/lua/sort/info.lua (JusticeOverlay), library/modules/Gui.cpp (focus strings).
 
 local function hw_case_rows()
     local tab = hw_justice_widget('Tabs', 'Open cases')
@@ -635,9 +556,7 @@ local function hw_pane_unit_rows(pane_name)
     return pane, rows
 end
 
--- Row -> unit resolution, indexing THROUGH the container exactly like confirm/specs.lua does
--- (`dfhack.gui.getWidget(scroll_rows, pos, 0).u` -- child 0 is a widget_unit_portrait,
--- df.widgets.unit_list.xml).
+-- Child 0 of a unit row is the widget_unit_portrait carrying .u.
 local function hw_unit_row_index(rows, unit_id)
     local ok_n, n = pcall(function() return #rows.children end)
     if not ok_n then return nil, 0 end
@@ -651,12 +570,12 @@ local function hw_unit_row_index(rows, unit_id)
     return nil, n
 end
 
--- State snapshot: the GET side of /justice-convict, and probe P-J1's instrument.
+-- State snapshot: the GET side of /justice-convict.
 function hw_justice_state()
     local mi = df.global.game.main_interface
     local j = hw_justice()
     local parts = { '"ok":true' }
-    local function put(k, v) parts[#parts + 1] = '"' .. k .. '":' .. v end
+    local put = hw_putter(parts)
     local flags = hw_flags()
     put('guards', string.format('{"justiceConvict":%s,"justiceInterrogate":%s}',
         json_bool(flags.justice_convict == true), json_bool(flags.justice_interrogate == true)))
@@ -697,8 +616,7 @@ function hw_justice_state()
     return '{' .. table.concat(parts, ',') .. '}\n'
 end
 
--- Per-drive session (module-global; the C++ side serializes drives behind a mutex and calls
--- hw_justice_action repeatedly, sleeping between calls so native frames can run).
+-- Per-drive session; C++ serializes drives behind a mutex and re-calls between native frames.
 hw_justice_session = hw_justice_session or nil
 
 local function hw_session_for(kind, crime_id, unit_id)
@@ -713,10 +631,6 @@ local function hw_session_for(kind, crime_id, unit_id)
     return s
 end
 
--- One step of the native convict/interrogate drive. Returns done-json, retry-json (caller sleeps
--- a few frames and calls again), or error-json. EVERY game-record write in here is performed by
--- native DF code reacting to fed input; the only direct writes are widget cursor/scroll state
--- and (rarely) the tab-visibility trio, all pure interface state.
 function hw_justice_action(action, crime_id, unit_id, final)
     crime_id, unit_id = tonumber(crime_id) or -1, tonumber(unit_id) or -1
     final = tonumber(final) == 1
@@ -758,7 +672,6 @@ function hw_justice_action(action, crime_id, unit_id, final)
             hw_justice_session = nil
             return hw_err('could not open the justice screen (another native window may be blocking it)')
         end
-        -- Precedent for closing a blocking view sheet by state-write: gui/teleport.lua:54.
         if mi.view_sheets.open then mi.view_sheets.open = false end
         s.open_feeds = s.open_feeds + 1
         hw_feed('D_JUSTICE')
@@ -805,16 +718,11 @@ function hw_justice_action(action, crime_id, unit_id, final)
             if j.convict_crime[i] and j.convict_crime[i].id == crime_id then found = true end
         end
         if action == 'interrogate' and #j.convict_crime == 0 then
-            -- convict_crime is the convict-mode vector; interrogate mode may not fill it. The
-            -- case identity was already checked when we entered the mode below (same click),
-            -- so accept interrogate mode as-is only if this session did the entering.
             found = s.entered_mode == true
         end
         if not found then
-            -- Back out of a mode aimed at the wrong case. The row counter advances in the
-            -- not-in-mode branch below (pending_backout), NOT here: LEAVESCREEN may need more
-            -- than one frame to exit the mode, and incrementing per backout attempt would skip
-            -- case rows.
+            -- LEAVESCREEN can take more than one frame, so the row counter advances in the not-in-mode
+            -- branch below; incrementing per backout attempt would skip case rows.
             hw_feed('LEAVESCREEN')
             s.pending_backout = true
             s.entered_mode = false
@@ -869,7 +777,6 @@ function hw_justice_action(action, crime_id, unit_id, final)
 
     -- Not in mode yet: click the next candidate case row, then feed the mode hotkey.
     if s.pending_backout then
-        -- The backout above has completed (we are provably out of the mode) -> next row.
         s.pending_backout = false
         s.row_attempt = s.row_attempt + 1
     end

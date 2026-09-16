@@ -1,0 +1,35 @@
+# dwf - editor defaults that mirror .gitattributes
+#
+# .gitattributes normalizes line endings at the git boundary (LF in the repository, CRLF for the
+# Windows script types cmd.exe would otherwise mis-parse). That only fixes what git writes; an
+# editor with different defaults still produces a diff full of whitespace churn on the way in.
+# This file states the same rules to the editor, so the two agree. If you change one, change both.
+#
+# Indent widths are what the tree already does, not a proposal: src/*.cpp is 4 spaces, web/js is
+# 2, and neither uses tabs.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# --- C++ plugin: 4 spaces (src/) ---
+[*.{c,cpp,h}]
+indent_size = 4
+
+# --- Python tools: PEP 8 ---
+[*.py]
+indent_size = 4
+
+# --- Windows scripts MUST keep CRLF or cmd.exe mis-parses them (see .gitattributes) ---
+[*.{cmd,bat,ps1}]
+end_of_line = crlf
+
+# --- Markdown: two trailing spaces are a hard line break, so never strip them ---
+[*.md]
+trim_trailing_whitespace = false

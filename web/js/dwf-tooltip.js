@@ -19,43 +19,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// WD-26: the DF-styled tooltip component + first-time help-popup system.
-//
-// TOOLTIPS: every hover-title in the client (WD-4/WD-5/WD-6's TOOLBAR_TOOLTIPS-driven
-// `title="text\nHotkey: x"` attributes, plus every other plain `title=` in index.html/the
-// panel templates) today only shows the BROWSER's own native tooltip bubble -- not DF's dark
-// panel + orange border + green "Hotkey: x" line (07-stockpile-mode.png, 09-burrows.png,
-// 10-hauling.png, 11-traffic.png, 12b-itemdesig-tooltip.png all show the same anatomy: one
-// dark box, 2px orange border, white body text, the LAST line colored green when it reads
-// "Hotkey: X"). This is a fully delegated, zero-call-site-change component: it watches every
-// `[title]` element in the document (mouseover/mouseout on `document`, one pair of listeners
-// for the whole page -- no per-button wiring needed anywhere else) and re-renders that same
-// text in DF's style, after DF's own ~350ms hover delay. The very first time an element is
-// seen its `title` attribute is moved to `data-df-title` (this SUPPRESSES the browser's native
-// bubble permanently for that element, including on the very first hover -- removing the
-// attribute cancels the browser's own pending tooltip timer too); later hovers read from
-// `data-df-title` instead, so nothing here needs to run more than once per element.
-//
-// HELP POPUPS: DF's first-time context popups (help_context_type) are a second, pervasive,
-// real system: a ❓ icon box, a title, body paragraphs (colored keyword links in DF, simplified
-// to plain copy because this mirror has no per-word native indices yet), a "Don't show again"
-// checkbox, a green "Okay"
-// button, and an up-arrow ("collapse") + red-X ("close") pair at the panel's top-right corner
-// (08b-zones-helppopup.png, 09-burrows.png, 10-hauling.png, 18-info-nobles.png,
-// 20-info-justice.png, 22-world.png, 25-stocks.png all show one). Content below is transcribed
-// verbatim from those seven captures -- the eighth context the spec names, "stockpiles", was
-// NOT captured with a help popup in tools/spikes/ui-truth/07*.png (only its tooltip was), so it
-// is deliberately left OUT of HELP_CONTEXTS rather than inventing body text (same "no fabricated
-// data" rule WD-21's honest justice empty-states already established) -- flagged in the
-// completion report as a follow-up for whenever that capture exists.
-//
-// "Don't show again" persists per (player, context) in localStorage -- the spec says server
-// persistence isn't needed.
+// The DF-styled hover tooltip and the first-time help-popup system.
 
 (function () {
-  // ---------------------------------------------------------------------------------------
-  // Tooltip component
-  // ---------------------------------------------------------------------------------------
+  DWFUI.require("tooltip", ["checkHtml", "modalHtml", "plaqueBtnHtml", "rawHtml", "esc"]);
+  // ---- Tooltip component ------------------------------------------------------------------
   const TT_DELAY_MS = 350;
   let ttEl = null;
   let ttTimer = null;
@@ -65,8 +33,6 @@
     if (ttEl) return ttEl;
     ttEl = document.getElementById("dfTooltip");
     if (!ttEl) {
-      // Defensive fallback in case index.html's container is ever missing -- create it rather
-      // than silently doing nothing (tooltips are a WD-26 acceptance item).
       ttEl = document.createElement("div");
       ttEl.id = "dfTooltip";
       document.body.appendChild(ttEl);
@@ -78,9 +44,8 @@
     return el.getAttribute("data-df-title") || el.getAttribute("title") || "";
   }
 
-  // Moves a live `title` attribute onto `data-df-title` the first time an element is seen,
-  // which is what actually suppresses the browser's own tooltip (removing the attribute
-  // cancels its pending native-bubble timer, including the very first hover).
+  // Moving `title` onto `data-df-title` is what suppresses the browser's own bubble: leave the
+  // live attribute in place and every hover shows two tooltips.
   function claimTitle(el) {
     const t = el.getAttribute("title");
     if (t !== null) {
@@ -94,17 +59,29 @@
     return lines.map(line => {
       const isHotkey = /^\s*Hotkey:/i.test(line);
       const cls = isHotkey ? "df-tt-hotkey" : "df-tt-line";
-      return `<div class="${cls}">${escapeHtml(line)}</div>`;
+      return `<div class="${cls}">${DWFUI.esc(line)}</div>`;
     }).join("");
+  }
+
+  // Anchor providers: the surface that owns a control supplies its hover rect, first non-null
+  // wins; with no answer the element's own rect is used.
+  const anchorProviders = [];
+  function provideAnchor(fn) { if (typeof fn === "function") anchorProviders.push(fn); }
+  function anchorRectFor(el) {
+    for (const fn of anchorProviders) {
+      try {
+        const r = fn(el);
+        if (r && Number.isFinite(r.top) && Number.isFinite(r.left)) return r;
+      } catch { /* the element's own rectangle below remains the anchor */ }
+    }
+    return el.getBoundingClientRect();
   }
 
   function positionTooltip(el) {
     const box = ensureTooltipEl();
-    const r = el.getBoundingClientRect();
-    // DF's own button tooltips float just above the hovered control (07/09/10/11/12b
-    // captures); fall back to below if there isn't room (e.g. the top bar's row).
-    box.style.visibility = "hidden";
-    box.style.display = "block";
+    const r = anchorRectFor(el);
+    box.classList.remove("is-visible");
+    box.classList.add("is-measuring");
     const bw = box.offsetWidth;
     const bh = box.offsetHeight;
     let left = r.left;
@@ -112,9 +89,10 @@
     if (top < 4) top = r.bottom + 6;
     if (left + bw > innerWidth - 4) left = innerWidth - bw - 4;
     if (left < 4) left = 4;
-    box.style.left = `${Math.round(left)}px`;
-    box.style.top = `${Math.round(top)}px`;
-    box.style.visibility = "visible";
+    box.style.setProperty("--df-tooltip-left", `${Math.round(left)}px`);
+    box.style.setProperty("--df-tooltip-top", `${Math.round(top)}px`);
+    box.classList.remove("is-measuring");
+    box.classList.add("is-visible");
   }
 
   function showTooltipFor(el) {
@@ -128,7 +106,11 @@
   function hideTooltip() {
     if (ttTimer) { clearTimeout(ttTimer); ttTimer = null; }
     ttTarget = null;
-    if (ttEl) ttEl.style.display = "none";
+    if (ttEl) ttEl.classList.remove("is-measuring", "is-visible");
+  }
+
+  function targetIsConnected(el) {
+    return !!el && el.isConnected !== false;
   }
 
   function findTitledAncestor(el) {
@@ -144,7 +126,8 @@
     hideTooltip();
     ttTarget = el;
     ttTimer = setTimeout(() => {
-      if (ttTarget === el) showTooltipFor(el);
+      if (ttTarget === el && targetIsConnected(el)) showTooltipFor(el);
+      else if (ttTarget === el) hideTooltip();
     }, TT_DELAY_MS);
   }, true);
 
@@ -157,19 +140,18 @@
     hideTooltip();
   }, true);
 
-  // Any click/drag should drop a lingering tooltip immediately (matches native behavior).
   document.addEventListener("mousedown", hideTooltip, true);
   window.addEventListener("blur", hideTooltip);
+  const tooltipAnchorObserver = new MutationObserver(() => {
+    if (ttTarget && !targetIsConnected(ttTarget)) hideTooltip();
+  });
+  tooltipAnchorObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  window.DFTooltip = { hide: hideTooltip, storyMarkup: renderTooltipHtml };
+  window.DFTooltip = { hide: hideTooltip, storyMarkup: renderTooltipHtml, provideAnchor };
 
-  // ---------------------------------------------------------------------------------------
-  // First-time help popups
-  // ---------------------------------------------------------------------------------------
-  // Body text transcribed verbatim from the ui-truth captures named above. Double braces mark
-  // words DF renders in several colored link fonts. The mirror has no native per-word indices,
-  // so these markers remain structural and inherit instead of collapsing them to one guessed hue.
+  // First-time help popups. `{{word}}` marks a keyword DF renders as a coloured link; the mirror has
+  // no per-word native indices, so highlightBody inherits rather than collapsing them to one hue.
   const HELP_CONTEXTS = {
     zones: {
       title: "Zones",
@@ -227,9 +209,6 @@
         "You can also cause trouble if you'd like to raid your neighbors. Raids are created by clicking on any site not belonging to your civilization.",
       ],
     },
-    // "stockpiles" deliberately absent -- see file header. If a stockpile-mode help-popup
-    // capture ever lands in tools/spikes/ui-truth/, transcribe it into a new entry here
-    // exactly like the seven above (do NOT approximate/paraphrase DF's own copy).
   };
 
   function dismissKey(contextId) {
@@ -237,18 +216,33 @@
   }
 
   function isDismissed(contextId) {
-    try { return localStorage.getItem(dismissKey(contextId)) === "1"; } catch (_) { return false; }
+    return window.DwfUtil.lsGet(dismissKey(contextId)) === "1";
   }
 
   function setDismissed(contextId) {
-    try { localStorage.setItem(dismissKey(contextId), "1"); } catch (_) {}
+    window.DwfUtil.lsSet(dismissKey(contextId), "1");
   }
 
   function highlightBody(line) {
-    return escapeHtml(line).replace(/\{\{(.+?)\}\}/g, (_, word) => `<span class="df-help-kw" style="color:inherit">${word}</span>`);
+    return DWFUI.esc(line).replace(/\{\{(.+?)\}\}/g, (_, word) => `<span class="df-help-kw df-help-kw-inline">${word}</span>`);
   }
 
   let popupEl = null;
+  let helpFocusGuardInstalled = false;
+  function helpFocusable(panel) {
+    return [...panel.querySelectorAll(
+      'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')];
+  }
+  function cycleHelpFocus(event, panel) {
+    const focusable = helpFocusable(panel);
+    if (!focusable.length) return;
+    const at = focusable.indexOf(document.activeElement);
+    const next = event.shiftKey
+      ? (at <= 0 ? focusable.at(-1) : focusable[at - 1])
+      : (at < 0 || at === focusable.length - 1 ? focusable[0] : focusable[at + 1]);
+    event.preventDefault();
+    next.focus({ preventScroll: true });
+  }
   function ensurePopupEl() {
     if (popupEl) return popupEl;
     popupEl = document.getElementById("helpPopup");
@@ -256,6 +250,25 @@
       popupEl = document.createElement("div");
       popupEl.id = "helpPopup";
       document.body.appendChild(popupEl);
+    }
+    if (!helpFocusGuardInstalled) {
+      helpFocusGuardInstalled = true;
+      document.addEventListener("focusin", event => {
+        if (!popupEl?.classList.contains("open") || popupEl.contains(event.target)) return;
+        try { popupEl.querySelector("[data-help-dontshow]")?.focus({ preventScroll: true }); }
+        catch (error) { DwfErr.report("tooltip.contain-help-focus", error); }
+      }, true);
+      const holdBackdropFocus = event => {
+        if (!popupEl.classList.contains("open") ||
+            event.target.closest?.("button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])")) return;
+        event.preventDefault();
+        if (event.target === popupEl) event.stopPropagation();
+        try { popupEl.querySelector("[data-help-dontshow]")?.focus({ preventScroll: true }); }
+        catch (error) { DwfErr.report("tooltip.refocus-help-backdrop", error); }
+      };
+      popupEl.addEventListener("pointerdown", holdBackdropFocus, true);
+      popupEl.addEventListener("mousedown", holdBackdropFocus, true);
+      popupEl.addEventListener("click", holdBackdropFocus, true);
     }
     return popupEl;
   }
@@ -265,52 +278,78 @@
     el.classList.remove("open");
     el.innerHTML = "";
   }
+  function restorePageFocus() {
+    try { document.getElementById("view")?.focus({ preventScroll: true }); }
+    catch (error) { DwfErr.report("tooltip.restore-map-focus", error); }
+  }
 
   function helpPopupMarkup(contextId) {
     const ctx = HELP_CONTEXTS[contextId];
     if (!ctx) return "";
-    return `
-      <div class="df-help-panel" role="dialog" aria-label="${escapeHtml(ctx.title)}">
+    const collapse = DWFUI.plaqueBtnHtml({
+      cls: "df-help-collapse", size: "compact", title: "Collapse", ariaLabel: "Collapse",
+      dataset: { helpCollapse: "" },
+      labelHtml: DWFUI.rawHtml("the compact help chrome keeps its existing arrow glyph", "&#8593;"),
+    });
+    const close = DWFUI.plaqueBtnHtml({
+      cls: "df-help-x", size: "compact", title: "Close", ariaLabel: "Close",
+      dataset: { helpClose: "" },
+      labelHtml: DWFUI.rawHtml("the compact help chrome keeps its existing close glyph", "&#10005;"),
+    });
+    const dontShow = DWFUI.checkHtml({
+      checked: false, dataset: { helpDontshow: "" }, ariaLabel: "Don't show again",
+    });
+    const okay = DWFUI.plaqueBtnHtml({
+      cls: "df-help-okay", label: "Okay", dataset: { helpOkay: "" },
+    });
+    const body = `
         <div class="df-help-icon" aria-hidden="true">?</div>
-        <div class="df-help-controls">
-          <button type="button" class="df-help-collapse" title="Collapse" aria-label="Collapse">&#8593;</button>
-          <button type="button" class="df-help-x" title="Close" aria-label="Close">&#10005;</button>
-        </div>
+        <div class="df-help-controls">${collapse}${close}</div>
         <div class="df-help-scroll">
-          <h2 class="df-help-title">${escapeHtml(ctx.title)}</h2>
+          <h2 class="df-help-title">${DWFUI.esc(ctx.title)}</h2>
           <div class="df-help-body">${ctx.body.map(line => `<p>${highlightBody(line)}</p>`).join("")}</div>
-          <label class="df-help-dontshow"><span>Don't show again</span><input type="checkbox" data-help-dontshow></label>
-          <button type="button" class="df-help-okay" data-help-okay>Okay</button>
+          <div class="df-help-dontshow" data-help-dontshow-row><span>Don't show again</span>${dontShow}</div>
+          ${okay}
         </div>
-      </div>`;
+      `;
+    return DWFUI.modalHtml({ cls: "df-help-panel", ariaLabel: ctx.title }, body);
   }
 
   function showHelpPopup(contextId) {
     const ctx = HELP_CONTEXTS[contextId];
-    if (!ctx) return; // no fabricated popups for contexts without a real capture
+    if (!ctx) return;
     const el = ensurePopupEl();
     el.innerHTML = helpPopupMarkup(contextId);
     el.classList.add("open");
-    const dontShow = el.querySelector("[data-help-dontshow]");
+    const panel = el.querySelector(".df-help-panel");
+    panel?.addEventListener("keydown", event => {
+      if (event.key === "Tab") cycleHelpFocus(event, panel);
+    });
+    let dontShow = false;
+    el.querySelector("[data-help-dontshow-row]")?.addEventListener("click", () => {
+      dontShow = !dontShow;
+      const control = el.querySelector("[data-help-dontshow]");
+      if (control) {
+        const restoreFocus = document.activeElement === control;
+        control.outerHTML = DWFUI.checkHtml({
+          checked: dontShow, dataset: { helpDontshow: "" }, ariaLabel: "Don't show again",
+        });
+        if (restoreFocus) el.querySelector("[data-help-dontshow]")?.focus();
+      }
+    });
     function close() {
-      if (dontShow && dontShow.checked) setDismissed(contextId);
+      if (dontShow) setDismissed(contextId);
       closeHelpPopup();
-      try { document.getElementById("view")?.focus({ preventScroll: true }); } catch (_) {}
+      restorePageFocus();
     }
     el.querySelector("[data-help-okay]")?.addEventListener("click", close);
-    // The collapse/close corner buttons are DF's window-chrome pair (08b/09/10/18/20/22/25 all
-    // show them). This client has no separate "collapsed" popup state to restore from, so both
-    // simply close the popup -- a documented simplification, not invented chrome (the buttons
-    // are real DF elements; only the collapse *behavior* is simplified to "close").
-    el.querySelector(".df-help-collapse")?.addEventListener("click", close);
-    el.querySelector(".df-help-x")?.addEventListener("click", close);
+    el.querySelector("[data-help-collapse]")?.addEventListener("click", close);
+    el.querySelector("[data-help-close]")?.addEventListener("click", close);
+    try { el.querySelector("[data-help-dontshow]")?.focus({ preventScroll: true }); }
+    catch (error) { DwfErr.report("tooltip.focus-help-dialog", error); }
   }
 
-  // Re-entering a mode (e.g. clicking through Stocks' category rows, which re-opens the
-  // "stocks" panel per row click) shouldn't re-pop the same help popup every single time --
-  // DF's own help_context popups are a genuine "first entry" thing, not a per-refresh nag. This
-  // in-memory set tracks "already shown this page load" independent of the permanent
-  // localStorage dismiss flag, so a fresh page load still shows it again (until dismissed).
+  // Shown-once per page load; the permanent dismissal lives in localStorage.
   const shownThisSession = new Set();
 
   function maybeShowHelp(contextId) {
@@ -321,12 +360,11 @@
     showHelpPopup(contextId);
   }
 
-  if (!window.__DWF_STORY_MODE) document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && popupEl && popupEl.classList.contains("open")) {
-      event.preventDefault();
-      closeHelpPopup();
-    }
-  });
+  if (!window.__DWF_STORY_MODE) try { window.DwfModeStack?.register({
+    id: "context-help", flow: "global-overlays", depth: 70,
+    active: () => !!popupEl && popupEl.classList.contains("open"),
+    pop: () => { closeHelpPopup(); restorePageFocus(); return true; },
+  }); } catch (err) { DwfErr.report("mode-stack.register", err); }
 
   window.DFHelpPopup = { maybeShow: maybeShowHelp, show: showHelpPopup, close: closeHelpPopup, storyMarkup: helpPopupMarkup };
 })();

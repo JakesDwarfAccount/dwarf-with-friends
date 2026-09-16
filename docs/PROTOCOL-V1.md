@@ -1,8 +1,6 @@
 # Dwarf With Friends protocol v1
 
-Protocol v1 is the binary, acknowledged map stream sent from the plugin to each browser. The stable
-numeric registry is `tools/protocol/v1-registry.json`; an offline check compares it with both the C++
-encoder and JavaScript decoder.
+Protocol v1 is the binary, acknowledged map stream sent from the plugin to each browser. The numeric constants are defined in `src/wire_v1.h` and mirrored by `web/js/dwf-wire-v1.js`. The decoder fixture exercises the production JavaScript decoder.
 
 Every binary frame starts with ten bytes: magic `D5`, version, frame type, flags, and sequence. The
 defined types are BLOCK_SET (`1`), AUX (`2`), and ITEMDEF_DICT (`3`). Deflated payloads use zlib and
@@ -21,6 +19,13 @@ Sequence acknowledgements control pacing, not world identity. Block updates are 
 by position/version; reconnect can resume from cached state and request missing blocks. AUX is
 latest-wins state such as units, buildings, cameras, and presence. ITEMDEF_DICT is a one-shot
 dictionary and is not part of the normal block/AUX sequencing contract.
+
+REQ_BLOCKS is reliable but smoothed. Each connection coalesces requested block ids into a deduplicated
+newest-wins pending set capped at 256 ids; the process-wide cap is 1024. The server drains at most 64
+ids every 250ms, preserving the original DF-side cost envelope without refusing bursts. Local overflow
+evicts the oldest id so current camera demand wins, and increments reqblocksCap. Diagnostics retain
+reqblocksRate as a compatibility count of rate-window events and expose the honest name
+reqblocksCoalesced; neither means requested blocks were discarded.
 
 Text control messages are strict JSON objects. The client sends top-level `type` values including
 `hello`, `ack`, `cam`, `pong`, `auxr`, `reqblocks`, `chat`, `cursor`, and `rename`. The server sends

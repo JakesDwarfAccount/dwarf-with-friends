@@ -3,27 +3,7 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// host/host_panel.mjs -- local host management panel for dwf. Plain node, ZERO npm deps
-// (a single-file stdlib http server).
-//
-//   node host/host_panel.mjs [--df-root "<path>"] [--port <n>] [--open]
-//
-// Binds 127.0.0.1 ONLY (never 0.0.0.0 -- this is a control surface, not a public page), picks a
-// free port near a random base, and prints the URL. One page, three headed sections (no tabs --
-// this is a single-purpose page and lays out like one):
-//   STATUS         Start hosting + DF running? stream answering (/version)? world loaded
-//                  (/host-state), player count (/diag).
-//   FRIEND ACCESS  the friend link BIG with one-click copy, and the join password beside it
-//                  (show/hide, copy, set/change/turn off -- LIVE via the plugin's host-only
-//                  POST /join-password route; file dfcapture_join_password.txt for cold starts).
-//   TUNNEL & CONTROLS  start/stop cloudflared (stop CONFIRMS the process exited before claiming
-//                  the link is dead), start/stop DF, open game view, log tail, advanced config.
-//
-// To reach the game server's protected endpoints (/host-state, /diag) the panel reads the join
-// password from disk and sends it as the dfcap_auth cookie -- exactly what a browser client does.
-//
-// Windows-first (tasklist/taskkill/Start-Process). Degrades politely elsewhere (process controls
-// disabled, everything else works).
+// Local host management panel for dwf. Plain node, zero npm deps.
 
 import http from "node:http";
 import {
@@ -51,14 +31,9 @@ const IS_WIN = process.platform === "win32";
 const CF_LOG = path.join(HERE, "cloudflared.log");
 
 // ---------------------------------------------------------------- join-password DEFAULT POLICY
-// What a FRESH install starts with, applied ONCE at panel startup and ONLY when the password file
-// does not exist yet (an existing file -- even an explicitly empty one -- is the host's choice and
-// is never overwritten). OWNER-RATIFIED default: "open".
-//   "open"     -- no join password. Friends join with just the link; the trycloudflare URL is
-//                 itself unguessable, and the panel shows the open state honestly with a
-//                 one-click "Set a password" control (never a silently-empty unlabeled field).
-//   "generate" -- auto-create a short memorable password (word-word-NN) at first start instead.
-// Flip this one string to change the shipped default.
+
+// Applied ONCE at startup and ONLY when the password file does not exist yet; an existing file
+// -- even an explicitly empty one -- is the host's choice and is never overwritten.
 const DEFAULT_PASSWORD_POLICY = "open";
 function applyDefaultPasswordPolicy() {
   if (!DF_ROOT || existsSync(passwordFilePath(DF_ROOT))) return;
@@ -66,7 +41,6 @@ function applyDefaultPasswordPolicy() {
 }
 
 // How long "waiting for the friend link" may spin before the panel surfaces the log + a Retry.
-// Env override exists so the harness can exercise the timeout without a 30-second test.
 const LINK_TIMEOUT_MS = parseInt(process.env.DWF_LINK_TIMEOUT_MS ?? "", 10) || LINK_WAIT_TIMEOUT_MS;
 
 // ---------------------------------------------------------------- args
@@ -87,7 +61,7 @@ const ARGS = parseArgs(process.argv.slice(2));
 let DF_ROOT = ARGS.dfRoot || autodetectDfRoot() || "";
 const DF_OK = DF_ROOT ? checkDfhack(DF_ROOT).ok : false;
 let GAME_PORT = DF_ROOT ? readPanelConfig(DF_ROOT).port : SERVER_PORT;
-applyDefaultPasswordPolicy();   // fresh install only -- see DEFAULT_PASSWORD_POLICY above
+applyDefaultPasswordPolicy();   // fresh install only
 
 // ---------------------------------------------------------------- small promise wrappers
 function run(cmd, args, opts = {}) {
@@ -98,8 +72,7 @@ function run(cmd, args, opts = {}) {
   });
 }
 
-// GET a path on the game server (127.0.0.1:8765) with the auth cookie. Short timeout so a dead
-// server fails fast. Returns { ok, status, json|null, error|null }.
+// GET a path on the game server with the auth cookie. Returns { ok, status, json, error }.
 function gameGet(pathname, { withAuth = true, timeoutMs = 1500 } = {}) {
   return new Promise((resolve) => {
     const headers = {};
@@ -111,8 +84,8 @@ function gameGet(pathname, { withAuth = true, timeoutMs = 1500 } = {}) {
       let body = "";
       res.on("data", (c) => (body += c));
       res.on("end", () => {
-        let json = null;
-        try { json = JSON.parse(body); } catch { /* not json */ }
+        let json;
+        try { json = JSON.parse(body); } catch { json = null; }
         resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, json, body });
       });
     });
@@ -123,15 +96,11 @@ function gameGet(pathname, { withAuth = true, timeoutMs = 1500 } = {}) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Linux dfhack-run colorizes its output (ESC[0m...); strip ANSI SGR codes before any text
-// matching -- "\btrue\b" can never match "[0mtrue" because m|t has no word boundary.
+// Linux dfhack-run colorizes its output; strip ANSI SGR codes before any text matching --
+// "\btrue\b" can never match "[0mtrue" because m|t has no word boundary.
 const stripAnsi = (s) => String(s ?? "").replace(/\x1b\[[0-9;]*m/g, "");
 
-// Run DFHack's remote-control tool. On Linux, dfhack-run SEGFAULTS without a TTY (DFHack
-// 53.15-r2: Console::add_text fprintf()s a console FILE* that never initialized on a pipe),
-// so give it a pseudo-terminal via util-linux `script -qec` -- -e propagates the child's
-// exit code, /dev/null discards the typescript file. The RPC itself would even execute
-// server-side before the crash, but the panel must read the reply, so a pty it is.
+// On Linux dfhack-run SEGFAULTS without a TTY, so give it a pseudo-terminal via `script -qec`.
 function runDfhackRun(dfhackRun, args, opts = {}) {
   if (IS_WIN) return run(dfhackRun, args, opts);
   const shq = (a) => `'${String(a).replace(/'/g, `'\\''`)}'`;
@@ -139,9 +108,8 @@ function runDfhackRun(dfhackRun, args, opts = {}) {
   return run("script", ["-qec", inner, "/dev/null"], opts);
 }
 
-// POST a form to the game server (the plugin's own host-only routes, e.g. /join-password).
-// `cookiePw` must be the password the server CURRENTLY has in memory -- i.e. the OLD one when
-// changing passwords -- or the pre-routing auth gate rejects us.
+// `cookiePw` must be the password the server CURRENTLY holds -- i.e. the OLD one when changing
+// passwords -- or the pre-routing auth gate rejects us.
 function gamePostForm(pathname, form, { cookiePw = "", timeoutMs = 2500 } = {}) {
   return new Promise((resolve) => {
     const body = new URLSearchParams(form).toString();
@@ -156,8 +124,8 @@ function gamePostForm(pathname, form, { cookiePw = "", timeoutMs = 2500 } = {}) 
         let b = "";
         res.on("data", (c) => (b += c));
         res.on("end", () => {
-          let json = null;
-          try { json = JSON.parse(b); } catch { /* not json */ }
+          let json;
+          try { json = JSON.parse(b); } catch { json = null; }
           resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, json });
         });
       });
@@ -167,8 +135,7 @@ function gamePostForm(pathname, form, { cookiePw = "", timeoutMs = 2500 } = {}) 
   });
 }
 
-// Process presence by image/command name. Windows: tasklist. Linux: pgrep -x against the comm
-// name (kernel-truncated to 15 chars, so match what /proc reports).
+// Process presence by image name; the Linux comm name is kernel-truncated to 15 chars.
 async function processRunning(imageName) {
   if (!IS_WIN) {
     const r = await run("pgrep", ["-x", imageName.slice(0, 15)]);
@@ -185,28 +152,17 @@ async function dfProcessRunning() {
   return false;
 }
 
-// The command line of a running process. Best-effort; "" if unavailable.
-async function processCmdline(imageName) {
-  if (!IS_WIN) {
-    const r = await run("ps", ["-C", imageName.slice(0, 15), "-o", "args="]);
-    return r.ok ? r.stdout.trim().split("\n")[0] || "" : "";
-  }
-  // PowerShell CIM query is more reliable than deprecated wmic on modern Windows.
-  const ps = `Get-CimInstance Win32_Process -Filter "Name='${imageName}'" | Select-Object -ExpandProperty CommandLine`;
-  const r = await run("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps]);
-  return r.ok ? r.stdout.trim() : "";
-}
-
 // ---------------------------------------------------------------- cloudflared helpers
 function cloudflaredUrlFromLog() {
   try {
     if (existsSync(CF_LOG)) return parseCloudflaredUrl(readFileSync(CF_LOG, "utf8"));
-  } catch { /* ignore */ }
+  } catch (error) {
+    console.warn(`Could not read the cloudflared log: ${error.message || error}`);
+  }
   return null;
 }
 
-// Read from the end so a noisy/retrying tunnel can never make a panel refresh load an unbounded
-// file into memory. The first partial line is discarded when the byte window starts mid-file.
+// Read from the end so a noisy tunnel can never make a refresh load an unbounded file.
 function cloudflaredLogTail(maxBytes = 64 * 1024, maxLines = 120) {
   if (!existsSync(CF_LOG)) return { exists: false, text: "", truncated: false };
   let fd;
@@ -228,7 +184,8 @@ function cloudflaredLogTail(maxBytes = 64 * 1024, maxLines = 120) {
   } catch (error) {
     return { exists: true, text: "", truncated: false, error: String(error.message || error) };
   } finally {
-    if (fd !== undefined) try { closeSync(fd); } catch { /* best effort */ }
+    if (fd !== undefined) try { closeSync(fd); }
+    catch (error) { console.warn(`Could not close the cloudflared log: ${error.message || error}`); }
   }
 }
 async function cloudflaredOnPath() {
@@ -263,8 +220,8 @@ async function apiStatus() {
 const CF_PROCESS = IS_WIN ? "cloudflared.exe" : "cloudflared";
 
 
-// Kill our wrapper tree: Windows taskkill /T takes the wrapper + its cloudflared; on Linux a
-// SIGTERM to the sh wrapper fires its trap, which kills the cloudflared it started.
+// Kill our wrapper tree: taskkill /T takes the wrapper + its cloudflared; on Linux a SIGTERM
+// to the sh wrapper fires its trap.
 async function killTunnelTree(pid, { timeout = 3000 } = {}) {
   if (IS_WIN) return run("taskkill", ["/PID", String(pid), "/T", "/F"], { timeout });
   try { process.kill(pid, "SIGTERM"); return { ok: true }; }
@@ -280,12 +237,8 @@ async function apiLinks() {
   const url = cloudflaredUrlFromLog();
   const installed = await cloudflaredOnPath();
   return {
-    // 127.0.0.1, NOT localhost: cookies are host-scoped (not port-scoped), so any big cookie set
-    // by another app on the shared "localhost" hostname (e.g. a ~2.5 KB Supabase auth-token from a
-    // dev app on localhost:<other-port>) rides along on the /ws handshake and can overflow the
-    // server's Upgrade-classifier header peek -> WS never connects -> the client silently drops to
-    // terrain-less HTTP polling. The loopback IP literal carries no such foreign cookie jar, so the
-    // host's own "open locally" link is robust regardless of what else the browser has on localhost.
+    // 127.0.0.1, NOT localhost: cookies are host-scoped, so a big cookie another app set on
+    // "localhost" rides along on the /ws handshake and overflows the Upgrade-classifier peek.
     localUrl: `http://127.0.0.1:${GAME_PORT}/view`,
     cloudflared: {
       running,
@@ -298,8 +251,7 @@ async function apiLinks() {
 }
 
 function apiAccess() {
-  // `suggestion` feeds the UI's Generate button (same generator as DEFAULT_PASSWORD_POLICY
-  // "generate", so a host-picked and a policy-picked password look alike).
+  // `suggestion` feeds the UI's Generate button (same generator as the "generate" policy).
   if (!DF_ROOT) return { dfRoot: null, password: "", authEnabled: false, suggestion: generatePassword() };
   const pw = readPassword(DF_ROOT);
   return { dfRoot: DF_ROOT, password: pw, authEnabled: !!pw, suggestion: generatePassword() };
@@ -317,12 +269,9 @@ function apiConfig() {
 }
 
 // ---- mutations ----
-// LIVE password reset. Persist to disk (survives restarts, and the plugin loads it at init), then
-// apply it to the RUNNING server via its host-only POST /join-password route (loopback-gated; the
-// point-and-click twin of the console command) so NEW joins need the new password immediately.
-// The route needs a cookie carrying the password the server currently holds, so read it FIRST.
-// Honesty contract: already-connected players are NOT kicked by a password change -- their live
-// WS session stands until they leave (kicking mid-session would need a plugin change). Say so.
+
+// Persist to disk first, then apply to the RUNNING server; the route needs a cookie carrying
+// the password the server currently holds, so read it FIRST. Live players are NOT kicked.
 async function setAccess(body) {
   if (!DF_ROOT) return { ok: false, error: "no DF root" };
   const next = String(body.password ?? "").trim();
@@ -334,8 +283,7 @@ async function setAccess(body) {
   const live = await gamePostForm("/join-password", next ? { password: next } : { off: "1" },
                                   { cookiePw: prev });
   if (live.ok && live.json?.ok) return { ok: true, applied: true, note: `Saved and live now. ${posture}` };
-  // Server not running (or the route predates this build): the file is written, which is all a
-  // cold start needs. Applies at next launch, or `capture-join-password reload` in the console.
+  // Server not answering: the file is written, which is all a cold start needs.
   return { ok: true, applied: false,
     note: "Saved. The game server isn’t answering, so it takes effect when hosting starts " +
           "(or run `capture-join-password reload` in the DFHack console)." };
@@ -374,10 +322,8 @@ async function launchDwarf() {
   const exe = existsSync(markers.dfhackExe) ? markers.dfhackExe : markers.dfExe;
   if (!existsSync(exe)) return { ok: false, error: `Dwarf Fortress launcher not found: ${exe}` };
   try {
-    // Linux: launch THROUGH Steam when it is running. A raw ./dfhack spawn skips Steam's
-    // per-game environment (GPU/PRIME offload, Steam API), which black-screens DF on
-    // multi-GPU boxes. Steam applies the game's launch options, so hosting with DFHack
-    // needs the user to have set them once:  sh -c 'exec "./dfhack"' %command%
+    // Linux: launch THROUGH Steam when it is running. A raw ./dfhack spawn skips Steam's per-game
+    // environment, which black-screens DF on multi-GPU boxes.
     if (!IS_WIN && (await processRunning("steam"))) {
       const child = spawn("xdg-open", ["steam://rungameid/975370"],
                           { detached: true, stdio: "ignore" });
@@ -385,9 +331,8 @@ async function launchDwarf() {
       return { ok: true, note: "Asked Steam to launch Dwarf Fortress. If DFHack does not come up " +
         "with it, set the game's Steam launch options to:  sh -c 'exec \"./dfhack\"' %command%" };
     }
-    // Fallback (Windows, or Steam not running): direct launch. The `dfhack` launcher on Linux
-    // is a shell script (LD_PRELOAD libdfhooks + exec ./dwarfort); run it through sh so a
-    // missing exec bit can never break the launch.
+    // Fallback: direct launch. The Linux `dfhack` launcher is a shell script, so run it through sh
+    // where a missing exec bit would otherwise break the launch.
     const child = IS_WIN
       ? spawn(exe, [], { cwd: DF_ROOT, detached: true, stdio: "ignore", windowsHide: false })
       : spawn("/bin/sh", [exe], { cwd: DF_ROOT, detached: true, stdio: "ignore" });
@@ -424,13 +369,8 @@ async function serverAction(body) {
     try {
       const logStream = createWriteStream(CF_LOG, { flags: "w" });
       await new Promise((res) => logStream.once("open", res));
-      // NOT spawned directly, and NOT detached: cloudflared runs inside a powershell wrapper that
-      // puts it in a kill-on-close Win32 Job Object and watches the panel pid (see hostlib.mjs,
-      // tunnelWrapperCommand). If this panel process dies BY ANY MEANS -- Ctrl+C, the .cmd's
-      // "Terminate batch job (Y/N)?" Y force-kill, the console window's X, a crash, taskkill --
-      // the wrapper exits, the job handle closes, and the KERNEL kills cloudflared. The signal
-      // handlers below remain the graceful path (friendly messages); this is the OS-level backstop.
-      // The wrapper inherits our logStream, so cloudflared's output still lands in CF_LOG.
+      // NOT detached: cloudflared runs inside a wrapper that puts it in a kill-on-close Job Object
+      // and watches this panel's pid, so the kernel kills cloudflared however this process dies.
       const wrap = tunnelWrapperCommand({
         exe: cf, args: ["tunnel", "--url", `http://localhost:${GAME_PORT}`], panelPid: process.pid,
       });
@@ -460,15 +400,11 @@ async function serverAction(body) {
   return { ok: false, error: `unknown action: ${action}` };
 }
 
-// STOP MUST PROVE IT STOPPED: taskkill alone is a request, not a fact. Poll the process table
-// until cloudflared is actually GONE before reporting "stopped" -- the UI flips to "friend link
-// is dead" only on stopped:true, never on internal bookkeeping. (~5s worst case, then honest
-// failure.) Also collapses the hosting flow so a stale friend URL can't linger on screen.
+// Stop must PROVE it stopped: taskkill is a request, not a fact. Poll the process table until
+// cloudflared is GONE before reporting stopped, so the UI never claims a live link is dead.
 async function stopCloudflaredConfirmed() {
   const wasRunning = await processRunning(CF_PROCESS);
-  // Pid-targeted first: kill OUR wrapper tree (wrapper + its cloudflared). The image-name sweep
-  // stays as the fallback for a link the panel presents without a pid (foreign/adopted
-  // cloudflared) -- the same fair-game set this button has always killed.
+  // Pid-targeted first; the image-name sweep is the fallback for a link presented without a pid.
   if (TUNNEL.pid) await killTunnelTree(TUNNEL.pid);
   await killTunnelByImage();
   let gone = !(await processRunning(CF_PROCESS));
@@ -492,12 +428,8 @@ async function stopCloudflaredConfirmed() {
 
 // ---------------------------------------------------------------- one-button hosting flow
 const HOSTING = { phase: "idle", message: "Ready to host.", error: null, friendUrl: null };
-// Tunnel bookkeeping: did WE spawn the current cloudflared (so its log is ours to read), when did
-// the link wait start (so the wait can time out instead of spinning forever), and the SPECIFIC
-// wrapper pid we spawned (so cleanup can taskkill /PID /T the wrapper+cloudflared tree instead of
-// image-name-nuking a host's unrelated cloudflared). Note: since the job-object wrapper ties the
-// tunnel's lifetime to THIS panel process, a panel-spawned tunnel can never survive into a later
-// panel run -- startedByPanel:false + running:true now only means a FOREIGN cloudflared.
+// Tunnel bookkeeping: did WE spawn the current cloudflared, when did the link wait start, and
+// the SPECIFIC wrapper pid, so cleanup never image-name-nukes a host's unrelated cloudflared.
 export const TUNNEL = { startedByPanel: false, linkWaitStartedAt: 0, pid: 0 };
 let hostingTimer = null;
 let hostingBusy = false;
@@ -525,8 +457,7 @@ async function hostingTick() {
       const started = await runDfhackRun(dfhackRun, ["capture-stream-start", String(GAME_PORT), "127.0.0.1"], { timeout: 10000, cwd: DF_ROOT });
       if (!started.ok) {
         const raw = stripAnsi(started.stderr || started.stdout || "").trim();
-        // "not a recognized command" = the plugin never loaded (wrong DFHack version or missing
-        // DLL, issue #1). Diagnose and say what to actually do instead of echoing DFHack.
+        // "not a recognized command" = the plugin never loaded (wrong DFHack version or missing DLL).
         const explained = explainStreamStartFailure({
           output: raw,
           dllDeployed: existsSync(path.join(DF_ROOT, "hack", "plugins", PLUGIN_BINARY)),
@@ -541,9 +472,8 @@ async function hostingTick() {
 
     const links = await apiLinks();
     if (!links.cloudflared.installed) throw new Error("cloudflared is missing. Run DWF Setup to repair step 5, then try again.");
-    // NEVER a silent infinite wait: tunnelWaitVerdict (hostlib, fixture-tested) decides between
-    // starting our own tunnel, waiting (bounded), and SURFACING the two stuck cases -- a foreign
-    // cloudflared whose log we cannot read, and a wait that blew past the timeout.
+    // Never a silent infinite wait: tunnelWaitVerdict decides between starting our own tunnel,
+    // waiting (bounded), and surfacing the two stuck cases.
     const verdict = tunnelWaitVerdict({
       url: links.cloudflared.url,
       running: links.cloudflared.running,
@@ -584,8 +514,7 @@ async function hostingTick() {
   } finally { hostingBusy = false; }
 }
 
-// Retry from a stuck link wait: confirmed-kill whatever cloudflared is there (ours or foreign),
-// then spawn OUR OWN with a fresh log we can read, and resume the normal wait (with timeout).
+// Retry from a stuck link wait: confirmed-kill whatever cloudflared is there, then spawn our own.
 async function retryLink() {
   if (!["link-stuck", "waiting-link", "error", "stopped"].includes(HOSTING.phase)) return hostingState();
   const stopped = await stopCloudflaredConfirmed();
@@ -699,21 +628,9 @@ async function listen() {
 }
 
 // ---------------------------------------------------------------- terminal-exit tunnel cleanup
-// The GRACEFUL half of shutdown. The GUARANTEED half is the job-object wrapper (hostlib.mjs
-// tunnelWrapperCommand + the start-cf spawn above): the kernel kills cloudflared when this
-// process dies by ANY means, including the paths no handler can cover -- cmd's "Terminate batch
-// job (Y/N)?" answered Y (force-kills node MID-cleanup), the console window's X (CTRL_CLOSE_EVENT
-// reaches node unreliably and with a short OS deadline), crashes, taskkill /F. These handlers
-// exist so the COMMON exits (Ctrl+C, Ctrl+Break, SIGTERM, window close when SIGHUP does arrive)
-// also print the honest "friend link is dead" message and exit 0 instead of relying on the
-// backstop silently.
-//
-// Rules: pid-targeted (taskkill /PID <wrapper> /T /F takes the wrapper AND its cloudflared) so a
-// host's unrelated cloudflared is never image-name-nuked -- the image-name kill is the fallback
-// ONLY when the panel is presenting a friend link it has no pid for (a foreign tunnel, same
-// fair-game set the Stop button already kills). Best-effort and CAPPED (hard-exit timer) -- a
-// slow kill may never hang Ctrl+C -- and a SECOND Ctrl+C force-exits immediately. Idempotent
-// with the Stop button: a confirmed stop clears TUNNEL.pid, so a later Ctrl+C just exits.
+
+// The graceful half of shutdown; the job-object wrapper is the guaranteed half. Pid-targeted so
+// a host's unrelated cloudflared is never image-name-nuked, capped, and idempotent with Stop.
 let SHUTTING_DOWN = false;
 export async function stopTunnelOnExit() {
   if (TUNNEL.pid) {
@@ -726,7 +643,7 @@ export async function stopTunnelOnExit() {
   // Short capped confirm poll -- best effort on the exit path, never the Stop button's full 5s.
   let gone = !(await processRunning(CF_PROCESS));
   for (let i = 0; !gone && i < 4; i++) { await sleep(250); gone = !(await processRunning(CF_PROCESS)); }
-  // Keep TUNNEL.pid until the kill is CONFIRMED so the synchronous 'exit' fallback can retry it.
+  // Keep TUNNEL.pid until the kill is CONFIRMED so the synchronous 'exit' fallback can retry.
   if (gone) { TUNNEL.pid = 0; TUNNEL.startedByPanel = false; }
   return gone;
 }
@@ -743,22 +660,21 @@ function shutdown(signal) {
         console.log(gone ? "  Tunnel stopped — the friend link is dead."
                          : `  cloudflared may still be running — check for a ${CF_PROCESS} process.`);
       }
-    } catch { /* best effort -- exit anyway */ }
+    } catch { /* tunnel cleanup cannot delay process exit */ }
     process.exit(0);
   })();
 }
 for (const sig of ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]) {
   try { process.on(sig, () => shutdown(sig)); } catch { /* not supported on this platform */ }
 }
-// Last-resort fallback: an exit no signal handler saw (process.exit elsewhere, fatal error) must
-// still not orphan a tunnel we spawned. 'exit' handlers must be synchronous; pid-only, best-effort.
+// Last-resort fallback for an exit no signal handler saw. 'exit' handlers must be synchronous.
 process.on("exit", () => {
   if (!TUNNEL.pid) return;
   if (IS_WIN) {
     try { execFileSync("taskkill", ["/PID", String(TUNNEL.pid), "/T", "/F"], { stdio: "ignore", timeout: 3000 }); }
-    catch { /* best effort */ }
+    catch { /* synchronous exit cleanup cannot retry or report */ }
   } else {
-    try { process.kill(TUNNEL.pid, "SIGTERM"); } catch { /* best effort */ }
+    try { process.kill(TUNNEL.pid, "SIGTERM"); } catch { /* synchronous exit cleanup cannot retry or report */ }
   }
 });
 

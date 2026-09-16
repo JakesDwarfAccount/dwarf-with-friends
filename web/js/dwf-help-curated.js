@@ -2,20 +2,25 @@
 // Copyright (C) 2026 Gabriel Rios
 // Copyright (C) 2026 Jake Taplin
 //
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// B207 HELP-TOOLTIPS: curated one-line supplements for the ? help reference.
-//
-// Some harvested tooltips are terse ("Justice.", "Labor management.") because they mirror DF's own
-// short button captions. This file may add ONE friendly clarifying line to such an entry -- but it
-// NEVER forks the harvested truth: the extractor's text stays the headline; a curated note renders
-// underneath it as a dim sub-line. Keys are {surface, text} matched EXACTLY against a harvested
-// entry, so the drift guard (help_reference_test.mjs) can fail on any orphan key that no longer
-// matches a real tooltip (a curated note pointing at a tooltip that was renamed or removed).
-//
-// Adding a note: find the surface id + exact tooltip text in web/js/dwf-help-corpus.js and
-// add a row below. Keep it to one plain sentence -- fuller explanations belong in DF's own guides
-// (the "guides" surface), not here.
+// Curated one-line supplements for the ? help reference. A note NEVER forks the harvested text:
+// keys are {surface, text} matched EXACTLY, so an orphan key fails the drift guard.
 (function (root) {
   "use strict";
 
@@ -34,7 +39,6 @@
       },
       topbar: {
         "Fortress activity": "A dashboard of what your fort has been building and who has been busy.",
-        "Fortress vote": "Multiplayer players propose and vote on fortress decisions.",
         "Players / lobby": "See who is connected and jump to their camera.",
       },
     },

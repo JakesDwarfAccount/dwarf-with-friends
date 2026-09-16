@@ -24,8 +24,10 @@
 
 #include "Core.h"
 #include "TileTypes.h"
+#include "diagnostics.h"
 #include "json_util.h"
 #include "surface_z.h"
+#include "unit_face.h"
 #include "modules/DFSDL.h"
 #include "modules/Maps.h"
 #include "modules/Translation.h"
@@ -33,6 +35,7 @@
 #include "modules/World.h"
 
 #include "df/coord.h"
+#include "df/entity_site_link.h"
 #include "df/global_objects.h"
 #include "df/graphic.h"
 #include "df/graphic_viewportst.h"
@@ -72,11 +75,11 @@ const char* month_name(int month) {
 
 const char* season_phase_name(int month) {
     static const char* seasons[] = {"Spring", "Summer", "Autumn", "Winter"};
-    static const char* phases[] = {"Early", "Mid", "Late"};
+    static const char* phases[] = {"Early ", "Mid-", "Late "};
     if (month < 0 || month >= 12)
         return "Season";
     static thread_local std::string label;
-    label = std::string(phases[month % 3]) + " " + seasons[month / 3];
+    label = std::string(phases[month % 3]) + seasons[month / 3];
     return label.c_str();
 }
 
@@ -94,8 +97,6 @@ int moon_icon_for_phase(int phase) {
     return 2;
 }
 
-// WD-5: DF's weather is coarse (None/Rain/Snow, df::weather_type) — read the
-// same [2][2] "home" cell DFHack::World::ReadCurrentWeather() reads.
 const char* weather_name(uint8_t weather) {
     switch (weather) {
     case 1: return "Rain";
@@ -104,10 +105,30 @@ const char* weather_name(uint8_t weather) {
     }
 }
 
+// NAMED-APPROXIMATION -- "the monarch arrived" is read as the civ site link's `capital` flag, not
+// a dedicated DF signal. DEF-003: registered deferral.
+bool fort_is_mountainhome() {
+    auto plotinfo = df::global::plotinfo;
+    if (!plotinfo)
+        return false;
+    if (plotinfo->flags.bits.major_victory)
+        return true;
+    auto* site = plotinfo->main.fortress_site;
+    auto* civ = df::historical_entity::find(plotinfo->civ_id);
+    if (!site || !civ)
+        return false;
+    for (auto* link : civ->site_links)
+        if (link && link->target == site->id && link->flags.bits.capital)
+            return true;
+    return false;
+}
+
 const char* rank_name(int rank) {
     static const char* names[] = {
         "Outpost", "Hamlet", "Village", "Town", "City", "Metropolis"
     };
+    if (fort_is_mountainhome())
+        return "Mountainhome";
     if (rank < 0 || rank >= 6)
         return "Fortress";
     return names[rank];
@@ -167,31 +188,32 @@ int minimap_color_for_tile(df::tiletype tt, const df::tile_designation& des) {
     return wall ? 4 : 3;
 }
 
-int minimap_column_category(int x, int y, df::world* world, int top_z) {
+constexpr int kMinimapUndiscovered = 15;
+
+int minimap_slice_category(int x, int y, df::world* world, int z) {
     if (!world || x < 0 || y < 0)
         return 14;
     int zmax = static_cast<int>(world->map.z_count) - 1;
-    top_z = std::max(0, std::min(top_z, zmax));
+    z = std::max(0, std::min(z, zmax));
 
-    for (int z = top_z; z >= 0; --z) {
-        df::coord pos(x, y, z);
-        auto block = DFHack::Maps::getTileBlock(pos);
-        if (!block)
-            continue;
-        const auto& des = block->designation[x & 15][y & 15];
-        auto ttp = DFHack::Maps::getTileType(pos);
-        if (!ttp)
-            continue;
+    df::coord pos(x, y, z);
+    auto block = DFHack::Maps::getTileBlock(pos);
+    if (!block)
+        return 14;                      // nothing mapped at this z: open sky
+    const auto& des = block->designation[x & 15][y & 15];
+    if (des.bits.hidden)
+        return kMinimapUndiscovered;
+    auto ttp = DFHack::Maps::getTileType(pos);
+    if (!ttp)
+        return 14;
 
-        auto shape = DFHack::tileShapeBasic(DFHack::tileShape(*ttp));
-        if (shape == df::tiletype_shape_basic::Open || shape == df::tiletype_shape_basic::None) {
-            if (des.bits.flow_size > 0)
-                return des.bits.liquid_type == df::tile_liquid::Magma ? 8 : 7;
-            continue;
-        }
-        return minimap_color_for_tile(*ttp, des);
+    auto shape = DFHack::tileShapeBasic(DFHack::tileShape(*ttp));
+    if (shape == df::tiletype_shape_basic::Open || shape == df::tiletype_shape_basic::None) {
+        if (des.bits.flow_size > 0)
+            return des.bits.liquid_type == df::tile_liquid::Magma ? 8 : 7;
+        return 14;
     }
-    return 14;
+    return minimap_color_for_tile(*ttp, des);
 }
 
 int compute_surface_z(int x, int y, df::world* world) {
@@ -204,7 +226,6 @@ int compute_surface_z(int x, int y, df::world* world) {
         auto basic = DFHack::tileShapeBasic(DFHack::tileShape(*ttp));
         if (basic == df::tiletype_shape_basic::Open || basic == df::tiletype_shape_basic::None)
             continue;
-        // B69 reopened: TREE alone misses giant-mushroom cap tiletypes (material MUSHROOM).
         if (surface_z_skips_canopy(*ttp))
             continue;
         return z;
@@ -212,11 +233,6 @@ int compute_surface_z(int x, int y, df::world* world) {
     return 0;
 }
 
-// The population counter must not inherit world->units.active's retained corpses/ghosts.
-// B215: it must, however, include accepted-petition long-term residents (isOwnCiv but not
-// isOwnGroup, so isCitizen drops them). isResident() is DF's long-term-resident test; the
-// isCitizen||isResident union mirrors DFHack citizensRange(exclude_residents=false), the same
-// count native's population screen shows.
 bool is_counted_citizen(df::unit* unit) {
     return unit && DFHack::Units::isActive(unit) &&
            !DFHack::Units::isDead(unit) && !DFHack::Units::isGhost(unit) &&
@@ -236,12 +252,8 @@ int compute_deepest_z(int x, int y, df::world* world) {
     return 0;
 }
 
-// World/map reads for the HUD. MUST be called with the CoreSuspender held (it walks
-// world->units.active and the whole minimap's map blocks) -- viewport dims are passed IN
-// because they come from renderer state read on the render thread (see hud_on_render_thread's
-// restructure note: the old code ran this WHOLE function, map walk included, on the render
-// thread with no suspension, racing the main thread's map mutation -- the SIGSEGV inside
-// Maps::getTileBlock in crash_2026-07-07-20-54-54.txt, same class as the 07-04 crashlogs).
+// Requires the CoreSuspender held: it walks world->units.active and the minimap's map blocks,
+// which the main thread mutates concurrently (SIGSEGV inside Maps::getTileBlock).
 bool build_hud_state(const Camera& camera, int viewport_w, int viewport_h,
                      HudState& hud, std::string* err) {
     auto world = df::global::world;
@@ -276,8 +288,7 @@ bool build_hud_state(const Camera& camera, int viewport_w, int viewport_h,
         if (!is_counted_citizen(unit))
             continue;
         ++hud.population;
-        int cat = std::max(0, std::min(6, DFHack::Units::getStressCategory(unit)));
-        ++hud.happiness[6 - cat];
+        ++hud.happiness[unit_happiness_face(unit)];
     }
 
     hud.food = plotinfo->tasks.food.total;
@@ -285,6 +296,8 @@ bool build_hud_state(const Camera& camera, int viewport_w, int viewport_h,
     hud.seeds = plotinfo->tasks.food.seeds;
     hud.meat = plotinfo->tasks.food.meat;
     hud.fish = plotinfo->tasks.food.fish;
+    hud.plant = plotinfo->tasks.food.plant;
+    hud.other = plotinfo->tasks.food.other;
     hud.weather = weather_name(DFHack::World::ReadCurrentWeather());
     hud.elevation = world->map.region_z + camera.z - 100;
 
@@ -310,16 +323,22 @@ bool build_hud_state(const Camera& camera, int viewport_w, int viewport_h,
     }
 
     auto enc = [](int c) -> char {
-        c = std::max(0, std::min(14, c));
+        c = std::max(0, std::min(kMinimapUndiscovered, c));
         return static_cast<char>(c < 10 ? ('0' + c) : ('a' + c - 10));
     };
+    static std::once_flag minimap_witness_once;
+    std::call_once(minimap_witness_once, [] {
+        diagnostics_log("DIAG minimap fog-of-war gate + single-z slice active "
+                        "(minimap-hidden-v1 minimap-slice-v1)");
+    });
+
     hud.minimap.clear();
     hud.minimap.reserve(static_cast<size_t>(hud.minimap_w) * hud.minimap_h);
     for (int gy = 0; gy < hud.minimap_h; ++gy) {
         for (int gx = 0; gx < hud.minimap_w; ++gx) {
             int wx = std::min(mw - 1, static_cast<int>((gx + 0.5) * mw / hud.minimap_w));
             int wy = std::min(mh - 1, static_cast<int>((gy + 0.5) * mh / hud.minimap_h));
-            hud.minimap.push_back(enc(minimap_column_category(wx, wy, world, camera.z)));
+            hud.minimap.push_back(enc(minimap_slice_category(wx, wy, world, camera.z)));
         }
     }
     hud.surface_z = compute_surface_z(camera.x, camera.y, world);
@@ -335,14 +354,8 @@ struct RenderThreadHudRequest {
 
 } // namespace
 
-// CRASH FIX (crash_2026-07-07-20-54-54.txt -- SIGSEGV inside Maps::getTileBlock on the
-// runRenderThreadCallbacks path; same class as both 07-04 crashlogs): the old shape ran
-// build_hud_state -- including the FULL minimap map-block walk and the units.active scan --
-// on the RENDER thread with no CoreSuspender, racing the main thread's map/unit mutation.
-// New shape: (1) a render-thread hop for the ONE thing that genuinely lives there
-// (gps->main_viewport dims -- renderer state), then (2) the world/map reads on the calling
-// HTTP thread under CoreSuspender, the same pattern every other route uses. Hop FIRST,
-// suspend AFTER -- never wait on a render hop while core-suspended (tile_dump.cpp's LAW).
+// Hop to the render thread FIRST, suspend AFTER: waiting on a render hop while core-suspended
+// wedges the whole process.
 bool hud_on_render_thread(const Camera& camera, HudState& hud, std::string* err) {
     std::lock_guard<std::recursive_mutex> lock(g_hud_mutex);
 
@@ -385,7 +398,9 @@ std::string hud_json(const std::string& player, const HudState& hud) {
          << ",\"drink\":" << hud.drink
          << ",\"seeds\":" << hud.seeds
          << ",\"meat\":" << hud.meat
-         << ",\"fish\":" << hud.fish << "},"
+         << ",\"fish\":" << hud.fish
+         << ",\"plant\":" << hud.plant
+         << ",\"other\":" << hud.other << "},"
          << "\"weather\":" << json_string(hud.weather) << ","
          << "\"population\":{\"total\":" << hud.population << "},"
          << "\"happiness\":[" << hud.happiness[0] << "," << hud.happiness[1] << ","

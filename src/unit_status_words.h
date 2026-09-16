@@ -19,57 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// ===========================================================================
-// B280 -- the unit sheet's OVERVIEW STATUS BOX ("Thirsty") and UNMET-NEED LINES, and the
-// DF-SIDE HALF OF THE BUBBLE CROSS-CHECK.
-//
-// WHERE THESE NUMBERS COME FROM. Not from a DFHack plugin, not from the wiki, not from a
-// previous agent's comment. Every constant below was DECODED OUT OF `Dwarf Fortress.exe`
-// by tools/harness/df_status_ladder.py, which finds each status word's string literal in
-// .rdata, walks back to the `cmp dword [unit+FIELD], K` that gates it, and emits
-// tools/harness/fixtures/df-status-ladder.json. tools/harness/status_truth_test.mjs then
-// re-reads THIS FILE and fails if any constant here drifts from DF's.
-//
-// That is the whole point of the wave. Before B280 these three lines were "PROVISIONAL --
-// cited, not measured" and nobody could tell whether the overhead bubbles were lying. They
-// are now measured, and the test that checks them gets its expected values from DF rather
-// than from us, so it cannot be satisfied by agreeing with our own mistake.
-//
-// DF'S FORTRESS-MODE LADDERS (decoded; see the spec for the code offsets):
-//
-//   soul->personality.longterm_stress  >= 100000 Harrowed | >= 50000 Haggard | >= 20000 Stressed
-//     (LONGTERM_stress -- NOT the raw `stress` accumulator DFHack's getStressCategory grades.)
-//   counters2.hunger_timer      >=  75000 Starving | >= 50000 Hungry
-//   counters2.thirst_timer      >=  50000 Dehydrated | >= 25000 Thirsty
-//   counters2.sleepiness_timer  >= 150000 Very drowsy | >= 57600 Drowsy
-//   counters2.exhaustion        >=   6000 Exhausted | >= 4000 Over-exerted | >= 2000 Tired
-//   counters2.paralysis         >=    100 Paralyzed | >= 50 Partially paralyzed | > 0 Sluggish
-//   counters.pain               >=    100 Extreme pain | >= 50 Pain
-//   counters2.numbness          >      0  Numb
-//   counters2.fever             >      0  Fever
-//   counters.unconscious        >      0  Unconscious
-//   counters.stunned            >      0  Stunned
-//   counters.nausea             >      0  Nauseous
-//   counters.dizziness          >      0  Dizzy
-//   counters.winded             >      0  Winded   (DF prints "Drowning" instead while drowning)
-//   counters.webbed             >      0  Webbed / Partially webbed
-//
-// DF ALSO ships a SECOND ladder on the three need timers for ADVENTURE mode (57600..2592000).
-// We are fortress mode. Those constants must never be used here -- and note that DFHack's own
-// Units.cpp penalty tables interleave both, which is exactly the trap a "cited" constant falls
-// into. The extractor separates them and reports both.
-//
-// NOT IMPLEMENTED HERE, HONESTLY (the extractor lists them as `ungated` -- DF computes them
-// rather than testing one field, and this file will not guess):
-//   * Pale / Faint            -- blood-loss bands off body.blood_count vs the caste maximum.
-//   * Bleeding / Heavy bleeding -- a summed bleed rate over the wound vector.
-//   * Injured / Seriously injured / Healthy -- a wound walk. (The overhead MINOR/MAJOR_INJURY
-//     bubbles in unit_status.h grade the same wound vector; wiring the WORDS to the same
-//     predicate is a candidate follow-up, but DF's exact severity test is not decoded, so
-//     asserting the two agree would be asserting our own opinion twice. Left out on purpose.)
-//   * Drowning vs Winded      -- both hang off counters.winded; the split flag is not decoded.
-// A capture request for each of these is in the wave report. DO NOT fill them in from memory.
-// ===========================================================================
+// The unit sheet's Overview status-box words and its "Unmet need:" lines.
 #pragma once
 
 #include <algorithm>
@@ -90,10 +40,8 @@
 
 namespace dwf {
 
-// ---- DF's fortress-mode status thresholds (decoded from Dwarf Fortress.exe) ----------------
-// status_truth_test.mjs parses these very lines out of this file and diffs them against
-// df-status-ladder.json. Renaming a constant is fine; changing a NUMBER without DF changing
-// underneath you turns the suite red.
+// ---- DF's fortress-mode status thresholds --------------------------------------------------
+// DF's adventure-mode ladder on these same three need timers is far larger; never use it here.
 constexpr int kDfStressHarrowed      = 100000;
 constexpr int kDfStressHaggard       =  50000;
 constexpr int kDfStressStressed      =  20000;
@@ -111,17 +59,11 @@ constexpr int kDfParalysisPartial    =     50;
 constexpr int kDfPainExtreme         =    100;
 constexpr int kDfPainSome            =     50;
 
-// DF's own filter for which needs print as "Unmet need:". Its bookkeeping flag
-// personality.flags.HAVE_NEGATIVE_NEED is documented in df-structures as "focus_level is below
-// -999 for at least one need", so -999 is DF's boundary, not ours -- the same one unit_status.h's
-// DISTRACTED bit already rides. A need at -1 is a dwarf who could use a drink sometime; DF does
-// not print it, and neither do we.
+// DF's own boundary for "Unmet need:": personality.flags.HAVE_NEGATIVE_NEED means a focus_level
+// below -999, so a need at -1 is not printed.
 constexpr int kDfNeedUnmetFocus = -999;
 
-// The label DF prints for each need. Sourced from the string block in Dwarf Fortress.exe that sits
-// contiguous with 'Unmet need: ' and 'No unmet needs' -- these are DF's words, verbatim, not
-// prettified enum keys (our old unit_overview_need_lines() printed "Pray Deity" from the enum key;
-// DF prints "Pray to Anan Stardreams").
+// DF's own words for each need, verbatim, not prettified enum keys.
 inline const char* df_need_label(df::need_type id) {
     using namespace df::enums::need_type;
     switch (id) {
@@ -155,13 +97,11 @@ inline const char* df_need_label(df::need_type id) {
     case HelpSomebody:     return "Help somebody";
     case ThinkAbstractly:  return "Think abstractly";
     case AdmireArt:        return "Admire art";
-    default:               return nullptr;   // NONE / an id DF added -> line omitted, never faked
+    default:               return nullptr;   // NONE / an id DF added -> line omitted
     }
 }
 
-// PrayOrMeditate carries a deity: personality_needst.deity_id is a historical_figure id (its
-// df-structures original name is `spec_id`, "for pray need"), and DF prints "Pray to <figure>".
-// deity_id == -1 is the unbound case, which DF prints as plain "Meditate".
+// deity_id is a historical_figure id; -1 is the unbound case, which DF prints as plain "Meditate".
 inline std::string df_need_text(const df::personality_needst* need) {
     if (!need)
         return std::string();
@@ -179,15 +119,10 @@ inline std::string df_need_text(const df::personality_needst* need) {
     return base;
 }
 
-// ---- the Overview status box -------------------------------------------------------------
-// Returns DF's words for this unit, in DF's own emission order (stress, then the three needs,
-// then the physical states). Empty vector == DF prints nothing, which is the healthy case.
-//
-// Reads only plain fields on an already-held unit; callers invoke this under their EXISTING
-// CoreSuspender hold, exactly like unit_status_bits().
+// ---- the Overview status box: DF's own words, in DF's own emission order --------------------
 inline std::vector<std::string> unit_status_words(df::unit* u) {
     std::vector<std::string> out;
-    if (!u || !DFHack::Units::isAlive(u))
+    if (!u || !unit_is_animate(u))
         return out;
 
     if (df::unit_soul* soul = u->status.current_soul) {
@@ -224,8 +159,7 @@ inline std::vector<std::string> unit_status_words(df::unit* u) {
     else if (ex >= kDfExhaustOverExerted) out.push_back("Over-exerted");
     else if (ex >= kDfExhaustTired)       out.push_back("Tired");
 
-    // DF prints "Drowning" instead of "Winded" while the unit is drowning. The flag that makes
-    // that choice is NOT decoded (see the banner), so we print the word we can prove.
+    // DF prints "Drowning" here instead while the unit is drowning; the flag it picks on is unknown.
     if (u->counters.winded > 0) out.push_back("Winded");
     if (u->counters.nausea > 0) out.push_back("Nauseous");
 
@@ -240,8 +174,7 @@ inline std::vector<std::string> unit_status_words(df::unit* u) {
     return out;
 }
 
-// ---- the Overview "Unmet need:" lines ------------------------------------------------------
-// DF's own filter (focus_level < -999), DF's own labels, DF's own ordering (most-starved first).
+// ---- the Overview "Unmet need:" lines, most-starved first ----------------------------------
 inline std::vector<std::string> unit_unmet_need_lines(df::unit* u) {
     std::vector<std::string> out;
     if (!u)

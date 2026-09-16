@@ -1,0 +1,227 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.siege {
+  .building-panel.siege-panel .siege-sheet {
+    background: var(--siege-ground);
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+  }
+  /* ---- header: engine tile left, name on the text grid, two tool tiles right ------------------- */
+  .building-panel.siege-panel .siege-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 11px 0 0 4px;
+    height: 65px;
+    box-sizing: border-box;
+    background: none;
+    border: 0;
+  }
+  .building-panel.siege-panel .siege-head .siege-head-icon {
+    width: 50px;
+    height: 54px;
+    flex: 0 0 auto;
+  }
+  .building-panel.siege-panel .siege-head .building-name {
+    margin-left: 34px;
+    flex: 1 1 auto;
+    min-width: 0;
+    font: inherit;
+    color: var(--siege-ink);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .building-panel.siege-panel .siege-body {
+    position: relative;
+    height: 601px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  /* ---- action band: sentence on its text row, five 36px cells on the right inset ---------------- */
+  .building-panel.siege-panel .siege-action-band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 53px;
+    height: 45px;
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0;
+  }
+  .building-panel.siege-panel .siege-action-strip {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0;
+    margin: 10px 16px 0 0;
+  }
+  /* ---- resting orientation: caption on the text row above eight 48x54 cells --------------------- */
+  .building-panel.siege-panel .siege-caption {
+    position: absolute;
+    left: 16px;
+    top: 143px;
+    color: var(--siege-ink);
+  }
+  .building-panel.siege-panel .siege-facing-strip {
+    position: absolute;
+    left: 16px;
+    top: 159px;
+    display: flex;
+    gap: 0;
+    padding: 0;
+  }
+  .building-panel.siege-panel .siege-facing-strip .siege-arrow {
+    font-size: 30px;
+    line-height: 1;
+    color: var(--dwfui-text-body);
+    text-shadow: 2px 2px 0 var(--dwfui-silver);
+  }
+  .siege-arrow {
+    display: inline-block;
+    transform: rotate(var(--siege-turn, 0deg));
+  }
+  .building-panel.siege-panel .siege-counts {
+    position: absolute;
+    left: 16px;
+    top: 233px;
+  }
+  .building-panel.siege-panel .siege-count-line {
+    height: 18px;
+  }
+  .building-panel.siege-panel .siege-count-loaded {
+    color: var(--dwfui-text-numeric);
+  }
+  .building-panel.siege-panel .siege-count-available {
+    color: var(--dwfui-text-active);
+  }
+  .building-panel.siege-panel .siege-count-squads {
+    color: var(--dwfui-text-warning);
+  }
+  .building-panel.siege-panel .siege-count-hunters {
+    color: var(--df-c10);
+  }
+  .building-panel.siege-panel .siege-rule {
+    height: 3px;
+    margin: 0 5px;
+    background: var(--siege-gold);
+  }
+  .building-panel.siege-panel .siege-contents {
+    padding-top: 8px;
+  }
+  /* One row is 54px, and the 3px separator crosses the TEXT, not the item tile. */
+  .building-panel.siege-panel .siege-item-row {
+    height: 54px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    align-items: center;
+    background: none;
+    border-top: 3px solid var(--dwfui-surface);
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-copy {
+    margin-left: 29px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    display: block;
+    padding: 0;
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-name {
+    color: var(--siege-ink);
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-part {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--dwfui-slab);
+    color: var(--df-c6);
+    background: var(--siege-ground);
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-part.is-empty {
+    border-color: transparent;
+  }
+  .building-panel.siege-panel .siege-item-row .siege-item-actions > button {
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+
+  .building-panel.siege-panel .siege-head .building-x,
+  .building-panel.siege-panel .siege-head [data-bld-close] {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+    width: 20px;
+    height: 20px;
+    opacity: 0.45;
+  }
+  .building-panel.siege-panel .siege-supplement {
+    padding: 10px 0 0;
+  }
+  .building-panel.siege-panel .siege-action-note-on {
+    color: var(--dwfui-text-active);
+  }
+  .building-panel.siege-panel .siege-status {
+    padding: 2px 10px 4px;
+  }
+  .building-panel.siege-panel .siege-status-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+    color: var(--dwfui-text-secondary);
+    padding: 1px 0;
+  }
+  .building-panel.siege-panel .siege-status-label,
+  .building-panel.siege-panel .siege-status-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .building-panel.siege-panel .siege-status-value {
+    color: var(--dwfui-text-row);
+    flex: 0 1 auto;
+    text-align: right;
+  }
+  .building-panel.siege-panel .siege-status-label {
+    flex: 0 1 auto;
+  }
+}

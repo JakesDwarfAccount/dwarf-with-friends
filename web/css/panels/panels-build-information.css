@@ -1,0 +1,91 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.build-information {
+  .vermin-sheet-body,
+  .planned-engraving-body {
+    position: relative;
+    min-height: calc(21 * var(--absent-sheet-cell-h));
+    overflow: hidden;
+  }
+  .vermin-portrait-slot {
+    position: absolute;
+    left: calc(1 * var(--absent-sheet-cell-w));
+    top: calc(1 * var(--absent-sheet-cell-h));
+    width: calc(12 * var(--absent-sheet-cell-w));
+    height: calc(6 * var(--absent-sheet-cell-h));
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .vermin-portrait-slot > .vermin-portrait-art,
+  .vermin-portrait-slot > .vermin-portrait-missing {
+    grid-area: 1 / 1;
+  }
+  .vermin-portrait-slot .unit-portrait-fallback-art {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+  .vermin-species-caption {
+    position: absolute;
+    left: calc(14 * var(--absent-sheet-cell-w));
+    top: calc(2 * var(--absent-sheet-cell-h));
+    max-width: calc(38 * var(--absent-sheet-cell-w));
+    height: var(--absent-sheet-cell-h);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .vermin-text {
+    position: absolute;
+    left: calc(2 * var(--absent-sheet-cell-w));
+    top: calc(10 * var(--absent-sheet-cell-h));
+    width: calc(56 * var(--absent-sheet-cell-w));
+    height: calc(11 * var(--absent-sheet-cell-h));
+    overflow: hidden;
+  }
+  .vermin-text-line {
+    height: var(--absent-sheet-cell-h);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .planned-engraving-title {
+    position: absolute;
+    left: calc(2 * var(--absent-sheet-cell-w));
+    top: calc(2 * var(--absent-sheet-cell-h));
+    height: var(--absent-sheet-cell-h);
+    white-space: nowrap;
+  }
+  .planned-engraving-image {
+    position: absolute;
+    left: calc(2 * var(--absent-sheet-cell-w));
+    top: calc(4 * var(--absent-sheet-cell-h));
+    width: calc(17 * var(--absent-sheet-cell-w));
+    height: calc(3 * var(--absent-sheet-cell-h));
+    display: grid;
+    place-items: center;
+  }
+}

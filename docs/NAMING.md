@@ -8,12 +8,12 @@ mass-rename these paths. Semantic moves and file splits need their own tests and
 
 ## Project identity: `dwf` now, `dfcapture` before
 
-`dwf` is the project's own name — short for Dwarf With Friends. The v1 rename gave the DFHack
+`dwf` is the project's own name: short for Dwarf With Friends. The v1 rename gave the DFHack
 plugin and Lua module names, the shipped plugin files, browser filenames and globals, CSS, and
 harness fixtures the `dwf` identity. The inherited name from the ancestor project is `dfcapture`;
 it survives only in the deliberately retained runtime identifiers listed in the next section. So a
 `dwf-*` filename is current, load-bearing code, and a `dfcapture*` identifier is a kept
-compatibility contract — do not classify either as legacy from the prefix alone.
+compatibility contract: do not classify either as legacy from the prefix alone.
 
 The most important example is `web/js/dwf-ui-components.js`: it is DWFUI, the current shared UI
 component foundation exported as `DWFUI`. New panels are expected to use or extend it; it is not an
@@ -29,18 +29,18 @@ existing installs and saved browser state depend on; renaming them is a breaking
 deferred until after v1.
 
 - **`capture-*` console commands** (`capture-stream-start`, `capture-join-password`, and the rest,
-  registered in `src/dwf.cpp`) — the command names players and scripts already type.
-- **`dfcapture_join_password.txt`** (`src/auth.h:63`) — the on-disk join-password file; a rename
+  registered in `src/dwf.cpp`): the command names players and scripts already type.
+- **`dfcapture_join_password.txt`** (`src/auth.h`): the on-disk join-password file; a rename
   would silently drop an existing host's configured password.
-- **`dfhack-config/dfcapture.json`** (`src/sound_route.cpp:43`) — the remote-audio config file.
-- **`dfcapture-hostwrites.json`** — the host-writes / guarded-writes flag file
-  (`src/write_guards.cpp:46`).
-- **`hack/dfcapture-web`** (`src/web_assets.cpp:31`) — the served web root; the deploy path is
+- **`dfhack-config/dfcapture.json`** (`src/sound_route.cpp`): the remote-audio config file.
+- **`dfcapture-hostwrites.json`**: the host-writes / guarded-writes flag file
+  (`src/write_guards.cpp`).
+- **`hack/dfcapture-web`** (`src/web_assets.cpp`): the served web root; the deploy path is
   explicitly kept this release so live upgrades over a running server keep serving.
-- **`dfcap_auth` cookie** (`src/http_server.cpp`) — the auth cookie already stored in players'
+- **`dfcap_auth` cookie** (`src/http_server.cpp`): the auth cookie already stored in players'
   browsers; renaming it would log everyone out.
 
-The one intentional exception is **`dwf_host_flags.txt`** (`src/pause_arbiter.cpp:421`), the host
+The one intentional exception is **`dwf_host_flags.txt`** (`src/pause_arbiter.cpp`), the host
 pause-flags file, which already uses the new `dwf` stem.
 
 ## Names that misdescribe their contents
@@ -84,42 +84,5 @@ of DF's native building-menu state. No web module calls it. It is deliberately c
 builds so menu differential and stress tools can validate the browser model; its lack of product
 callers is not evidence that it is dead.
 
-## Directories and evidence whose names over-promise or understate them
 
-### `tools/spikes/` (development-only; not in the public distribution)
-
-The directory name means throwaway experiments, but several durable items were historically filed
-there. The two small load-bearing files were long since moved to honest homes:
-
-- `tools/harness/atlas-test.html` is an acceptance check, not merely a prototype.
-- `docs/reference/fogparams.json` records measured fog parameters cited by parity and rendering
-  work.
-
-No automated gate reads a file under `tools/spikes/`, and the tree itself (like the screenshot
-corpora below) stays on the development machine.
-
-### `tools/spikes/ui-truth/` and `Menu Oracle Screenshots/`
-
-Neither path name establishes provenance. The trees contain captures with different origins and
-quality levels, including browser-client captures and native DF captures; some native captures also
-include DFHack overlays. Resolution and filenames such as `steam` or `native` are not proof. Consult
-the relevant manifest and the pixels themselves before using any image as a parity oracle. (These
-trees, and the internal parity studio that referenced them, are development-only and are not part of
-the public distribution.)
-
-## Citations to internal design specs
-
-Some source comments and test headers cite internal design specs and analysis notes by path
-(`docs/superpowers/specs/...`, `docs/superpowers/plans/...`, scratchpad notes) or reference private
-native-screenshot corpora. Those documents are development-era working papers and are **not
-included in the public distribution** — the citations are kept because they record where a
-constraint came from, and the behavior they describe is pinned by the shipped tests in
-`tools/harness/`. A citation that 404s here is intentional provenance bookkeeping, not a broken
-link to something the build needs.
-
-## Safe rule for future cleanup
-
-Treat names as navigation hints only. Before deleting or moving a suspiciously named file, check its
-compiled references, runtime callers, harness callers, and documented gates. If a name spans multiple
-responsibilities, prefer a small tested split over a broad rename that merely replaces one inaccurate
-label with another.
+Check compiled and runtime callers before renaming or removing a module.

@@ -27,11 +27,7 @@
 
 #include "client_state.h"
 #include "json_util.h"
-// capture_state_mutex() lives here -- the route takes it before the CoreSuspender, in the same
-// order every other read route does. Missing this include is what broke the merge build: the file
-// compiled nowhere on its own because the agent was (correctly) barred from building the shared
-// dfhack tree, so the omission only surfaced when the orchestrator built it.
-#include "sdl_capture.h"
+#include "sdl_capture.h"   // capture_state_mutex()
 #include "unit_status.h"
 #include "unit_status_words.h"
 
@@ -65,16 +61,11 @@ std::string build_status_truth_json() {
 
     bool first = true;
     for (df::unit* u : world->units.active) {
-        // Same population the bubbles are drawn for: living fort citizens. A caged goblin has
-        // counters too, but no sheet a player reads and no bubble we draw, so including it would
-        // manufacture "disagreements" that mean nothing.
-        if (!u || !DFHack::Units::isAlive(u) || !DFHack::Units::isCitizen(u, true))
+        // Must stay the same population the bubbles are drawn for, or the cross-check
+        // manufactures disagreements that mean nothing.
+        if (!u || !unit_is_animate(u) || !DFHack::Units::isCitizen(u, true))
             continue;
 
-        // BOTH stress numbers ride the payload. DF grades its sheet word off longterm_stress; the
-        // raw `stress` accumulator is what DFHack's getStressCategory reads and what we used to
-        // bubble off. Shipping both is what lets the harness show the two diverging on a real dwarf
-        // instead of arguing about it from source.
         int32_t stress = 0, longterm_stress = 0;
         if (df::unit_soul* soul = u->status.current_soul) {
             stress = soul->personality.stress;
@@ -90,12 +81,8 @@ std::string build_status_truth_json() {
 
         body << "{\"id\":" << u->id
              << ",\"name\":" << json_string(DFHack::Translation::translateName(&u->name, false))
-             // what the DLL ACTUALLY shipped -- recomputed here from the very same shared
-             // functions the two serializers call, so a divergence between this and the wire is a
-             // serializer bug and not a threshold bug.
              << ",\"st\":" << unit_status_bits(u)
              << ",\"st2\":" << unit_status_bits2(u)
-             // DF's raw counters. NO threshold applied: the harness grades, the server reports.
              << ",\"hunger_timer\":" << u->counters2.hunger_timer
              << ",\"thirst_timer\":" << u->counters2.thirst_timer
              << ",\"sleepiness_timer\":" << u->counters2.sleepiness_timer

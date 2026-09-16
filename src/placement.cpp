@@ -30,6 +30,7 @@
 #include "route_helpers.h"
 
 #include "diagnostics.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "Core.h"
@@ -53,7 +54,7 @@
 #include "df/material.h"
 #include "df/plant.h"
 #include "df/plant_tree_info.h"
-#include "df/plotinfost.h"   // B233-4: plotinfo.main.traffic_cost_* (the live path-cost fields)
+#include "df/plotinfost.h"   // plotinfo.main.traffic_cost_* (the live path-cost fields)
 #include "df/tile_designation.h"
 #include "df/tile_dig_designation.h"
 #include "df/tile_occupancy.h"
@@ -67,6 +68,7 @@
 
 #include <algorithm>
 #include <future>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -88,13 +90,11 @@ enum class DesignationKind {
     Traffic,
     RemoveStairsRamps,
     Clear,
-    // WD-8.3: marker<->standard conversion on tiles that already carry a dig/smooth
-    // designation (flips DES_MARKER_ONLY, never creates a new designation).
+    // Flips dig_marked on tiles that already carry a dig/smooth designation; never creates one.
     ConvertToMarker,
     ConvertToStandard,
-    // WD-10: item designations (claim/forbid/dump/no-dump/melt/no-melt/hide/visible).
-    // The specific flag to flip is read back out of req.request.tool -- see
-    // apply_item_flag_designations -- so this is one kind for all eight tool strings.
+    // Item designations. The specific flag is read back out of req.request.tool by
+    // apply_item_flag_designations, so one kind covers all eight tool strings.
     ItemFlag,
 };
 
@@ -104,9 +104,8 @@ int clamp_int(int value, int low, int high) {
     return std::max(low, std::min(high, value));
 }
 
-// Job types DF queues from dig/chop/gather/track/engrave designations. Once you press play,
-// designations turn into these jobs and the tiles' designation bits clear -- so the eraser must
-// cancel these jobs too, not just clear the bits. This is what DF's native erase does.
+// Once play resumes, designations become these jobs and the tiles' bits clear, so the eraser has to
+// cancel the jobs too, not just clear the bits. That is what DF's own erase does.
 bool is_designation_job(df::job_type jt) {
     switch (jt) {
     case df::job_type::Dig:
@@ -194,10 +193,8 @@ bool kind_from_tool(const std::string& tool, DesignationKind& kind,
         kind = DesignationKind::Traffic;
         return true;
     }
-    // DF names the toolbar action DIG_REMOVE_STAIRS_RAMPS, distinct from the
-    // RemoveConstruction job. df-structures says its Default/REGULAR designation removes
-    // stairs and ramps; current native UI also applies this action to constructions.
-    // Keep the old remove-construction spelling as a wire-compatible alias only.
+    // DF's own DIG_REMOVE_STAIRS_RAMPS action is broader than the RemoveConstruction job;
+    // "remove-construction" survives only as a wire-compatible alias.
     if (tool == "remove-stairs-ramps" || tool == "remove-construction") {
         kind = DesignationKind::RemoveStairsRamps;
         dig = df::tile_dig_designation::Default;
@@ -207,9 +204,6 @@ bool kind_from_tool(const std::string& tool, DesignationKind& kind,
         kind = DesignationKind::Clear;
         return true;
     }
-    // WD-8.3 ENDPOINT-EXTEND: marker-convert trio -- flips DES_MARKER_ONLY on already-
-    // designated tiles; see the ConvertToMarker/ConvertToStandard branch in
-    // apply_tile_designations_at for the rect walk.
     if (tool == "convert-to-marker") {
         kind = DesignationKind::ConvertToMarker;
         return true;
@@ -218,9 +212,8 @@ bool kind_from_tool(const std::string& tool, DesignationKind& kind,
         kind = DesignationKind::ConvertToStandard;
         return true;
     }
-    // WD-10 ENDPOINT-ADD: item designations. "claim" clears forbid; "no-dump"/"undump" and
-    // "no-melt"/"unmelt" are accepted spellings for cancelling those designations; "visible"/
-    // "unhide" clear the hidden flag. Buildings are NOT covered (see completion report).
+    // "claim" clears forbid; "no-dump"/"undump" and "no-melt"/"unmelt" cancel those designations;
+    // "visible"/"unhide" clear hidden. Buildings are NOT covered.
     if (tool == "claim" || tool == "forbid" || tool == "dump" || tool == "no-dump" ||
             tool == "undump" || tool == "melt" || tool == "no-melt" || tool == "unmelt" ||
             tool == "hide" || tool == "visible" || tool == "unhide") {
@@ -283,25 +276,15 @@ bool can_track_tile(MapExtras::MapCache& map, const DFCoord& pos) {
     return shape == df::tiletype_shape::FLOOR || shape == df::tiletype_shape::RAMP;
 }
 
-// DF's advanced-dig mine-mode row: 0=All (no restriction, today's default), 1=Auto,
-// 2=Ore, 3=Gem. Interpretation (spec text was directive but not byte-exact, so documenting
-// it here): Auto/Ore/Gem all restrict the rect to vein tiles (tiletype_material::MINERAL,
-// matching dfhack's own "dig" plugin automine feature and dig-now.cpp's dug_tile_info),
-// then Ore/Gem further narrow to the vein's actual raw material via the same
-// df::inorganic_raw::isOre() / df::material::isGem() checks prospector.cpp and dig-now.cpp
-// use for the canonical ore/gem classification. Auto additionally sets the tile's real DF
-// DES_AUTOMINE_LIKE_MATERIAL occupancy bit (df.d_basics.xml) below in
-// apply_tile_designations_at, so the game itself continues mining the vein's like material
-// once a dwarf starts digging it -- Ore/Gem do NOT set that bit, since DF's own auto-mine
-// flag doesn't discriminate ore vs. gem once triggered; restricting the *initial* rect to
-// ore-only/gem-only tiles is the only faithful way to keep those two modes distinct.
+// Mine mode 0=All, 1=Auto, 2=Ore, 3=Gem. Every non-zero mode restricts the rect to vein tiles;
+// Ore/Gem narrow further by raw material, and only Auto sets the dig_auto occupancy bit.
 bool mine_mode_allows_tile(MapExtras::MapCache& map, const DFCoord& pos, int mine_mode) {
     if (mine_mode <= 0)
         return true;
     df::tiletype tt = map.tiletypeAt(pos);
     if (DFHack::tileMaterial(tt) != df::tiletype_material::MINERAL)
         return false;
-    if (mine_mode == 1) // Auto: any vein tile qualifies; DES_AUTOMINE_LIKE_MATERIAL does the rest.
+    if (mine_mode == 1) // Auto: any vein tile qualifies; the dig_auto bit does the rest.
         return true;
     DFHack::MaterialInfo mi(map.baseMaterialAt(pos));
     if (mine_mode == 2) // Ore
@@ -355,11 +338,8 @@ bool can_apply_dig_designation(MapExtras::MapCache& map, const DFCoord& pos,
     return true;
 }
 
-// DF's DIG_REMOVE_STAIRS_RAMPS action is broader than the RemoveConstruction job. In
-// df-structures tile_dig_designation::Default is documented to "remove stairs and ramps";
-// DFHack quickfort's do_remove_ramps accepts visible RAMP/STAIR_UP/STAIR_DOWN shapes and writes
-// that value. Native's action tooltip also includes constructed tiles, which retain the existing
-// construction/material check here. RAMP_TOP is the visible proxy one z above an upward ramp.
+// tile_dig_designation::Default is DF's own "remove stairs and ramps" value; constructed tiles
+// still face the construction/material check. RAMP_TOP is the visible proxy one z above a ramp.
 bool can_remove_stairs_ramps(MapExtras::MapCache& map, const DFCoord& pos, DFCoord& target) {
     df::tile_designation des = map.designationAt(pos);
     if (des.bits.hidden)
@@ -392,18 +372,6 @@ bool can_remove_stairs_ramps(MapExtras::MapCache& map, const DFCoord& pos, DFCoo
     return false;
 }
 
-// BUGFIX (cursor/selection misalignment -- the dig-designation path, so the highest-impact
-// instance of this bug: a drag past DF's tiny native viewport used to designate the WRONG,
-// clamped-edge tile instead of the one under the cursor). Was clamping/rescaling against
-// effective_capture_viewport_dims (DF's own native viewport) instead of the client's real
-// frame_w/frame_h -- see interaction.cpp's pixel_to_tile_coord banner for the root cause. px is
-// already a plain tile-grid index into the client's rendered window; clamp against that window.
-int pixel_to_tile(int pixel, int frame) {
-    if (frame <= 0)
-        return 0;
-    return std::max(0, std::min(frame - 1, pixel));
-}
-
 struct RenderDesignationRequest {
     Camera camera;
     DesignationRequest request;
@@ -412,8 +380,8 @@ struct RenderDesignationRequest {
     DesignationResult result;
     std::string err;
     std::promise<bool> done;
-    // World-tile box of the selection, recorded by apply_designation so the post-render
-    // eraser job-cancel pass can run under CoreSuspender. box_x2 < box_x1 means "not set".
+    // World box of the selection, recorded by apply_designation so the post-render job-cancel pass
+    // can run under CoreSuspender. box_x2 < box_x1 means "not set".
     int box_x1 = 0, box_y1 = 0, box_x2 = -1, box_y2 = -1, box_z = 0;
 };
 
@@ -438,9 +406,8 @@ bool apply_tile_designations_at(RenderDesignationRequest& req, MapExtras::MapCac
             }
             df::tile_designation des = map.designationAt(pos);
 
-            // WD-8.3: marker<->standard conversion only touches tiles that ALREADY carry a
-            // dig or smooth-family designation -- it never creates one. Self-contained (no
-            // des_priority/touch_occ bookkeeping below applies), so handle and continue.
+            // Conversion only touches tiles that already carry a dig or smooth designation, so it
+            // skips the priority/occupancy bookkeeping below entirely.
             if (req.kind == DesignationKind::ConvertToMarker ||
                     req.kind == DesignationKind::ConvertToStandard) {
                 if (des.bits.dig == df::tile_dig_designation::No && des.bits.smooth == 0)
@@ -513,8 +480,8 @@ bool apply_tile_designations_at(RenderDesignationRequest& req, MapExtras::MapCac
                     changed = true;
                 }
             } else if (req.kind == DesignationKind::RemoveStairsRamps) {
-                // Default is both native removal's regular mining designation for natural
-                // stairs/ramps and the value that queues RemoveConstruction for constructions.
+                // Default is both native's regular mining designation for natural stairs/ramps and
+                // the value that queues RemoveConstruction for constructions.
                 if (des.bits.dig != df::tile_dig_designation::Default) {
                     des.bits.dig = df::tile_dig_designation::Default;
                     changed = true;
@@ -535,9 +502,7 @@ bool apply_tile_designations_at(RenderDesignationRequest& req, MapExtras::MapCac
             if (touch_occ) {
                 df::tile_occupancy occ = map.occupancyAt(pos);
                 bool want_marked = req.kind == DesignationKind::Clear ? false : req.request.marker;
-                // DES_AUTOMINE_LIKE_MATERIAL: pre-existing warm_damp wiring left as-is; ORed
-                // with mine_mode==Auto (1), which is this bit's actual DF meaning (see
-                // mine_mode_allows_tile's comment).
+                // dig_auto is DF's automine-like-material bit, i.e. mine_mode Auto (1).
                 bool want_auto = req.kind == DesignationKind::Clear
                     ? false
                     : (req.request.warm_damp || req.request.mine_mode == 1);
@@ -569,9 +534,7 @@ bool apply_tile_designations_at(RenderDesignationRequest& req, MapExtras::MapCac
     return changed_count > 0;
 }
 
-// Old-name wrapper: single-z callers (none currently outside apply_designation, but kept so any
-// future/external call site compiles unchanged) get the pre-multi-z behavior of designating
-// exactly req.dig at wz.
+// Old-name wrapper: designates exactly req.dig at wz, for any single-z caller.
 [[maybe_unused]] bool apply_tile_designations(RenderDesignationRequest& req, MapExtras::MapCache& map,
                                               int tx1, int ty1, int tx2, int ty2, int wz) {
     return apply_tile_designations_at(req, map, tx1, ty1, tx2, ty2, wz, req.dig);
@@ -595,10 +558,8 @@ bool apply_plant_designations(RenderDesignationRequest& req, MapExtras::MapCache
         df::coord pos = DFHack::Designations::getPlantDesignationTile(plant);
         if (pos.z != wz || pos.x < wx1 || pos.x > wx2 || pos.y < wy1 || pos.y > wy2)
             continue;
-        // tree_info==nullptr includes both shrubs and saplings. Native gather rectangles target
-        // shrubs only; using that proxy marked saplings (which then resolved as chop/dig glyphs)
-        // and made the rectangle appear to miss its real shrubs (B126). Read the live tile here:
-        // touching MapCache before markPlant would snapshot the block's pre-mark designations.
+            // tree_info==nullptr covers shrubs AND saplings, but native gather targets shrubs only.
+            // Read the live tile: touching MapCache first would snapshot pre-mark designations.
         if (req.kind == DesignationKind::Gather) {
             df::tiletype* tiletype = DFHack::Maps::getTileType(pos);
             if (!tiletype || DFHack::tileShape(*tiletype) != df::tiletype_shape::SHRUB)
@@ -612,8 +573,8 @@ bool apply_plant_designations(RenderDesignationRequest& req, MapExtras::MapCache
             continue;
 
         if (req.kind != DesignationKind::Clear) {
-            // markPlant writes the live block outside MapCache. Re-read its live values so an
-            // existing cached block cannot erase this plant's mark when WriteAll flushes it.
+            // markPlant writes the live block outside MapCache, so re-read the live values or a
+            // cached block erases this plant's mark when WriteAll flushes.
             df::tile_designation* live_des = DFHack::Maps::getTileDesignation(pos);
             df::tile_occupancy* live_occ = DFHack::Maps::getTileOccupancy(pos);
             if (!live_des || !live_occ)
@@ -633,24 +594,8 @@ bool apply_plant_designations(RenderDesignationRequest& req, MapExtras::MapCache
     return changed_count > 0;
 }
 
-// WD-10 ENDPOINT-ADD: item designations (claim/forbid/dump/no-dump/melt/no-melt/hide/
-// visible). Rect walk over items resting on the ground in the box, one z-level at a time --
-// reuses the exact block->items scan tile_map_dump.cpp's emit_tile_fields already relies on
-// (every pointer null-checked, so it's crash-safe against items deleted mid-scan).
-//
-// Melt/no-melt go through DFHack::Items::markForMelting/cancelMelting rather than hand-
-// rolling the world->items.other.ANY_MELT_DESIGNATED vector sync the WD-10 spec worried
-// about being fragile -- DFHack already ships that exact recipe (library/modules/Items.cpp),
-// including the canMelt() eligibility check (artifacts, non-standard-material items, and
-// items in unit inventories/nonempty containers correctly refuse to be marked).
-//
-// PENDING (not implemented here): buildings. The spec's "buildings only respond to claim/
-// forbid, match RFR/dfhack gui/mass-remove semantics" lead doesn't hold up -- mass-remove.lua
-// deconstructs/cancels-deconstruction, it does not touch forbid/claim -- and this df-
-// structures tree has no building-level forbid bit and no `contained_items` accessor on
-// df::building. A building's real "forbid" state is presumably reached through its
-// constituent item(s) via a general_ref this pass doesn't resolve. Flagging as a follow-up
-// rather than guessing at an unverified field path.
+// Item designations over the ground items in the box, one z-level at a time. Melt and no-melt go
+// through DFHack::Items::markForMelting/cancelMelting, which already carry the canMelt() checks.
 bool apply_item_flag_designations(RenderDesignationRequest& req, int wx1, int wy1, int wx2,
                                   int wy2, int wz) {
     const std::string& tool = req.request.tool;
@@ -702,25 +647,18 @@ bool apply_item_flag_designations(RenderDesignationRequest& req, int wx1, int wy
     return changed_count > 0;
 }
 
-// World/map reads AND designation writes. MUST be called with the CoreSuspender held --
-// it walks map blocks (MapCache::designationAt/tiletypeAt/BlockAt), world->plants.all and
-// per-block item vectors, and flushes designation/occupancy writes via MapCache::WriteAll,
-// all racing the main thread's map mutation if unsuspended. It used to run VERBATIM on the
-// render thread with no suspension (runOnRenderThread in designate_on_render_thread below)
-// -- the same SIGSEGV-inside-Maps::getTileBlock class hud.cpp's fd56152 fixed
-// (crash_2026-07-07-20-54-54.txt; both 07-04 crashlogs share the stack shape). The
-// capture-viewport availability probe that used to sit at the top of this function is
-// renderer state and stays on the render hop -- see designate_on_render_thread.
+// MUST be called with the CoreSuspender held: it walks map blocks, world->plants.all and per-block
+// item vectors, and flushes writes via MapCache::WriteAll, all racing the main thread otherwise.
 bool apply_designation(RenderDesignationRequest& req) {
     if (req.request.frame_w <= 0 || req.request.frame_h <= 0) {
         req.err = "viewport/frame unavailable";
         return false;
     }
 
-    int tx1 = pixel_to_tile(std::min(req.request.px, req.request.px2), req.request.frame_w);
-    int ty1 = pixel_to_tile(std::min(req.request.py, req.request.py2), req.request.frame_h);
-    int tx2 = pixel_to_tile(std::max(req.request.px, req.request.px2), req.request.frame_w);
-    int ty2 = pixel_to_tile(std::max(req.request.py, req.request.py2), req.request.frame_h);
+    int tx1 = pixel_to_tile_index(std::min(req.request.px, req.request.px2), req.request.frame_w);
+    int ty1 = pixel_to_tile_index(std::min(req.request.py, req.request.py2), req.request.frame_h);
+    int tx2 = pixel_to_tile_index(std::max(req.request.px, req.request.px2), req.request.frame_w);
+    int ty2 = pixel_to_tile_index(std::max(req.request.py, req.request.py2), req.request.frame_h);
 
     int wx1 = req.camera.x + tx1;
     int wy1 = req.camera.y + ty1;
@@ -728,14 +666,13 @@ bool apply_designation(RenderDesignationRequest& req) {
     int wy2 = req.camera.y + ty2;
     int wz = req.camera.z;
 
-    // Record the world box so the eraser's post-render job-cancel pass knows what to clear,
-    // even when the tile pass below changes nothing (the "designation became a job" case).
+    // Record the world box so the eraser's job-cancel pass still knows what to clear when the tile
+    // pass changed nothing -- the "designation already became a job" case.
     req.box_x1 = wx1; req.box_y1 = wy1;
     req.box_x2 = wx2; req.box_y2 = wy2;
     req.box_z = wz;
 
-    // Multi-z range: z_levels is relative to the camera (negative = downward). Clamped to the
-    // loaded map so a big drag near the top/bottom of the world can't walk off the z-axis.
+    // z_levels is relative to the camera (negative = downward), clamped to the loaded map.
     int z_lo = std::min(wz, wz + req.request.z_levels);
     int z_hi = std::max(wz, wz + req.request.z_levels);
     auto world = df::global::world;
@@ -748,8 +685,7 @@ bool apply_designation(RenderDesignationRequest& req) {
     bool changed = false;
     for (int z = z_lo; z <= z_hi; ++z) {
         df::tile_dig_designation level_dig = req.dig;
-        // Stair semantics across a range: top connects downward, bottom connects upward,
-        // middles both -- matching what native DF builds for a stairwell.
+        // Stair semantics across a range: top connects downward, bottom upward, middles both.
         bool is_stair = req.dig == df::tile_dig_designation::DownStair ||
                         req.dig == df::tile_dig_designation::UpStair ||
                         req.dig == df::tile_dig_designation::UpDownStair;
@@ -806,17 +742,8 @@ bool designate_on_render_thread(const Camera& camera, const DesignationRequest& 
     req->result.tool = request.tool;
     auto future = req->done.get_future();
 
-    // CRASH-CLASS FIX (same class as hud.cpp's fd56152; flagged there as "REMAINING
-    // EXPOSURE ... owned by the B29 designation-lag investigation"): the old shape ran
-    // apply_designation -- map-block reads AND designation writes -- on the RENDER thread
-    // with no CoreSuspender, racing the main thread's map mutation (latent SIGSEGV inside
-    // Maps::getTileBlock, crash_2026-07-07-20-54-54.txt's stack shape; also a torn-read
-    // risk on the freshly-clicked tiles' designation/tiletype state). New shape: (1) a
-    // render-thread hop for the ONE thing that genuinely lives there (the
-    // effective_capture_viewport_dims availability probe -- gps->main_viewport renderer
-    // state), then (2) apply_designation on the calling HTTP thread under CoreSuspender,
-    // the same pattern every other route uses. Hop FIRST, suspend AFTER -- never wait on a
-    // render hop while core-suspended (tile_dump.cpp's LAW).
+    // Hop FIRST, suspend AFTER -- never wait on a render hop while core-suspended. Only the
+    // viewport availability probe belongs on the render thread; the writes need CoreSuspender.
     DFHack::runOnRenderThread([req]() {
         int probe_w = 0, probe_h = 0;
         req->done.set_value(
@@ -832,11 +759,8 @@ bool designate_on_render_thread(const Camera& camera, const DesignationRequest& 
         ok = apply_designation(*req);
     }
 
-    // Eraser: cancel dig/smooth/engrave/chop/gather JOBS in the box -- off the render thread, under
-    // CoreSuspender (main parked) so unlinking from the job list can't race DF's job manager
-    // during play. Runs even when the tile pass found nothing (n==0): that is exactly the case
-    // where pressing play turned the designations into jobs and cleared the tiles' dig bits, so
-    // only clearing designation bits did nothing.
+    // Cancel the box's jobs under CoreSuspender so unlinking cannot race DF's job manager. Runs
+    // even when the tile pass found nothing: that is the case where play already made them jobs.
     if (kind == DesignationKind::Clear &&
             req->box_x2 >= req->box_x1 && req->box_y2 >= req->box_y1) {
         int canceled = 0;
@@ -911,13 +835,83 @@ std::string build_options_from_request(const httplib::Request& req) {
     return out.str();
 }
 
+bool weapon_options_from_request(const httplib::Request& req, std::string& options) {
+    options.clear();
+    if (!req.has_param("weapons"))
+        return true;
+
+    constexpr size_t kMaxWeaponSelectionBytes = 320;
+    constexpr size_t kMaxWeaponSelectionTuples = 10;
+    constexpr int kMaxItemField = std::numeric_limits<int16_t>::max();
+    constexpr int kMaxMaterialIndex = std::numeric_limits<int32_t>::max();
+    constexpr int kMaxWeaponQuantity = 10;
+    const std::string raw = req.get_param_value("weapons");
+    if (raw.empty() || raw.size() > kMaxWeaponSelectionBytes || raw.back() == ',')
+        return false;
+
+    auto parse_digits = [](const std::string& field, int maximum, int& value) {
+        if (field.empty() || (field.size() > 1 && field[0] == '0'))
+            return false;
+        int parsed = 0;
+        for (unsigned char c : field) {
+            if (c < '0' || c > '9')
+                return false;
+            int digit = c - '0';
+            if (parsed > (maximum - digit) / 10)
+                return false;
+            parsed = parsed * 10 + digit;
+        }
+        value = parsed;
+        return true;
+    };
+
+    struct Selection { int item_type, item_subtype, mat_type, mat_index, quantity; };
+    std::vector<Selection> selections;
+    std::stringstream csv(raw);
+    std::string tuple;
+    while (std::getline(csv, tuple, ',')) {
+        if (selections.size() == kMaxWeaponSelectionTuples)
+            return false;
+        std::stringstream fields(tuple);
+        std::string field;
+        std::vector<int> values;
+        while (std::getline(fields, field, ':')) {
+            if (values.size() == 5)
+                return false;
+            int value = 0;
+            int maximum = values.size() == 3 ? kMaxMaterialIndex
+                : values.size() == 4 ? kMaxWeaponQuantity : kMaxItemField;
+            if (!parse_digits(field, maximum, value))
+                return false;
+            values.push_back(value);
+        }
+        if (values.size() != 5 || values[4] < 1)
+            return false;
+        selections.push_back({values[0], values[1], values[2], values[3], values[4]});
+    }
+    if (selections.empty())
+        return false;
+
+    int remaining = 10;
+    std::ostringstream out;
+    out << "weapons=";
+    bool first = true;
+    for (const auto& selection : selections) {
+        int quantity = std::min(selection.quantity, remaining);
+        if (quantity <= 0)
+            continue;
+        out << (first ? "" : ",") << selection.item_type << ":" << selection.item_subtype
+            << ":" << selection.mat_type << ":" << selection.mat_index << ":" << quantity;
+        first = false;
+        remaining -= quantity;
+    }
+    options = out.str() + ";";
+    return true;
+}
+
 } // namespace
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// ---- placement HTTP routes ----------------------------------------------------------------------
 void register_placement_routes(httplib::Server& server) {
     auto placement_mode_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
@@ -978,19 +972,13 @@ void register_placement_routes(httplib::Server& server) {
     auto designate_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         DesignationRequest desig;
-        if (!query_int(req, "px", desig.px) ||
-                !query_int(req, "py", desig.py) ||
-                !query_int(req, "w", desig.frame_w) ||
-                !query_int(req, "h", desig.frame_h)) {
+        if (!parse_frame_rect(req, desig.px, desig.py, desig.px2, desig.py2,
+                              desig.frame_w, desig.frame_h)) {
             res.status = 400;
             res.set_content("{\"ok\":false,\"error\":\"missing px/py/w/h\"}\n",
                             "application/json; charset=utf-8");
             return;
         }
-        desig.px2 = desig.px;
-        desig.py2 = desig.py;
-        query_int(req, "px2", desig.px2);
-        query_int(req, "py2", desig.py2);
         desig.tool = req.has_param("tool") ? req.get_param_value("tool") : "dig";
         int marker = 0;
         int warm_damp = 0;
@@ -1012,8 +1000,7 @@ void register_placement_routes(httplib::Server& server) {
             return;
         }
 
-        // Map the client's grid indices through the DF viewport regardless of the tile
-        // window's (canvas-sized) w/h -- see normalize_frame_to_viewport.
+        // Map the client's grid indices through the DF viewport, whatever the tile window's w/h is.
         normalize_frame_to_viewport(camera, desig.frame_w, desig.frame_h);
 
         DesignationResult result;
@@ -1033,18 +1020,8 @@ void register_placement_routes(httplib::Server& server) {
     server.Get("/designate", designate_handler);
     server.Post("/designate", designate_handler);
 
-    // B233-4: TRAFFIC COST FIELDS (the four 1/2/5/25 weights native shows next to its traffic
-    // paints). These are NOT a client invention and they are NOT d_init: DF keeps the LIVE,
-    // per-fort pathfinding costs in
-    //     df.plotinfo.xml:1064-1067  plotinfo.main.traffic_cost_{high,normal,low,restricted}
-    //         (original names path_cost_high_traffic ... -- the fields DF's own traffic menu
-    //          edits; d_init_dwarfst.path_cost[4] (df.d_init.xml:100) is only the NEW-FORT
-    //          default those four are seeded from, so writing d_init would change nothing in a
-    //          running fort).
-    // Four int32 scalars in a struct DF already owns; no vector surgery, no ids, so there is no
-    // half-write state to land in. Written on the HTTP thread under CoreSuspender (the same
-    // shape as designate_on_render_thread's write half). Missing/blank params are left alone,
-    // so a partial POST (one slider moved) writes exactly one field.
+    // The LIVE per-fort traffic costs are plotinfo.main.traffic_cost_*. d_init's path_cost[4] is
+    // only the new-fort seed those are filled from, so writing it changes nothing in a running fort.
     auto traffic_costs_handler = [](const httplib::Request& req, httplib::Response& res) {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) {
@@ -1053,10 +1030,9 @@ void register_placement_routes(httplib::Server& server) {
                             "application/json; charset=utf-8");
             return;
         }
-        // DF's own traffic menu takes a typed number; clamp to a sane, DF-shaped band rather
-        // than trusting the wire (a 0 cost would make restricted tiles free; a negative one is
-        // undefined in DF's A*). 1..10000 covers native's 1/2/5/25 defaults with headroom.
-        auto clamp_cost = [](int v) { return std::max(1, std::min(10000, v)); };
+        // Native's sliders run 1..100 and snap anything larger down the moment a player touches
+        // them. The lower bound guards DF's A*: a 0 cost would make restricted tiles free.
+        auto clamp_cost = [](int v) { return std::max(1, std::min(100, v)); };
         int written = 0;
         {
             DFHack::CoreSuspender suspend;
@@ -1118,8 +1094,7 @@ void register_placement_routes(httplib::Server& server) {
         res.set_content(json, "application/json; charset=utf-8");
     });
 
-    // Finished furniture is chosen after the tile click in DF's native flow. This additive,
-    // read-only endpoint deliberately returns no candidates for component/filter buildings.
+    // Read-only, and deliberately returns no candidates for component/filter buildings.
     server.Get("/place-candidates", [](const httplib::Request& req, httplib::Response& res) {
         if (!req.has_param("token")) {
             res.status = 400;
@@ -1137,9 +1112,8 @@ void register_placement_routes(httplib::Server& server) {
         res.set_content(json, "application/json; charset=utf-8");
     });
 
-    // WP-C attribution: the current world's save dir keys the AttributionRegistry so ids can
-    // never alias across worlds. save_dir is a stable std::string set at world-load (the UI is
-    // blocked during a load), so this read is safe from the HTTP thread at a user-driven stamp.
+    // The current world's save dir keys the AttributionRegistry so ids can never alias across
+    // worlds. save_dir is set at world-load, so this read is safe from the HTTP thread.
     auto current_save_dir = []() -> std::string {
         auto world = df::global::world;
         if (!world) return "";
@@ -1148,21 +1122,27 @@ void register_placement_routes(httplib::Server& server) {
 
     auto build_place_handler = [current_save_dir](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
-        int px = 0, py = 0, frame_w = 0, frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-                !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h) ||
+        int px = 0, py = 0, px2 = 0, py2 = 0, frame_w = 0, frame_h = 0;
+        if (!parse_frame_rect(req, px, py, px2, py2, frame_w, frame_h) ||
                 !req.has_param("token")) {
             res.status = 400;
             res.set_content("missing px/py/w/h/token\n", "text/plain; charset=utf-8");
             return;
         }
-        int px2 = px, py2 = py, direction = -1, selected_item_id = -1;
-        query_int(req, "px2", px2);
-        query_int(req, "py2", py2);
+        int direction = -1, selected_item_id = -1;
         query_int(req, "direction", direction);
         if (req.has_param("item_id") && !query_int(req, "item_id", selected_item_id)) {
             res.status = 400;
             res.set_content("invalid item_id\n", "text/plain; charset=utf-8");
+            return;
+        }
+        std::string weapon_options;
+        if (!weapon_options_from_request(req, weapon_options)) {
+            res.status = 400;
+            res.set_content("invalid weapons: expected 1-10 comma-separated "
+                            "itemType:itemSubtype:matType:matIndex:qty tuples, at most 320 bytes; "
+                            "ASCII digits without leading zeros; type fields <=32767, matIndex <=2147483647, "
+                            "qty 1-10\n", "text/plain; charset=utf-8");
             return;
         }
 
@@ -1177,7 +1157,7 @@ void register_placement_routes(httplib::Server& server) {
         int count = 0;
         int id = -1;
         std::vector<int32_t> ids;
-        std::string options = build_options_from_request(req);
+        std::string options = build_options_from_request(req) + weapon_options;
         normalize_frame_to_viewport(camera, frame_w, frame_h);
         if (!place_building_via_lua(camera, px, py, px2, py2, frame_w, frame_h,
                                     req.get_param_value("token"), direction, options, selected_item_id,
@@ -1186,16 +1166,14 @@ void register_placement_routes(httplib::Server& server) {
             res.set_content("building failed: " + err + "\n", "text/plain; charset=utf-8");
             return;
         }
-        // WP-C (WT04): stamp the creator for EVERY created building. A multi-tile placement (a row
-        // of constructions, a hollow rectangle, ...) now returns all its ids, so each tile is
-        // attributed -- not just the first. Falls back to the single id when the lua returns no
-        // list (older DLL / a create that yielded exactly one building).
+        // Stamp EVERY created building: a multi-tile placement returns all its ids. Falls back to
+        // the single id when the Lua returns no list.
         attrib_note_world(current_save_dir());
         if (ids.empty() && id >= 0) ids.push_back(id);
         for (int32_t bid : ids)
             attrib_stamp(AttribKind::Building, bid, player);
         notify_player_input();
-        // Additive JSON only: "ids" lists every stamped building id (zero binary-wire surface).
+        // Additive JSON only: "ids" lists every stamped building id.
         std::string ids_json;
         for (size_t i = 0; i < ids.size(); ++i)
             ids_json += (i ? "," : "") + std::to_string(ids[i]);
@@ -1210,16 +1188,12 @@ void register_placement_routes(httplib::Server& server) {
 
     auto stockpile_create_handler = [current_save_dir](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
-        int px = 0, py = 0, frame_w = 0, frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-                !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+        int px = 0, py = 0, px2 = 0, py2 = 0, frame_w = 0, frame_h = 0;
+        if (!parse_frame_rect(req, px, py, px2, py2, frame_w, frame_h)) {
             res.status = 400;
             res.set_content("missing px/py/w/h\n", "text/plain; charset=utf-8");
             return;
         }
-        int px2 = px, py2 = py;
-        query_int(req, "px2", px2);
-        query_int(req, "py2", py2);
         std::string preset = req.has_param("preset") ? req.get_param_value("preset") : "all";
 
         Camera camera;
@@ -1248,19 +1222,13 @@ void register_placement_routes(httplib::Server& server) {
 
     auto zone_create_handler = [current_save_dir](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
-        int px = 0, py = 0, frame_w = 0, frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-                !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+        int px = 0, py = 0, px2 = 0, py2 = 0, frame_w = 0, frame_h = 0;
+        if (!parse_frame_rect(req, px, py, px2, py2, frame_w, frame_h)) {
             res.status = 400;
             res.set_content("missing px/py/w/h\n", "text/plain; charset=utf-8");
             return;
         }
-        int px2 = px, py2 = py;
-        query_int(req, "px2", px2);
-        query_int(req, "py2", py2);
-        // The web sends the zone kind as the short key `zone` (e.g. zone=pen); Lua create_zone maps
-        // it (meeting->MeetingHall, pen->Pen, ...). The refactor read "type" here, which the web
-        // never sends -> it always fell back to the default -> every zone became a Meeting Area.
+        // The web sends the zone kind as `zone` (zone=pen), never "type"; Lua create_zone maps it.
         std::string zonetype = req.has_param("zone") ? req.get_param_value("zone") : "meeting";
 
         Camera camera;

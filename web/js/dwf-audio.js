@@ -19,51 +19,12 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-audio.js -- web audio: the AUDIO DIRECTOR (spec 2026-07-09-audio-director-spec.md).
-//
-// The V2 mixer "blasted all the tracks at once and skipped a lot". Live diagnosis found the
-// mechanisms (spec §1): wall-to-wall looping music where native DF is famously SPARSE; a 3-main+
-// weather ambience budget with rank-jumping gains and no hysteresis; and a per-tick 3 s drift
-// enforcement that (a) rewound to STALE frame data whenever the aux stream stalled (observed
-// broken-record: 3 rewinds in a 15 s stall) and (b) compared positions LINEARLY, so every loop
-// wrap made the "drift" read as the full track length (observed 282.3 s spike).
-//
-// The DIRECTOR replaces the mixer/scheduler half. One state machine owns what plays:
-//
-//   MUSIC (one slot, sparse, still lockstep). The server stays authoritative (env.music
-//   {track,elapsedMs,manual}, UNCHANGED -- zero server edits). The client derives a
-//   deterministic play/silence schedule every client shares:
-//       cycle = manual ? dur : dur + GAP_MS;  phase = projectedElapsed % cycle
-//       phase < dur -> PLAY at phase, else -> GAP (scheduled silence, the native feel)
-//   dur comes from the identical .ogg, elapsed from the server, GAP_MS is a constant -- so all
-//   clients agree on the silences too, and late joiners land mid-card OR mid-gap correctly.
-//   A projection clock (anchor advanced only by FRESH frames) rides through aux stalls without
-//   ever rewinding. currentTime is set ONLY at track start/change/gap-exit (element paused) or
-//   as a rare drift correction: circular-on-the-cycle error > 20 s, at most once per 60 s, only
-//   when buffered. Sync tolerance is tens of seconds BY INTENT: lockstep matters at join and on
-//   track change, not per-frame.
-//
-//   AMBIENCE (budgeted bed): at most 1 bed + 1 feature + 1 weather (danger replaces bed+feature),
-//   fixed per-loop gains UNDER the music, per-layer hysteresis (2 scans in / 3 out) so viewport
-//   flicker can't churn loops, slow crossfades, and fully-faded channels get PAUSED (src is only
-//   ever reassigned on a paused element).
-//
-//   STINGERS: one-shots >= 6 s apart; music ducks to 0.45 for 2.5 s and recovers.
-//
-// Everything else survives from P1-P3/V2: /sound + licensing gate, probe/dormancy/401-retry,
-// autoplay unlock, UI clicks default OFF, the 16-key stinger map, host-only POST /music, the mix
-// codec. music_sync.{h,cpp} / world_stream.cpp are untouched -- nothing staged for a DLL window.
-//
-// The PURE logic (stinger map, catalog, musicPlan/circularDeltaMs schedule math, ambience
-// candidates + hysteresis reducer, url builder, persistence codec) is exported behind
-// `typeof module` so the offline fixtures exercise the REAL functions under a fake clock.
+// dwf-audio.js -- the audio director: one state machine owning music, ambience and stingers.
 
 (function (root) {
   "use strict";
 
-  // ============================================================================================
-  // PURE CORE (no DOM / no AudioContext) -- also exported for offline tests.
-  // ============================================================================================
+  // ---- Pure core (no DOM, no AudioContext); also exported for offline tests. ----
 
   // ---- director tunables (spec §3.5; GAP_MS is the sparseness knob) -------------------------
   var GAP_MS = 120000;                    // scheduled silence between music cards (auto mode)
@@ -86,19 +47,16 @@
     SCAN_EVERY_TICKS: SCAN_EVERY_TICKS,
   };
 
-  // Build a same-origin /sound/<rel> URL. Percent-encodes each path SEGMENT (track dir names
-  // contain '&' and '!' -- drink_&_industry, strike_the_earth! -- which must survive to the server
-  // as literals after httplib decodes them) while keeping '/' as the separator.
+  // Percent-encode each path SEGMENT: track dir names contain '&' and '!', which must reach the server as
+  // literals, while '/' stays the separator.
   function soundUrl(rel) {
     if (!rel || typeof rel !== "string") return null;
     var parts = rel.split("/").map(function (s) { return encodeURIComponent(s); });
     return "/sound/" + parts.join("/");
   }
 
-  // The 16-key ANNOUNCEMENT -> stinger file map, copied VERBATIM from DF's own
-  // data/vanilla/vanilla_music/objects/sound_standard.txt. typeKey strings are byte-identical to
-  // df::announcement_type enum keys (announcements.cpp:76 emits DFHack::enum_item_key(report->type)).
-  // A typeKey NOT in this table returns null -> no stinger (the intended discrimination, tested).
+  // Copied VERBATIM from DF's own sound_standard.txt; the typeKey strings are byte-identical to
+  // df::announcement_type enum keys. A typeKey not in this table returns null, i.e. no stinger.
   var STINGER_MAP = {
     STRUCK_DEEP_METAL: "sounds/adamantine.ogg",
     AMBUSH_THIEF_SUPPORT_SKULKING: "sounds/ambush.ogg",
@@ -124,9 +82,7 @@
       ? soundUrl(STINGER_MAP[typeKey]) : null;
   }
 
-  // The fortress-mode music catalog: FILE token (music_standard.txt) -> its install dir + "_Full"
-  // track. Dir names are the lowercased FILE token with DF's literal punctuation. Keys MUST match
-  // src/music_sync.h::is_valid_track (the server validates POST /music against the same set).
+  // Keys MUST match src/music_sync.h::is_valid_track -- the server validates POST /music against the same set.
   var TRACKS = {
     koganusan:            { label: "Koganusan",              full: "tracks/koganusan/KG_Full.ogg" },
     expansive_cavern:     { label: "Expansive Cavern",       full: "tracks/expansive_cavern/EC_Full.ogg" },
@@ -170,10 +126,8 @@
     return t ? t.label : (key || "");
   }
 
-  // REFERENCE auto-selection (the rule the SERVER's music_sync.h::select_auto_track mirrors). Not
-  // the playback driver -- the server owns the decision so all clients agree -- but kept as the
-  // documented rule + an oracle the fixture cross-checks against the server logic.
-  //   season enum: 0 spring / 1 summer / 2 autumn / 3 winter (env.season = month/3).
+  // The reference rule the server's select_auto_track mirrors; the SERVER owns the decision so every
+  // client agrees. season enum: 0 spring / 1 summer / 2 autumn / 3 winter.
   function autoMusicTrack(env, ctx) {
     env = env || {}; ctx = ctx || {};
     if (env.siege === true) return "vile_force_of_darkness";   // EVENT:SIEGE
@@ -183,13 +137,8 @@
     return "hill_dwarf";                                       // CONTEXT:MAIN baseline
   }
 
-  // ---- MUSIC SCHEDULE (pure; director spec §3.1) ----------------------------------------------
-  // The deterministic play/silence schedule every client derives from shared numbers.
-  //   elapsedMs: server-authoritative track clock (projected between frames by the runtime).
-  //   durMs: the loaded element's duration (identical file everywhere), or null pre-metadata.
-  //   manual: host jukebox pick -> gapless.
-  // Returns {mode:"play", posMs, cycleMs} | {mode:"gap", resumeInMs, cycleMs}. Pre-metadata the
-  // plan is "play at elapsed" (the runtime re-plans at loadedmetadata when dur becomes known).
+  // ---- The deterministic play/silence schedule every client derives from the shared numbers. ----
+  // Returns {mode:"play", posMs, cycleMs} or {mode:"gap", resumeInMs, cycleMs}.
   function musicPlan(elapsedMs, durMs, manual) {
     if (!(typeof elapsedMs === "number" && isFinite(elapsedMs) && elapsedMs >= 0)) elapsedMs = 0;
     if (!(typeof durMs === "number" && isFinite(durMs) && durMs > 0)) {
@@ -222,9 +171,8 @@
     return null;
   }
 
-  // view digest -> layered candidates: at most one per layer {bed, feature, weather, danger}.
-  // Danger (siege/combat) REPLACES bed+feature; weather always rides on top. Gains are per-loop
-  // constants that sit UNDER the music channel (native: AMBIENCE 230 < MUSIC 255).
+  // At most one candidate per layer. Danger REPLACES bed+feature, weather always rides on top, and the
+  // gains sit UNDER the music channel.
   function ambienceCandidates(view) {
     view = view || {};
     var out = [];
@@ -262,9 +210,8 @@
     return out;
   }
 
-  // Per-layer hysteresis: a DIFFERENT candidate must persist `inScans` consecutive scans before
-  // it takes the layer; an ABSENT layer keeps its loop `outScans` scans before clearing. A stable
-  // candidate refreshes the gain and resets all counters.
+  // Per-layer hysteresis: a different candidate must persist `inScans` scans to take the layer, and an
+  // absent layer keeps its loop for `outScans` scans before clearing.
   function layerStep(st, cand, inScans, outScans) {
     st = st || { url: null, gain: 0, candUrl: null, candN: 0, missN: 0 };
     var next = { url: st.url, gain: st.gain, candUrl: null, candN: 0, missN: 0 };
@@ -338,7 +285,7 @@
   function truthy(v) { return v === true || v === "true" || v === 1; }
   function decodeMix(raw) {
     var o = raw || {};
-    if (typeof raw === "string") { try { o = JSON.parse(raw); } catch (_) { o = {}; } }
+    if (typeof raw === "string") { try { o = JSON.parse(raw); } catch { o = {}; } }
     return {
       master: clamp01(o.master, MIX_DEFAULTS.master),
       music: clamp01(o.music, MIX_DEFAULTS.music),
@@ -373,22 +320,27 @@
     return;
   }
 
-  // ============================================================================================
-  // BROWSER RUNTIME
-  // ============================================================================================
+  // ---- Browser runtime ----
 
   var params = (function () {
     try { return new URLSearchParams((root.location && root.location.search) || ""); }
-    catch (_) { return { get: function () { return null; } }; }
+    catch { return { get: function () { return null; } }; }
   })();
   var DISABLED = params.get("audio") === "0";
 
   var LS = { mix: "dwf.audio.mix" };
-  function lsGet(k) { try { return root.localStorage.getItem(k); } catch (_) { return null; } }
-  function lsSet(k, v) { try { root.localStorage.setItem(k, v); } catch (_) {} }
+  var DwfUtil = root.DwfUtil || (typeof require === "function" ? require("./dwf-util.js") : null);
+  var lsGet = DwfUtil.lsGet, lsSet = DwfUtil.lsSet;
+  var audioErr = DwfUtil.DwfErr;
+
+  // Autoplay denial and play/pause interruption are browser control flow; other rejections are failures.
+  function reportPlayFailure(key, err) {
+    if (err && (err.name === "NotAllowedError" || err.name === "AbortError")) return;
+    audioErr.report(key, err);
+  }
 
   function perfNow() {
-    try { return root.performance.now(); } catch (_) { return Date.now(); }
+    try { return root.performance.now(); } catch { return Date.now(); }
   }
 
   var state = {
@@ -435,7 +387,7 @@
   function AC() { return root.AudioContext || root.webkitAudioContext || null; }
   function isHost() {
     try { return !!(root.DwfWS && typeof root.DwfWS.isHost === "function" && root.DwfWS.isHost()); }
-    catch (_) { return false; }
+    catch { return false; }
   }
 
   function ensureContext() {
@@ -450,7 +402,7 @@
         g[ch].connect(g.master);
       });
       applyMix();
-    } catch (_) { state.ctx = null; }
+    } catch (err) { state.ctx = null; audioErr.report("audio.context", err); }
     return state.ctx;
   }
 
@@ -462,7 +414,7 @@
       ["ambient", "sfx", "ui"].forEach(function (ch) {
         state.gains[ch].gain.setTargetAtTime(state.mix[ch], now, 0.02);
       });
-    } catch (_) {}
+    } catch (err) { audioErr.report("audio.mix-apply", err); }
     updateMusicGain();
   }
   // User music volume x pause-duck x stinger-duck. The director's play/gap fades live on the
@@ -477,7 +429,7 @@
     try {
       state.gains.music.gain.setTargetAtTime(
         state.mix.music * duck, now, (state.ducked || stung) ? 0.08 : 0.4);
-    } catch (_) {}
+    } catch (err) { audioErr.report("audio.music-gain", err); }
   }
   function saveMix() { lsSet(LS.mix, encodeMix(state.mix)); }
 
@@ -487,7 +439,8 @@
     function unlock() {
       if (state.unlocked) return;
       ensureContext();
-      if (state.ctx && state.ctx.state === "suspended") state.ctx.resume().catch(function () {});
+      if (state.ctx && state.ctx.state === "suspended")
+        state.ctx.resume().catch(function (err) { reportPlayFailure("audio.context-resume", err); });
       state.unlocked = true;
       root.document.removeEventListener("pointerdown", unlock, true);
       root.document.removeEventListener("keydown", unlock, true);
@@ -495,7 +448,7 @@
       // play() calls made before the first gesture were rejected by the autoplay policy.
       // Re-drive from the current env now that we have a gesture.
       if (state.musicWanted && state.music && state.director.mode === "play") {
-        state.music.play().catch(function () {});
+        state.music.play().catch(function (err) { reportPlayFailure("audio.music-play", err); });
       }
       envTick(true);
     }
@@ -517,7 +470,7 @@
           return "done";
         });
       })
-      .catch(function () { state.probed = true; state.available = false; state.allowed = false; refreshPopover(); return "done"; });
+      .catch(function (err) { audioErr.report("audio.probe", err); state.probed = true; state.available = false; state.allowed = false; refreshPopover(); return "done"; });
   }
 
   // ---- SFX (stingers + clicks) ----------------------------------------------------------------
@@ -541,8 +494,8 @@
         src.buffer = d;
         src.connect(state.gains[ch] || state.gains.sfx);
         src.start();
-      } catch (_) {}
-    }).catch(function () {});
+      } catch (err) { audioErr.report("audio.buffer-source", err); }
+    }).catch(function (err) { audioErr.report("audio.buffer-load", err); });
   }
   function synthBlip(kind) {
     if (!state.ctx || !state.unlocked) return;
@@ -556,7 +509,7 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
       o.connect(g); g.connect(state.gains.ui || state.gains.master);
       o.start(t); o.stop(t + 0.09);
-    } catch (_) {}
+    } catch (err) { audioErr.report("audio.synth", err); }
   }
   var clickIdx = 0;
   function playClick(kind) {
@@ -565,9 +518,8 @@
     if (state.available && state.allowed) playBuffer(uiClickUrl(kind, clickIdx++), "ui");
     else synthBlip(kind);
   }
-  // Stingers are INTERRUPTS (director spec §3.3): spaced >= STINGER_MIN_GAP_MS (later ones in the
-  // window are dropped -- the event is still visible in announcements), and the music channel
-  // ducks briefly so the one-shot reads over the bed.
+  // Stingers are INTERRUPTS: spaced at least STINGER_MIN_GAP_MS apart, later ones in the window dropped,
+  // and the music channel ducks briefly so the one-shot reads over the bed.
   function playStinger(typeKey) {
     if (DISABLED || state.mix.muted || !state.available || !state.allowed) return;
     var url = stingerForType(typeKey);
@@ -580,9 +532,7 @@
     playBuffer(url, "sfx");
   }
 
-  // ============================================================================================
-  // MUSIC DIRECTOR (runtime half of spec §3.1)
-  // ============================================================================================
+  // ---- Music director ----
 
   function ensureMusicEl() {
     if (state.music || typeof root.Audio === "undefined") return state.music;
@@ -610,25 +560,25 @@
         state.musicNode.connect(state.musicFade);
         state.musicFade.connect(state.gains.music);
       }
-    } catch (_) { state.music = null; }
+    } catch (err) { state.music = null; audioErr.report("audio.music-element", err); }
     return state.music;
   }
   function musicFadeTo(v, tau) {
     if (!state.musicFade || !state.ctx) return;
-    try { state.musicFade.gain.setTargetAtTime(v, state.ctx.currentTime, tau || 0.4); } catch (_) {}
+    try { state.musicFade.gain.setTargetAtTime(v, state.ctx.currentTime, tau || 0.4); }
+    catch (err) { audioErr.report("audio.music-fade", err); }
   }
   function musicPlaying() { return !!(state.music && !state.music.paused && state.music.src); }
   function stopMusic() {
     state.musicWanted = false;
     state.musicTrack = null;
     state.director.mode = "idle";
-    if (state.music) { try { state.music.pause(); } catch (_) {} }
+    if (state.music) { try { state.music.pause(); } catch (err) { audioErr.report("audio.music-stop", err); } }
     refreshPopover();
   }
 
-  // Anchor+projection clock. The anchor advances ONLY when a frame's elapsedMs actually changed;
-  // a stalled aux stream freezes the anchor and the projection keeps counting -- the director
-  // never rewinds to stale data (the measured broken-record bug).
+  // The anchor advances ONLY when a frame's elapsedMs actually changed, so a stalled aux stream freezes
+  // the anchor and the director never rewinds to stale data.
   function noteMusicFrame(m) {
     var d = state.director;
     if (!m || typeof m.track !== "string") return;
@@ -663,11 +613,11 @@
     if (!el || !d.track || state.musicTrack !== d.track) return;
     var plan = currentMusicPlan();
     if (plan.mode === "play") {
-      try { el.currentTime = plan.posMs / 1000; } catch (_) {}
+      try { el.currentTime = plan.posMs / 1000; } catch (err) { audioErr.report("audio.music-seek", err); }
     } else {
       d.mode = "gap"; d.gapFadeAt = perfNow() - 1e6;   // pause immediately, no audible fade needed
       musicFadeTo(0.0001, 0.05);
-      try { el.pause(); } catch (_) {}
+      try { el.pause(); } catch (err) { audioErr.report("audio.music-pause", err); }
     }
     refreshPopover();
   }
@@ -677,7 +627,7 @@
   function musicTick() {
     var d = state.director;
     if (DISABLED || !state.available || !state.allowed || !d.track || state.mix.muted) {
-      if (musicPlaying()) { try { state.music.pause(); } catch (_) {} }
+      if (musicPlaying()) { try { state.music.pause(); } catch (err) { audioErr.report("audio.music-pause", err); } }
       if (state.mix.muted || !d.track) d.mode = "idle";
       return;
     }
@@ -693,12 +643,12 @@
         return;
       }
       if (d.mode === "swap" && perfNow() - d.swapAt < 800) return;   // let the fade land
-      try { el.pause(); } catch (_) {}
+      try { el.pause(); } catch (err) { audioErr.report("audio.music-pause", err); }
       state.musicTrack = d.track;
       state.musicWanted = true;
       d.mode = "idle"; d.stallSince = null; d.suspendedCycle = false;
       d.lastCorrectionAt = -1e15;
-      try { el.src = url; } catch (_) {}
+      try { el.src = url; } catch (err) { audioErr.report("audio.music-source", err); }
       // fall through: the plan below starts playback; metadata will place it exactly.
     }
 
@@ -717,10 +667,8 @@
 
     if (plan.mode === "play") {
       var posSec = plan.posMs / 1000;
-      // element ran to its NATURAL end (`ended` stays true until a play()/seek clears it -- the
-      // live-caught stuck-gap bug): re-enter play when the schedule restarted (manual wrap, or
-      // the next cycle's position is clearly BEFORE where the element stopped); only wait out
-      // the boundary sliver where the element finished a hair before the play->gap flip.
+      // `ended` stays true until a play() or seek clears it, so re-enter play when the schedule restarted and
+      // only wait out the sliver where the element finished just before the play->gap flip.
       if (el.ended) {
         if (d.manual || plan.posMs < el.currentTime * 1000 - 2000) {
           d.mode = "idle";               // re-enter below: paused seek + play() clears `ended`
@@ -731,16 +679,23 @@
       }
       if (d.mode !== "play") {
         // entering PLAY (join / gap-exit / post-swap): seek while PAUSED, fade in, go.
-        if (!el.paused) { try { el.pause(); } catch (_) {} }
+        if (!el.paused) { try { el.pause(); } catch (err) { audioErr.report("audio.music-pause", err); } }
         if (plan.cycleMs != null) {   // pre-metadata we can't place it; metadata handler will
-          try { if (Math.abs((el.currentTime || 0) - posSec) > 1.5) el.currentTime = posSec; } catch (_) {}
+          try { if (Math.abs((el.currentTime || 0) - posSec) > 1.5) el.currentTime = posSec; }
+          catch (err) { audioErr.report("audio.music-seek", err); }
         }
         musicFadeTo(1, 0.3);
         state.musicWanted = true;
         d.mode = "play"; d.stallSince = null;
-        if (state.unlocked) { try { el.play().catch(function () {}); } catch (_) {} }
+        if (state.unlocked) {
+          try { el.play().catch(function (err) { reportPlayFailure("audio.music-play", err); }); }
+          catch (err) { reportPlayFailure("audio.music-play", err); }
+        }
       } else if (el.paused) {
-        if (state.unlocked) { try { el.play().catch(function () {}); } catch (_) {} }
+        if (state.unlocked) {
+          try { el.play().catch(function (err) { reportPlayFailure("audio.music-play", err); }); }
+          catch (err) { reportPlayFailure("audio.music-play", err); }
+        }
       } else if (plan.cycleMs != null) {
         // steady PLAY: rare, rate-limited, circular drift correction -- the ONLY playing seek.
         var err = circularDeltaMs(el.currentTime * 1000, plan.posMs, plan.cycleMs);
@@ -748,7 +703,7 @@
             perfNow() - d.lastCorrectionAt > CORRECTION_MIN_INTERVAL_MS &&
             el.readyState >= 3) {
           d.lastCorrectionAt = perfNow();
-          try { el.currentTime = posSec; } catch (_) {}
+          try { el.currentTime = posSec; } catch (err) { audioErr.report("audio.music-seek", err); }
         }
       }
     } else {   // gap: scheduled silence -- fade, then pause (keep src + buffer for the resume)
@@ -756,14 +711,12 @@
         d.mode = "gap"; d.gapFadeAt = perfNow();
         musicFadeTo(0.0001, 0.4);
       } else if (!el.paused && perfNow() - d.gapFadeAt > 1600) {
-        try { el.pause(); } catch (_) {}
+        try { el.pause(); } catch (err) { audioErr.report("audio.music-pause", err); }
       }
     }
   }
 
-  // ============================================================================================
-  // AMBIENCE BED (runtime half of spec §3.2)
-  // ============================================================================================
+  // ---- Ambience bed ----
 
   var AMBIENT_POOL_SIZE = 4;   // 3 audible max + 1 crossfade headroom
   function ensureAmbientPool() {
@@ -782,7 +735,7 @@
         ch.node = state.ctx.createMediaElementSource(ch.el);
         ch.node.connect(ch.gain); ch.gain.connect(state.gains.ambient);
       }
-    } catch (_) {}
+    } catch (err) { audioErr.report("audio.ambient-channel", err); }
     return ch;
   }
   function rampChannel(ch, target) {
@@ -795,7 +748,7 @@
     try {
       ch.gain.gain.setTargetAtTime(target, state.ctx.currentTime,
         target === 0 ? 1.2 : (entering ? AMBIENT_TAU_S : 0.8));
-    } catch (_) {}
+    } catch (err) { audioErr.report("audio.ambient-ramp", err); }
   }
   function poolFind(url) {
     for (var i = 0; i < state.ambPool.length; i++) if (state.ambPool[i].url === url) return state.ambPool[i];
@@ -825,10 +778,11 @@
       ambientChannel(ch);
       if (ch.url !== url) {
         ch.url = url;
-        try { if (ch.el) ch.el.src = url; } catch (_) {}
+        try { if (ch.el) ch.el.src = url; } catch (err) { audioErr.report("audio.ambient-source", err); }
       }
       if (ch.el && ch.el.paused && state.unlocked) {
-        try { ch.el.play().catch(function () {}); } catch (_) {}
+        try { ch.el.play().catch(function (err) { reportPlayFailure("audio.ambient-play", err); }); }
+        catch (err) { reportPlayFailure("audio.ambient-play", err); }
       }
       rampChannel(ch, desired[url]);
     });
@@ -838,7 +792,7 @@
     state.ambPool.forEach(function (ch) {
       if (ch.el && !ch.el.paused && ch.target === 0 && ch.fadeOutAt &&
           perfNow() - ch.fadeOutAt > AMBIENT_PAUSE_AFTER_MS) {
-        try { ch.el.pause(); } catch (_) {}
+        try { ch.el.pause(); } catch (err) { audioErr.report("audio.ambient-pause", err); }
       }
     });
   }
@@ -846,7 +800,7 @@
     state.ambState = null;
     state.ambPool.forEach(function (ch) {
       if (ch.target !== 0) rampChannel(ch, 0);
-      if (ch.el && !ch.el.paused) { try { ch.el.pause(); } catch (_) {} }
+      if (ch.el && !ch.el.paused) { try { ch.el.pause(); } catch (err) { audioErr.report("audio.ambient-pause", err); } }
     });
   }
 
@@ -855,7 +809,7 @@
     try {
       var T = root.DwfTiles;
       return (T && typeof T.getLatest === "function") ? T.getLatest() : null;
-    } catch (_) { return null; }
+    } catch { return null; }
   }
   function isMagma(liq) { return liq === 2 || liq === "magma"; }
   function isWater(liq) { return liq === 1 || liq === "water"; }
@@ -897,9 +851,7 @@
     return view;
   }
 
-  // ---- the director tick ------------------------------------------------------------------
-  // Every TICK_MS: note the freshest env.music frame, run the music slot, expire stinger ducks,
-  // pause finished ambience fades. Every SCAN_EVERY_TICKS ticks: viewport ambience scan.
+  // ---- The director tick. ----
   function envTick(forceScan) {
     if (DISABLED) return;
     var latest = getLatest();
@@ -920,8 +872,7 @@
   }
   function pollReports() {
     if (DISABLED || !state.available || !state.allowed) return;
-    var since = state.reportCursor, player = "";
-    try { player = root.localStorage.getItem("dwf.player") || ""; } catch (_) {}
+    var since = state.reportCursor, player = lsGet("dwf.player") || "";
     var url = "/reports?player=" + encodeURIComponent(player) +
       (since == null ? "&max=1" : "&since=" + since) + "&t=" + Date.now();
     fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
@@ -933,7 +884,7 @@
         for (var i = 0; i < reps.length; i++) {
           if (reps[i] && !reps[i].continuation) playStinger(reps[i].typeKey);
         }
-      }).catch(function () {});
+      }).catch(function () { audioErr.count("audio.reports-poll"); });
   }
 
   // ---- pause ducking --------------------------------------------------------------------------
@@ -947,10 +898,10 @@
       var P = root.DwfPause;
       if (P && typeof P.onPause === "function" && !P.__audioHooked) {
         var orig = P.onPause;
-        P.onPause = function (m) { try { orig(m); } catch (_) {} onPause(m); };
+        P.onPause = function (m) { try { orig(m); } catch (err) { audioErr.report("audio.pause-handler", err); } onPause(m); };
         P.__audioHooked = true;
       }
-    } catch (_) {}
+    } catch (err) { audioErr.report("audio.pause-hook", err); }
   }
 
   // ---- host control: POST /music --------------------------------------------------------------
@@ -960,56 +911,14 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bodyObj),
     }).then(function () { /* canonical env.music updates on the next aux frame -> everyone syncs */ })
-      .catch(function () {});
+      .catch(function (err) { audioErr.report("audio.music-post", err); });
   }
 
-  // ---- UI: speaker button + popover -----------------------------------------------------------
-  function ensureStyle() {
-    if (root.document.getElementById("dfAudioStyle")) return;
-    var st = root.document.createElement("style");
-    st.id = "dfAudioStyle";
-    // R1: 13 hex literals -- a private palette -- replaced by the shared --dwfui-* custom properties.
-    // No colour is stated in this module.
-    st.textContent = [
-      "#dfAudioPop{position:fixed;top:44px;right:8px;z-index:9100;width:258px;",
-      "background:var(--dwfui-surface);color:var(--dwfui-text-body);border:1px solid var(--dwfui-gold-bevel-dark);",
-      "padding:10px 12px;font-family:inherit;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.55);display:none}",
-      "#dfAudioPop.open{display:block}",
-      "#dfAudioPop h4{margin:0 0 8px;font-size:12px;letter-spacing:.03em;color:var(--dwfui-gold)}",
-      "#dfAudioPop h4.pf-handle{cursor:move;user-select:none}",
-      "#dfAudioPop h4 .pf-x{float:right;font-size:12px!important;padding:0}",
-      "#dfAudioPop .arow{display:flex;align-items:center;gap:8px;margin:5px 0}",
-      "#dfAudioPop .arow label{flex:0 0 58px;color:var(--dwfui-text-secondary)}",
-      // DECLARED NON-NATIVE CONTROL (see audioPanelMarkup): DF has NO continuous-value control, so
-      // the five mixer sliders stay raw range inputs. Unrestyled beyond the accent colour.
-      "#dfAudioPop .arow input[type=range]{flex:1;accent-color:var(--dwfui-gold);height:4px;cursor:pointer}",
-      "#dfAudioPop .arow input[type=range]:focus{outline:1px solid var(--dwfui-gold-bright);outline-offset:2px}",
-      "#dfAudioPop .amsg{color:var(--dwfui-text-warning);margin:6px 0 2px;font-size:11px;line-height:1.35}",
-      "#dfAudioPop .now{color:var(--dwfui-text-good);margin:4px 0 6px;font-size:11px}",
-      "#dfAudioPop .arow.music{gap:4px;flex-wrap:wrap;align-items:center}",
-      "#dfAudioPop .atrack{flex:1 1 100%;min-width:0}",
-      "#dfAudioPop .clicklbl{flex:1;color:var(--dwfui-text-secondary);font-size:11px}",
-      "#dfAudioPop hr{border:0;border-top:1px solid var(--dwfui-hatch);margin:8px 0}",
-      "#audioBtn.df-muted{opacity:.55}",
-    ].join("");
-    (root.document.head || root.document.documentElement).appendChild(st);
-  }
-
-  // The host track picker, as NATIVE's answer to a dropdown.
-  //
-  // *** NATIVE DF HAS NO DROPDOWN IN ANY OF THE 33 CAPTURES. *** Every choice there is a plaque, a
-  // row, a cycler, or a chooser screen. PB-09's evidence names the picker affordance explicitly: the
-  // `< value >` THREE-SLICE CYCLER (TYPE_FILTER_LEFT / _TEXT / _RIGHT). So the 17-track playlist is a
-  // cyclerHtml, not a dropdown. The CAPABILITY is untouched -- every track is still reachable, and
-  // POST /music still carries the same key.
-  //
-  // The `id="dfAudioTrack"` hook is PRESERVED on the picker's host element: tools/harness/ui_lab_test
-  // pins that exact string in the Studio's audio story, and tools/ui-lab is forbidden to this lane.
-  // Keeping the pinned hook is the strangler contract -- the id addresses the track-picker REGION,
-  // which is what it always meant.
+  // Native DF has no dropdown, so the track playlist is the three-slice cycler.
+  // Keep `id="dfAudioTrack"` on the picker host: tools/harness/ui_lab_test pins that exact string.
   function trackCyclerHtml(pick) {
-    return '<div id="dfAudioTrack" class="atrack">' + root.DWFUI.cyclerHtml({
-      label: trackLabel(pick), cls: "atrack-cycler", ariaLabel: "Choose a track for everyone",
+    return '<div id="dfAudioTrack" class="audio-track">' + root.DWFUI.cyclerHtml({
+      label: trackLabel(pick), cls: "audio-track-cycler", ariaLabel: "Choose a track for everyone",
       previous: { dataset: { audioCycle: "prev" }, title: "Previous track" },
       next: { dataset: { audioCycle: "next" }, title: "Next track" },
     }) + '</div>';
@@ -1022,20 +931,12 @@
     var pick = normalizeTrackPick(options.track || state.trackPick);
     var msg = options.message || "";
     var now = options.now || "";
-    // THE FIVE MIXER SLIDERS STAY RAW RANGE INPUTS, DELIBERATELY. DF has no continuous-value
-    // control anywhere -- grep interface_map.json for SLIDER|TRACK|THUMB|VOLUME and nothing comes back
-    // that is a VALUE affordance. A DWFUI sliderHtml would be a component with no native grammar to
-    // render, and inventing DF art for a control DF does not have is what the parity rules forbid.
-    // The mixer is a WIRED SUPERFEATURE (DF has no per-channel mixer), so it stays: declared, not
-    // dressed up. R7 does not flag type=range, and that is intentional.
+    // The five mixer sliders stay raw range inputs: DF has no continuous-value control, so a DWFUI
+    // sliderHtml would be a component with no native grammar to render.
     var slider = function (id, label, value) {
-      return '<div class="arow"><label>' + label + '</label>' +
+      return '<div class="audio-row"><label>' + label + '</label>' +
         '<input type="range" id="' + id + '" min="0" max="1" step="0.01" value="' + value + '"></div>';
     };
-    // The two binary toggles ARE native controls: checkHtml renders DF's own 2-state tile
-    // (SQUADS_SELECTED / SQUADS_NOT_SELECTED) -- and native renders a REAL TILE when unchecked too.
-    // `id="dfAudioMute"` is preserved on the host span: tools/ui-lab/stories.js drives the Studio's
-    // mute toggle with `target.closest("#dfAudioMute")`, and that file is forbidden to this lane.
     var muteCheck = '<span id="dfAudioMute" class="acheck">' + D.checkHtml({
       checked: !!mix.muted, cls: "amute", dataset: { audioCheck: "mute" },
       title: "Mute all audio", ariaLabel: "Mute all audio",
@@ -1045,17 +946,17 @@
       title: "UI click sounds", ariaLabel: "UI click sounds",
     });
     return D.headerHtml({ tag: "h4", titleTag: "span", title: "Audio & Music", titleCls: "audio-title", close: false }) +
-      '<div class="amsg" id="dfAudioMsg"' + (msg ? "" : ' style="display:none"') + '>' + D.esc(msg) + '</div>' +
-      '<div class="now" id="dfAudioNow"' + (now ? "" : ' style="display:none"') + '>' + D.esc(now) + '</div>' +
-      '<div class="arow"><label>Mute</label>' + muteCheck + '</div>' +
+      '<div class="audio-message' + (msg ? "" : " audio-hidden") + '" id="dfAudioMsg">' + D.esc(msg) + '</div>' +
+      '<div class="now' + (now ? "" : " audio-hidden") + '" id="dfAudioNow">' + D.esc(now) + '</div>' +
+      '<div class="audio-row"><label>Mute</label>' + muteCheck + '</div>' +
       slider("dfAudioMaster", "Master", mix.master) +
       slider("dfAudioMusic", "Music", mix.music) +
       slider("dfAudioAmbient", "Ambient", mix.ambient) +
       slider("dfAudioSfx", "Effects", mix.sfx) +
       slider("dfAudioUi", "UI", mix.ui) +
-      '<div class="arow">' + clicksCheck + '<span class="clicklbl">UI clicks (not in native DF)</span></div>' +
-      '<div id="dfAudioHost"' + (options.host === false ? ' style="display:none"' : "") + '><hr>' +
-      '<div class="arow music">' + trackCyclerHtml(pick) +
+      '<div class="audio-row">' + clicksCheck + '<span class="clicklbl">UI clicks (not in native DF)</span></div>' +
+      '<div id="dfAudioHost" class="' + (options.host === false ? "audio-hidden" : "") + '"><hr>' +
+      '<div class="audio-row music">' + trackCyclerHtml(pick) +
       D.plaqueBtnHtml({ label: "Play (all)", tone: "green", cls: "aplay",
         dataset: { audioAct: "play" }, title: "Play for everyone" }) +
       D.plaqueBtnHtml({ label: "Auto", tone: "grey", cls: "aauto",
@@ -1079,22 +980,16 @@
     if (typeof root.document === "undefined" || state.dom.btn) return;
     if (typeof root.DWFUI !== "undefined" && typeof root.DWFUI.require === "function")
       root.DWFUI.require("audio", ["headerHtml", "checkHtml", "cyclerHtml", "plaqueBtnHtml", "esc"]);
-    ensureStyle();
     var btn = root.document.createElement("button");
     btn.id = "audioBtn";
     btn.className = "square-button";
     btn.title = "Audio & music";
-    // *** DECLARED ART GAP -- NOT A TOKEN TO FABRICATE. *** This is the topbar speaker glyph. There
-    // is NO speaker / sound / volume / audio sprite anywhere in web/interface_map.json's 1,502 tokens
-    // (grep returns zero), because DF has no in-game audio control at all -- audio lives in its
-    // options screen, not on a toolbar. So there is nothing native to blit here, and minting a
-    // TOKENS key for art we do not have is precisely the invisible-hole failure dwfui_boot_test
-    // exists to catch. The character stays, and the gap is REPORTED rather than papered over.
-    // (It also sits on #topbar, a surface this lane does not own.)
+    // DECLARED ART GAP. DEF-015: interface_map.json has no speaker, sound, volume or audio sprite, because
+    // DF has no in-game audio control at all, so the character stays rather than minting a token we lack.
     btn.textContent = "🔊";   // speaker -- declared art gap, see above
     var chost = root.document.querySelector("#topbar .topbar-controls");
     if (chost) chost.appendChild(btn);
-    else { btn.style.cssText = "position:fixed;top:8px;right:8px;z-index:9101"; root.document.body.appendChild(btn); }
+    else { btn.classList.add("audio-btn-fallback"); root.document.body.appendChild(btn); }
     state.dom.btn = btn;
 
     var pop = root.document.createElement("div");
@@ -1115,21 +1010,22 @@
     });
     root.document.addEventListener("pointerdown", function (ev) {
       try { if (pop.classList.contains("open") && !ev.target.closest("#dfAudioPop,#audioBtn")) closePopover(); }
-      catch (_) {}
+      catch (err) { audioErr.report("audio.outside-click", err); }
     });
 
     function openPopover() {
       pop.classList.add("open");
-      try { if (root.DFPanelFrame) root.DFPanelFrame.syncOpenState("audio", true); } catch (_) {}
+      try { if (root.DFPanelFrame) root.DFPanelFrame.syncOpenState("audio", true); }
+      catch (err) { audioErr.report("audio.panel-open", err); }
     }
     function closePopover() {
-      try { if (root.DFPanelFrame) root.DFPanelFrame.syncOpenState("audio", false); } catch (_) {}
+      try { if (root.DFPanelFrame) root.DFPanelFrame.syncOpenState("audio", false); }
+      catch (err) { audioErr.report("audio.panel-close", err); }
       pop.classList.remove("open");
     }
 
-    // The five sliders keep their ids and their per-element `input` listeners: they are raw DOM
-    // controls BY DESIGN (see audioPanelMarkup), and refreshPopover never replaces them, so a drag
-    // is never interrupted by a re-render.
+    // The five sliders are raw DOM controls by design and refreshPopover never replaces them, so a drag is
+    // never interrupted by a re-render.
     function slider(id, ch) {
       pop.querySelector(id).addEventListener("input", function (e) {
         state.mix[ch] = clamp01(parseFloat(e.target.value), state.mix[ch]);
@@ -1139,15 +1035,13 @@
     slider("#dfAudioMaster", "master"); slider("#dfAudioMusic", "music");
     slider("#dfAudioAmbient", "ambient"); slider("#dfAudioSfx", "sfx"); slider("#dfAudioUi", "ui");
 
-    // The DWFUI controls (2 native check TILES, the track cycler, 2 plaques) are re-rendered in
-    // place by refreshPopover, so they are wired by DELEGATION on the popover -- a listener bound to
-    // a child would be thrown away the first time its markup refreshed. Same actions, same state,
-    // same POST /music body. setMuted() carries EXACTLY the old change-handler's side effects.
+    // The DWFUI controls are re-rendered in place, so they are wired by DELEGATION on the popover: a
+    // listener bound to a child would be thrown away the first time its markup refreshed.
     function setMuted(next) {
       state.mix.muted = !!next;
       applyMix(); saveMix();
       if (state.mix.muted) {
-        if (state.music) { try { state.music.pause(); } catch (_) {} }
+        if (state.music) { try { state.music.pause(); } catch (err) { audioErr.report("audio.music-pause", err); } }
         state.director.mode = "idle";
         silenceAmbience();
       } else { envTick(true); }
@@ -1180,9 +1074,7 @@
     if (!pop) return;
     try {
       var D = root.DWFUI;
-      // The two native check TILES are stateful ART, not a DOM `.checked` flag: refresh them by
-      // re-emitting checkHtml into their hosts. (The delegated click handler lives on `pop`, so
-      // replacing this markup never orphans a listener.)
+      // The native check tiles are stateful ART, not a DOM `.checked` flag: refresh by re-emitting checkHtml.
       var muteHost = pop.querySelector("#dfAudioMute");
       if (muteHost) muteHost.innerHTML = D.checkHtml({
         checked: !!state.mix.muted, cls: "amute", dataset: { audioCheck: "mute" },
@@ -1203,7 +1095,7 @@
       // Host gets the playlist; non-host sees only now-playing + personal mix. The cycler shows the
   
       var hostBox = pop.querySelector("#dfAudioHost");
-      if (hostBox) hostBox.style.display = isHost() ? "block" : "none";
+      if (hostBox) hostBox.classList.toggle("audio-hidden", !isHost());
       if (state.musicTrack) state.trackPick = normalizeTrackPick(state.musicTrack);
       var trackHost = pop.querySelector("#dfAudioTrack");
       if (trackHost && trackHost.parentNode)
@@ -1217,7 +1109,7 @@
           : "♪ Now playing: " + trackLabel(state.musicTrack);
       }
       now.textContent = nowText;
-      now.style.display = nowText ? "block" : "none";
+      now.classList.toggle("audio-hidden", !nowText);
 
       var msg = pop.querySelector("#dfAudioMsg"), text = "";
       if (!state.probed) text = "";
@@ -1225,8 +1117,8 @@
       else if (!state.allowed) text = "Host has not enabled remote audio — UI sounds only.";
       else if (!state.unlocked) text = "Click anywhere to enable sound.";
       msg.textContent = text;
-      msg.style.display = text ? "block" : "none";
-    } catch (_) {}
+      msg.classList.toggle("audio-hidden", !text);
+    } catch (err) { audioErr.report("audio.popover-refresh", err); }
   }
 
   // ---- click sounds on UI interaction (opt-in) ------------------------------------------------
@@ -1236,7 +1128,7 @@
         var t = ev.target && ev.target.closest && ev.target.closest("button,.square-button,[data-action]");
         if (!t) return;
         playClick(t.getAttribute && /confirm|play|ok/i.test(t.getAttribute("data-action") || "") ? "confirm" : "click");
-      } catch (_) {}
+      } catch (err) { audioErr.report("audio.click-handler", err); }
     }, true);
   }
 
@@ -1272,7 +1164,7 @@
     onPause: onPause,
     playClick: playClick,
     storyMarkup: audioPanelMarkup,
-    preparePreview: ensureStyle,
+    preparePreview: function () {},
     _state: state, _pure: PURE,
   };
 

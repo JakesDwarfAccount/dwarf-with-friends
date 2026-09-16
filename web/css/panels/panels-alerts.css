@@ -1,0 +1,148 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.alerts {
+  .alert-button {
+    width: calc(32px * var(--dwfui-interface-scale));
+    height: calc(32px * var(--dwfui-interface-scale));
+    display: grid;
+    place-items: center;
+    line-height: 0;
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    cursor: pointer;
+  }
+  .alert-button:hover,
+  .alert-button.pinned {
+    filter: brightness(1.25);
+  }
+  .alert-help {
+    color: var(--dwfui-text-prose);
+    margin-bottom: 8px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Legacy fixture-only alert-card controls. The shipping rail mounts only the decoded viewer. */
+  .alert-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+  }
+  .alert-popup-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .alert-popup-row + .alert-popup-row {
+    margin-top: 3px;
+  }
+  .alert-unit-line {
+    color: var(--dwfui-text-row);
+  }
+  .alerts-window .info-body {
+    overflow: auto;
+  }
+  #clientPanel.alertbox-panel > .pf-head {
+    display: none;
+  }
+  .alert-viewer-window,
+  .alert-viewer-window.dwfui-window {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+  .alert-popup-window {
+    width: 100%;
+    box-sizing: border-box;
+    padding: calc(2 * var(--dwfui-cell-drawn-h)) calc(2 * var(--dwfui-cell-drawn-w));
+    color: var(--dwfui-text-body);
+  }
+  .alert-viewer-instruction {
+    position: absolute;
+    left: calc(2 * var(--dwfui-cell-drawn-w));
+    top: calc(2 * var(--dwfui-cell-drawn-h));
+    height: var(--dwfui-cell-drawn-h);
+    line-height: var(--dwfui-cell-drawn-h);
+    color: var(--dwfui-text-body);
+    white-space: nowrap;
+  }
+  .alert-viewer-open-all-host {
+    position: absolute;
+    right: calc(3 * var(--dwfui-cell-drawn-w));
+    top: var(--dwfui-cell-drawn-h);
+    width: calc(3 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  /* EXPRESSED AS top+bottom, NOT top+height: the framework stamps `height: auto !important` on
+     whatever it designates, which collapses a top+height box to its content and kills scrolling. */
+  .alert-viewer-list {
+    position: absolute;
+    left: calc(2 * var(--dwfui-cell-drawn-w));
+    right: calc(3 * var(--dwfui-cell-drawn-w));
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    bottom: calc(2 * var(--dwfui-cell-drawn-h));
+    min-height: 0;
+  }
+  .alert-viewer-rows {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .alert-viewer-row {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    border: 0;
+    color: inherit;
+    text-align: left;
+    font: var(--dwfui-font);
+  }
+  .alert-viewer-unit {
+    cursor: pointer;
+  }
+  .alert-viewer-row .alert-line {
+    grid-column: 1;
+    min-width: 0;
+    line-height: var(--dwfui-cell-drawn-h);
+    width: calc(80 * var(--dwfui-cell-drawn-w));
+    max-width: 100%;
+  }
+  .alert-viewer-row > .dwfui-copy,
+  .alert-viewer-row > .dwfui-copy > .dwfui-label {
+    display: contents;
+  }
+  .alert-viewer-row .alert-line.dwfui-status--prose {
+    white-space: normal;
+  }
+}

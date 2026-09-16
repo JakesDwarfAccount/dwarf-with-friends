@@ -37,14 +37,11 @@ bool set_stockpile_link_on_core_thread(int32_t id, int32_t target_id, const std:
                                        bool on, std::string* err);
 bool finish_stockpile_repaint_on_core_thread(int32_t old_id, int32_t new_id,
                                              int32_t& final_id, std::string* err);
-// Exact-mask repaint support (mode=replace): carves the '0' cells of a row-major '0'/'1' bitmap
-// out of the freshly created replacement pile (carve-only; construct-time exclusions preserved).
-bool carve_stockpile_extent_mask_on_core_thread(int32_t id, int x1, int y1, int x2, int y2,
-                                                int z, const std::string& mask,
-                                                std::string* err);
+// `mask` is a row-major '0'/'1' bitmap over the x1..x2 / y1..y2 rect.
+bool apply_stockpile_repaint_in_place_on_core_thread(int32_t id, int x1, int y1, int x2, int y2,
+                                                     int z, const std::string& mask,
+                                                     std::string* err);
 
-// Registers this module's HTTP routes (moved verbatim from http_server.cpp's
-// register_routes monolith -- B212, 2026-07-13).
 void register_stockpile_routes(httplib::Server& server);
 
 } // namespace dwf

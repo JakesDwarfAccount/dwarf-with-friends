@@ -32,6 +32,7 @@
 #include "Core.h"
 #include "diagnostics.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 #include "write_guards.h"
 
@@ -50,6 +51,7 @@
 #include "df/abstract_building_type.h"
 #include "df/building.h"
 #include "df/building_cagest.h"
+#include "df/building_chainst.h"
 #include "df/building_item_role_type.h"
 #include "df/buildingitemst.h"
 #include "df/building_farmplotst.h"
@@ -75,6 +77,8 @@
 #include "df/item_seedsst.h"
 #include "df/item_verminst.h"
 #include "df/items_other_id.h"
+#include "df/job.h"
+#include "df/job_type.h"
 #include "df/historical_entity.h"
 #include "df/map_block.h"
 #include "df/plant_raw.h"
@@ -97,6 +101,7 @@
 #include <mutex>
 #include <new>
 #include <sstream>
+#include <string>
 
 using namespace DFHack;
 
@@ -107,10 +112,7 @@ std::recursive_mutex g_building_zone_mutex;
 
 template <typename Fn>
 bool run_building_zone_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> module_lock(g_building_zone_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_building_zone_mutex, std::forward<Fn>(fn));
 }
 
 struct FarmBiomeFlag {
@@ -118,8 +120,6 @@ struct FarmBiomeFlag {
     df::biome_type biome;
 };
 
-// This is the same raw-flag-to-biome map DFHack's autofarm plugin uses. Farm plots at
-// subterranean tiles are intentionally matched as SUBTERRANEAN_WATER, as the native UI does.
 constexpr FarmBiomeFlag kFarmBiomeFlags[] = {
     {df::plant_raw_flags::BIOME_MOUNTAIN, df::biome_type::MOUNTAIN},
     {df::plant_raw_flags::BIOME_GLACIER, df::biome_type::GLACIER},
@@ -310,28 +310,6 @@ bool set_door_passage_forbidden(df::building* b, bool forbidden) {
     return false;
 }
 
-// B251 -- WHICH ZONES TAKE SQUADS. Not a guess: DF enumerates this itself.
-//
-//   df::squad_selector_context_type  (library/xml/df.d_interface.xml:1421,
-//   bay12 original name SquadSelectorContextType) has EXACTLY TWO members:
-//       ZONE_BARRACKS_ASSIGNMENT       = 0
-//       ZONE_ARCHERY_RANGE_ASSIGNMENT  = 1
-//   and df::squad_selector_interfacest (same file, :1427 -- reached from
-//   game.main_interface.squad_selector) carries one {open, context, squad_id[], bld_id} for the
-//   blue-flag squad picker. That enum IS the rule: barracks + archery range is the COMPLETE set of
-//   squad-assignable zone types. There is no third one we are still missing.
-//
-// The storage is identical for both: building_civzonest.squad_room_info (df.building.xml:1083)
-// back-to-back with squad.rooms (df.squad.xml:323), each entry one squad_use_flags bitfield
-// {sleep, train, indiv_eq, squad_eq} (df.squad.xml:243). DFHack's Military::updateRoomAssignments
-// (library/modules/Military.cpp:238) -- which zone_squad_action_on_core_thread already calls --
-// takes a plain building_civzonest and never looks at civzone_type. DF's tooltip table agrees: one
-// shared ZONE_ASSIGN_SQUAD hover instruction and one shared BARRACKS_SQUAD_{SLEEP,TRAIN,INDIV_EQ,
-// SQUAD_EQ} set, with no archery-specific variants.
-//
-// So the ONLY thing that ever blocked archery-range squad assignment was the two `type != Barracks`
-// early-returns in this file. They are now this one predicate, shared by the read route and the
-// write route (the B152 lesson: a read-only fix would render the button and 400 on the click).
 bool zone_accepts_squad_assignments(const df::building_civzonest* z) {
     if (!z)
         return false;
@@ -376,12 +354,6 @@ df::abstract_building* find_site_location(int32_t site_id, int32_t location_id) 
     return nullptr;
 }
 
-// B276 -- native location mechanics that the older Lua payload did not expose. df-structures:
-// abstract_building.flags is the four-state access model; getContents() owns tier/value and the
-// stored/desired instrument counters. Thresholds are fort settings, not constants
-// (plotinfo.main.custom_difficulty). The structures do NOT establish that abstract_building's
-// `inhabitants` vector is native's worshipper count or that BOX entries in `item_id` are native's
-// "Chests in common area" count, so neither derivation is exposed as an observed number.
 std::string location_native_detail_json(int32_t location_id) {
     std::string json;
     const bool access_guard = hostwrite_flag_enabled_via_lua("location_access");
@@ -404,9 +376,7 @@ std::string location_native_detail_json(int32_t location_id) {
         std::string tier_storage = abstract_location_type_label(loc);
         if (temple && plotinfo) {
             const auto& difficulty = plotinfo->main.custom_difficulty;
-            // df.agreement.xml pins the enum meaning: 1 = temple, 2 = temple complex. Zero is the
-            // pre-recognition shrine shown by native. The value selects the NEXT live threshold;
-            // it does not replace the authoritative location_tier field.
+            // location_tier: 0 = shrine (pre-recognition), 1 = temple, 2 = temple complex.
             if (contents->location_tier <= 0) {
                 tier_storage = "Shrine";
                 next_value = difficulty.temple_value;
@@ -427,8 +397,7 @@ std::string location_native_detail_json(int32_t location_id) {
             << ",\"countInstruments\":" << contents->count_instruments
             << ",\"desiredInstruments\":" << contents->desired_instruments
             << ",\"worshippersVerified\":false,\"chestsVerified\":false"
-            // DFHack 53.15 exposes no saved/transient dance-floor field or native computation.
-            // Do not turn a civzone bounding box into a made-up gameplay result.
+            // No DF field records a dance floor: never derive one from the zone's bounding box.
             << ",\"danceFloorKnown\":false}";
         json = out.str();
         return true;
@@ -810,6 +779,25 @@ bool cage_unit_is_candidate(df::unit* unit, bool assigned_here) {
            unit_contained_in_item(unit) || unit_in_built_cage(unit);
 }
 
+bool restraint_unit_is_candidate(df::unit* unit, bool assigned_here) {
+    if (!unit)
+        return false;
+    if (assigned_here)
+        return true;
+    if (!Units::isActive(unit) || Units::isDead(unit) ||
+        unit->flags2.bits.locked_in_for_trading)
+        return false;
+    if (unit->training_level != df::animal_training_level::WildUntamed)
+        return true;
+    if (!Units::isOwnCiv(unit))
+        return !unit->flags1.bits.caged;
+    // enemy.caste_flags is DF's transformed caste-flag cache, so this follows a transformation
+    // rather than the creature's birth raw.
+    if (unit->uwss_att_change)
+        return false;
+    return !unit->enemy.caste_flags.is_set(df::caste_raw_flags::CAN_SPEAK);
+}
+
 std::vector<std::string> zone_unit_flags(df::unit* unit, bool assigned_here,
                                          bool assigned_elsewhere) {
     std::vector<std::string> flags;
@@ -950,14 +938,6 @@ bool build_zone_snapshot(const Camera& camera, ZoneSnapshot& snapshot, int req_w
         return false;
     }
     snapshot.camera = camera;
-    // Viewport-cull scope: prefer the requesting client's rendered tile window (req_w/req_h --
-    // the same camera-relative w/h /mapdata scopes its tile payload to) so the zone list is
-    // scoped to what the client can actually see, matching how world_stream.cpp filters the
-    // buildings/units AUX payloads to each connection's interest window. When the client is
-    // zoomed in, its window is far smaller than DF's native viewport (the prior scope) -- e.g.
-    // a 40x30 view inside a 130x100 native window pulled in every zone across the whole native
-    // window, re-serializing each one's full extents bitmap every 1s poll. Fall back to the
-    // native viewport dims when no client window is given (req_w/h <= 0).
     if (req_w > 0 && req_h > 0) {
         snapshot.viewport_w = req_w;
         snapshot.viewport_h = req_h;
@@ -966,8 +946,7 @@ bool build_zone_snapshot(const Camera& camera, ZoneSnapshot& snapshot, int req_w
         return false;
     }
 
-    // One block of pan slack on every side so a zone scrolling into view doesn't pop in a frame
-    // late between polls (the client re-fetches /zones on every camera move AND on a 1s timer).
+    // One map block of pan slack, so a zone scrolling into view is already in the last payload.
     constexpr int kZoneCullMargin = 16;
     int vx1 = camera.x - kZoneCullMargin;
     int vy1 = camera.y - kZoneCullMargin;
@@ -1036,9 +1015,6 @@ int count_owned_zones_of_type(df::unit* unit, df::civzone_type type, df::buildin
 
 } // namespace
 
-// B224: the zone-type -> activity_zones.png cell derivation the zone palette / Places rows already
-// use (zone_type_meta), exported for /tile-occupants (interaction.cpp) so the occupant rail paints
-// the same art channel. Returns false for a non-civzone building.
 bool zone_icon_cell(df::building* building, int& x, int& y) {
     auto zone = virtual_cast<df::building_civzonest>(building);
     if (!zone)
@@ -1065,10 +1041,6 @@ bool building_info_on_core_thread(int32_t id, BuildingPanelInfo& out) {
         for (auto* job : b->jobs) {
             if (!job)
                 continue;
-            // df-structures: df.job.xml declares DestroyBuilding as the building-removal job;
-            // df.reference.xml declares its UNIT_WORKER general ref. Job::getWorker resolves that
-            // ref, so this distinguishes queued/no-worker from assigned/active without guessing
-            // from timers or UI state.
             if (job->job_type == df::job_type::DestroyBuilding) {
                 out.removal_active = out.removal_active || Job::getWorker(job) != nullptr;
                 out.removal_status = "Slated for removal";
@@ -1077,10 +1049,10 @@ bool building_info_on_core_thread(int32_t id, BuildingPanelInfo& out) {
             if (job->flags.bits.suspend)
                 suspended = true;
             if (job->flags.bits.do_now)
-                do_now = true;   // B121: construction is prioritized ("make priority" state)
+                do_now = true;   // Construction is prioritized ("make priority" state)
         }
-        // B286-1 establishes this exact inactive wording. The active wording has not been
-        // captured, so expose the state boolean but do not invent native copy for it.
+        // "inactive" is native's established word; native's ACTIVE-removal wording is still
+        // unknown, so that branch ships the boolean and never invented copy.
         if (out.marked && !out.removal_active)
             out.removal_activity_status = "Removal inactive.";
         out.has_jobs = any_job;
@@ -1090,6 +1062,7 @@ bool building_info_on_core_thread(int32_t id, BuildingPanelInfo& out) {
                                                      out.passage_closed);
         out.is_depot = virtual_cast<df::building_tradedepotst>(b) != nullptr;
         out.is_farm_plot = virtual_cast<df::building_farmplotst>(b) != nullptr;
+        out.is_restraint = virtual_cast<df::building_chainst>(b) != nullptr;
         auto type = b->getType();
         if (type == df::building_type::Bed || type == df::building_type::Armorstand ||
             type == df::building_type::Weaponrack) {
@@ -1105,11 +1078,6 @@ bool building_info_on_core_thread(int32_t id, BuildingPanelInfo& out) {
             out.cage_assigned_units = static_cast<int>(cage->assigned_units.size());
             out.cage_assigned_items = static_cast<int>(cage->assigned_items.size());
         }
-        // B246: THE FIX FOR BOTH HALVES OF THE STATUE COMPLAINT, in one line. building_art()
-        // walks to the contained df::item_statuest and returns its DF-sourced composed body AND the
-        // item's spriteRef. Both were absent from this panel for the same reason -- nobody ever
-        // looked past the building at the item it is made of. Mute (present==false) for buildings
-        // whose contained item has no art, so nothing else in this panel changes.
         out.art = building_art(b);
         return true;
     });
@@ -1123,11 +1091,6 @@ bool building_action_on_core_thread(int32_t id, const std::string& action, std::
             return false;
         }
         if (action == "cancel-removal") {
-            // Resolve the job while capture_state_mutex + CoreSuspender are held. It may have
-            // completed or been cancelled between the panel read and this click; in that case we
-            // fail without touching the building or any stale pointer. removeJob delegates to DF's
-            // own cancel_job handler and performs the required reference cleanup (DFHack
-            // library/modules/Job.cpp), rather than deleting a DF-owned job directly.
             for (auto* job : b->jobs) {
                 if (job && job->job_type == df::job_type::DestroyBuilding)
                     return Job::removeJob(job);
@@ -1136,12 +1099,15 @@ bool building_action_on_core_thread(int32_t id, const std::string& action, std::
             return false;
         }
         if (action == "cancel" || action == "remove" || action == "deconstruct") {
-            // Generic remove frees ANY building type, so any v50 interface caching THIS building
-            // (job_details.bld, a trade depot in trade/assign_trade, display furniture in
-            // buildjob/assign_display_item, ...) would dangle across the free exactly as the
-            // stockpile/zone caches did. Purge under this CoreSuspender before Buildings::deconstruct.
             purge_ui_caches_for_building(b);
-            return Buildings::deconstruct(b);
+            // A finished building is only QUEUED for destruction, and deconstruct returns false
+            // for that, so markedForRemoval is the verdict; on a true return `b` is already freed.
+            if (Buildings::deconstruct(b))
+                return true;
+            if (Buildings::markedForRemoval(b))
+                return true;
+            if (err) *err = "building could not be removed";
+            return false;
         }
         if (action == "suspend" || action == "resume") {
             bool suspend = action == "suspend";
@@ -1156,9 +1122,6 @@ bool building_action_on_core_thread(int32_t id, const std::string& action, std::
                 *err = "no construction job to " + action;
             return changed;
         }
-        // B121: "make priority" on a pending construction -- toggle do_now (DF's native "do this
-        // task now" flag, the same bit the workshop task "!" sets) on the building's pending jobs.
-        // Additive action; suspend/resume/remove behavior is unchanged.
         if (action == "priority") {
             bool any_job = false;
             bool current = false;
@@ -1201,10 +1164,6 @@ bool building_action_on_core_thread(int32_t id, const std::string& action, std::
     });
 }
 
-// B13-rename: set (or clear, when `name` is empty) a building's custom name -- the same
-// df::building::name field DF's own "rename building" writes. Buildings::getName() returns this
-// custom name when non-empty, else the generated type name, so a subsequent /workshop-info reads
-// it straight back. Read-modify-write of one std::string field; no allocation of DF structs.
 bool building_rename_on_core_thread(int32_t id, const std::string& name, std::string* err) {
     return run_building_zone_locked([&]() -> bool {
         auto b = df::building::find(id);
@@ -1226,7 +1185,7 @@ std::string building_info_json(const BuildingPanelInfo& b) {
        << ",\"built\":" << (b.built ? "true" : "false")
        << ",\"hasJobs\":" << (b.has_jobs ? "true" : "false")
        << ",\"suspended\":" << (b.suspended ? "true" : "false")
-       << ",\"doNow\":" << (b.do_now ? "true" : "false")   // B121 additive: priority state
+       << ",\"doNow\":" << (b.do_now ? "true" : "false")
        << ",\"marked\":" << (b.marked ? "true" : "false")
        << ",\"markedForRemoval\":" << (b.marked ? "true" : "false")
        << ",\"removalActive\":" << (b.removal_active ? "true" : "false")
@@ -1237,13 +1196,12 @@ std::string building_info_json(const BuildingPanelInfo& b) {
        << ",\"passageClosed\":" << (b.passage_closed ? "true" : "false")
        << ",\"isDepot\":" << (b.is_depot ? "true" : "false")
        << ",\"isCage\":" << (b.is_cage ? "true" : "false")
+       << ",\"isRestraint\":" << (b.is_restraint ? "true" : "false")
        << ",\"isFarmPlot\":" << (b.is_farm_plot ? "true" : "false")
        << ",\"barracksZoneId\":" << b.barracks_zone_id
        << ",\"cageAssignedUnits\":" << b.cage_assigned_units
        << ",\"cageAssignedItems\":" << b.cage_assigned_items;
-    // B246: appends ",\"artDescription\":...,\"artName\":...,\"spriteRef\":{...}" -- and appends
-    // NOTHING when the building has no art-bearing item, so every existing /building-info consumer
-    // (and every pinned fixture of one) sees a byte-identical body.
+    // Appends nothing at all when the building has no art-bearing contained item.
     append_item_art_json(js, b.art);
     js << "}";
     return js.str();
@@ -1428,6 +1386,199 @@ bool building_cage_action_on_core_thread(int32_t building_id, int32_t target_id,
     });
 }
 
+std::string building_restraint_json_on_core_thread(int32_t building_id, std::string* err) {
+    std::string json;
+    bool ok = run_building_zone_locked([&]() -> bool {
+        auto restraint = virtual_cast<df::building_chainst>(df::building::find(building_id));
+        if (!restraint) {
+            if (err) *err = "building is not a chain or restraint";
+            return false;
+        }
+        if (restraint->getBuildStage() < restraint->getMaxBuildStage()) {
+            if (err) *err = "chain or restraint is not built";
+            return false;
+        }
+        auto world = df::global::world;
+        if (!world) {
+            if (err) *err = "world unavailable";
+            return false;
+        }
+
+        std::vector<ZoneUnitRow> rows;
+        // units.all, not units.active: a stale current assignment must stay visible.
+        rows.reserve(world->units.all.size());
+        for (auto unit : world->units.all) {
+            if (!unit)
+                continue;
+            bool assigned_here = restraint->assigned == unit;
+            if (!restraint_unit_is_candidate(unit, assigned_here))
+                continue;
+            ZoneUnitRow row;
+            row.id = unit->id;
+            row.name = Units::getReadableName(unit);
+            if (row.name.empty())
+                row.name = Units::getRaceName(unit);
+            row.race = Units::getRaceName(unit);
+            row.profession_color = Units::getProfessionColor(unit);
+            if (unit->sex == df::pronoun_type::she)
+                row.sex = "female";
+            else if (unit->sex == df::pronoun_type::he)
+                row.sex = "male";
+            row.assigned = assigned_here;
+            if (!assigned_here) {
+                for (auto other : world->buildings.other.CHAIN) {
+                    if (other && other != restraint && other->assigned == unit) {
+                        row.assigned_elsewhere = true;
+                        break;
+                    }
+                }
+            }
+            row.flags = zone_unit_flags(unit, row.assigned, row.assigned_elsewhere);
+            if (unit->relationship_ids[df::unit_relationship_type::PetOwner] != -1)
+                row.flags.push_back("has owner");
+            rows.push_back(std::move(row));
+        }
+
+        std::sort(rows.begin(), rows.end(), [](const ZoneUnitRow& a, const ZoneUnitRow& b) {
+            if (a.name != b.name)
+                return a.name < b.name;
+            return a.id < b.id;
+        });
+
+        static constexpr const char* kWriteReason =
+            "Assign to this restraint: clears the creature's activity-zone assignments, releases "
+            "it from every other chain or restraint (cancelling their pending chain work), then "
+            "sets this restraint's assignment. Dwarf Fortress queues the chaining job itself.";
+        std::ostringstream js;
+        js << "{\"id\":" << restraint->id
+           << ",\"name\":" << json_string(Buildings::getName(restraint))
+           << ",\"assignedUnitId\":" << (restraint->assigned ? restraint->assigned->id : -1)
+           << ",\"chainedUnitId\":" << (restraint->chained ? restraint->chained->id : -1)
+           << ",\"assignmentWriteEnabled\":true"
+           << ",\"assignmentWriteReason\":" << json_string(kWriteReason)
+           << ",\"units\":[";
+        for (size_t i = 0; i < rows.size(); ++i) {
+            const auto& row = rows[i];
+            if (i) js << ",";
+            js << "{\"id\":" << row.id
+               << ",\"name\":" << json_string(row.name)
+               << ",\"race\":" << json_string(row.race)
+               << ",\"sex\":" << json_string(row.sex)
+               << ",\"professionColor\":" << static_cast<int>(row.profession_color)
+               << ",\"assigned\":" << (row.assigned ? "true" : "false")
+               << ",\"assignedElsewhere\":" << (row.assigned_elsewhere ? "true" : "false")
+               << ",\"flags\":";
+            append_json_string_array(js, row.flags);
+            js << "}";
+        }
+        js << "]}";
+        json = js.str();
+        return true;
+    });
+    return ok ? json : "";
+}
+
+namespace {
+
+// Job::removeJob unlinks the job's item and worker references, so never hand-erase
+// building->jobs; it also mutates that vector, which is why the scan restarts after a removal.
+int cancel_building_jobs_of_type(df::building* building, df::job_type type) {
+    if (!building)
+        return 0;
+    int cancelled = 0;
+    for (bool again = true; again;) {
+        again = false;
+        for (auto* job : building->jobs) {
+            if (!job || job->job_type != type)
+                continue;
+            if (!Job::removeJob(job))
+                continue;
+            ++cancelled;
+            again = true;
+            break;
+        }
+    }
+    return cancelled;
+}
+
+std::string restraint_mutation_audit(df::building_chainst* restraint, const char* phase,
+                                     int32_t unit_id) {
+    std::ostringstream out;
+    out << "RESTRAINT-AUDIT phase=" << phase
+        << " restraint=" << (restraint ? restraint->id : -1)
+        << " target=" << unit_id
+        << " assigned=" << (restraint && restraint->assigned ? restraint->assigned->id : -1)
+        << " chained=" << (restraint && restraint->chained ? restraint->chained->id : -1);
+    return out.str();
+}
+
+} // namespace
+
+bool building_restraint_action_on_core_thread(int32_t building_id, int32_t unit_id,
+                                              std::string* err) {
+    return run_building_zone_locked([&]() -> bool {
+        auto restraint = virtual_cast<df::building_chainst>(df::building::find(building_id));
+        if (!restraint) {
+            if (err) *err = "building is not a chain or restraint";
+            return false;
+        }
+        if (restraint->getBuildStage() < restraint->getMaxBuildStage()) {
+            if (err) *err = "chain or restraint is not built";
+            return false;
+        }
+        auto world = df::global::world;
+        if (!world) {
+            if (err) *err = "world unavailable";
+            return false;
+        }
+        if (unit_id < 0) {
+            if (err) *err = "clearing a restraint assignment is not supported";
+            return false;
+        }
+        auto unit = df::unit::find(unit_id);
+        if (!unit) {
+            if (err) *err = "creature not found";
+            return false;
+        }
+        const bool assigned_here = restraint->assigned == unit;
+        if (!restraint_unit_is_candidate(unit, assigned_here)) {
+            diagnostics_log(restraint_mutation_audit(restraint, "reject", unit_id) +
+                            " reason=not-a-candidate");
+            if (err) *err = "creature is not assignable to this restraint";
+            return false;
+        }
+
+        diagnostics_log(restraint_mutation_audit(restraint, "before", unit_id));
+
+        remove_unit_from_built_cages(unit);
+
+        remove_unit_zone_assignments(unit);
+
+        for (auto other : world->buildings.other.CHAIN) {
+            if (!other || other == restraint || other->assigned != unit)
+                continue;
+            other->assigned = nullptr;
+            const int cancelled = cancel_building_jobs_of_type(other, df::job_type::ChainAnimal);
+            diagnostics_log(restraint_mutation_audit(other, "clear-competing", unit_id) +
+                            " cancelledChainAnimal=" + std::to_string(cancelled));
+        }
+
+        // Cancel the queued release, or the animal is unchained again right away.
+        if (restraint->chained == unit) {
+            const int cancelled =
+                cancel_building_jobs_of_type(restraint, df::job_type::UnchainAnimal);
+            diagnostics_log(restraint_mutation_audit(restraint, "cancel-unchain", unit_id) +
+                            " cancelledUnchainAnimal=" + std::to_string(cancelled));
+        }
+
+        // Write `assigned` last, and never `chained`: DF's chain update owns the reconciliation.
+        restraint->assigned = unit;
+
+        diagnostics_log(restraint_mutation_audit(restraint, "after", unit_id));
+        return true;
+    });
+}
+
 std::string farm_plot_json_on_core_thread(int32_t building_id, std::string* err) {
     std::string json;
     bool ok = run_building_zone_locked([&]() -> bool {
@@ -1570,8 +1721,6 @@ bool zone_info_on_core_thread(int32_t id, ZonePanelInfo& out) {
         out.is_pit_pond = z->type == df::civzone_type::Pond;
         out.is_pen = z->type == df::civzone_type::Pen;
         out.is_barracks = z->type == df::civzone_type::Barracks;
-        // B251: the squad count (and the blue-flag control it feeds) belongs to EVERY zone DF lets
-        // you assign squads to, not just barracks. See zone_accepts_squad_assignments above.
         out.can_squads = zone_accepts_squad_assignments(z);
         if (out.can_squads) {
             for (auto room : z->squad_room_info)
@@ -1595,8 +1744,6 @@ bool zone_info_on_core_thread(int32_t id, ZonePanelInfo& out) {
                 out.location_id = loc->id;
                 out.location_name = abstract_location_name(loc);
                 out.location_type = abstract_location_type_label(loc);
-                // Wave 3.3: flag a hospital location so the client delegates to the hospital panel
-                // (parallels isDepot on /building-info). The hospital module reads by this id.
                 if (loc->getType() == df::abstract_building_type::HOSPITAL) {
                     out.is_hospital = true;
                     out.hospital_location_id = loc->id;
@@ -1638,16 +1785,8 @@ bool zone_action_on_core_thread(int32_t id, const std::string& action, std::stri
             return true;
         }
         if (action == "remove" || action == "cancel" || action == "deconstruct") {
-            // B34 (W23), now generalized: Buildings::deconstruct frees the zone but clears only
-            // the PRE-v50 selection (world->selected_building + ui_look_list). The v50 zone UI
-            // keeps its own raw-pointer caches -- game.main_interface.civzone.cur_bld / .list /
-            // .zone_just_created (df.d_interface.xml:464-467) -- which deconstruct never touches.
-            // The B34 repro (make a zone in NATIVE DF, delete it from the browser, crash) is
-            // exactly the case where the native zone UI still holds the pointer: DF then walks a
-            // freed zone on its next frame. purge_ui_caches_for_building() is the shared superset
-            // of the old inline civzone purge (see src/ui_cache_purge.cpp) -- it clears the same
-            // three civzone fields plus every other v50 building-pointer cache, closing the whole
-            // dump-proven UAF class in one place. Purge BEFORE the free, under this CoreSuspender.
+            // game.main_interface.civzone holds raw zone pointers that Buildings::deconstruct
+            // never clears, so DF walks a freed zone next frame unless this purge runs first.
             purge_ui_caches_for_building(z);
             return Buildings::deconstruct(z);
         }
@@ -1755,8 +1894,7 @@ std::string zone_squads_json_on_core_thread(int32_t zone_id, std::string* err) {
                 continue;
             df::squad_use_flags flags;
             bool found = false;
-            // squad.rooms is the authoritative forward link. The building-side fallback keeps
-            // a partially repaired/native zero-mode backref visible without mutating on read.
+            // squad.rooms is the authoritative forward link; the building side is the fallback.
             for (auto room : squad->rooms) {
                 if (room && room->building_id == zone->id) {
                     flags = room->mode;
@@ -2374,16 +2512,14 @@ bool apply_zone_repaint_in_place_on_core_thread(int32_t id, const ZoneRepaintPla
             return false;
         }
 
-        // Allocate and fully initialize before touching DF state. Allocation failure propagates
-        // without changing the zone; zero entries deliberately preserve native-shaped holes.
+        // `next` is allocated and filled before any DF field moves, so a failure changes nothing.
         std::unique_ptr<df::building_extents_type[]> next(
             new (std::nothrow) df::building_extents_type[static_cast<size_t>(cells)]);
         if (!next) {
             if (err) *err = "not enough memory to repaint zone safely";
             return false;
         }
-        // DFHack's abstract-building initializer uses extent value 1 for every included tile;
-        // the generated enum calls that value Stockpile even though civzones use it too.
+        // Extents value Stockpile (1) marks an included tile even for a civzone; None (0) is a hole.
         for (size_t i = 0; i < static_cast<size_t>(cells); ++i)
             next[i] = plan.extents[i] ? df::building_extents_type::Stockpile
                                       : df::building_extents_type::None;
@@ -2402,8 +2538,6 @@ bool apply_zone_repaint_in_place_on_core_thread(int32_t id, const ZoneRepaintPla
         zone->centery = plan.new_y1 + height / 2;
         delete[] old_extents;
 
-        // The zone object, id and every assignment/link remain stable. Refresh the building-zone
-        // relation cache against the new shaped footprint, then the occupant/pathing caches.
         Buildings::notifyCivzoneModified(zone);
         mark_zone_occupants_dirty(zone);
         if (df::global::world)
@@ -2412,17 +2546,10 @@ bool apply_zone_repaint_in_place_on_core_thread(int32_t id, const ZoneRepaintPla
     });
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// -------------------------------------------------------------------------------- HTTP routes
 void register_building_zone_routes(httplib::Server& server) {
-    // POST /zone-repaint supports the exact world-addressed mode=replace bitmap used by the
-    // staged native client, plus legacy camera-relative mode=erase|add rectangles. Figure out the
-    // resulting footprint, then apply it IN PLACE. Never replace/delete the zone: native DF retains
-    // owner/location/squad references to civzone objects, and deleting one during repaint can
-    // leave a dangling reference that crashes the simulation after this request returns.
+    // Never replace or delete the zone here: native DF holds owner/location/squad references to
+    // the civzone object, and a dangling one crashes the simulation after this request returns.
     auto zone_repaint_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         int id = -1;
@@ -2452,16 +2579,12 @@ void register_building_zone_routes(httplib::Server& server) {
                 return;
             }
         } else {
-            int px = 0, py = 0, frame_w = 0, frame_h = 0;
-            if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-                    !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+            int px = 0, py = 0, px2 = 0, py2 = 0, frame_w = 0, frame_h = 0;
+            if (!parse_frame_rect(req, px, py, px2, py2, frame_w, frame_h)) {
                 res.status = 400;
                 res.set_content("missing px/py/w/h\n", "text/plain; charset=utf-8");
                 return;
             }
-            int px2 = px, py2 = py;
-            query_int(req, "px2", px2);
-            query_int(req, "py2", py2);
 
             Camera camera;
             if (!camera_for_player(player, camera, &err)) {
@@ -2469,10 +2592,8 @@ void register_building_zone_routes(httplib::Server& server) {
                 res.set_content("camera failed: " + err + "\n", "text/plain; charset=utf-8");
                 return;
             }
-            normalize_frame_to_viewport(camera, frame_w, frame_h);   // no-op -- see its own banner
+            normalize_frame_to_viewport(camera, frame_w, frame_h);
 
-            // Legacy camera-relative rectangle route. The native staged client uses the exact
-            // world-addressed bitmap route above; this stays for older clients.
             {
                 int probe_w = 0, probe_h = 0;
                 std::string probe_err;
@@ -2535,9 +2656,6 @@ void register_building_zone_routes(httplib::Server& server) {
             res.set_content("camera failed: " + err + "\n", "text/plain; charset=utf-8");
             return;
         }
-        // WD/zone-cull: honor the client's rendered tile-window dims (same &w=&h= contract as
-        // /mapdata) so the zone snapshot is scoped to the requesting viewport + margin instead
-        // of DF's whole native viewport. Absent/invalid -> 0 -> server falls back to native dims.
         int req_w = 0, req_h = 0;
         query_int(req, "w", req_w);
         query_int(req, "h", req_h);
@@ -2567,9 +2685,7 @@ void register_building_zone_routes(httplib::Server& server) {
                             "application/json; charset=utf-8");
             return;
         }
-        // B288/B289 round 4: resident art and in-memory bank hits were resolved under the normal
-        // core-thread snapshot. A cold miss lets DF compose its own item sheet offscreen here,
-        // outside CoreSuspender; failure leaves today's title/base-name/sprite fallback untouched.
+        // A cold art miss composes DF's own item sheet here, outside the CoreSuspender.
         if (info.art.present && info.art.description.empty())
             complete_item_art_prose(info.art);
         res.set_header("Cache-Control", "no-store");
@@ -2639,6 +2755,49 @@ void register_building_zone_routes(httplib::Server& server) {
     };
     server.Get("/building-cage-action", building_cage_action_handler);
     server.Post("/building-cage-action", building_cage_action_handler);
+
+    server.Get("/building-restraint", [](const httplib::Request& req, httplib::Response& res) {
+        int id = -1;
+        if (!query_int(req, "id", id)) {
+            res.status = 400;
+            res.set_content("missing id\n", "text/plain; charset=utf-8");
+            return;
+        }
+        std::string err;
+        std::string json = building_restraint_json_on_core_thread(id, &err);
+        if (json.empty()) {
+            res.status = 400;
+            res.set_content("building restraint failed: " + err + "\n",
+                            "text/plain; charset=utf-8");
+            return;
+        }
+        res.set_header("Cache-Control", "no-store");
+        res.set_content(json + "\n", "application/json; charset=utf-8");
+    });
+
+    auto building_restraint_action_handler = [](const httplib::Request& req,
+                                                httplib::Response& res) {
+        int id = -1;
+        int unit = -1;
+        if (!query_int(req, "id", id) || !query_int(req, "unit", unit)) {
+            res.status = 400;
+            res.set_content("missing id/unit\n", "text/plain; charset=utf-8");
+            return;
+        }
+        std::string err;
+        if (!building_restraint_action_on_core_thread(id, unit, &err)) {
+            res.status = 400;
+            res.set_header("Cache-Control", "no-store");
+            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+        notify_player_input();
+        res.set_header("Cache-Control", "no-store");
+        res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
+    };
+    server.Get("/building-restraint-action", building_restraint_action_handler);
+    server.Post("/building-restraint-action", building_restraint_action_handler);
 
     server.Get("/farm-plot", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
@@ -2762,8 +2921,6 @@ void register_building_zone_routes(httplib::Server& server) {
     server.Get("/memorial-slab", memorial_slab_handler);
     server.Post("/memorial-slab", memorial_slab_handler);
 
-    // B13-rename: set a building's custom name (df::building::name -- same field DF's own rename
-    // writes; empty `name` clears it back to the generated type name). Additive JSON route.
     auto workshop_rename_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) {
@@ -2785,8 +2942,7 @@ void register_building_zone_routes(httplib::Server& server) {
     };
     server.Get("/workshop-rename", workshop_rename_handler);
     server.Post("/workshop-rename", workshop_rename_handler);
-    // B166: civzones use the same df::building::name field; keep a semantic additive alias so
-    // the barracks room's native quill does not depend on a workshop-named endpoint.
+    // /zone-rename is an alias: civzones use the same df::building::name field.
     server.Get("/zone-rename", workshop_rename_handler);
     server.Post("/zone-rename", workshop_rename_handler);
 
@@ -2899,9 +3055,6 @@ void register_building_zone_routes(httplib::Server& server) {
     server.Get("/workshop-workers-clear", workshop_workers_clear_handler);
     server.Post("/workshop-workers-clear", workshop_workers_clear_handler);
 
-    // TRUEMENU WP-3: write one Workers-tab profile control (skill min/max, max general orders,
-    // blocked labors, general-order ban). ONE field per call; the lua clamps every value to a legal
-    // range, so an out-of-range field/value returns 400 rather than corrupting the profile.
     auto workshop_profile_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         int value = 0;
@@ -2950,16 +3103,6 @@ void register_building_zone_routes(httplib::Server& server) {
             return;
         }
         std::string action = req.has_param("action") ? req.get_param_value("action") : "";
-        // Zone removal is OPEN TO EVERY AUTHENTICATED PLAYER (owner policy 2026-07-16: this is a
-        // small-group co-op product on private links, not an anti-griefing surface -- there is no
-        // host-only gate on destructive play actions). The old `zone_remove` fail-closed guard was
-        // a griefing-protection gate and has been removed. What made removal SAFE is retained and
-        // is the reason it can ship to everyone: zone_action_on_core_thread runs under CoreSuspender,
-        // purges the v50 zone-UI pointer caches (game.main_interface.civzone cur_bld/list/
-        // zone_just_created -- the B34 dangling-pointer fix) BEFORE the free, and frees the zone via
-        // Buildings::deconstruct (the native/DFHack civzone destructor that clears assignments and
-        // location links the native way). Unauthenticated callers are still refused upstream by the
-        // join-auth catch-all, exactly like every other mutation route.
         std::string err;
         if (!zone_action_on_core_thread(id, action, &err)) {
             res.status = 400;
@@ -3139,10 +3282,7 @@ void register_building_zone_routes(httplib::Server& server) {
     server.Get("/zone-location-action", zone_location_action_handler);
     server.Post("/zone-location-action", zone_location_action_handler);
 
-    // B229 -- Places > Locations depth. Both take a LOCATION id (df::abstract_building::id,
-    // site-local), not a zone id: the detail panel is reachable from the Places > Locations tab,
-    // where the row has no zone. All logic is in dwf.lua (location_detail_json /
-    // location_action); this is only the transport.
+    // These take a LOCATION id (df::abstract_building::id, site-local), never a zone id.
     server.Get("/location-detail", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) {
@@ -3157,9 +3297,6 @@ void register_building_zone_routes(httplib::Server& server) {
             res.set_content("location detail failed: " + err + "\n", "text/plain; charset=utf-8");
             return;
         }
-        // Additive B276 payload: preserve B229's Lua-owned shape and append the fields whose source
-        // of truth is the generated C++ structures. A missing native fragment is an honest partial
-        // response; the established location panel still remains usable.
         std::string native = location_native_detail_json(id);
         if (!native.empty() && !json.empty() && json.back() == '}') {
             json.pop_back();

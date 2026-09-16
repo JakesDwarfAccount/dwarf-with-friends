@@ -24,6 +24,7 @@
 #include "MiscUtils.h"
 
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <iomanip>
 
@@ -37,17 +38,8 @@ bool query_int(const httplib::Request& req, const char* name, int& value) {
 }
 
 bool is_safe_player_id(const std::string& player) {
-    // A player id is ONLY ever used as an in-memory std::map key and as json_escape()'d output
-    // (grepped 2026-07-17: never a filesystem path, SQL, or shell argument). So the safety bar is
-    // "cannot break the wire or a control stream", not "URL-safe charset". The old rule allowed only
-    // [A-Za-z0-9_-], which silently mapped every real display name containing a SPACE (or `&`, or any
-    // non-ASCII letter) to "default" the moment it round-tripped through query_player -- so a friend
-    // who joined as "Your Friend" had EVERY per-player HTTP route (camera, zoom, panels, zones,
-    // squads, chat) target the shared "default" bucket. The canonical identity is the RAW display
-    // name at every layer; percent-encoding lives only on the URL wire (encodeURIComponent client-side,
-    // decoded exactly once server-side). Reject only what can actually corrupt state: empty, over-long,
-    // or ASCII control characters (incl. DEL). Everything printable -- spaces, punctuation, and UTF-8
-    // multibyte letters (bytes >= 0x80) -- is a legal identity byte.
+    // A player id is only ever a std::map key and json_escape()'d output -- never a path, SQL, or
+    // shell argument. The identity is the RAW display name; reject only what can corrupt the wire.
     if (player.empty() || player.size() > 96)
         return false;
     for (unsigned char ch : player) {
@@ -83,6 +75,24 @@ std::string json_escape(const std::string& raw) {
         }
     }
     return out.str();
+}
+
+std::string json_escape_bytes(const std::string& raw) {
+    std::string o;
+    o.reserve(raw.size() + 8);
+    for (unsigned char c : raw) {
+        switch (c) {
+            case '"':  o += "\\\""; break;
+            case '\\': o += "\\\\"; break;
+            case '\n': o += "\\n";  break;
+            case '\r': o += "\\r";  break;
+            case '\t': o += "\\t";  break;
+            default:
+                if (c < 0x20 || c >= 0x80) { char b[8]; std::snprintf(b, sizeof(b), "\\u%04x", c); o += b; }
+                else o.push_back((char)c);
+        }
+    }
+    return o;
 }
 
 std::string json_string(const std::string& raw) {

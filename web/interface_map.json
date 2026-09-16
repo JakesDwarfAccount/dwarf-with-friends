@@ -1210,6 +1210,265 @@
   "img": "generated_list_icons.png",
   "w": 32
  },
+ "ANNOUNCEMENT_ALERT:AGREEMENT": {
+  "cx": 0,
+  "cy": 992,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:AMBUSH": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:ANIMAL": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:ART_DEFACEMENT": {
+  "cx": 0,
+  "cy": 576,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:BERSERK": {
+  "cx": 0,
+  "cy": 448,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:BIRTH": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:COMBAT": {
+  "cx": 0,
+  "cy": 1088,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:CRIME": {
+  "cx": 0,
+  "cy": 1024,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:CURIOUS_GUZZLER": {
+  "cx": 0,
+  "cy": 832,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:DEATH": {
+  "cx": 0,
+  "cy": 672,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:DEITY_CURSE": {
+  "cx": 0,
+  "cy": 1056,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:ERA_CHANGE": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:GENERAL": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:GHOST": {
+  "cx": 0,
+  "cy": 704,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:GUEST_ARRIVAL": {
+  "cx": 0,
+  "cy": 896,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:HOLDINGS": {
+  "cx": 0,
+  "cy": 928,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:HUNTING": {
+  "cx": 0,
+  "cy": 1152,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:JOB_FAILED": {
+  "cx": 0,
+  "cy": 640,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:LABOR_CHANGE": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:LOSE_EMOTION": {
+  "cx": 0,
+  "cy": 512,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MARRIAGE": {
+  "cx": 0,
+  "cy": 416,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MARTIAL_TRANCE": {
+  "cx": 0,
+  "cy": 480,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MASTERPIECE": {
+  "cx": 0,
+  "cy": 608,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MIGRANT": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MILITARY": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MONSTER": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:MOOD": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:NOBLE": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:RESEARCH_BREAKTHROUGH": {
+  "cx": 0,
+  "cy": 864,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:RUMOR": {
+  "cx": 0,
+  "cy": 960,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:SPARRING": {
+  "cx": 0,
+  "cy": 1120,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:STRESS": {
+  "cx": 0,
+  "cy": 544,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:TRADE": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:UNDEAD_ATTACK": {
+  "cx": 0,
+  "cy": 736,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:UNDERGROUND": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:VERMIN": {
+  "cx": 0,
+  "cy": 800,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
+ "ANNOUNCEMENT_ALERT:WEATHER": {
+  "cx": 0,
+  "cy": 768,
+  "h": 32,
+  "img": "announcement_alerts.png",
+  "w": 32
+ },
  "ANNOUNCEMENT_NOT_PAUSING_ON_NEW_REPORT": {
   "cx": 24,
   "cy": 0,
@@ -1608,6 +1867,699 @@
   "h": 12,
   "img": "interface_bits.png",
   "w": 8
+ },
+ "BUILDING_ICON_ANIMAL_TRAP": {
+  "cx": 160,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_ARCHERY_TARGET": {
+  "cx": 96,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_ARMOR_STAND": {
+  "cx": 160,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_AXLE_HORIZONTAL": {
+  "cx": 224,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_AXLE_VERTICAL": {
+  "cx": 0,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BALLISTA": {
+  "cx": 192,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BARS_FLOORS": {
+  "cx": 64,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BARS_VERTICAL": {
+  "cx": 32,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BED": {
+  "cx": 0,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BOLT_THROWER": {
+  "cx": 96,
+  "cy": 384,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BOOKCASE": {
+  "cx": 32,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BOX": {
+  "cx": 96,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_BRIDGE": {
+  "cx": 96,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_CABINET": {
+  "cx": 128,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_CAGE": {
+  "cx": 128,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_CAGES_RESTRAINT": {
+  "cx": 160,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_CATAPULT": {
+  "cx": 224,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_CHAIR": {
+  "cx": 32,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_COFFIN": {
+  "cx": 160,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_DISPLAY_FURNITURE": {
+  "cx": 64,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_DOOR": {
+  "cx": 160,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_DOORS_HATCHES": {
+  "cx": 64,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FARM_PLOT": {
+  "cx": 160,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FLOODGATE": {
+  "cx": 64,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FLOOR": {
+  "cx": 0,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FORTIFICATION": {
+  "cx": 192,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FURNACE_GLASS": {
+  "cx": 224,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FURNACE_KILN": {
+  "cx": 0,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FURNACE_SMELTER": {
+  "cx": 192,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FURNACE_WOOD": {
+  "cx": 160,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_FURNITURE": {
+  "cx": 32,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_GEAR_ASSEMBLY": {
+  "cx": 192,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_GRATE_FLOOR": {
+  "cx": 0,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_GRATE_WALL": {
+  "cx": 224,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_HATCH": {
+  "cx": 192,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_HIVE": {
+  "cx": 224,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_INSTRUMENT": {
+  "cx": 128,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_LEVER": {
+  "cx": 0,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_MACHINES_FLUIDS": {
+  "cx": 128,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_MILITARY": {
+  "cx": 224,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_NEST_BOX": {
+  "cx": 192,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_OFFERING_PLACE": {
+  "cx": 96,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_PRESSURE_PLATE": {
+  "cx": 192,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_RAMP": {
+  "cx": 32,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_REINFORCED_WALL": {
+  "cx": 128,
+  "cy": 384,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_RESTRAINT": {
+  "cx": 96,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_ROAD_DIRT": {
+  "cx": 160,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_ROAD_PAVED": {
+  "cx": 128,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_ROLLERS": {
+  "cx": 64,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_SCREW_PUMP": {
+  "cx": 96,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_SLAB": {
+  "cx": 192,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_STAIRS": {
+  "cx": 64,
+  "cy": 224,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_STATUE": {
+  "cx": 224,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_SUPPORT": {
+  "cx": 160,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TABLE": {
+  "cx": 64,
+  "cy": 160,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRACK": {
+  "cx": 192,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRACK_STOP": {
+  "cx": 224,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRACTION_BENCH": {
+  "cx": 0,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRADE_DEPOT": {
+  "cx": 0,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRAPS": {
+  "cx": 192,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRAP_CAGE": {
+  "cx": 32,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRAP_STONE": {
+  "cx": 224,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_TRAP_WEAPON": {
+  "cx": 0,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WAGON": {
+  "cx": 0,
+  "cy": 384,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WALL": {
+  "cx": 224,
+  "cy": 192,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WALLS_FLOORS": {
+  "cx": 96,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WATER_WHEEL": {
+  "cx": 128,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WEAPON": {
+  "cx": 64,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WEAPON_RACK": {
+  "cx": 128,
+  "cy": 352,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WELL": {
+  "cx": 32,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WINDMILL": {
+  "cx": 160,
+  "cy": 288,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WINDOW_GEM": {
+  "cx": 128,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WINDOW_GLASS": {
+  "cx": 96,
+  "cy": 256,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOPS": {
+  "cx": 0,
+  "cy": 0,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOPS_CLOTHING": {
+  "cx": 224,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOPS_FARMING": {
+  "cx": 0,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOPS_FURNACES": {
+  "cx": 128,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_ASHERY": {
+  "cx": 128,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_BOWYER": {
+  "cx": 32,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_BUTCHER": {
+  "cx": 224,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_CARPENTER": {
+  "cx": 32,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_CLOTHES": {
+  "cx": 96,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_CRAFTS": {
+  "cx": 160,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_DYER": {
+  "cx": 128,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_FARMER": {
+  "cx": 96,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_FISHERY": {
+  "cx": 32,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_JEWELER": {
+  "cx": 192,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_KENNEL": {
+  "cx": 160,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_KITCHEN": {
+  "cx": 64,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_LEATHER": {
+  "cx": 32,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_LOOM": {
+  "cx": 64,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_MASON": {
+  "cx": 64,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_MECHANIC": {
+  "cx": 64,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_METALSMITH": {
+  "cx": 96,
+  "cy": 32,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_MILLSTONE": {
+  "cx": 32,
+  "cy": 320,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_QUERN": {
+  "cx": 128,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_SIEGE": {
+  "cx": 96,
+  "cy": 64,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_STILL": {
+  "cx": 192,
+  "cy": 96,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
+ },
+ "BUILDING_ICON_WORKSHOP_TANNER": {
+  "cx": 0,
+  "cy": 128,
+  "h": 32,
+  "img": "building_icons.png",
+  "w": 32
  },
  "BUILDING_INFO_ACTIVE": {
   "cx": 376,

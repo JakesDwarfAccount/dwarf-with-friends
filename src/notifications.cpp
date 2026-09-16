@@ -23,6 +23,7 @@
 #include "render_thread_wait.h"
 
 #include "json_util.h"
+#include "route_helpers.h"   // content_etag()
 #include "MiscUtils.h"
 #include "modules/DFSDL.h"
 #include "modules/Translation.h"
@@ -119,7 +120,7 @@ int alert_type_for_report(df::report* report) {
     return static_cast<int>(df::enum_traits<df::announcement_type>::attrs(report->type).alert_type);
 }
 
-NotificationReport copy_report(df::world* world, df::report* report) {
+NotificationReport copy_report(df::world* /*world*/, df::report* report) {
     NotificationReport out;
     if (!report)
         return out;
@@ -138,11 +139,12 @@ NotificationReport copy_report(df::world* world, df::report* report) {
     out.year = report->year;
     out.time = report->time;
     out.zoom_type = static_cast<int>(report->zoom_type);
-    out.has_pos = report->zoom_type != df::report_zoom_type::NONE && valid_pos(world, report->pos);
+    // -30000 is DF's off-map x sentinel; zoom_type is recenter payload, not an availability test
+    out.has_pos = report->pos.x != -30000;
     if (out.has_pos)
         out.pos = Camera{report->pos.x, report->pos.y, report->pos.z};
     out.zoom_type2 = static_cast<int>(report->zoom_type2);
-    out.has_pos2 = report->zoom_type2 != df::report_zoom_type::NONE && valid_pos(world, report->pos2);
+    out.has_pos2 = report->pos2.x != -30000;
     if (out.has_pos2)
         out.pos2 = Camera{report->pos2.x, report->pos2.y, report->pos2.z};
     out.activity_id = report->activity_id;
@@ -194,12 +196,8 @@ void add_report_to_alert(NotificationAlert& alert, const NotificationReport& rep
 
 bool all_alert_keys_dismissed(const NotificationAlert& alert,
                               const std::unordered_set<std::string>& dismissed) {
-    // B197 (c): a contentless alert -- DF put it in announcement_alert with a type but it carries
-    // no announcement_id and no unit refs, so it has no r:/u: dismiss keys -- could never be
-    // cleared and stuck as an unremovable bare badge. The client's whole-alert dismiss falls back
-    // to the alert-level "a:<type>" key (alert.dismiss_key) exactly for this case, so honor that
-    // key as the escape hatch. Alerts that carry real keys are unaffected (that fallback never
-    // fires for them, so their a: key is never in the dismissed set).
+    // An alert carrying no r:/u: keys would be an unremovable badge, so the alert-level
+    // "a:<type>" key is its only escape hatch.
     if (alert.dismiss_keys.empty())
         return !alert.dismiss_key.empty() &&
                dismissed.find(alert.dismiss_key) != dismissed.end();
@@ -210,9 +208,8 @@ bool all_alert_keys_dismissed(const NotificationAlert& alert,
     return true;
 }
 
-// Dismissal is per report/unit-category, not per alert type. DF keeps the full announcement
-// history attached to an active alert, so remove already-dismissed rows before serializing: an
-// alert that receives one new combat report must show that report, not the prior session's log.
+// Dismissal is per report, not per alert type: DF keeps the whole history on an active alert, so
+// already-dismissed rows must be pruned before serializing or one new report re-shows the old log.
 bool report_is_dismissed(const NotificationReport& report,
                          const std::unordered_set<std::string>& dismissed) {
     return report.id >= 0 && dismissed.find(report_dismiss_key(report.id)) != dismissed.end();
@@ -240,6 +237,38 @@ void prune_dismissed_alert_content(NotificationAlert& alert,
         }), alert.unit_refs.end());
 }
 
+// `df::unit::find` only sees units still in world->units.all, so a dead or departed subject
+// serializes a nameless row; the historical figure outlives the unit and still carries the name.
+struct HistfigByUnit {
+    std::unordered_map<int32_t, df::historical_figure*> index;
+    bool built = false;
+
+    df::historical_figure* find(df::world* world, int32_t unit_id) {
+        if (!world || unit_id < 0)
+            return nullptr;
+        if (!built) {
+            built = true;
+            for (auto hf : world->history.figures)
+                if (hf && hf->unit_id >= 0)
+                    index[hf->unit_id] = hf;
+        }
+        auto it = index.find(unit_id);
+        return it == index.end() ? nullptr : it->second;
+    }
+};
+
+std::string report_unit_name(df::world* world, df::unit* unit, int32_t unit_id,
+                             HistfigByUnit& histfigs) {
+    if (unit) {
+        std::string name = Units::getReadableName(unit);
+        if (!name.empty())
+            return name;
+    }
+    if (auto hf = histfigs.find(world, unit_id))
+        return Units::getReadableName(hf);
+    return "";
+}
+
 bool build_notifications(const std::unordered_set<std::string>& dismissed,
                          NotificationState& state,
                          std::string* err) {
@@ -253,6 +282,7 @@ bool build_notifications(const std::unordered_set<std::string>& dismissed,
     state.next_report_id = world->status.next_report_id;
     state.report_count = static_cast<int32_t>(world->status.reports.size());
 
+    HistfigByUnit histfigs;
     std::unordered_map<int32_t, df::report*> reports_by_id;
     reports_by_id.reserve(world->status.reports.size());
     for (auto report : world->status.reports) {
@@ -303,8 +333,11 @@ bool build_notifications(const std::unordered_set<std::string>& dismissed,
             ref.category = category;
             ref.category_key = DFHack::enum_item_key(alert_ptr->report_unit_announcement_category[i]);
             ref.dismiss_key = dismiss_key;
-            if (auto unit = df::unit::find(unit_id)) {
-                ref.unit_name = Units::getReadableName(unit);
+            auto unit = df::unit::find(unit_id);
+            // The name resolves whether or not the unit is still loaded; everything below it
+            // (position, the report log) genuinely needs the live unit.
+            ref.unit_name = report_unit_name(world, unit, unit_id, histfigs);
+            if (unit) {
                 auto pos = Units::getPosition(unit);
                 ref.has_pos = valid_pos(pos);
                 if (ref.has_pos)
@@ -482,13 +515,8 @@ std::string notifications_json(const std::string& player, const NotificationStat
     return body.str();
 }
 
-// B197 (b): the per-player dismissed set is process-global and never cleared, so on a long-lived
-// server it grows without bound -- only r:<id> keys accumulate freely (one per dismissed report);
-// u:/a: keys are naturally bounded by live units and alert types. Cap the r: keys, keeping the
-// NEWEST (highest id). Any dropped key references a report id far below the live report window,
-// which has long since aged out of world.status.reports and can never re-list, so eviction is
-// correctness-preserving. Non-r: keys are always retained. Dismissals still survive reconnect
-// (same player name -> same set); this only bounds a pathological long session.
+// The dismissed set is never cleared, so cap the unbounded r:<id> keys, newest kept: a dropped id
+// sits far below the live report window and can never be re-listed, so eviction loses nothing.
 static void prune_report_dismiss_keys(std::unordered_set<std::string>& dismissed) {
     constexpr size_t kMaxReportDismissKeys = 8192;
     size_t report_keys = 0;
@@ -550,11 +578,6 @@ std::unordered_set<std::string> dismissed_alert_keys_for_player(const std::strin
     return it->second;
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
 void register_notification_routes(httplib::Server& server) {
     server.Get("/notifications", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
@@ -568,8 +591,17 @@ void register_notification_routes(httplib::Server& server) {
             return;
         }
 
-        res.set_header("Cache-Control", "no-store");
-        res.set_content(notifications_json(player, state), "application/json; charset=utf-8");
+        // Cache-Control MUST stay `no-cache`, never `no-store`: no-store forbids the browser from
+        // keeping the body, so it can never send If-None-Match and the 304 path below dies.
+        const std::string body = notifications_json(player, state);
+        const std::string etag = content_etag(body);
+        res.set_header("Cache-Control", "no-cache");
+        res.set_header("ETag", etag);
+        if (req.get_header_value("If-None-Match") == etag) {
+            res.status = 304;
+            return;
+        }
+        res.set_content(body, "application/json; charset=utf-8");
     });
 
     auto notification_action_handler = [](const httplib::Request& req, httplib::Response& res) {

@@ -19,21 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// WP-C client: player action attribution (wants-WT-spec §5 WT04 / §6 WT06).
-//
-// Fetches GET /attrib -- {world, buildings, orders, stockpiles, zones} -- and merges the
-// creator name into inspect panels (building/workshop/stockpile/zone) and the work-orders list
-// BY ID, entirely client-side (no server-side string splicing; the workshop/stockpile inspect
-// JSON is lua-generated and passed through verbatim). Rendered as `● name` in that player's
-// cursor color (window.DwfTiles.playerColor -- the one canonical helper, §1.4), gated by
-// the `showAttribution` display toggle (default ON).
-//
-// GRACEFUL ON THE LIVE PRE-WP-C DLL: /attrib 404s there -> the maps stay empty, attribFor()
-// returns null everywhere, no dots render, and nothing throws. The feature simply lies dormant
-// until the WP-C DLL window lands.
-//
-// Pure helpers (attribParse / attribLookup / attribDotHtml / attribShouldShow) are node-exported
-// at the bottom for the offline fixture test.
+// ---- Player attribution: merges GET /attrib creator names into inspect panels and the orders list. ----
+// Graceful on a DLL without /attrib: the maps stay empty, no dots render, and nothing throws.
 
   // ---- pure helpers (node-testable) -----------------------------------------------------
 
@@ -78,27 +65,18 @@
     return (typeof name === "string" && name) ? name : null;
   }
 
-  // Whether the display toggle is on. Reads localStorage (default ON) with a browser-safe guard
-  // so the pure test can force a value via the optional override.
+  // Whether the display toggle is on. The optional override keeps this helper pure for tests.
   function attribShouldShow(override) {
     if (override === true || override === false) return override;
-    try {
-      if (typeof localStorage !== "undefined") {
-        const v = localStorage.getItem("dwf.showAttribution");
-        if (v === "0" || v === "false") return false;
-        if (v === "1" || v === "true") return true;
-      }
-    } catch (_) {}
+    const v = globalThis.DwfUtil.lsGet("dwf.showAttribution");
+    if (v === "0" || v === "false") return false;
+    if (v === "1" || v === "true") return true;
     return true; // default ON (spec Q1)
   }
 
-  // Build the `● name` attribution chip HTML for a player. colorOf lets the pure test inject a
-  // deterministic color; in the browser it defaults to the canonical playerColor helper.
   function attribDotHtml(player, colorOf, escaper) {
     if (!player || typeof player !== "string") return "";
-    const esc = (typeof escaper === "function") ? escaper
-      : (typeof escapeHtml === "function") ? escapeHtml
-      : (s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
+    const esc = (typeof escaper === "function") ? escaper : DWFUI.esc;
     // playerColor returns {fill, dark} (canonical `.fill` usage per dwf-lobby.js) --
     // normalize either shape (string OR {fill}) from colorOf/playerColor to a CSS color string.
     const asCss = c => (typeof c === "string") ? c
@@ -107,9 +85,9 @@
     if (typeof colorOf === "function") color = asCss(colorOf(player));
     else if (typeof window !== "undefined" && window.DwfTiles &&
              typeof window.DwfTiles.playerColor === "function") {
-      try { color = asCss(window.DwfTiles.playerColor(player)); } catch (_) { color = ""; }
+      try { color = asCss(window.DwfTiles.playerColor(player)); } catch { color = ""; }
     }
-    const dot = `<span class="attrib-dot"${color ? ` style="color:${color}"` : ""}>&#9679;</span>`;
+    const dot = `<span class="attrib-dot"${color ? ` data-attrib-color="${esc(color)}"` : ""}>&#9679;</span>`;
     return `<span class="attrib-chip" title="Ordered by ${esc(player)}">${dot}<span class="attrib-name">${esc(player)}</span></span>`;
   }
 
@@ -118,11 +96,11 @@
   let _attribState = { world: "", buildings: {}, orders: {}, stockpiles: {}, zones: {} };
   let _attribAt = 0;          // last successful/attempted fetch time
   let _attribInflight = null; // dedup concurrent refreshes
-  let _attribSupported = null; // null=unknown, false=route 404 on this DLL (pre-WP-C)
+  let _attribSupported = null; // null = unknown, false = route 404 on this DLL
   const ATTRIB_TTL_MS = 2000;
 
-  // Fetch /attrib at most once per TTL. Graceful: a 404 (pre-WP-C DLL) or any error leaves the
-  // prior state intact and marks the route unsupported so we stop hammering it.
+  // Fetch /attrib at most once per TTL. A 404 or any error leaves the prior state intact and marks the
+  // route unsupported, so we stop hammering it.
   async function attribRefresh(force) {
     if (typeof fetch !== "function") return _attribState;
     const now = Date.now();
@@ -137,7 +115,7 @@
         if (!res.ok) return _attribState;
         _attribSupported = true;
         _attribState = attribParse(await res.json());
-      } catch (_) {
+      } catch {
         // network/parse hiccup: keep the last good state, try again after the TTL.
       } finally {
         _attribInflight = null;
@@ -162,29 +140,7 @@
 
   function attribShowEnabled() { return attribShouldShow(); }
   function attribSetShow(on) {
-    try {
-      if (typeof localStorage !== "undefined")
-        localStorage.setItem("dwf.showAttribution", on ? "1" : "0");
-    } catch (_) {}
-  }
-
-  // One-time scoped CSS for the chip (injected from here so no shared CSS file is touched).
-  function _attribInjectStyles() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("attrib-styles")) return;
-    const style = document.createElement("style");
-    style.id = "attrib-styles";
-    style.textContent = `
-      .attrib-chip{display:inline-flex;align-items:center;gap:3px;font-size:12px;opacity:.92;}
-      .attrib-chip .attrib-dot{font-size:11px;line-height:1;}
-      .attrib-chip .attrib-name{color:#c8b487;}
-    `;
-    (document.head || document.documentElement).appendChild(style);
-  }
-  if (typeof document !== "undefined") {
-    if (document.readyState === "loading")
-      document.addEventListener("DOMContentLoaded", _attribInjectStyles);
-    else _attribInjectStyles();
+    globalThis.DwfUtil.lsSet("dwf.showAttribution", on ? "1" : "0");
   }
 
   // Expose the browser API globally for the panels that render dots.

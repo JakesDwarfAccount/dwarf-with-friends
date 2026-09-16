@@ -25,7 +25,9 @@
 #include "diagnostics.h"
 #include "json_util.h"
 #include "lua_bridge.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
+#include "world_site_readonly.h"
 
 #include "modules/Military.h"
 #include "modules/Translation.h"
@@ -43,6 +45,9 @@
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
 #include "df/historical_figure_info.h"
+#include "df/entity_position_assignment.h"
+#include "df/entity_position_responsibility.h"
+#include "df/historical_entity_type.h"
 #include "df/mission_report.h"
 #include "df/plotinfost.h"
 #include "df/squad.h"
@@ -54,6 +59,7 @@
 #include "df/world_site_type.h"
 
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <set>
 #include <sstream>
@@ -65,36 +71,17 @@ using namespace DFHack;
 namespace dwf {
 namespace {
 
-// *** THE GUARD. *** False = /mission-create validates and then refuses with 501. Flipping this
-// to true would let the (deliberately unwritten) commit run. Nothing sets it at runtime, there is
-// no query parameter for it, and the commit body does not exist: see do_mission_create() and the
-// numbered probe list above it. Do not flip this without the probe results.
+// The commit body does not exist. Flipping this true only re-labels do_mission_create's refusal
+// and makes /missions advertise create as supported.
 constexpr bool kMissionCommitEnabled = false;
 
 std::recursive_mutex g_missions_mutex;
 
 template <typename Fn>
 bool run_missions_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> missions_lock(g_missions_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_missions_mutex, std::forward<Fn>(fn));
 }
 
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
-}
-
-// The refusal body every blocked create returns. One string, one place, so the client copy, the
-// harness fixture and the /missions capability advertisement can never drift apart.
 const char* kNativeOnlyReason =
     "Dwarf Fortress creates missions only inside its own world screen (viewscreen_worldst): the "
     "per-goal eligibility verdicts live in that screen's new_mission[] array and nowhere in world "
@@ -138,9 +125,6 @@ int squad_member_count(df::squad* squad) {
     return n;
 }
 
-// scripts/fix/stuck-squad.lua get_squad_army(): a squad's army is whichever army any of its
-// still-living members' historical figures says it is with. Members die, so every position is
-// checked, not just the first.
 df::army* squad_army(df::squad* squad) {
     if (!squad) return nullptr;
     for (auto* pos : squad->positions) {
@@ -153,22 +137,17 @@ df::army* squad_army(df::squad* squad) {
     return nullptr;
 }
 
-// scripts/fix/stuck-squad.lua is_army_stuck(): "from observing bugged saves, this condition
-// appears to be unique to stuck armies". Copied verbatim, including the 0 (not -1) comparison.
+// The stuck sentinel is controller_id != 0, not != -1.
 bool army_is_stuck(df::army* army) {
     return army && army->controller_id != 0 && !army->controller;
 }
 
-// scripts/fix/stuck-squad.lua get_top_controller(): a camping army hangs off a sub-controller;
-// the real order is the one whose master_id points at itself.
 df::army_controller* top_controller(df::army_controller* controller) {
     if (!controller) return nullptr;
     if (controller->master_id == controller->id) return controller;
     return df::army_controller::find(controller->master_id);
 }
 
-// scripts/fix/stuck-squad.lua is_army_valid_and_returning(). Only these two goals expose a
-// homeward flag the script trusts; anything else is "not a rescue vehicle".
 void army_valid_returning(df::army* army, bool& valid, bool& returning) {
     valid = false;
     returning = false;
@@ -183,11 +162,8 @@ void army_valid_returning(df::army* army, bool& valid, bool& returning) {
     }
 }
 
-// Read the union member that `goal` selects -- and ONLY that one. df::army_controller::data is a
-// true union (df.army_controller.xml), so reading goal_recover_artifact on a SITE_INVASION
-// controller is reading an unrelated struct through a live pointer. `returning` is emitted as a
-// tri-state (-1 = this goal has no homeward flag) rather than defaulting to false, so the client
-// never claims "outbound" about a goal that does not track it.
+// army_controller::data is a true union: read only the member `goal` selects, or you are
+// dereferencing an unrelated struct through a live pointer.
 struct GoalDetail {
     std::string target_kind;   // "" | "artifact" | "hf" | "invasion"
     int32_t target_id = -1;
@@ -233,10 +209,6 @@ GoalDetail goal_detail(df::army_controller* c) {
     return d;
 }
 
-// The goal types DF's fortress mission screen can raise, in DF's own order of appearance. `needs`
-// tells the client which extra target the goal takes beyond the site. This list is what a create
-// would offer -- it is advertised as unavailable, with the reason, rather than hidden, so the
-// screen is honest about what DF has and we do not.
 struct MissionKind {
     const char* key;
     const char* label;
@@ -247,6 +219,7 @@ const MissionKind kMissionKinds[] = {
     { "RECOVER_ARTIFACT", "Recover artifact",  "artifact" },
     { "RESCUE_HF",        "Rescue prisoner",   "hf"       },
     { "MAKE_REQUEST",     "Request workers",   "site"     },
+    { "DIPLOMACY",        "Diplomacy",         "site"     },
 };
 
 bool mission_kind_known(const std::string& key) {
@@ -263,6 +236,95 @@ struct FortView {
     int32_t own_site = -1;
 };
 
+bool has_filled_responsibility(df::historical_entity* entity,
+                               df::entity_position_responsibility responsibility) {
+    if (!entity) return false;
+    const auto& assignments = entity->assignments_by_type[static_cast<int>(responsibility)];
+    return std::any_of(assignments.begin(), assignments.end(),
+                       [](df::entity_position_assignment* assignment) {
+                           return assignment && assignment->histfig >= 0;
+                       });
+}
+
+const char* verdict_reason_key(int code) {
+    switch (code) {
+    case -1: return "native-verdict-unavailable";
+    case 2: case 11: return nullptr;
+    case 3: return "own-civilization";
+    case 4: return "outside-authority";
+    case 5: return "no-settled-populace";
+    case 6: return "no-requestable-workers";
+    case 7: return "unreachable";
+    case 8: return "no-military-leader";
+    case 9: return "no-general-leader";
+    case 10: return "no-contact";
+    case 12: return "already-at-war";
+    case 13: return "peace-already-stands";
+    case 14: return "alliance-already-stands";
+    case 15: return "at-war";
+    case 16: return "cannot-communicate";
+    case 17: return "implacably-hostile";
+    case 18: return "no-trade";
+    case 19: return "already-trading";
+    case 20: return "no-civilization-military-leader";
+    default: return nullptr;
+    }
+}
+
+void append_verdict(std::ostringstream& body, int code) {
+    body << "{\"code\":" << code << ",\"enabled\":" << (code == 0 ? "true" : "false")
+         << ",\"reasonKey\":";
+    const char* key = verdict_reason_key(code);
+    if (key) body << json_string(key); else body << "null";
+    body << "}";
+}
+
+void append_travel(std::ostringstream& body, int32_t cost) {
+    const char* band = "unreachable";
+    int days = -1;
+    if (cost >= 18) { band = "days"; days = cost / 9; }
+    else if (cost >= 11) band = "over-day";
+    else if (cost >= 8) band = "day";
+    else if (cost >= 6) band = "near-day";
+    else if (cost >= 3) band = "half-day";
+    else if (cost >= 0) band = "brief";
+    body << "\"travelBand\":" << json_string(band) << ",\"travelDays\":";
+    if (days >= 0) body << days; else body << "null";
+}
+
+// 27 and 18 are literal on purpose: enum_traits<army_controller_goal_type>::last_item_value + 1
+// is 26 and meeting_topic's is 17, so sizing off either enum silently shrinks these arrays.
+struct SiteVerdicts {
+    std::array<int, 27> goals;
+    std::array<int, 18> topics;
+};
+
+SiteVerdicts site_verdicts(const FortView& view, df::world_site* site, int32_t travel_cost) {
+    SiteVerdicts out;
+    out.goals.fill(1);
+    out.topics.fill(1);
+    auto* civ = site ? df::historical_entity::find(site->civ_id) : nullptr;
+    const bool own = site && site->id == view.own_site;
+    const bool military_leader =
+        has_filled_responsibility(view.group, df::entity_position_responsibility::MILITARY_GOALS);
+    const bool general_leader =
+        has_filled_responsibility(view.group, df::entity_position_responsibility::MEET_WORKERS);
+
+    out.goals[2] = own ? 2 : !military_leader ? 8 : travel_cost < 0 ? 7 :
+                   civ == view.civ ? 3 : 0;
+
+    out.goals[19] = own ? 2 : !general_leader ? 9 : travel_cost < 0 ? 7 : !civ ? 5 :
+                    civ != view.civ ? 4 : site->populace.nemesis.empty() ? 6 : -1;
+
+    out.goals[25] = own ? 2 : !general_leader ? 9 : travel_cost < 0 ? 7 : !civ ? 5 :
+                    civ == view.civ ? 3 : -1;
+
+    // These six diplomacy topics stay visible but honestly unavailable: their verdicts are
+    // computed only inside DF's own world viewscreen. DEF-004
+    for (int topic : {1, 10, 13, 14, 15, 16}) out.topics[topic] = -1;
+    return out;
+}
+
 FortView fort_view() {
     FortView v;
     auto plotinfo = df::global::plotinfo;
@@ -273,7 +335,6 @@ FortView fort_view() {
     return v;
 }
 
-// The fort's squads, in the site government's own order (historical_entity::squads).
 std::vector<df::squad*> fort_squads(const FortView& v) {
     std::vector<df::squad*> out;
     if (!v.group) return out;
@@ -282,10 +343,6 @@ std::vector<df::squad*> fort_squads(const FortView& v) {
     return out;
 }
 
-// Which army_controllers are OURS. Same test worldmap_panel.cpp already ships (a controller is a
-// fortress mission if any of its assigned squads is one of ours, or it belongs to our government /
-// civ) -- kept identical on purpose so the world-map overlay and this screen can never disagree
-// about what counts as an active mission.
 bool is_fort_controller(df::army_controller* c, const FortView& v) {
     if (!c || c->assigned_squads.empty()) return false;
     if (v.group) {
@@ -298,17 +355,15 @@ bool is_fort_controller(df::army_controller* c, const FortView& v) {
     return c->entity_id == plotinfo->group_id || c->entity_id == plotinfo->civ_id;
 }
 
-// Candidate targets = every site the fort KNOWS about. historical_entity.h:235 warns that a fresh
-// player site government's known_sites is EMPTY -- the civ carries them -- so both entities are
-// unioned. Our own site is excluded (world_new_mission_type::OWN_SITE is DF's own refusal for it).
+// A fresh site government's known_sites can be empty, so group and civ relations are unioned.
 std::vector<df::world_site*> candidate_targets(const FortView& v) {
     std::set<int32_t> ids;
+    ids.insert(v.own_site);
     for (auto* e : { v.group, v.civ })
         if (e)
             for (int32_t id : e->relations.known_sites) ids.insert(id);
     std::vector<df::world_site*> out;
     for (int32_t id : ids) {
-        if (id == v.own_site) continue;
         if (auto* site = find_site(id)) out.push_back(site);
     }
     std::sort(out.begin(), out.end(), [](df::world_site* a, df::world_site* b) { return a->id < b->id; });
@@ -330,7 +385,7 @@ std::string build_missions_json(const std::string& player, std::string* err) {
              << ",\"ownSite\":" << json_string(site_name_of(own_site))
              << ",\"civ\":" << json_string(entity_name_of(v.civ));
 
-        // --- squads: ours, with DF's own "already committed" bit (squad.h:36) -------------------
+        // --- squads: ours, with DF's own "already committed" bit ----------------------------
         auto squads = fort_squads(v);
         body << ",\"squads\":[";
         bool first = true;
@@ -361,12 +416,36 @@ std::string build_missions_json(const std::string& player, std::string* err) {
             first = false;
             GoalDetail d = goal_detail(c);
             std::string goal = DFHack::enum_item_key(c->goal);
+            const bool messenger_mode =
+                c->goal == df::army_controller_goal_type::MAKE_REQUEST ||
+                c->goal == df::army_controller_goal_type::DIPLOMACY;
+            int present_count = 0, travelling_count = 0;
+            for (int32_t squad_id : c->assigned_squads) {
+                auto* assigned = df::squad::find(squad_id);
+                if (!assigned) continue;
+                for (auto* position : assigned->positions) {
+                    if (!position || position->occupant < 0) continue;
+                    auto* hf = df::historical_figure::find(position->occupant);
+                    uint32_t status = hf ? hf->flags.as_int<uint32_t>() : 0;
+                    if (hf && (status & 0x102U) == 0 && (status & 0x80000000U) != 0)
+                        ++present_count;
+                    else
+                        ++travelling_count;
+                }
+            }
+            const bool alterable = travelling_count == 0 || present_count > 0;
             body << "{\"id\":" << c->id
                  << ",\"goal\":" << json_string(goal.empty() ? "Unknown mission" : goal)
+                 << ",\"goalKey\":" << json_string(goal.empty() ? "UNKNOWN" : goal)
                  << ",\"targetSiteId\":" << c->site_id
                  << ",\"targetSite\":" << json_string(site_name_of(find_site(c->site_id)))
+                 << ",\"targetSiteName\":" << json_string(site_name_of(find_site(c->site_id)))
                  << ",\"year\":" << c->year
                  << ",\"yearTick\":" << c->year_tick
+                 << ",\"presentCount\":" << present_count
+                 << ",\"travellingCount\":" << travelling_count
+                 << ",\"alterable\":" << (alterable ? "true" : "false")
+                 << ",\"roleNoun\":" << json_string(messenger_mode ? "messenger" : "commander")
                  << ",\"reportTitle\":" << json_string(c->mission_report ? c->mission_report->title : "")
                  << ",\"targetKind\":" << json_string(d.target_kind)
                  << ",\"targetId\":" << d.target_id
@@ -386,7 +465,39 @@ std::string build_missions_json(const std::string& player, std::string* err) {
                      << ",\"name\":" << json_string(squad ? DFHack::Military::getSquadName(squad_id) : "")
                      << ",\"memberCount\":" << squad_member_count(squad) << "}";
             }
-            body << "],\"stuck\":" << (any_stuck ? "true" : "false") << "}";
+            body << "],\"stuck\":" << (any_stuck ? "true" : "false")
+                 << ",\"roster\":[";
+            bool rfirst = true;
+            for (auto* squad : squads) {
+                if (!rfirst) body << ",";
+                rfirst = false;
+                int32_t assigned_id = squad->assigned_army_controller_id;
+                const char* assignment = assigned_id == -1 ? "free" :
+                                         assigned_id == c->id ? "this-mission" : "other-mission";
+                std::string other_summary;
+                if (assigned_id != -1 && assigned_id != c->id) {
+                    auto* other = df::army_controller::find(assigned_id);
+                    if (other) {
+                        other_summary = DFHack::enum_item_key(other->goal);
+                        std::string other_site = site_name_of(find_site(other->site_id));
+                        if (!other_site.empty()) other_summary += " at " + other_site;
+                    }
+                }
+                body << "{\"id\":" << squad->id
+                     << ",\"name\":" << json_string(DFHack::Military::getSquadName(squad->id))
+                     << ",\"emblem\":null"
+                     << ",\"lockedIn\":" << (assigned_id != -1 ? "true" : "false")
+                     << ",\"assignment\":" << json_string(assignment)
+                     << ",\"orderSummary\":";
+                if (assigned_id == -1)
+                    body << json_string(squad->orders.empty() ? "No standing orders" : "Standing orders active");
+                else
+                    body << "null";
+                body << ",\"otherMissionSummary\":";
+                if (other_summary.empty()) body << "null"; else body << json_string(other_summary);
+                body << "}";
+            }
+            body << "],\"messengers\":[],\"composer\":null}";
         }
 
         // --- candidate targets, straight off DF's known-sites relation ---------------------------
@@ -396,14 +507,67 @@ std::string build_missions_json(const std::string& player, std::string* err) {
             if (!first) body << ",";
             first = false;
             auto* civ = df::historical_entity::find(site->civ_id);
+            auto* government = site_government(site);
+            int32_t travel_cost = site_travel_cost(world->world_data, site);
+            SiteVerdicts verdicts = site_verdicts(v, site, travel_cost);
             body << "{\"id\":" << site->id
                  << ",\"name\":" << json_string(site_name_of(site))
                  << ",\"type\":" << json_string(DFHack::enum_item_key(site->type))
+                 << ",\"subtypeKey\":" << json_string(site_subtype_key(site))
                  << ",\"x\":" << site->pos.x
                  << ",\"y\":" << site->pos.y
                  << ",\"civId\":" << site->civ_id
                  << ",\"civ\":" << json_string(entity_name_of(civ))
-                 << "}";
+                 << ",\"civName\":";
+            if (civ) body << json_string(entity_name_of(civ)); else body << "null";
+            body << ",\"govName\":";
+            if (government) body << json_string(entity_name_of(government)); else body << "null";
+            body << ",\"isOwnFortress\":" << (site->id == v.own_site ? "true" : "false")
+                 << ",\"hasGovernment\":" << (government ? "true" : "false") << ",";
+            append_travel(body, travel_cost);
+            body << ",\"populationBand\":";
+            if (government) {
+                SitePopulationBand band = site_population_band(site);
+                body << "{\"index\":" << band.index
+                     << ",\"advertised\":" << json_string(band.advertised) << "}";
+            } else {
+                body << "null";
+            }
+            body << ",\"goalVerdicts\":[";
+            for (size_t i = 0; i < verdicts.goals.size(); ++i) {
+                if (i) body << ",";
+                body << verdicts.goals[i];
+            }
+            body << "],\"diplomacyVerdicts\":[";
+            for (size_t i = 0; i < verdicts.topics.size(); ++i) {
+                if (i) body << ",";
+                body << verdicts.topics[i];
+            }
+            body << "],\"verdicts\":{\"attack\":";
+            append_verdict(body, verdicts.goals[2]);
+            body << ",\"requestWorkers\":";
+            append_verdict(body, verdicts.goals[19]);
+            body << ",\"diplomacy\":";
+            append_verdict(body, verdicts.goals[25]);
+            body << "},\"diplomacyTopics\":[";
+            const int topic_ids[] = {1, 10, 13, 14, 15, 16};
+            const char* topic_keys[] = {
+                "seek-peace", "request-surrender", "declare-war",
+                "seek-alliance", "open-contact", "improve-trade"
+            };
+            for (int i = 0; i < 6; ++i) {
+                if (i) body << ",";
+                int code = verdicts.topics[topic_ids[i]];
+                body << "{\"topic\":" << topic_ids[i]
+                     << ",\"labelKey\":" << json_string(topic_keys[i])
+                     << ",\"code\":" << code
+                     << ",\"enabled\":" << (code == 0 ? "true" : "false")
+                     << ",\"reasonKey\":";
+                const char* reason = verdict_reason_key(code);
+                if (reason) body << json_string(reason); else body << "null";
+                body << "}";
+            }
+            body << "]}";
         }
 
         // --- the mission types DF offers, each advertised as native-only -------------------------
@@ -420,9 +584,6 @@ std::string build_missions_json(const std::string& player, std::string* err) {
         }
 
         // --- stranded squads + whether DFHack's repair can actually run right now -----------------
-        // scan_fort_armies() in fix/stuck-squad.lua: the rescue only works when SOME army or
-        // messenger is on its way HOME to carry the stranded members back. Mirrored here so the
-        // button is only offered when the script would succeed.
         body << "],\"stuckSquads\":[";
         first = true;
         int stuck_count = 0;
@@ -463,7 +624,7 @@ std::string build_missions_json(const std::string& player, std::string* err) {
              << ",\"stuckCount\":" << stuck_count
              << ",\"reason\":" << json_string(rescue_reason) << "}";
 
-        // --- the capability advertisement. The client renders THIS, not a hardcoded string. -------
+        // --- the capability advertisement --------------------------------------------------------
         body << ",\"create\":{\"supported\":" << (kMissionCommitEnabled ? "true" : "false")
              << ",\"blocked\":" << json_string(kMissionCommitEnabled ? "" : "native-only")
              << ",\"reason\":" << json_string(kMissionCommitEnabled ? "" : kNativeOnlyReason)
@@ -475,56 +636,6 @@ std::string build_missions_json(const std::string& player, std::string* err) {
 }
 
 // ---- POST /mission-create ----------------------------------------------------------------------
-//
-// Everything DF would check before it lets you confirm, checked here, in DF's own terms. Then the
-// commit is refused. This is not theatre: the validator is the half that a live probe cannot give
-// us, and the half that must already be right on the day the commit lands.
-//
-// ===============================================================================================
-// LIVE-PROBE LIST FOR THE ORCHESTRATOR (world-edit clearance required; each step is: stage the
-// state in a save you can throw away, dump, act natively, dump again, diff).
-//
-//  1. BASELINE. In a fort with >= 2 squads and at least one known hostile site, dump
-//     world.army_controllers.all (id, entity_id, site_id, pos_x/pos_y, goal, master_id, parent_id,
-//     flag, assigned_squads, mission_report ptr), world.armies.all (id, controller_id, flags,
-//     pos, members[].nemesis_id + travel_rate + tracking_rating + sneak_rating + timers), every
-//     fort squad's assigned_army_controller_id, and *army_controller_next_id. Nothing native yet.
-//
-//  2. OPEN THE WORLD SCREEN, focus a raidable site, and dump viewscreen_worldst BEFORE confirming:
-//     view_mode, focus_site->id, focus_ax/focus_ay, the whole new_mission[] array (which goals are
-//     OKAY vs which refusal), squad[] + squad_flag[], focus_site_artifact[], focus_site_prisoner[],
-//     military_goals_hf. THIS IS THE ELIGIBILITY ORACLE -- it tells us the rule set we would
-//     otherwise have to guess, and it is the one thing GET /missions cannot compute today.
-//
-//  3. CONFIRM A RAID (SITE_INVASION) with exactly ONE squad. Immediately (same tick if possible,
-//     before the squad walks off the map) re-dump everything from step 1. The diff is the spec:
-//       - the new army_controller: which fields DF set, which it left at init, whether entity_id is
-//         group_id or civ_id, whether master_id == its own id, what pos_x/pos_y are relative to the
-//         target site's pos, and exactly which invasion_intent + ac_goal_site_invasion_flag bits
-//         (DEMAND_TRIBUTE_*, TAKE_ITEMS, STEAL_LIVESTOCK, ...) the chosen raid options map to;
-//       - whether an army EXISTS ALREADY at this point and carries army_flags.dwarf_mode_preparing;
-//       - whether army.members[] is populated NOW (dwarves still on the map) or only after they
-//         leave -- this single fact decides whether a plugin-side create is even conceivable;
-//       - squad.assigned_army_controller_id, and each member hf->info->whereabouts->army_id;
-//       - how much *army_controller_next_id advanced (1, or more).
-//
-//  4. LET THEM WALK OFF. Dump again once the squad is gone from the map: what happened to the
-//     units (deleted? flagged?), when dwarf_mode_preparing clears, when army.members[] fills, and
-//     what mission_report was allocated (title, year, campaigns).
-//
-//  5. REPEAT 3-4 for RECOVER_ARTIFACT (needs focus_site_artifact) and RESCUE_HF (needs
-//     focus_site_prisoner) -- the goal union member is different and the return_site_id /
-//     return_to_hfid fields on ac_goal_recover_artifactst have no obvious source.
-//
-//  6. TWO SQUADS ON ONE MISSION: does DF make one controller with 2 assigned_squads and one army,
-//     or a controller per squad? (assigned_squads is a vector, but the section_* vectors alongside
-//     it suggest DF may partition an army into sections.)
-//
-//  7. NEGATIVE CONTROL. With the answers from 3-6, hand-build one controller+army in a SCRATCH
-//     save, save, reload, and run `enable army-controller-sanity`. If it warns, or the squad never
-//     departs, the plugin-side create is dead and this route stays 501 permanently -- which is a
-//     perfectly good outcome to have proven.
-// ===============================================================================================
 
 struct StagedOrder {
     std::string goal;
@@ -536,7 +647,7 @@ struct StagedOrder {
 };
 
 bool do_mission_create(const std::string& goal, int32_t site_id, const std::vector<int32_t>& squad_ids,
-                       int32_t target_id, StagedOrder& staged, std::string* err) {
+                       int32_t target_id, bool goal_phase, StagedOrder& staged, std::string* err) {
     return run_missions_locked([&]() -> bool {
         if (!df::global::world || !df::global::plotinfo) {
             if (err) *err = "world unavailable";
@@ -552,8 +663,6 @@ bool do_mission_create(const std::string& goal, int32_t site_id, const std::vect
             return false;
         }
 
-        // Target site: must be one DF says we know about (world_new_mission_type's NOT_IN_CONTACT /
-        // OWN_SITE refusals, applied from the same known_sites relation DF reads).
         auto* site = find_site(site_id);
         if (!site) {
             if (err) *err = "no such site";
@@ -569,35 +678,54 @@ bool do_mission_create(const std::string& goal, int32_t site_id, const std::vect
             return false;
         }
 
-        // Squads: ours, non-empty, and not already committed (squad.h:36 -- DF's own bit).
-        if (squad_ids.empty()) {
-            if (err) *err = "pick at least one squad";
-            return false;
-        }
-        std::set<int32_t> seen;
-        for (int32_t sid : squad_ids) {
-            if (!seen.insert(sid).second) {
-                if (err) *err = "squad listed twice";
+        staged.goal = goal;
+        staged.site_id = site_id;
+        staged.site_name = site_name_of(site);
+        staged.target_id = target_id;
+
+        if (goal_phase) {
+            int slot = goal == "SITE_INVASION" ? 2 : goal == "MAKE_REQUEST" ? 19 :
+                       goal == "DIPLOMACY" ? 25 : -1;
+            if (slot < 0) {
+                if (err) *err = "that goal is not offered from the site-first expedition panel";
                 return false;
             }
-            auto* squad = df::squad::find(sid);
-            if (!squad || std::find(v.group->squads.begin(), v.group->squads.end(), sid) == v.group->squads.end()) {
-                if (err) *err = "squad " + std::to_string(sid) + " is not one of your squads";
+            int32_t travel_cost = site_travel_cost(df::global::world->world_data, site);
+            int verdict = site_verdicts(v, site, travel_cost).goals[slot];
+            if (verdict != 0) {
+                if (err) *err = "that expedition goal is not currently available for this site";
                 return false;
             }
-            if (squad->assigned_army_controller_id != -1 || squad_army(squad)) {
-                if (err) *err = DFHack::Military::getSquadName(sid) + " is already away on a mission";
+        } else {
+            if (squad_ids.empty()) {
+                if (err) *err = "pick at least one squad";
                 return false;
             }
-            if (squad_member_count(squad) == 0) {
-                if (err) *err = DFHack::Military::getSquadName(sid) + " has no members";
-                return false;
+            std::set<int32_t> seen;
+            for (int32_t sid : squad_ids) {
+                if (!seen.insert(sid).second) {
+                    if (err) *err = "squad listed twice";
+                    return false;
+                }
+                auto* squad = df::squad::find(sid);
+                if (!squad || std::find(v.group->squads.begin(), v.group->squads.end(), sid) == v.group->squads.end()) {
+                    if (err) *err = "squad " + std::to_string(sid) + " is not one of your squads";
+                    return false;
+                }
+                if (squad->assigned_army_controller_id != -1 || squad_army(squad)) {
+                    if (err) *err = DFHack::Military::getSquadName(sid) + " is already away on a mission";
+                    return false;
+                }
+                if (squad_member_count(squad) == 0) {
+                    if (err) *err = DFHack::Military::getSquadName(sid) + " has no members";
+                    return false;
+                }
+                staged.squad_ids.push_back(sid);
+                staged.squad_names.push_back(DFHack::Military::getSquadName(sid));
             }
-            staged.squad_ids.push_back(sid);
-            staged.squad_names.push_back(DFHack::Military::getSquadName(sid));
+
         }
 
-        // Goal-specific target, validated against the real record (not merely non-negative).
         if (goal == "RECOVER_ARTIFACT") {
             if (!df::artifact_record::find(target_id)) {
                 if (err) *err = "recover-artifact needs a real artifact";
@@ -610,20 +738,14 @@ bool do_mission_create(const std::string& goal, int32_t site_id, const std::vect
             }
         }
 
-        staged.goal = goal;
-        staged.site_id = site_id;
-        staged.site_name = site_name_of(site);
-        staged.target_id = target_id;
-
-        // *** THE COMMIT. *** Deliberately absent -- see missions.h and the probe list above. The
-        // validation above is complete and the order is staged; nothing has been written. This is a
-        // hard stop, not a fallthrough: no partial army_controller, no dangling squad assignment.
+        // The commit is deliberately absent, and this is a hard stop rather than a fallthrough:
+        // no partial army_controller and no dangling squad assignment may ever be written.
         if (!kMissionCommitEnabled) {
             if (err) *err = kNativeOnlyReason;
             return false;
         }
-        if (err) *err = "mission commit is enabled but unimplemented"; // unreachable; keeps the
-        return false;                                                  // guard honest if flipped.
+        if (err) *err = "mission commit is enabled but unimplemented";
+        return false;
     });
 }
 
@@ -644,7 +766,6 @@ std::string staged_json(const StagedOrder& s) {
     return body.str();
 }
 
-// Parse a repeated/comma-joined `squad` parameter: /mission-create?squad=1&squad=2 or ?squad=1,2.
 std::vector<int32_t> parse_squads(const httplib::Request& req) {
     std::vector<int32_t> out;
     auto range = req.params.equal_range("squad");
@@ -655,8 +776,7 @@ std::vector<int32_t> parse_squads(const httplib::Request& req) {
             try {
                 if (!part.empty()) out.push_back(static_cast<int32_t>(std::stol(part)));
             } catch (...) {
-                // A non-numeric squad token is dropped here and the order simply fails validation
-                // (empty / short squad list) rather than silently resolving to squad 0.
+                // Drop the token rather than let a failed parse resolve to squad 0.
             }
         }
     }
@@ -666,8 +786,6 @@ std::vector<int32_t> parse_squads(const httplib::Request& req) {
 } // namespace
 
 void register_mission_routes(httplib::Server& server) {
-    // GET /missions -> the whole domain: active missions, our squads, candidate targets, mission
-    // types, stranded squads, and an honest capability block for the create + rescue writes.
     server.Get("/missions", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         std::string err;
@@ -676,11 +794,11 @@ void register_mission_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // POST /mission-create?goal=&site=&squad=&squad=&target= -> validate, stage, REFUSE (501).
-    // A 400 means the order itself is wrong (fix it and retry); a 501 means the order is perfectly
-    // good and DF simply will not take it from us. The client must show those differently.
+    // 400 means the order itself is wrong; 501 means the order is good and DF will not take it
+    // from us. The client must show those two differently.
     auto create_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string goal = req.has_param("goal") ? req.get_param_value("goal") : "";
+        bool goal_phase = req.has_param("phase") && req.get_param_value("phase") == "goal";
         int site_id = -1, target_id = -1;
         query_int(req, "site", site_id);
         query_int(req, "target", target_id);
@@ -688,9 +806,8 @@ void register_mission_routes(httplib::Server& server) {
 
         StagedOrder staged;
         std::string err;
-        bool committed = do_mission_create(goal, site_id, squads, target_id, staged, &err);
+        bool committed = do_mission_create(goal, site_id, squads, target_id, goal_phase, staged, &err);
         if (committed) {
-            // Unreachable while kMissionCommitEnabled is false. Kept so the success shape exists.
             set_no_store_json(res, "{\"ok\":true,\"staged\":" + staged_json(staged) + "}\n");
             return;
         }
@@ -711,10 +828,7 @@ void register_mission_routes(httplib::Server& server) {
     server.Get("/mission-create", create_handler);
     server.Post("/mission-create", create_handler);
 
-    // POST /mission-rescue -> the one real mission-domain write: run DFHack's OWN
-    // scripts/fix/stuck-squad.lua. We do not reimplement it; the lua bridge runs the upstream
-    // script and hands back its console text. Pre-checked against the same scan the script does,
-    // so a click that DFHack would reject never reaches it.
+    // POST /mission-rescue runs DFHack's own fix/stuck-squad script through the lua bridge.
     auto rescue_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         std::string err;

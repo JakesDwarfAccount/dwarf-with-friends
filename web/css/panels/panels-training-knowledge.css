@@ -1,0 +1,95 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.training-knowledge {
+  /* Ledger 0053: the fortress-wide training-knowledge panel (one row per race, alphabetical). */
+  .training-knowledge-title {
+    flex: 0 0 auto;
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+    margin-bottom: 4px;
+    padding: 0 0 4px;
+  }
+  .training-knowledge-race {
+    color: var(--dwfui-text-row);
+  }
+
+  .info-main:has(> .training-knowledge-panel) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .overall-training-bar-well {
+    display: flex;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    padding: 0 calc(2 * var(--dwfui-cell-drawn-w)) var(--dwfui-cell-drawn-h) 0;
+  }
+  .training-knowledge-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+  .training-knowledge-list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .training-knowledge-list > .info-table {
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .training-knowledge-row {
+    display: grid;
+    grid-template-columns:
+      calc(4 * var(--dwfui-cell-drawn-w))
+      minmax(0, 1fr)
+      max-content;
+    align-items: center;
+    min-height: calc(3 * var(--dwfui-cell-drawn-h));
+    gap: 0 var(--dwfui-cell-drawn-w);
+    font-size: inherit;
+    justify-content: unset;
+    border: 1px solid transparent;
+    background: repeating-linear-gradient(-25deg, rgba(255, 255, 255, 0.025) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
+  }
+  .training-knowledge-row:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+  .training-knowledge-row > * {
+    min-width: 0;
+  }
+  .training-knowledge-race,
+  .training-knowledge-level {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

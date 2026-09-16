@@ -3,26 +3,7 @@
 // Copyright (C) 2026 Jake Taplin
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// host/install.mjs -- one-click dwf mod installer. Plain node, ZERO npm deps.
-//
-//   node host/install.mjs [--df-root "<path>"] [--release "<dir>"] [--check] [--yes] [--json]
-//
-// What it does (idempotent, upgrade-safe):
-//   1. Resolves the DF root (--df-root, else auto-detects common Steam paths).
-//   2. Verifies it is a Dwarf Fortress install WITH DFHack (clear errors otherwise).
-//   3. Copies the release layout (dll + lua x2 + web/) into the exact plugin paths.
-//   4. Backs up every file it is about to overwrite into host/backup/<timestamp>/ first.
-//   5. Quarantines obsolete pre-rename artifacts (dfcapture.plug.dll / dfcapture.lua) so DFHack
-//      cannot load two competing copies of the plugin (see spec W9 "stale-DLL trap").
-//   6. Writes an install receipt (versions, paths, timestamp) into the DF root.
-//
-//   --check  reports install state (receipt + whether deployed files match the release) and
-//            touches NOTHING. Exit 0 = installed & current, 3 = not/partly installed.
-//
-// The release layout this reads:  <release>/dwf.plug.dll, <release>/dwf.lua,
-// <release>/web/**.  Default --release is host/release next to this script; a packaged release
-// ships that folder pre-filled. (This repo builds the .dll separately -- see AGENTS.md -- so an
-// unfilled host/release is expected in a dev checkout and reported honestly.)
+// One-click dwf mod installer. Plain node, zero npm deps.
 
 import { existsSync, statSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -31,32 +12,27 @@ import { fileURLToPath } from "node:url";
 import {
   resolveManifest, checkDfhack, autodetectDfRoot, copyTree,
   inspectDfhackVersion, makeReceipt, readReceipt, writeReceipt, tsStamp, receiptPath,
-  PLUGIN_BINARY, DF_EXE_NAME,
+  PLUGIN_BINARY, DF_EXE_NAME, DFHACK_VERSION,
 } from "./hostlib.mjs";
 import { bakeSprites, spriteBakeState } from "./bake_sprites.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_RELEASE = path.join(HERE, "release");
-// Backups land in host/backup/<ts>/ by default; DWF_BACKUP_ROOT redirects them (tests).
+// Backups land in host/backup/<ts>/ by default; DWF_BACKUP_ROOT redirects them.
 const BACKUP_ROOT = process.env.DWF_BACKUP_ROOT || path.join(HERE, "backup");
 
-// The one friendly message for "the game has our files open". Same wording whether the pre-flight
-// catches it up front or a copy trips EBUSY/EPERM because DF was launched mid-install.
+// The one friendly message for "the game has our files open".
 const DF_RUNNING_MSG =
   "Dwarf Fortress is running, so its plugin files are locked and cannot be replaced. " +
   "Close Dwarf Fortress (and make sure it has fully exited), then click Install again.";
 
-// PRE-FLIGHT: is a Dwarf Fortress process running right now? A live game holds hack/plugins/
-// dwf.plug.dll open, so copying over it fails with EBUSY. We shell out to tasklist exactly the way
-// setup.mjs shells out to powershell -- Windows-simple, absolute-tool, best-effort. On any failure
-// (non-Windows, tasklist missing) we return false: never block an install we could not prove is
-// unsafe. DWF_ASSUME_DF_RUNNING forces the answer in tests (1/true = running, 0/false = not).
+// A live game holds hack/plugins/dwf.plug.dll open, so copying over it fails with EBUSY. On any
+// failure this returns false: never block an install we could not prove is unsafe.
 export function isDfRunning(exe = DF_EXE_NAME) {
   const forced = process.env.DWF_ASSUME_DF_RUNNING;
   if (forced != null && forced !== "") return forced === "1" || forced.toLowerCase() === "true";
   if (process.platform !== "win32") {
-    // pgrep -x matches the exact process name (dwarfort). Best-effort like tasklist below:
-    // exit 1 = no match, anything else unknowable -> never block an unprovable install.
+    // pgrep -x matches the exact process name; exit 1 = no match, anything else unknowable.
     try {
       execFileSync("pgrep", ["-x", exe.slice(0, 15)], { timeout: 10000 });
       return true;
@@ -66,12 +42,10 @@ export function isDfRunning(exe = DF_EXE_NAME) {
     const out = execFileSync("tasklist", ["/FI", `IMAGENAME eq ${exe}`, "/NH"],
       { windowsHide: true, timeout: 10000 }).toString();
     return out.toLowerCase().includes(exe.toLowerCase());
-  } catch { return false; }   // tasklist unavailable -> do not block the install
+  } catch { return false; }
 }
 
-// True when a copy failed only because the destination is locked/read-only (a running DF, or a
-// stray handle). These map to the friendly "close the game" message; every other error re-throws
-// and keeps its existing raw handling.
+// True when a copy failed only because the destination is locked or read-only.
 function isLockedError(e) {
   return !!e && (e.code === "EBUSY" || e.code === "EPERM" || e.code === "EACCES");
 }
@@ -139,14 +113,14 @@ function releaseVersions(releaseDir) {
   return v;
 }
 
-// Byte-equal file compare (small files; the dll is the only large one and equality short-circuits).
+// Byte-equal file compare (equality short-circuits on size).
 function sameFile(a, b) {
   if (!existsSync(a) || !existsSync(b)) return false;
   if (statSync(a).size !== statSync(b).size) return false;
   return readFileSync(a).equals(readFileSync(b));
 }
 
-// Compare every release file against its deployed twin. Returns {installed, upToDate, missing:[], stale:[]}.
+// Compare every release file against its deployed twin. Returns {installed, upToDate, missing, stale}.
 function deployState(dfRoot, releaseDir) {
   const entries = resolveManifest(dfRoot, releaseDir);
   const missing = [], stale = [];
@@ -154,7 +128,7 @@ function deployState(dfRoot, releaseDir) {
     if (e.kind === "file") {
       if (!existsSync(e.dest)) missing.push(e.role);
       else if (existsSync(e.src) && !sameFile(e.src, e.dest)) stale.push(e.role);
-    } else { // dir: shallow existence + per-file compare
+    } else {
       if (!existsSync(e.dest)) { missing.push(e.role); continue; }
       const diff = dirDiff(e.src, e.dest);
       if (diff.missing.length) missing.push(`${e.role} (${diff.missing.length} files)`);
@@ -217,7 +191,7 @@ function main() {
   const dfhackVersion = inspectDfhackVersion(dfRoot);
   const warnings = [];
   if (dfhackVersion.detected && !dfhackVersion.compatible) {
-    warnings.push(`DFHack ${dfhackVersion.version} is installed; this plugin requires exactly 53.15-r2.`);
+    warnings.push(`DFHack ${dfhackVersion.version} is installed; this plugin requires exactly ${DFHACK_VERSION}.`);
     push(`  WARNING: ${warnings[0]}`);
   } else if (dfhackVersion.compatible) {
     push(`  DFHack version: ${dfhackVersion.version} (compatible)`);
@@ -245,8 +219,7 @@ function main() {
       if (state.missing.length) push("  files MISSING: " + state.missing.join(", "));
       if (state.stale.length)   push("  files STALE (differ from release): " + state.stale.join(", "));
     }
-    // W11: the composite sprites are baked from THIS install's DF art (they are
-    // not in the release -- they derive from the paid DF graphics). Report them.
+    // The composite sprites are baked from THIS install's DF art, not shipped in the release.
     const sprites = spriteBakeState({ dfRoot });
     let spritesOk = true;
     if (!sprites.recipeOk) {
@@ -282,11 +255,7 @@ function main() {
     process.exit(3);
   }
 
-  // PRE-FLIGHT: DF must be closed before we touch its plugin files. A running game holds
-  // hack/plugins/dwf.plug.dll open and the copy below would crash with EBUSY. Refuse up front with a
-  // friendly, actionable message instead of a stack trace. This also guards the wizard's verify/
-  // repair re-run, which invokes this same installer. (--check above never reaches here: it is
-  // read-only and must stay usable while the game runs.)
+  // PRE-FLIGHT: DF must be closed before we touch its plugin files.
   if (isDfRunning()) {
     push("\nCannot install right now:");
     push("  - " + DF_RUNNING_MSG);
@@ -298,9 +267,8 @@ function main() {
   const entries = resolveManifest(dfRoot, releaseDir);
   const backupDir = path.join(BACKUP_ROOT, tsStamp());
 
-  // Back up anything we are about to overwrite, then copy. BELT-AND-BRACES: DF can be launched
-  // between the pre-flight check and here, so a copy can still hit EBUSY/EPERM on a locked file.
-  // Turn that into the SAME friendly message rather than a raw Node crash; other errors re-throw.
+  // Back up anything we are about to overwrite, then copy. DF can be launched mid-install, so a
+  // locked-destination error still maps to the friendly close-the-game message.
   const copied = [];
   let backedUp = 0;
   try {
@@ -320,7 +288,7 @@ function main() {
       }
     }
   } catch (e) {
-    if (!isLockedError(e)) throw e;   // genuine errors keep their existing (raw) handling
+    if (!isLockedError(e)) throw e;
     push("\nCannot finish the install:");
     push("  - " + DF_RUNNING_MSG);
     out(args.json, lines.join("\n"),
@@ -328,17 +296,11 @@ function main() {
     process.exit(3);
   }
 
-  // W9 stale-DLL trap: DFHack loads EVERY dll in hack/plugins, so a leftover pre-rename
-  // dfcapture.plug.dll would run a SECOND copy of the plugin beside the new dwf.plug.dll (they
-  // contend for the same HTTP port and DF state -- erratic, not a clean crash). Quarantine the
-  // obsolete dfcapture.* artifacts into the same backup dir. Idempotent + safe on a fresh install.
+  // DFHack loads EVERY dll in hack/plugins, so a leftover pre-rename dfcapture.plug.dll would
+  // load a second, older copy of this plugin beside the new one.
   const staleRemoved = removeStaleArtifacts(dfRoot, backupDir, push);
 
-  // W11: bake the composite sprites from THIS install's own DF art into the
-  // deployed web root. They are not in the release: their pixels derive from
-  // the paid DF graphics, which this project may not redistribute. A failed
-  // bake is not fatal -- the client falls back to placeholder dots -- but it
-  // is reported loudly and recorded in the receipt.
+  // Bake the composite sprites from THIS install's own DF art into the deployed web root.
   push("\nBaking sprites from your Dwarf Fortress art:");
   const bake = bakeSprites({ dfRoot, log: push });
   if (!bake.ok) {
@@ -380,13 +342,7 @@ function backupOne(destFile, dfRoot, backupDir) {
   copyTree(destFile, to, () => {});
 }
 
-// Detect and remove pre-rename (dfcapture.*) artifacts that must not coexist with the deployed
-// dwf.* set. The .dll + .lua files are QUARANTINED (copied into the backup dir, then deleted from
-// the install) so a mistaken removal is recoverable; the pure-scratch .old web dir is deleted
-// outright. Returns the list of removed paths (relative to dfRoot). Idempotent: once the old files
-// are gone, every existsSync below is false and the function is a clean no-op -- and it is a no-op
-// on a fresh install where none of these ever existed. NOTE: hack/dfcapture-web/ is deliberately
-// NOT touched -- it is the LIVE served web root (src/web_assets.cpp:31 kWebRoot), not a stale name.
+// Detect and remove pre-rename (dfcapture.*) artifacts that must not coexist with the deploy.
 function removeStaleArtifacts(dfRoot, backupDir, log) {
   const removed = [];
   const header = () => { if (!removed.length) log("\nRemoving obsolete pre-rename artifacts (DFHack must not load two plugin copies):"); };
@@ -394,8 +350,8 @@ function removeStaleArtifacts(dfRoot, backupDir, log) {
     const abs = path.join(dfRoot, rel);
     if (!existsSync(abs)) return;
     header();
-    backupOne(abs, dfRoot, backupDir);            // recoverable copy first
-    rmSync(abs, { recursive: true, force: true }); // then remove from the live install
+    backupOne(abs, dfRoot, backupDir);
+    rmSync(abs, { recursive: true, force: true });
     removed.push(rel);
     log(`  - quarantined stale ${rel.replace(/\\/g, "/")} -> ${path.join(backupDir, rel)}`);
   };
@@ -414,7 +370,7 @@ function removeStaleArtifacts(dfRoot, backupDir, log) {
   quarantine(path.join("hack", "lua", "plugins", "dfcapture.lua"));
   quarantine(path.join("hack", "scripts", "dfcapture.lua"));
   quarantine(path.join("hack", "scripts", "gui", "dfcapture.lua"));
-  // 3) old web scratch dir -- pure leftover, safe to delete outright (NOT the live dfcapture-web/).
+  // 3) old web scratch dir -- pure leftover, safe to delete (NOT the live dfcapture-web/).
   const oldWeb = path.join(dfRoot, "hack", "dfcapture-web.old");
   if (existsSync(oldWeb)) {
     header();

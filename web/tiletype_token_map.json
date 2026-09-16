@@ -329,19 +329,16 @@
   "token": "STONE_FLOOR_5"
  },
  "FeatureFloor2": {
-  "overlay": "STONE_FLOOR_2",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5B"
  },
  "FeatureFloor3": {
-  "overlay": "STONE_FLOOR_3",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5C"
  },
  "FeatureFloor4": {
-  "overlay": "STONE_FLOOR_4",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5D"
  },
  "FeatureFloorSmooth": {
   "tint": null,
@@ -1002,19 +999,16 @@
   "token": "STONE_FLOOR_5"
  },
  "LavaFloor2": {
-  "overlay": "STONE_FLOOR_2",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5B"
  },
  "LavaFloor3": {
-  "overlay": "STONE_FLOOR_3",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5C"
  },
  "LavaFloor4": {
-  "overlay": "STONE_FLOOR_4",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5D"
  },
  "LavaFloorSmooth": {
   "tint": null,
@@ -1301,19 +1295,16 @@
   "token": "STONE_FLOOR_5"
  },
  "MineralFloor2": {
-  "overlay": "STONE_FLOOR_2",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5B"
  },
  "MineralFloor3": {
-  "overlay": "STONE_FLOOR_3",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5C"
  },
  "MineralFloor4": {
-  "overlay": "STONE_FLOOR_4",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5D"
  },
  "MineralFloorSmooth": {
   "tint": null,
@@ -1700,19 +1691,16 @@
   "token": "DIRT_FLOOR_5"
  },
  "SoilFloor2": {
-  "overlay": "DIRT_FLOOR_2",
   "tint": null,
-  "token": "DIRT_FLOOR_5"
+  "token": "DIRT_FLOOR_5B"
  },
  "SoilFloor3": {
-  "overlay": "DIRT_FLOOR_3",
   "tint": null,
-  "token": "DIRT_FLOOR_5"
+  "token": "DIRT_FLOOR_5C"
  },
  "SoilFloor4": {
-  "overlay": "DIRT_FLOOR_4",
   "tint": null,
-  "token": "DIRT_FLOOR_5"
+  "token": "DIRT_FLOOR_5D"
  },
  "SoilRamp": {
   "tint": null,
@@ -1740,19 +1728,16 @@
   "token": "DIRT_FLOOR_5"
  },
  "SoilWetFloor2": {
-  "overlay": "DIRT_FLOOR_2",
   "tint": null,
-  "token": "DIRT_FLOOR_5"
+  "token": "DIRT_FLOOR_5B"
  },
  "SoilWetFloor3": {
-  "overlay": "DIRT_FLOOR_3",
   "tint": null,
-  "token": "DIRT_FLOOR_5"
+  "token": "DIRT_FLOOR_5C"
  },
  "SoilWetFloor4": {
-  "overlay": "DIRT_FLOOR_4",
   "tint": null,
-  "token": "DIRT_FLOOR_5"
+  "token": "DIRT_FLOOR_5D"
  },
  "StoneBoulder": {
   "tint": null,
@@ -1764,19 +1749,16 @@
   "token": "STONE_FLOOR_5"
  },
  "StoneFloor2": {
-  "overlay": "STONE_FLOOR_2",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5B"
  },
  "StoneFloor3": {
-  "overlay": "STONE_FLOOR_3",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5C"
  },
  "StoneFloor4": {
-  "overlay": "STONE_FLOOR_4",
   "tint": null,
-  "token": "STONE_FLOOR_5"
+  "token": "STONE_FLOOR_5D"
  },
  "StoneFloorSmooth": {
   "tint": null,

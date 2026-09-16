@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 // Local, dependency-free setup/repair wizard. All mutations happen only after an
-// explicit browser action; getSetupState() is read-only and fixture-testable.
 
 import http from "node:http";
 import { execFile, spawn } from "node:child_process";
@@ -55,8 +54,8 @@ export function validateDfRoot(candidate, exists = existsSync) {
   return { ok: true, dfRoot: value };
 }
 
-// Steam's DFHack app lives beside Dwarf Fortress and/or has app manifest 2346660.
-// This is a warning, not proof that the separate app is currently wired into DF.
+// Steam's DFHack app lives beside Dwarf Fortress and/or has app manifest 2346660; a warning,
+// not proof that the separate app is currently wired into DF.
 export function detectSteamDfhack(dfRoot, exists = existsSync) {
   if (!dfRoot) return { detected: false, markers: [] };
   const common = path.dirname(dfRoot);
@@ -100,10 +99,8 @@ export function setupSnapshot({ dfRoot, exists = existsSync, installOk = null,
     steps: {
       df: { ok: df.ok, error: df.ok ? null : (df.error || "Dwarf Fortress was not found."), dfRoot: root },
       dfhack: {
-        // An UNDETECTED version must not pass silently: issue #1's host had DFHack r2, the
-        // detector found no marker, `compatible` stayed null, and setup waved the install
-        // through to a plugin that could never load. Green requires a POSITIVE version match
-        // (or the host explicitly proceeding).
+        // An UNDETECTED version must not pass silently: green requires a POSITIVE version match, or
+        // the host explicitly proceeding.
         ok: hack.ok && (version.compatible === true || allowWrongVersion), installed: hack.ok,
         missing: df.ok && !hack.ok, wrongVersion: hack.ok && version.compatible === false,
         unverified: hack.ok && !version.detected,
@@ -146,8 +143,7 @@ async function createShortcut() {
     return { ok: false, error: `The launcher is missing: ${PANEL_LAUNCHER}. Re-extract the DWF zip, then run setup again.` };
   }
   if (!IS_WIN) {
-    // Freedesktop launcher: install into ~/.local/share/applications (app menus) and copy to
-    // ~/Desktop when that folder exists. No PowerShell/COM equivalent needed.
+    // Freedesktop launcher: install into ~/.local/share/applications and copy to ~/Desktop.
     const desktopEntry = [
       "[Desktop Entry]",
       "Type=Application",
@@ -185,7 +181,7 @@ async function createShortcut() {
     `$s=$w.CreateShortcut($shortcut);$s.TargetPath='${escapedTarget}';` +
     `$s.WorkingDirectory='${DWF_ROOT.replace(/'/g, "''")}';$s.Save();Write-Output $shortcut`;
   // Resolve powershell.exe by absolute path: a trimmed PATH turns bare "powershell.exe" into a
-  // raw "spawn powershell.exe ENOENT". %SystemRoot%\System32\WindowsPowerShell\v1.0 is always present.
+  // raw "spawn powershell.exe ENOENT".
   const powershellExe = process.env.SystemRoot
     ? path.join(process.env.SystemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
     : "powershell.exe";

@@ -2893,8 +2893,8 @@
    "sheet": "item_construction.png"
   },
   "BAR": {
-   "col": 1,
-   "row": 4,
+   "col": 0,
+   "row": 1,
    "sheet": "item_construction.png"
   },
   "BARREL": {
@@ -4767,6 +4767,1522 @@
    "col": 0,
    "row": 2,
    "sheet": "item_hatch_composite.png"
+  }
+ },
+ "itemdef_variants": {
+  "ITEM_AMMO_ARROWS": {
+   "DIAGONAL_DEFAULT": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_ammo.png"
+   },
+   "DIAGONAL_WOOD": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_DEFAULT": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_WOOD": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_ammo.png"
+   }
+  },
+  "ITEM_AMMO_BLOWDARTS": {
+   "DIAGONAL_DEFAULT": {
+    "col": 1,
+    "row": 5,
+    "sheet": "item_ammo.png"
+   },
+   "DIAGONAL_WOOD": {
+    "col": 1,
+    "row": 4,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_DEFAULT": {
+    "col": 0,
+    "row": 5,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_WOOD": {
+    "col": 0,
+    "row": 4,
+    "sheet": "item_ammo.png"
+   }
+  },
+  "ITEM_AMMO_BOLTS": {
+   "DIAGONAL_DEFAULT": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_ammo.png"
+   },
+   "DIAGONAL_WOOD": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_DEFAULT": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_ammo.png"
+   }
+  },
+  "ITEM_SHIELD_BUCKLER": {
+   "WOODEN": {
+    "col": 4,
+    "row": 4,
+    "sheet": "item_equipment.png"
+   }
+  },
+  "ITEM_SHIELD_SHIELD": {
+   "WOODEN": {
+    "col": 4,
+    "row": 1,
+    "sheet": "item_equipment.png"
+   }
+  },
+  "ITEM_SHOES_BOOTS": {
+   "METAL": {
+    "col": 4,
+    "row": 19,
+    "sheet": "item_equipment.png"
+   }
+  },
+  "ITEM_SHOES_BOOTS_LOW": {
+   "METAL": {
+    "col": 4,
+    "row": 18,
+    "sheet": "item_equipment.png"
+   }
+  },
+  "ITEM_SIEGEAMMO_BALLISTA": {
+   "DIAGONAL_DEFAULT": {
+    "col": 1,
+    "row": 8,
+    "sheet": "item_ammo.png"
+   },
+   "DIAGONAL_HEAD": {
+    "col": 3,
+    "row": 8,
+    "sheet": "item_ammo.png"
+   },
+   "DIAGONAL_WOOD": {
+    "col": 1,
+    "row": 7,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_DEFAULT": {
+    "col": 0,
+    "row": 8,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_HEAD": {
+    "col": 2,
+    "row": 8,
+    "sheet": "item_ammo.png"
+   },
+   "STRAIGHT_WOOD": {
+    "col": 0,
+    "row": 7,
+    "sheet": "item_ammo.png"
+   }
+  },
+  "ITEM_TOOL_BOOKCASE": {
+   "GLASS": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_bookcase.png"
+   },
+   "METAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_bookcase.png"
+   },
+   "STONE": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_bookcase.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_bookcase.png"
+   }
+  },
+  "ITEM_TOOL_BOOK_BINDING": {
+   "GLASS": {
+    "col": 2,
+    "row": 1,
+    "sheet": "item_scribe.png"
+   },
+   "METAL": {
+    "col": 2,
+    "row": 1,
+    "sheet": "item_scribe.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_scribe.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_scribe.png"
+   }
+  },
+  "ITEM_TOOL_BOWL": {
+   "WOOD": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_JUG": {
+   "METAL": {
+    "col": 2,
+    "row": 10,
+    "sheet": "containers.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 10,
+    "sheet": "containers.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 10,
+    "sheet": "containers.png"
+   }
+  },
+  "ITEM_TOOL_LADLE": {
+   "WOOD": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_LARGE_POT": {
+   "METAL": {
+    "col": 2,
+    "row": 3,
+    "sheet": "containers.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 3,
+    "sheet": "containers.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 3,
+    "sheet": "containers.png"
+   }
+  },
+  "ITEM_TOOL_MINECART": {
+   "WOOD": {
+    "col": 0,
+    "row": 14,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_MORTAR": {
+   "WOOD": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_NEST_BOX": {
+   "GLASS": {
+    "col": 3,
+    "row": 10,
+    "sheet": "item_tool.png"
+   },
+   "METAL": {
+    "col": 2,
+    "row": 10,
+    "sheet": "item_tool.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 10,
+    "sheet": "item_tool.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 10,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_PESTLE": {
+   "WOOD": {
+    "col": 1,
+    "row": 4,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_SCROLL": {
+   "WOOD": {
+    "col": 0,
+    "row": 4,
+    "sheet": "item_scribe.png"
+   }
+  },
+  "ITEM_TOOL_SCROLL_ROLLERS": {
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_scribe.png"
+   }
+  },
+  "ITEM_TOOL_STEPLADDER": {
+   "WOOD": {
+    "col": 0,
+    "row": 16,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOOL_WHEELBARROW": {
+   "WOOD": {
+    "col": 0,
+    "row": 15,
+    "sheet": "item_tool.png"
+   }
+  },
+  "ITEM_TOY_AXE": {
+   "GLASS": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_toy.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_toy.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_toy.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_toy.png"
+   }
+  },
+  "ITEM_TOY_BOAT": {
+   "GLASS": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_toy.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_toy.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_toy.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_toy.png"
+   }
+  },
+  "ITEM_TOY_HAMMER": {
+   "GLASS": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_toy.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_toy.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_toy.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_toy.png"
+   }
+  },
+  "ITEM_TOY_MINIFORGE": {
+   "GLASS": {
+    "col": 1,
+    "row": 4,
+    "sheet": "item_toy.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 4,
+    "sheet": "item_toy.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 4,
+    "sheet": "item_toy.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 4,
+    "sheet": "item_toy.png"
+   }
+  },
+  "ITEM_TOY_PUZZLEBOX": {
+   "GLASS": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_toy.png"
+   },
+   "METAL": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_toy.png"
+   },
+   "STONE": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_toy.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_toy.png"
+   }
+  },
+  "ITEM_WEAPON_AXE_BATTLE": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 1,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 1,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 4,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 1,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 1,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_AXE_GREAT": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 15,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 15,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 15,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 15,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 3,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 15,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 15,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_AXE_TRAINING": {
+   "ARTIFACT": {
+    "col": 2,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 2,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 2,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 2,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 4,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_BLOWGUN": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 9,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 9,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 9,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 9,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 2,
+    "row": 4,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 9,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 9,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_BOW": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 8,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 8,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 8,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 8,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 1,
+    "row": 4,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 8,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 8,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_CROSSBOW": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 6,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 6,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 6,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 6,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 0,
+    "row": 4,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 6,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 6,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_DAGGER_LARGE": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 16,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 16,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 16,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 16,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 0,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 16,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 16,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_FLAIL": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 5,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 18,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_HALBERD": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 11,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 11,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 11,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 11,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 0,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 11,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 11,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_HAMMER_WAR": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 2,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 2,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 2,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 2,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 2,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_MACE": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 5,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 5,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 5,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 5,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 6,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 5,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 5,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_MAUL": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 14,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 14,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 14,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 14,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 3,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 14,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 14,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_MORNINGSTAR": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 4,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_PICK": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 7,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 7,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 7,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 7,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 1,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 7,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 7,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_PICK_GREAT": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 21,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 21,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 21,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 21,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 1,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 21,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 21,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_PIKE": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 10,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 10,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 10,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 10,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 1,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 10,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 10,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SCIMITAR": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 5,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SCOURGE": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 17,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 17,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 17,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 17,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 8,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 17,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 17,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SPEAR": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 4,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 4,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 4,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 4,
+    "sheet": "item_weapons.png"
+   },
+   "UPRIGHT_10B": {
+    "col": 9,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_10T": {
+    "col": 9,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_1B": {
+    "col": 0,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_1T": {
+    "col": 0,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_2B": {
+    "col": 1,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_2T": {
+    "col": 1,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_3B": {
+    "col": 2,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_3T": {
+    "col": 2,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_4B": {
+    "col": 3,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_4T": {
+    "col": 3,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_5B": {
+    "col": 4,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_5T": {
+    "col": 4,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_6B": {
+    "col": 5,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_6T": {
+    "col": 5,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_7B": {
+    "col": 6,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_7T": {
+    "col": 6,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_8B": {
+    "col": 7,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_8T": {
+    "col": 7,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_9B": {
+    "col": 8,
+    "row": 4,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_9T": {
+    "col": 8,
+    "row": 3,
+    "sheet": "upright_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 2,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 4,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 4,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SPEAR_TRAINING": {
+   "ARTIFACT": {
+    "col": 2,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 2,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 2,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 2,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   },
+   "UPRIGHT_10B": {
+    "col": 9,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_10T": {
+    "col": 9,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_1B": {
+    "col": 0,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_1T": {
+    "col": 0,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_2B": {
+    "col": 1,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_2T": {
+    "col": 1,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_3B": {
+    "col": 2,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_3T": {
+    "col": 2,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_4B": {
+    "col": 3,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_4T": {
+    "col": 3,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_5B": {
+    "col": 4,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_5T": {
+    "col": 4,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_6B": {
+    "col": 5,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_6T": {
+    "col": 5,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_7B": {
+    "col": 6,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_7T": {
+    "col": 6,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_8B": {
+    "col": 7,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_8T": {
+    "col": 7,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_9B": {
+    "col": 8,
+    "row": 6,
+    "sheet": "upright_weapons.png"
+   },
+   "UPRIGHT_9T": {
+    "col": 8,
+    "row": 5,
+    "sheet": "upright_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 2,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 20,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SWORD_2H": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 12,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 12,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 12,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 12,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 6,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 12,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 12,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SWORD_LONG": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 13,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 13,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 13,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 13,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 7,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 13,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 13,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SWORD_SHORT": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   },
+   "STONE": {
+    "col": 2,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 8,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 0,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 3,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_SWORD_SHORT_TRAINING": {
+   "ARTIFACT": {
+    "col": 2,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 2,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 2,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 2,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 8,
+    "row": 2,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 19,
+    "sheet": "item_weapons.png"
+   }
+  },
+  "ITEM_WEAPON_WHIP": {
+   "ARTIFACT": {
+    "col": 3,
+    "row": 0,
+    "sheet": "item_weapons.png"
+   },
+   "DEFAULT": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_weapons.png"
+   },
+   "MATERIAL": {
+    "col": 0,
+    "row": 0,
+    "sheet": "item_weapons.png"
+   },
+   "SPECIAL_MAT": {
+    "col": 4,
+    "row": 0,
+    "sheet": "item_weapons.png"
+   },
+   "WEAPON_TRAP": {
+    "col": 7,
+    "row": 3,
+    "sheet": "traps_weapon.png"
+   },
+   "WOOD": {
+    "col": 2,
+    "row": 0,
+    "sheet": "item_weapons.png"
+   },
+   "WOOD_GROWN": {
+    "col": 1,
+    "row": 0,
+    "sheet": "item_weapons.png"
+   }
   }
  },
  "matvariants": {

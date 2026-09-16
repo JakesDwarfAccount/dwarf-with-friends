@@ -1,45 +1,35 @@
-// dwf - WT28/B218 native popup mirror client consumer
+// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
 //
-// Self-contained consumer for the server's {"type":"popup",...} broadcast (routed here from
-// dwf-ws.js). The server mirrors DF's native modal announcement popups (mega/BOX boxes:
-// megabeast, siege night-attack, first caravan, ...; and the announcement-alert window: caravan
-// arrival etc.) that hard-pause AND wedge the sim until dismissed at the physical PC. This module
-// shows the same popup to every browser player and lets ANY of them dismiss it via
-// POST /popup/dismiss -- after which the ordinary shared unpause works again.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
 //
-// Frame shape (sticky; late joiners get the current set on join, empty popups[] = all clear):
-//   {"type":"popup","seq":N,"blocked":bool[,"by":"player"],
-//    "popups":[{"id":1,"kind":"mega"|"alert","typeKey":"TRADE","title":"",
-//               "text":["line",...],"pauses":true}]}
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
 //
-// DWFUI mandate: the modal is BUILT from DWFUI pieces (modalHtml + scrollHtml + plaqueBtnHtml) --
-// no hand-rolled panel markup. The geometry (centered overlay, not the left-docked squad-dialog
-// dock) is screen-owned CSS on the `df-native-popup` cls hook, colors resolved through the
-// --dwfui-* tokens. PROVISIONAL PENDING ORACLE PARITY: native captures of these popups don't exist
-// yet (they get forced with dfhack `force` at harvest) -- the structure is DWFUI so the parity
-// pass can restyle without rework.
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
-// B216 rule: dismissing (or any click inside the overlay) must NEVER move the camera -- the
-// overlay swallows pointer/wheel events, and the text body is a .dwfui-scroll so the wheel works.
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
 //
-// Inert-graceful against an OLD server that never sends these frames: the module simply never
-// renders anything.
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// dwf-popup.js -- the native popup mirror: shows DF's modal announcement popups to every
+// browser player and lets any of them acknowledge via POST /popup/dismiss.
 (function () {
   "use strict";
 
   var HAS_DWFUI = typeof DWFUI !== "undefined";
   if (HAS_DWFUI && typeof DWFUI.require === "function")
-    DWFUI.require("popup", ["modalHtml", "plaqueBtnHtml", "scrollHtml"]);
+    DWFUI.require("popup", ["messageBoxHtml"]);
 
-  function esc(s) {
-    if (HAS_DWFUI && typeof DWFUI.esc === "function") return DWFUI.esc(s);
-    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
-
-  // ---- pure state reducer (exported for the harness) -------------------------------------------
-  // Frames are seq-ordered; a stale or duplicate seq is ignored so an out-of-order sticky resync
-  // can never resurrect a popup the live wire already cleared. Returns {changed, state}.
+  // Frames are seq-ordered: a stale or duplicate seq is ignored, so an out-of-order sticky resync can
+  // never resurrect a popup the live wire already cleared.
   function applyPopupFrame(state, msg) {
     state = state || { seq: -1, popups: [] };
     if (!msg || msg.type !== "popup" || !Number.isFinite(Number(msg.seq)))
@@ -53,77 +43,24 @@
     return { changed: true, state: { seq: seq, popups: popups } };
   }
 
-  // Humanize an announcement_alert_type key ("TRADE" -> "Trade", "UNDEAD_ATTACK" -> "Undead attack").
-  function typeLabel(typeKey) {
-    var k = String(typeKey || "").trim();
-    if (!k) return "";
-    var words = k.toLowerCase().split("_").join(" ");
-    return words.charAt(0).toUpperCase() + words.slice(1);
-  }
-
-  function headerLine(popup) {
-    // PROVISIONAL COPY (parity pass owns the final wording against forced-capture oracles):
-    // the native mega box has no title bar; the alert window is titled by its alert type.
-    if (popup && popup.kind === "alert") {
-      var label = typeLabel(popup.typeKey);
-      return label ? "Alert: " + label : "Alerts";
-    }
-    return "Announcement";
-  }
-
-  // ---- markup (pure; exported for the harness) --------------------------------------------------
+  // The BOX is DWFUI.messageBoxHtml -- the decoded native widget tree lives there. This screen supplies
+  // only the wire data and its own pinned class and dataset hooks.
   function popupModalMarkup(popup, queuedCount) {
     if (!popup) return "";
     var lines = Array.isArray(popup.text) ? popup.text : [];
-    var bodyLines = lines.map(function (line) {
-      return line === ""
-        ? '<div class="df-popup-line df-popup-line-blank">&nbsp;</div>'
-        : '<div class="df-popup-line">' + esc(line) + "</div>";
-    }).join("");
-    if (!bodyLines)
-      bodyLines = '<div class="df-popup-line df-popup-line-empty">(no text)</div>';
-    var body = DWFUI.scrollHtml(
-      { cls: "df-popup-text", ariaLabel: "Announcement text" }, bodyLines);
-    var queued = Number(queuedCount) > 0
-      ? '<span class="df-popup-queued">' + esc("+" + Number(queuedCount) + " more") + "</span>"
-      : "";
-    var footer = queued + DWFUI.plaqueBtnHtml({
-      label: "Dismiss", tone: "green", cls: "df-popup-dismiss",
-      dataset: { popupDismiss: popup.id },
-      title: "Dismiss this announcement for everyone (unpause works again after)",
-    });
-    return DWFUI.modalHtml({
-      prompt: headerLine(popup),
-      cls: "df-native-popup",
-      ariaLabel: "Native announcement popup",
+    // portraitHfid, color and bright are read DEFENSIVELY: absent fields produce the absent-field layout,
+    // never an invented one, so an old server gets the plain box and a newer one needs no client change.
+    var portraitHfid = Number(popup.portraitHfid);
+    return DWFUI.messageBoxHtml({
+      lines: lines,
+      queued: Number(queuedCount) || 0,
+      color: popup.color, bright: popup.bright,
+      portraitReserved: Number.isFinite(portraitHfid) && portraitHfid >= 0,
+      ariaLabel: "Announcement",
+      cls: "df-native-popup", textCls: "df-popup-text", lineCls: "df-popup-line",
       dataset: { popupId: popup.id, popupKind: popup.kind || "" },
-      footerHtml: footer,
-    }, body);
-  }
-
-  // ---- shared style (injected once; geometry only -- colors come from --dwfui-* tokens) ----------
-  function ensureStyle() {
-    if (document.getElementById("dfPopupStyle")) return;
-    var st = document.createElement("style");
-    st.id = "dfPopupStyle";
-    st.textContent = [
-      // Overlay: centered, above the map + panels, below the pause toasts (9000).
-      "#dfPopupMirror{position:fixed;inset:0;z-index:8980;display:none;",
-      "  align-items:center;justify-content:center;background:rgba(0,0,0,0.35)}",
-      "#dfPopupMirror.show{display:flex}",
-      // Screen-owned geometry override of the left-docked .dwfui-modal dock: this mirror is a
-      // CENTERED box (provisional pending the forced-capture oracles).
-      "#dfPopupMirror .df-native-popup{position:static;width:min(560px,92vw);",
-      "  height:auto;max-height:70vh}",
-      "#dfPopupMirror .df-popup-text{padding:2px 0}",
-      "#dfPopupMirror .df-popup-line{color:var(--dwfui-text-body);",
-      "  font:var(--dwfui-font);white-space:pre-wrap}",
-      "#dfPopupMirror .df-popup-line-empty{color:var(--dwfui-text-secondary)}",
-      "#dfPopupMirror .dwfui-modal-footer{justify-content:flex-end}",
-      "#dfPopupMirror .df-popup-queued{color:var(--dwfui-text-secondary);margin-right:auto}",
-      "#dfPopupMirror .df-popup-dismiss[disabled]{opacity:.55;pointer-events:none}",
-    ].join("\n");
-    (document.head || document.documentElement).appendChild(st);
+      acknowledge: { cls: "df-popup-dismiss", dataset: { popupDismiss: popup.id } },
+    });
   }
 
   // ---- live state -------------------------------------------------------------------------------
@@ -132,29 +69,26 @@
   var overlayEl = null;
 
   function playerName() {
-    try { return window.playerName || ""; } catch (_) { return ""; }
+    try { return window.playerName || ""; } catch { return ""; }
   }
 
   function toast(text) {
     try {
       if (window.DwfPause && typeof DwfPause.toast === "function")
         DwfPause.toast(text);
-    } catch (_) {}
+    } catch (error) { DwfErr.report("popup.toast", error); }
   }
 
   function overlay() {
     if (overlayEl) return overlayEl;
-    ensureStyle();
     overlayEl = document.getElementById("dfPopupMirror");
     if (!overlayEl) {
       overlayEl = document.createElement("div");
       overlayEl.id = "dfPopupMirror";
-      // B216: nothing that happens inside this overlay may reach the map input handlers --
-      // dismissing must never move the camera, and the wheel belongs to the .dwfui-scroll body.
       ["mousedown", "mouseup", "click", "dblclick", "contextmenu", "pointerdown", "pointerup",
-       "wheel", "touchstart", "touchend"].forEach(function (type) {
+       "touchstart", "touchend"].forEach(function (type) {
         overlayEl.addEventListener(type, function (event) { event.stopPropagation(); },
-          { passive: type === "wheel" || type === "touchstart" || type === "touchend" });
+          { passive: type === "touchstart" || type === "touchend" });
       });
       overlayEl.addEventListener("click", function (event) {
         var btn = event.target && event.target.closest
@@ -166,18 +100,81 @@
     return overlayEl;
   }
 
+  // UI-DIV-004: the blocking box is draggable and remembers where it was left. Registered
+  // `chromeless: true`, so the framework generates NO title bar and NO close control.
+  function popupBox() {
+    var host = overlay();
+    var box = document.getElementById("dfPopupBox");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "dfPopupBox";
+      host.appendChild(box);
+      try {
+        if (window.DFPanelFrame && typeof window.DFPanelFrame.register === "function")
+          window.DFPanelFrame.register({
+            key: "popupBox", el: function () { return document.getElementById("dfPopupBox"); },
+            title: "Announcement", movable: true, chromeless: true, closable: false, menu: false,
+            zBand: false, escClosable: false, persistOpen: false, cssDocked: true,
+            isOpen: function () { var h = document.getElementById("dfPopupMirror");
+              return !!h && h.classList.contains("show"); },
+          });
+      } catch (error) { DwfErr.report("popup.panel-register", error); }
+    }
+    return box;
+  }
+  // The default placement is native's centre, recomputed per popup because the box's geometry changes
+  // with its text; the framework then substitutes the player's remembered rect if there is one.
+  function placeBox() {
+    var box = popupBox();
+    box.style.removeProperty("--df-popup-left");
+    box.style.removeProperty("--df-popup-top");
+    var rect = box.getBoundingClientRect();
+    box.style.setProperty("--df-popup-left",
+      Math.max(0, Math.round((window.innerWidth - rect.width) / 2)) + "px");
+    box.style.setProperty("--df-popup-top",
+      Math.max(0, Math.round((window.innerHeight - rect.height) / 2)) + "px");
+    try {
+      if (window.DFPanelFrame && typeof window.DFPanelFrame.syncOpenState === "function")
+        window.DFPanelFrame.syncOpenState("popupBox", true);
+    } catch (error) { DwfErr.report("popup.panel-open-sync", error); }
+  }
+
+  // Offline production viewport hook: the shipping path calls placeBox() after writing markup.
+  // Atlas already owns a static #dfPopupBox, so it needs only the same centering arithmetic.
+  function placePreviewBox(targetDocument) {
+    var doc = targetDocument || document;
+    var box = doc.getElementById("dfPopupBox");
+    var view = doc.defaultView;
+    if (!box || !view) return;
+    box.style.removeProperty("--df-popup-left");
+    box.style.removeProperty("--df-popup-top");
+    var rect = box.getBoundingClientRect();
+    box.style.setProperty("--df-popup-left",
+      Math.max(0, Math.round((view.innerWidth - rect.width) / 2)) + "px");
+    box.style.setProperty("--df-popup-top",
+      Math.max(0, Math.round((view.innerHeight - rect.height) / 2)) + "px");
+  }
+
   function render() {
-    var el = overlay();
+    var el = overlay(), box = popupBox();
     if (!state.popups.length) {
+      // ORDER MATTERS: tell the framework FIRST, then hide. It measures the panel on close, and a box
+      // inside a display:none overlay measures 0x0.
+      try {
+        if (window.DFPanelFrame && typeof window.DFPanelFrame.syncOpenState === "function")
+          window.DFPanelFrame.syncOpenState("popupBox", false);
+      } catch (error) { DwfErr.report("popup.panel-close-sync", error); }
       el.classList.remove("show");
-      el.innerHTML = "";
+      box.innerHTML = "";
       return;
     }
     // Mirror the native behavior: ONE popup at a time (the front of the queue), the rest counted.
     var front = state.popups[0];
-    el.innerHTML = popupModalMarkup(front, state.popups.length - 1);
+    box.innerHTML = popupModalMarkup(front, state.popups.length - 1);
     el.classList.add("show");
-    try { if (HAS_DWFUI && typeof DWFUI.paintSprites === "function") DWFUI.paintSprites(el); } catch (_) {}
+    placeBox();
+    try { if (HAS_DWFUI && typeof DWFUI.paintSprites === "function") DWFUI.paintSprites(el); }
+    catch (error) { DwfErr.report("popup.paint-sprites", error); }
   }
 
   function sendDismiss(id, btn) {
@@ -222,9 +219,9 @@
     // pure pieces for the offline harness:
     applyPopupFrame: applyPopupFrame,
     popupModalMarkup: popupModalMarkup,
-    typeLabel: typeLabel,
-    headerLine: headerLine,
+    ensureStyle: function () {},
+    placePreviewBox: placePreviewBox,
   };
   if (typeof module !== "undefined" && module.exports)
-    module.exports = { applyPopupFrame: applyPopupFrame, popupModalMarkup: popupModalMarkup, typeLabel: typeLabel, headerLine: headerLine };
+    module.exports = { applyPopupFrame: applyPopupFrame, popupModalMarkup: popupModalMarkup };
 })();

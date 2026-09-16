@@ -19,29 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// WT26 -- COMMAND CONSOLE: a browser equivalent of DFHack's native gui/launcher.
-//
-// WHO CAN USE IT: every authed player (decision 2026-07-13). Not host-only. The server refuses
-// anonymous callers via the existing join-auth cookie gate; there is no loopback/host check.
-//
-// WHAT CONTAINS IT: a SERVER-SIDE blocklist (src/console_policy.h), which binds the host exactly as
-// it binds a friend. This module ALSO greys blocked commands in the palette -- that is UX ONLY. The
-// deny rules are SHIPPED BY THE SERVER in /console/commands ("denyRules"), never hardcoded here, and
-// the server re-checks every single run against the same table. A patched client gains nothing.
-//
-// THE WARNING IS NOT DECORATION: a DFHack command runs under DF's core lock (CoreSuspender) for its
-// whole duration and CANNOT be interrupted -- no timeout can abort it. A slow command freezes the
-// fort FOR EVERY CONNECTED PLAYER until it finishes on its own. Since any friend can now press this
-// button, the panel states that before the run and makes Run a two-step (arm -> confirm) action.
-//
-// DATA: the catalog (helpdb's own command list + short-help blurbs -- literally what native
-// autocomplete ranks against) is fetched ONCE per panel open and filtered CLIENT-SIDE, so
-// search-as-you-type costs zero round-trips and zero core-lock acquisitions. Only Run touches DF.
-//
-// The pure shapers (consoleDenyMatch / consoleFilter / consoleHistoryPush / consoleFreezeWarning /
-// csRenderBody) take plain JSON and return display structs with NO DOM/fetch dependency, so
-// tools/harness/console_panel_test.mjs exercises them (incl. seeded-bad rows) offline. They are
-// node-exported at the bottom behind a browser-safe guard.
+// dwf-console-panel.js -- the command console. The SERVER-SIDE blocklist (src/console_policy.h)
+// is the only gate; greying a blocked command here is presentation, never enforcement.
 
   // ---- pure data model (node-testable) --------------------------------------------------------
 
@@ -58,11 +37,8 @@
     return String(line == null ? "" : line).trim().split(/\s+/).filter(Boolean);
   }
 
-  // DISPLAY-ONLY deny check against the rules the SERVER shipped us. Same semantics as
-  // dwf::console::command_denied (case-insensitive head; `prefix` = namespace, `exact` = whole
-  // head), so the palette greys what the server will refuse. The TABLE is not duplicated -- it rides
-  // the wire -- and the server re-checks anyway, so a divergence here is a cosmetic bug, never a
-  // security hole. Returns {denied, reason} or {denied:false}.
+  // DISPLAY-ONLY deny check against the rules the SERVER shipped. The table is not duplicated -- it rides
+  // the wire -- and the server re-checks anyway, so a divergence here is cosmetic, never a security hole.
   function consoleDenyMatch(rules, line) {
     const toks = _csTokens(line);
     if (!toks.length) return { denied: true, reason: "empty command" };
@@ -79,11 +55,8 @@
     return { denied: false };
   }
 
-  // Search-as-you-type over the cached catalog. Ranks like the native launcher does: exact head
-  // first, then prefix matches, then substring matches (name before blurb). DEFENSIVE: a garbage
-  // catalog entry (missing/non-string name) is skipped rather than rendered as "undefined".
-  // Blocked commands are NOT hidden -- they are marked, so a player learns why instead of hunting a
-  // command that silently is not there.
+  // Ranks exact head, then prefix, then substring. A garbage catalog entry is skipped rather than rendered
+  // as "undefined", and blocked commands are MARKED, never hidden.
   function consoleFilter(catalog, query, rules) {
     const list = Array.isArray(catalog) ? catalog : [];
     const q = String(query == null ? "" : query).trim().toLowerCase();
@@ -121,16 +94,16 @@
 
   function _csRowsHtml(D, rows) {
     if (!rows.length)
-      return `<div class="cs-empty">No command matches that search.</div>`;
+      return `<div class="console-empty">No command matches that search.</div>`;
     return rows.map(r => D.rowHtml({
-      cls: "cs-cmd-row", chassis: "slab", label: r.name,
+      cls: "console-cmd-row", chassis: "slab", label: r.name,
       disabled: r.blocked,
       dataset: { csPick: r.name },
       title: r.blocked ? `Blocked: ${r.reason}` : (r.short || r.name),
       sub: r.blocked
-        ? [{ text: r.short || "", cls: "cs-cmd-blurb" },
+        ? [{ text: r.short || "", cls: "console-cmd-blurb" },
            { text: `Blocked — ${r.reason}`, tone: "warning" }]
-        : { text: r.short || "", cls: "cs-cmd-blurb" },
+        : { text: r.short || "", cls: "console-cmd-blurb" },
     })).join("");
   }
 
@@ -148,21 +121,21 @@
     // The freeze warning is ALWAYS on screen -- not only on the confirm step. Any friend can press
     // Run now, so the cost of a bad command is stated up front, permanently.
     const warn = D.statusHtml({
-      cls: "cs-warn", tone: "warning", role: "note", text: consoleFreezeWarning(),
+      cls: "console-warn", tone: "warning", role: "note", text: consoleFreezeWarning(),
     });
 
     const search = D.searchHtml({
-      cls: "cs-search", placement: "pane-header", magnifier: true, preserveKey: "console-search",
-      dataAttr: "cs-search", value: s.query || "", placeholder: "Search commands…",
+      cls: "console-search", placement: "pane-header", magnifier: true, preserveKey: "console-search",
+      dataAttr: "console-search", value: s.query || "", placeholder: "Search commands…",
       ariaLabel: "Search DFHack commands",
     });
 
     const list = D.scrollHtml(
-      { cls: "cs-list", preserveKey: "console-list", ariaLabel: "Command list" },
+      { cls: "console-list", preserveKey: "console-list", ariaLabel: "Command list" },
       _csRowsHtml(D, rows));
 
     const input = D.textInputHtml({
-      cls: "cs-input", id: "csCmdInput", value: cmd, maxLength: 512,
+      cls: "console-input", id: "csCmdInput", value: cmd, maxLength: 512,
       placeholder: "Type a command, e.g. ls", ariaLabel: "Command to run",
       dataset: { csCmd: "" },
     });
@@ -171,50 +144,52 @@
     // blocked command never arms at all -- the button is disabled and says why.
     const runLabel = s.busy ? "Running…" : (s.armed ? "Confirm — run it" : "Run");
     const run = D.plaqueBtnHtml({
-      cls: "cs-run", label: runLabel, tone: s.armed ? "destructive" : "",
+      cls: "console-run", label: runLabel, tone: s.armed ? "destructive" : "",
       dataset: { csRun: "" }, disabled: !!s.busy || !cmd.trim() || deny.denied,
       title: deny.denied ? deny.reason : consoleFreezeWarning(),
     });
 
     let banner = "";
     if (deny.denied && cmd.trim()) {
-      banner = D.statusHtml({ cls: "cs-blocked", tone: "warning", role: "alert",
+      banner = D.statusHtml({ cls: "console-blocked", tone: "warning", role: "alert",
         text: `Blocked by the host: ${deny.reason}` });
     } else if (s.error) {
-      banner = D.statusHtml({ cls: "cs-error", tone: "warning", role: "alert", text: String(s.error) });
+      banner = D.statusHtml({ cls: "console-error", tone: "warning", role: "alert", text: String(s.error) });
     } else if (s.busy) {
-      banner = D.statusHtml({ cls: "cs-busy", live: "polite",
+      banner = D.statusHtml({ cls: "console-busy", live: "polite",
         text: "Running — the fort is frozen for everyone until this command returns." });
     } else if (s.armed) {
-      banner = D.statusHtml({ cls: "cs-arm", tone: "warning", role: "alert",
+      banner = D.statusHtml({ cls: "console-arm", tone: "warning", role: "alert",
         text: `${consoleFreezeWarning()} Press again to run “${cmd.trim()}”.` });
     } else if (typeof s.status === "number") {
-      banner = D.statusHtml({ cls: "cs-done",
+      banner = D.statusHtml({ cls: "console-done",
         text: s.status === 0 ? "Command finished." : `Command returned status ${s.status}.` });
     }
 
     // Output: untrusted text end-to-end. It goes through esc() and NEVER into innerHTML raw.
     const outText = typeof s.output === "string" ? s.output : "";
     const output = D.scrollHtml(
-      { cls: "cs-output", preserveKey: "console-output", ariaLabel: "Command output" },
+      { cls: "console-output", preserveKey: "console-output", ariaLabel: "Command output" },
       outText
-        ? `<pre class="cs-output-text">${D.esc(outText)}</pre>`
-        : `<div class="cs-empty">Output appears here.</div>`);
+        // UI-DIV-004: command output is meant to be selected and copied, so it opts OUT of the
+        // drag-anywhere surface grab. The rest of the console panel still drags from anywhere.
+        ? `<pre class="console-output-text" data-pf-nodrag>${D.esc(outText)}</pre>`
+        : `<div class="console-empty">Output appears here.</div>`);
 
     const history = (Array.isArray(s.history) ? s.history : []).slice(0, 8);
     const historyHtml = history.length
-      ? `<div class="cs-section-title">Recent</div><div class="cs-history">` +
+      ? `<div class="console-section-title">Recent</div><div class="console-history">` +
         history.map(h => D.rowHtml({
-          cls: "cs-hist-row", label: h, dataset: { csPick: h }, title: `Reuse: ${h}`,
+          cls: "console-hist-row", label: h, dataset: { csPick: h }, title: `Reuse: ${h}`,
         })).join("") + `</div>`
       : "";
 
     return warn +
-      `<div class="cs-search-wrap">${search}</div>` +
+      `<div class="console-search-wrap">${search}</div>` +
       list +
-      `<div class="cs-runbar">${input}${run}</div>` +
+      `<div class="console-runbar">${input}${run}</div>` +
       banner +
-      `<div class="cs-section-title">Output</div>` +
+      `<div class="console-section-title">Output</div>` +
       output +
       historyHtml;
   }
@@ -231,14 +206,34 @@
   const CS_HISTORY_KEY = "dwf.console.history";
 
   function _csLoadHistory() {
+    const raw = globalThis.DwfUtil.lsGet(CS_HISTORY_KEY,
+      err => DwfErr.report("console.history.read", err));
     try {
-      const raw = localStorage.getItem(CS_HISTORY_KEY);
       const arr = raw ? JSON.parse(raw) : [];
       return Array.isArray(arr) ? arr.filter(h => typeof h === "string") : [];
-    } catch (_) { return []; }
+    } catch (err) {
+      DwfErr.report("console.history.parse", err);
+      return [];
+    }
   }
   function _csSaveHistory(history) {
-    try { localStorage.setItem(CS_HISTORY_KEY, JSON.stringify(history)); } catch (_) {}
+    let encoded;
+    try { encoded = JSON.stringify(history); }
+    catch (err) {
+      DwfErr.report("console.history.encode", err);
+      return;
+    }
+    globalThis.DwfUtil.lsSet(CS_HISTORY_KEY, encoded,
+      err => DwfErr.report("console.history.write", err));
+  }
+
+  function csPaintStep(operation, fn) {
+    try {
+      const pending = fn();
+      if (pending && typeof pending.catch === "function")
+        pending.catch(err => DwfErr.report(`console.${operation}`, err));
+    }
+    catch (err) { DwfErr.report(`console.${operation}`, err); }
   }
 
   function csPaint() {
@@ -246,10 +241,10 @@
     const D = _csUI();
     csShell.body.innerHTML = csRenderBody(csState);
     if (D) {
-      try { D.paintSprites(csShell.body); } catch (_) {}
-      try { D.paintBitmapText(csShell.body); } catch (_) {}
-      try { D.restoreSearchCaret(csShell.body); } catch (_) {}
-      try { D.restoreScroll(csShell.body); } catch (_) {}
+      csPaintStep("paint-sprites", () => D.paintSprites(csShell.body));
+      csPaintStep("paint-bitmap-text", () => D.paintBitmapText(csShell.body));
+      csPaintStep("restore-search-caret", () => D.restoreSearchCaret(csShell.body));
+      csPaintStep("restore-scroll", () => D.restoreScroll(csShell.body));
     }
   }
 
@@ -260,11 +255,12 @@
     try {
       const r = await fetch("/console/commands", { cache: "no-store" });
       if (!r.ok) {
-        // W23: a 403 {"guarded":true} means the HOST SETTING is off (dfhack_console). Surface the
-        // server's own sentence -- the route is the gate; this panel just repeats its reason.
+        // A 403 {"guarded":true} means the host setting is off: surface the server's own sentence, because the
+        // route is the gate and this panel only repeats its reason.
         let guarded = "";
         if (r.status === 403) {
-          try { const g = await r.json(); if (g && g.guarded) guarded = g.error || ""; } catch (_) {}
+          try { const g = await r.json(); if (g && g.guarded) guarded = g.error || ""; }
+          catch { guarded = ""; }
         }
         csState.error = guarded
           ? guarded
@@ -290,7 +286,7 @@
       csState.denyRules = Array.isArray(j.denyRules) ? j.denyRules : [];
       csState.loaded = true;
       csState.error = "";
-    } catch (_) {
+    } catch {
       csState.error = "Could not reach the host for the command list.";
       csState.loaded = true;
     }
@@ -319,7 +315,7 @@
         csState.history = consoleHistoryPush(csState.history, cmd);
         _csSaveHistory(csState.history);
       }
-    } catch (_) {
+    } catch {
       csState.error = "The host did not answer — it may still be running the command.";
     }
     csState.busy = false;
@@ -332,11 +328,10 @@
     if (D) D.require("console", ["headerHtml", "searchHtml", "scrollHtml", "rowHtml", "statusHtml",
                                 "textInputHtml", "plaqueBtnHtml"]);
     const panel = document.createElement("div");
-    panel.className = "cs-panel";
-    panel.style.display = "none";
-    const head = D ? D.headerHtml({ cls: "cs-head", title: "Command console", close: { title: "Close" } })
-      : `<div class="cs-head">Command console</div>`;
-    panel.innerHTML = `${head}<div class="cs-body"></div>`;
+    panel.className = "console-panel";
+    const head = D ? D.headerHtml({ cls: "console-head", title: "Command console", close: { title: "Close" } })
+      : `<div class="console-head">Command console</div>`;
+    panel.innerHTML = `${head}<div class="console-body"></div>`;
     document.body.appendChild(panel);
     panel.addEventListener("contextmenu", e => { e.preventDefault(); csClose(); });
 
@@ -371,12 +366,12 @@
       if (t.dataset && "csCmd" in t.dataset && e.key === "Enter") { e.preventDefault(); csRun(); }
     });
 
-    csShell = { panel, body: panel.querySelector(".cs-body") };
+    csShell = { panel, body: panel.querySelector(".console-body") };
     if (typeof window !== "undefined" && window.DFPanelFrame) {
       window.DFPanelFrame.register({
         key: "console", el: () => csShell && csShell.panel, title: "Command console",
-        headSel: ".cs-head", closable: true, resizable: { minW: 360, minH: 320 },
-        fillSel: ".cs-body", persistOpen: false,
+        headSel: ".console-head", closable: true, resizable: { minW: 360, minH: 320 },
+        fillSel: ".console-body", persistOpen: false,
         defaultPos: () => ({ anchor: "tl", x: 110, y: 70, w: 520, h: 600 }),
         open: () => { if (!csOpen) openConsolePanel(); },
         close: () => csClose(),
@@ -390,9 +385,10 @@
     const shell = csEnsureShell();
     if (!shell) return;
     if (!csState.history.length) csState.history = _csLoadHistory();
-    shell.panel.style.display = "flex";
+    shell.panel.classList.add("open");
     csOpen = true;
-    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("console", true); } catch (_) {}
+    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("console", true); }
+    catch (err) { DwfErr.report("console.panel-frame.open", err); }
     csPaint();
     csLoadCatalog();
   }
@@ -400,16 +396,15 @@
   function csClose() {
     csOpen = false;
     csState.armed = false;                           // never leave a live confirm behind a closed panel
-    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("console", false); } catch (_) {}
-    if (csShell) csShell.panel.style.display = "none";
+    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("console", false); }
+    catch (err) { DwfErr.report("console.panel-frame.close", err); }
+    if (csShell) csShell.panel.classList.remove("open");
   }
 
   function toggleConsolePanel() { if (csOpen) csClose(); else openConsolePanel(); }
 
-  // W23: the console is host-gated (flag dfhack_console, default OFF; the ROUTE refuses when
-  // off -- see src/console_routes.cpp). The button is the honesty half: hidden unless the host
-  // enabled the console, shown/hidden live off the DFWriteGuards poll, and if the host turns the
-  // console off while the panel is open, the panel closes rather than sit there looking live.
+  // The console is host-gated and the ROUTE refuses when off. The button is the honesty half: hidden
+  // unless the host enabled it, and the panel closes if the host turns it off while it is open.
   function csConsoleAllowed() {
     const wg = typeof window !== "undefined" ? window.DFWriteGuards : null;
     return !!(wg && wg.enabled("dfhack_console"));
@@ -418,7 +413,7 @@
   function csApplyGuard() {
     const btn = typeof document !== "undefined" ? document.getElementById("consoleBtn") : null;
     const allowed = csConsoleAllowed();
-    if (btn) btn.style.display = allowed ? "" : "none";
+    if (btn) btn.classList.toggle("console-allowed", allowed);
     if (!allowed && csOpen) csClose();
   }
 

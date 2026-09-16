@@ -96,8 +96,7 @@ std::string notifications_json(const std::string& player, const NotificationStat
 void remember_dismissed_alert_keys(const std::string& player, const std::string& raw_keys);
 std::unordered_set<std::string> dismissed_alert_keys_for_player(const std::string& player);
 
-// Registers this module's HTTP routes (moved verbatim from http_server.cpp's
-// register_routes monolith -- B212, 2026-07-13).
+// Registers this module's HTTP routes.
 void register_notification_routes(httplib::Server& server);
 
 } // namespace dwf

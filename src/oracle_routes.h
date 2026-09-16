@@ -26,8 +26,7 @@
 namespace dwf {
 
 // Harness/oracle routes -- the test surface's eyes on the game: /host-state, /zoom-probe,
-// /frame.jpg, /tiledump. No web/ client references these; consumers are tools/harness
-// (see the 2026-07-11 http-endpoint audit, section 3.4).
+// /frame.jpg, /tiledump. No web/ client references these; consumers are tools/harness.
 void register_oracle_routes(httplib::Server& server);
 
 } // namespace dwf

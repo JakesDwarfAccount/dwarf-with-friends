@@ -21,25 +21,18 @@
 
 #include "wire_v1.h"
 #include "diagnostics.h"
+#include "fnv.h"
+#include "tile_material.h"
 
-// The DF map headers are needed ONLY by encode_block(); the pure codec above it does
-// not touch them. Mirrors tile_map_dump.cpp's include set (its emit_tile_fields is the
-// field-source contract this encoder ports, minus descent + wallnbr).
+// The DF map headers are needed ONLY by encode_block(); the pure codec above it never touches them.
 #include "DataDefs.h"
 #include "TileTypes.h"
 #include "modules/Maps.h"
 #include "modules/MapCache.h"
-// CORPSETEX-B195: Items::getDescription reproduces DF's own in-game item-name generator, the
-// authoritative "corpse" vs "skeleton" label the client must follow (see kItemFlagSkeletal).
+// Items::getDescription reproduces DF's own item-name generator -- the authoritative
+// "corpse" vs "skeleton" label the client must follow.
 #include "modules/Items.h"
 #include <cctype>
-// B47 (constructions render generic stone): baseMaterialAt() returns the tile's NATURAL
-// LAYER material (the geolayer stone) for a CONSTRUCTION-material tile, never (-1,-1) -- the
-// actual built-from material lives in world.constructions, resolved via
-// Constructions::findAtTile (a pure read over the sorted vector).
-#include "modules/Constructions.h"
-#include "df/construction.h"
-
 #include "df/world.h"
 #include "df/map_block.h"
 #include "df/map_block_column.h"
@@ -58,16 +51,10 @@
 #include "df/building_farmplotst.h"
 #include "df/buildingitemst.h"
 #include "df/building_item_role_type.h"
-// Item identity extension: the race-bearing item classes (all int16 `race` as their first
-// field, verified against df.item.xml) whose per-species art needs the resolved creature
-// token on the wire -- corpse/corpsepiece (item_body_component), vermin-item/pet
-// (item_critter), remains, egg, raw-fish.
+// The race-bearing item classes: corpse/corpsepiece, vermin-item/pet, remains, egg, raw fish.
 #include "df/item_body_component.h"
-// corpsefix window #12: real CORPSE/CORPSEPIECE items are the DERIVED item_corpsest/
-// item_corpsepiecest (both inherit the int16 `race` from item_body_component). The base
-// item_body_component is abstract, so strict_virtual_cast (is_direct_instance = exact type)
-// NEVER matched it -- corpses shipped no creature ident and drew the generic box. Cast the
-// two concrete leaf types instead.
+// Corpses and corpsepieces are the CONCRETE leaf types; item_body_component is abstract, and
+// strict_virtual_cast matches the exact type only.
 #include "df/item_corpsest.h"
 #include "df/item_corpsepiecest.h"
 #include "df/item_critter.h"
@@ -75,45 +62,45 @@
 #include "df/item_eggst.h"
 #include "df/item_fish_rawst.h"
 #include "df/item_fishst.h"
-// Tier-2: cut-gem shape (df::item_smallgemst / item_gemst carry an int32 `shape`) +
-// inorganic identity (MaterialInfo.inorganic->id).
+// Cut-gem shape (item_smallgemst / item_gemst carry an int32 `shape`) + inorganic identity.
 #include "df/item_smallgemst.h"
 #include "df/item_gemst.h"
+#include "df/item_instrumentst.h"
+#include "df/item_toolst.h"
 #include "df/inorganic_raw.h"
+#include "df/inorganic_flags.h"
 #include "df/creature_raw.h"
 #include "df/plant.h"
 #include "df/plant_raw.h"
 #include "df/plant_growth.h"
-#include "df/plant_tree_info.h"                // B83/B103: large-tree body/roots extent
-#include "df/plant_tree_tile.h"                // B83/B103: per-tile trunk/branch/leaf bits (u16)
-#include "df/plant_root_tile.h"                // B83/B103: per-tile root bits (u8)
+#include "df/plant_growth_print.h"
+#include "df/global_objects.h"
+#include "df/plant_tree_info.h"                // large-tree body/roots extent
+#include "df/plant_tree_tile.h"                // per-tile trunk/branch/leaf bits (u16)
+#include "df/plant_root_tile.h"                // per-tile root bits (u8)
 #include "df/block_square_event.h"
 #include "df/block_square_event_material_spatterst.h"
 #include "df/block_square_event_item_spatterst.h"
-#include "df/block_square_event_grassst.h"   // WC-17: grass coverage/species event
-#include "df/block_square_event_designation_priorityst.h"  // WC-19: designation priority grid
+#include "df/block_square_event_grassst.h"   // Grass coverage/species event
+#include "df/block_square_event_designation_priorityst.h"  // Designation priority grid
 #include "df/flow_info.h"
-#include "df/engraving.h"                    // WC-18: world->event.engravings
-// WC-21: world->event.vermin / world->event.vermin_colonies are BOTH std::vector<df::vermin*>
-// (df.event.xml L222-223 -- "colonies" is a second vector of the SAME struct, not a distinct
-// type; `flags.bits.is_colony` is what actually marks a colony instance, verified).
+#include "df/engraving.h"                    // world->event.engravings
+// world->event.vermin and vermin_colonies are BOTH std::vector<df::vermin*>; flags.bits.is_colony
+// is what actually marks a colony instance.
 #include "df/vermin.h"
 
-// TX1 CONTAINER_PEEK: Items::getContainedItems walks an item's general_ref_contains_itemst
-// refs (the same call interaction.cpp's item sheet already uses) -- pure read, caller holds
-// the CoreSuspender.
+// Items::getContainedItems walks an item's contained-item refs. Pure read; caller holds the
+// CoreSuspender.
 #include "modules/Items.h"
 
-// blood-family color extension: resolve a material's Solid state_color the SAME way
-// world_stream.cpp already does for BUILDINGS_DELTA's `rgb` field (Materials module +
-// the 16-slot descriptor-color palette) -- reused here so the SPATTER tail can carry a
-// real resolved color instead of forcing the client to guess by a stable hash.
+// Resolves a material's Solid state_color the same way world_stream.cpp does for BUILDINGS_DELTA,
+// so the SPATTER tail can carry a real colour instead of making the client guess by hash.
 #include "modules/Materials.h"
 #include "df/material.h"
 #include "df/descriptor_color.h"
 #include "df/matter_state.h"
 
-// WC-1 ITEMDEF_DICT: the 14 raw itemdef subcategories (Items.cpp ITEMDEF_VECTORS order).
+// ITEMDEF_DICT: the 14 raw itemdef subcategories, in DFHack's ITEMDEF_VECTORS order.
 #include "df/itemdef.h"
 #include "df/itemdef_handlerst.h"
 #include "df/itemdef_weaponst.h"
@@ -144,7 +131,7 @@ namespace wire {
 static inline void put_i16(std::vector<uint8_t>& o, int v) { put_u16(o, (uint16_t)(int16_t)v); }
 static inline void put_i32(std::vector<uint8_t>& o, int v) { put_u32(o, (uint32_t)(int32_t)v); }
 
-// ---- frame header (§0.2) -----------------------------------------------------------
+// ---- frame header ------------------------------------------------------------------
 std::vector<uint8_t> build_frame_header(uint8_t type, uint8_t flags, uint32_t seq) {
     std::vector<uint8_t> h;
     h.reserve(kHeaderSize);
@@ -158,7 +145,7 @@ std::vector<uint8_t> build_frame_header(uint8_t type, uint8_t flags, uint32_t se
     return h;
 }
 
-// ---- tile record (§0.3.1) ----------------------------------------------------------
+// ---- tile record -------------------------------------------------------------------
 void write_tile_record(uint8_t out[kTileRecordSize], const TileRecord& r) {
     out[0] = (uint8_t)(r.tt & 0xFF);
     out[1] = (uint8_t)((r.tt >> 8) & 0xFF);
@@ -173,20 +160,7 @@ void write_tile_record(uint8_t out[kTileRecordSize], const TileRecord& r) {
     out[11] = (uint8_t)((r.flags2 >> 8) & 0xFF);
 }
 
-TileRecord read_tile_record(const uint8_t in[kTileRecordSize]) {
-    TileRecord r;
-    r.tt      = get_u16(in);
-    r.base_mt = (int16_t)get_u16(in + 2);
-    r.base_mi = (int16_t)get_u16(in + 4);
-    r.bits    = in[6];
-    r.desig1  = in[7];
-    r.desig2  = in[8];
-    r.spatter_amt = in[9];
-    r.flags2  = get_u16(in + 10);
-    return r;
-}
-
-// ---- BLOCK_SET payload (§0.3) ------------------------------------------------------
+// ---- BLOCK_SET payload -------------------------------------------------------------
 std::vector<uint8_t> assemble_block_set(uint32_t world_seq, const EncodedBlock* blocks, size_t n) {
     std::vector<uint8_t> o;
     size_t dropped_oversized_tails = 0;
@@ -202,12 +176,8 @@ std::vector<uint8_t> assemble_block_set(uint32_t world_seq, const EncodedBlock* 
         put_u16(o, b.bz);
         put_u32(o, b.ver);
         o.push_back(b.bflags);
-        // tail_count is u16 LE (widened from u8, cachefix 2026-07-09). ROOT CAUSE of the
-        // invisible-item cluster: a grass-dense block carries up to 256 GRASS tails (one per
-        // grassed floor) PLUS its ITEM/SPATTER/etc tails, routinely exceeding 255; the old u8
-        // clamp silently truncated every tail past the 255th -- ITEM tails at high tile_idx got
-        // dropped SERVER-SIDE, so no client fix could recover bytes that never left. A block has
-        // at most 256 tiles x a handful of layered tails, so u16 (65535) is ample headroom.
+        // tail_count is u16: a grass-dense block carries up to 256 GRASS tails plus its item and
+        // spatter tails, so a u8 count silently truncated everything past the 255th, server-side.
         uint16_t tail_count = 0;
         for (const Tail& t : b.tails) {
             if (t.data.size() > 255) {
@@ -263,16 +233,8 @@ uint32_t crc32(const uint8_t* data, size_t len) {
     return c ^ 0xFFFFFFFFu;
 }
 
-// ---- tail builders (shared) --------------------------------------------------------
-// WC-1: appends subtype/iflags/stack AFTER the original 8-byte (item_type, mat_type,
-// mat_index) prefix -- an additive extension of the SAME kTailItem (0x01) tail, not a
-// new tail kind (§1.1 registry: "0x01 ITEM (W-A base, W-C extends)"). This keeps the
-// existing 8-byte prefix byte-for-byte unchanged so an unmodified decoder that only
-// reads offsets 0-7 (web/js/dwf-wire-v1.js's decodeTailData, which advances by the
-// wire's own length prefix and never asserts len==8) keeps working untouched; a decoder
-// that knows about the extension reads the trailing 4 bytes. subtype is int16 (0xFFFF
-// sentinel for -1, df.item.xml L492); iflags bit0 web/1 forbid/2 dump/3 melt/4 on_fire
-// (spare 5-7); stack is stack_size clamped to u8 (0..255).
+// Appends subtype/iflags/stack AFTER the original 8-byte prefix, additively on the SAME kTailItem
+// kind, so a decoder that reads only offsets 0-7 and advances by the length prefix still works.
 static Tail make_item_tail(uint8_t idx, int item_type, int mat_type, int mat_index,
                             int subtype, uint8_t iflags, int stack,
                             uint8_t ident_kind = kItemIdentNone,
@@ -286,35 +248,26 @@ static Tail make_item_tail(uint8_t idx, int item_type, int mat_type, int mat_ind
     put_i16(t.data, mat_type);
     put_i32(t.data, mat_index);
     put_i16(t.data, subtype);
-    // iflags keeps its 5 real flag bits (0x1F); bit5 (kItemFlagHasQuality) is the presence
-    // marker for the trailing quality-family block appended at the very end (below); bit6
-    // (kItemFlagSkeletal, CORPSETEX-B195) is a state bit consumed in-place by the client
-    // resolver -- no trailing block. Both ride ABOVE the 0x1F mask so real flags are untouched.
-    t.data.push_back((uint8_t)((iflags & 0x1F)
+    // iflags keeps its 5 real flag bits (0x1F). kItemFlagHasQuality and kItemFlagSkeletal ride
+    // ABOVE that mask, so an old decoder masking & 0x1f is untouched.
+    t.data.push_back((uint8_t)((iflags & (0x1F | kItemFlagGrown))
                                | (has_quality ? kItemFlagHasQuality : 0)
                                | (skeletal ? kItemFlagSkeletal : 0)));
     int st = stack < 0 ? 0 : (stack > 255 ? 255 : stack);
     t.data.push_back((uint8_t)st);
-    // Item identity extension (additive, wire_v1.h doc): append the resolved species/race/
-    // inorganic token ONLY when one was resolved -- absent identity keeps the tail at 12
-    // bytes, so old decoders and old clients are unaffected (they skip by the length prefix).
+    // Append the resolved identity ONLY when one was resolved: absent identity keeps the tail at
+    // 12 bytes, which old decoders skip by the wire's own length prefix.
     if (ident_kind != kItemIdentNone && !ident.empty()) {
         t.data.push_back(ident_kind);
         uint8_t idlen = (uint8_t)(ident.size() > 255 ? 255 : ident.size());
         t.data.push_back(idlen);
         t.data.insert(t.data.end(), ident.begin(), ident.begin() + idlen);
     }
-    // Tier-2 gem shape (spec §4): SMALLGEM/GEM items append their cut `shape` (i16) as the
-    // LAST two bytes, AFTER the optional identity block. Presence is keyed client-side off
-    // the gem item_type + a tail length past the 12-byte body, so the decoder carves these
-    // 2 bytes off FIRST and parses identity only in the middle -- no collision with the
-    // identity block even when identity is absent (glass gems). shape==-1 (uncut/spawned)
-    // round-trips as 0xFFFF. Non-gem items and pre-Tier-2 frames never carry it (additive).
+    // A gem's cut `shape` is the LAST two bytes, AFTER any identity block, and the decoder carves
+    // it off the END first -- so identity stays unambiguous even when it is absent (glass gems).
     if (has_shape) put_i16(t.data, shape);
-    // ITEM quality family (2026-07-09): fixed 3-byte block [quality|qflags|wear] at the very
-    // END, AFTER the identity block and gem-shape. Presence is flagged by iflags bit5 (set
-    // above), so the decoder carves these 3 bytes off the tail END FIRST -- unambiguous even
-    // for a gem that also carries a shape (carved next) and an identity (parsed in the middle).
+    // The quality block sits at the very END, after identity and after gem-shape, and its presence
+    // is flagged by iflags bit5, so the decoder carves it off the tail END before anything else.
     if (has_quality) {
         t.data.push_back((uint8_t)(quality > 5 ? 5 : quality));
         t.data.push_back(qflags);
@@ -323,43 +276,24 @@ static Tail make_item_tail(uint8_t idx, int item_type, int mat_type, int mat_ind
     return t;
 }
 
-// Item identity extension: resolve the per-species token an ITEM tail should carry so the
-// client can pick real per-species art instead of a generic placeholder box.
-//  (1) Creature-derived items (CORPSE/CORPSEPIECE/REMAINS/VERMIN-item/PET/EGG/FISH_RAW/FISH):
-//      the item itself stores the creature `race` (all these classes carry an int16 `race`
-//      as their first field -- df.item.xml). -> creature_raw::id, kind=creature.
-//  (2) Plant-derived items (SEEDS/PLANT/PLANT_GROWTH/DRINK/POWDER milled from plants...):
-//      the item's material resolves to a plant via MaterialInfo. -> plant_raw::id, kind=plant.
-//  (3) Creature-material items (tallow/leather globs): MaterialInfo.creature -> creature_id,
-//      kind=creature (harmless; the client only consumes identity for item types where it
-//      helps -- an unused token is simply ignored).
-// Returns false (identity omitted) when nothing resolves. Pure read; caller holds the
-// CoreSuspender and passes `world` (same convention resolve_material_rgb uses).
+// Resolves the per-species token an ITEM tail should carry, so the client can draw real art rather
+// than a placeholder box. Returns false when nothing resolves. Caller holds the CoreSuspender.
 static int item_identity_race(df::item* it) {
-    // corpsefix window #12: corpses/corpsepieces are the concrete leaf types, not the abstract
-    // item_body_component base -- strict_virtual_cast is exact-type, so cast the two leaves.
-    // Both inherit the int16 `race` from item_body_component (df.item.xml).
+    // Corpses and corpsepieces are the concrete leaf types; strict_virtual_cast is exact-type, so
+    // the abstract item_body_component base never matches.
     if (df::item_corpsest*       c = strict_virtual_cast<df::item_corpsest>(it))       return c->race;
     if (df::item_corpsepiecest*  c = strict_virtual_cast<df::item_corpsepiecest>(it))  return c->race;
     if (df::item_critter*        c = strict_virtual_cast<df::item_critter>(it))        return c->race;
     if (df::item_remainsst*      c = strict_virtual_cast<df::item_remainsst>(it))      return c->race;
     if (df::item_eggst*          c = strict_virtual_cast<df::item_eggst>(it))          return c->race;
     if (df::item_fish_rawst*     c = strict_virtual_cast<df::item_fish_rawst>(it))     return c->race;
-    // meatfix window #11: prepared FISH (item_fishst) carries the same int16 `race` as
-    // item_fish_rawst. Without this cast prepared fish shipped NO creature ident, so the
-    // client drew the _missing teal box instead of the per-species fish cell that FISH_RAW
-    // of the same species already resolved. Casting it yields identKind=2 (creature) -> the
-    // shared resolver picks the right fish sprite. (df/item_fishst.h.)
+    // Prepared FISH carries the same int16 `race` as raw fish, so it resolves to the same
+    // per-species creature token.
     if (df::item_fishst*         c = strict_virtual_cast<df::item_fishst>(it))         return c->race;
     return -1;
 }
-// CORPSETEX-B195 (CORPSETEX_B195_SKELETAL): true iff DF's OWN item name labels this corpse a
-// skeleton. The report keys the browser sprite on DF's label ("until it is labeled as a
-// skeleton, which the game already does over time"), so we ask DF's native name generator
-// (Items::getDescription) rather than guessing a rot_timer / material threshold -- getDescription
-// IS the label surface. Only the corpse-derived leaf types can skeletonize; every other item
-// returns false without building the string. Substring "skele" covers "skeleton"/"skeletal"/
-// "partial skeleton". Pure read; the caller already holds the CoreSuspender.
+// True iff DF's OWN item name labels this corpse a skeleton: getDescription IS the label surface,
+// so ask it rather than guessing from a rot timer. Only corpse-derived types can skeletonize.
 static bool item_is_skeletal(df::item* it) {
     if (!it) return false;
     bool corpse_class = strict_virtual_cast<df::item_corpsest>(it)
@@ -383,18 +317,15 @@ static bool resolve_item_identity(df::world* world, df::item* it, int mat_type, 
         if (mi.isValid()) {
             if (mi.plant && !mi.plant->id.empty())    { kind = kItemIdentPlant;    token = mi.plant->id;              return true; }
             if (mi.creature && !mi.creature->creature_id.empty()) { kind = kItemIdentCreature; token = mi.creature->creature_id; return true; }
-            // Tier-2: inorganic identity (boulders/bars/gems). Ships inorganic_raw.id so the
-            // client's mat_index->id map is verifiable/replaceable on modded/generated worlds
-            // (spec §4). Same additive ident-block encoding as plant/creature.
+            // Inorganic identity ships inorganic_raw.id, so the client's mat_index -> id map stays
+            // verifiable on modded or generated worlds.
             if (mi.inorganic && !mi.inorganic->id.empty()) { kind = kItemIdentInorganic; token = mi.inorganic->id; return true; }
         }
     }
     return false;
 }
-// TX1 CONTAINER_PEEK (0x0A): the representative FIRST contained item of a BARREL/BIN, so
-// the client can composite native's per-category contents-peek overlay cell over the
-// container sprite (wire_v1.h's kTailContainerPeek doc). Fixed 11 bytes:
-//   item_type i16 | mat_type i16 | mat_index i32 | subtype i16 | cflags u8
+// The representative FIRST contained item of a BARREL/BIN, so the client can composite native's
+// per-category contents-peek cell: item_type i16 | mat_type i16 | mat_index i32 | subtype i16 | cflags u8.
 static Tail make_container_peek_tail(uint8_t idx, int item_type, int mat_type, int mat_index,
                                      int subtype, uint8_t cflags) {
     Tail t; t.tile_idx = idx; t.kind = kTailContainerPeek;
@@ -406,6 +337,52 @@ static Tail make_container_peek_tail(uint8_t idx, int item_type, int mat_type, i
     return t;
 }
 
+static Tail make_item_art_tail(uint8_t idx, bool has_instrument, uint8_t instrument_class,
+                               bool special_material, bool generated_tool) {
+    Tail t; t.tile_idx = idx; t.kind = kTailItemArt;
+    uint8_t flags = 0;
+    if (has_instrument) flags |= kItemArtHasInstrument;
+    if (special_material) flags |= kItemArtSpecialMaterial;
+    if (generated_tool) flags |= kItemArtGeneratedTool;
+    t.data.push_back(flags);
+    if (has_instrument) t.data.push_back(instrument_class);
+    return t;
+}
+
+// Native prefers SPECIAL_MAT immediately after ARTIFACT, and sets that bit from inorganic_flags
+// SPECIAL. Material family or identity alone cannot reconstruct it.
+static bool item_uses_special_material(df::world* world, df::item* it) {
+    if (!it || it->getMaterial() != 0 || !world) return false;
+    int index = (int)it->getMaterialIndex();
+    if (index < 0 || (size_t)index >= world->raws.inorganics.all.size()) return false;
+    df::inorganic_raw* raw = world->raws.inorganics.all[index];
+    return raw && raw->flags.is_set(df::inorganic_flags::SPECIAL);
+}
+
+// A completed loose INSTRUMENT uses one of eight music-skill/building cells. Generated instrument
+// PIECES are TOOL items with no texpos_item, so they draw the single generated-tool pile instead.
+static bool instrument_art_class(df::item* it, uint8_t& out) {
+    df::item_instrumentst* inst = strict_virtual_cast<df::item_instrumentst>(it);
+    if (!inst || !inst->subtype) return false;
+    uint8_t family = 0;
+    switch (inst->subtype->music_skill) {
+        case df::enums::job_skill::PLAY_KEYBOARD_INSTRUMENT:   family = 0; break;
+        case df::enums::job_skill::PLAY_STRINGED_INSTRUMENT:   family = 1; break;
+        case df::enums::job_skill::PLAY_WIND_INSTRUMENT:       family = 2; break;
+        case df::enums::job_skill::PLAY_PERCUSSION_INSTRUMENT: family = 3; break;
+        default: return false;
+    }
+    bool building = inst->subtype->flags.is_set(df::enums::instrument_flags::PLACED_AS_BUILDING);
+    out = (uint8_t)(family * 2 + (building ? 0 : 1));
+    return true;
+}
+
+static bool generated_tool_art(df::item* it) {
+    df::item_toolst* tool = strict_virtual_cast<df::item_toolst>(it);
+    return tool && tool->subtype && tool->subtype->texpos_item == 0 &&
+           tool->subtype->flags.is_set(df::enums::tool_flags::HARD_MAT);
+}
+
 static Tail make_plant_tail(uint8_t idx, uint8_t part, const std::string& id) {
     Tail t; t.tile_idx = idx; t.kind = kTailPlant;
     t.data.push_back(part);
@@ -413,6 +390,185 @@ static Tail make_plant_tail(uint8_t idx, uint8_t part, const std::string& id) {
     t.data.push_back(idlen);
     t.data.insert(t.data.end(), id.begin(), id.begin() + idlen);
     return t;
+}
+
+
+// A key value of zero is valid, so tflags carries independent presence bits: growth selector zero
+// is FRUIT_1, not NONE.
+static Tail make_tree_graphics_tail(uint8_t idx, uint8_t tflags,
+                                    uint16_t wood_key, uint32_t leaf_key) {
+    Tail t; t.tile_idx = idx; t.kind = kTailTreeGraphics;
+    t.data.push_back(tflags);
+    put_u16(t.data, wood_key);
+    put_u32(t.data, leaf_key);
+    return t;
+}
+
+struct TreeGraphicsState {
+    uint8_t flags = 0;
+    uint16_t wood_key = 0;
+    uint32_t leaf_key = 0;
+};
+
+static const char* const kTreeWoodTokens[216] = { "TREE_TRUNK_THICK_NW", "TREE_TRUNK_THICK_N", "TREE_TRUNK_THICK_NE", "TREE_TRUNK_THICK_W", "TREE_TRUNK_THICK_INTERIOR", "TREE_TRUNK_THICK_E", "TREE_TRUNK_THICK_SW", "TREE_TRUNK_THICK_S", "TREE_TRUNK_THICK_SE", "TREE_TRUNK_S", "TREE_TRUNK_W", "TREE_TRUNK_N", "TREE_TRUNK_E", "TREE_TRUNK_S_nwe", "TREE_TRUNK_N_swe", "TREE_TRUNK_E_nsw", "TREE_TRUNK_W_nse", "TREE_TRUNK_SE_nw", "TREE_TRUNK_SW_ne", "TREE_TRUNK_NW_se", "TREE_TRUNK_NE_sw", "TREE_TRUNK_NSW_e", "TREE_TRUNK_SWE_n", "TREE_TRUNK_NWE_s", "TREE_TRUNK_NSE_w", "TREE_TRUNK_WE_ns", "TREE_TRUNK_NS_we", "TREE_TRUNK_NSWE", "TREE_TRUNK_PILLAR", "TREE_TRUNK_S_ne", "TREE_TRUNK_N_sw", "TREE_TRUNK_E_nw", "TREE_TRUNK_W_se", "TREE_TRUNK_SE_n", "TREE_TRUNK_NW_s", "TREE_TRUNK_NE_w", "TREE_TRUNK_SW_e", "TREE_TRUNK_NS_e", "TREE_TRUNK_NS_w", "TREE_TRUNK_WE_n", "TREE_TRUNK_WE_s", "TREE_TRUNK_E_ns", "TREE_TRUNK_W_ns", "TREE_TRUNK_N_we", "TREE_TRUNK_S_we", "TREE_TRUNK_NSE", "TREE_TRUNK_NSW", "TREE_TRUNK_NWE", "TREE_TRUNK_SWE", "TREE_TRUNK_S_nw", "TREE_TRUNK_N_se", "TREE_TRUNK_E_sw", "TREE_TRUNK_W_ne", "TREE_TRUNK_SW_n", "TREE_TRUNK_NE_s", "TREE_TRUNK_SE_w", "TREE_TRUNK_NW_e", "TREE_TRUNK_SW", "TREE_TRUNK_NE", "TREE_TRUNK_SE", "TREE_TRUNK_NW", "TREE_TRUNK_NS", "TREE_TRUNK_WE", "TREE_TRUNK_S_n", "TREE_TRUNK_W_e", "TREE_TRUNK_N_s", "TREE_TRUNK_E_w", "TREE_TRUNK_E_n", "TREE_TRUNK_S_e", "TREE_TRUNK_W_s", "TREE_TRUNK_N_w", "TREE_TRUNK_W_n", "TREE_TRUNK_N_e", "TREE_TRUNK_E_s", "TREE_TRUNK_S_w", "TREE_TRUNK_SLOPE_TO_W", "TREE_TRUNK_SLOPE_TO_N", "TREE_TRUNK_SLOPE_TO_E", "TREE_TRUNK_SLOPE_TO_S", "TREE_TRUNK_SLOPE_E", "TREE_TRUNK_SLOPE_S", "TREE_TRUNK_SLOPE_W", "TREE_TRUNK_SLOPE_N", "TREE_TRUNK_SLOPE_NSW", "TREE_TRUNK_SLOPE_NWE", "TREE_TRUNK_SLOPE_NSE", "TREE_TRUNK_SLOPE_SWE", "TREE_TRUNK_SLOPE_NS", "TREE_TRUNK_SLOPE_WE", "TREE_TRUNK_SLOPE_NSWE", "TREE_TRUNK_SLOPE_TOP", "TREE_TRUNK_SLOPE_SE", "TREE_TRUNK_SLOPE_SW", "TREE_TRUNK_SLOPE_NW", "TREE_TRUNK_SLOPE_NE", "TREE_HEAVY_BRANCH_S_nwe", "TREE_HEAVY_BRANCH_N_swe", "TREE_HEAVY_BRANCH_E_nsw", "TREE_HEAVY_BRANCH_W_nse", "TREE_HEAVY_BRANCH_SE_nw", "TREE_HEAVY_BRANCH_SW_ne", "TREE_HEAVY_BRANCH_NW_se", "TREE_HEAVY_BRANCH_NE_sw", "TREE_HEAVY_BRANCH_NSW_e", "TREE_HEAVY_BRANCH_SWE_n", "TREE_HEAVY_BRANCH_NWE_s", "TREE_HEAVY_BRANCH_NSE_w", "TREE_HEAVY_BRANCH_WE_ns", "TREE_HEAVY_BRANCH_NS_we", "TREE_HEAVY_BRANCH_NSWE", "TREE_HEAVY_BRANCH", "TREE_HEAVY_BRANCH_s", "TREE_HEAVY_BRANCH_n", "TREE_HEAVY_BRANCH_e", "TREE_HEAVY_BRANCH_w", "TREE_HEAVY_BRANCH_se", "TREE_HEAVY_BRANCH_sw", "TREE_HEAVY_BRANCH_nw", "TREE_HEAVY_BRANCH_ne", "TREE_HEAVY_BRANCH_nse", "TREE_HEAVY_BRANCH_swe", "TREE_HEAVY_BRANCH_nwe", "TREE_HEAVY_BRANCH_nsw", "TREE_HEAVY_BRANCH_we", "TREE_HEAVY_BRANCH_ns", "TREE_HEAVY_BRANCH_nswe", "TREE_HEAVY_BRANCH_S", "TREE_HEAVY_BRANCH_W", "TREE_HEAVY_BRANCH_N", "TREE_HEAVY_BRANCH_E", "TREE_HEAVY_BRANCH_S_ne", "TREE_HEAVY_BRANCH_N_sw", "TREE_HEAVY_BRANCH_E_nw", "TREE_HEAVY_BRANCH_W_se", "TREE_HEAVY_BRANCH_SE_n", "TREE_HEAVY_BRANCH_NW_s", "TREE_HEAVY_BRANCH_NE_w", "TREE_HEAVY_BRANCH_SW_e", "TREE_HEAVY_BRANCH_NS_e", "TREE_HEAVY_BRANCH_NS_w", "TREE_HEAVY_BRANCH_WE_n", "TREE_HEAVY_BRANCH_WE_s", "TREE_HEAVY_BRANCH_E_ns", "TREE_HEAVY_BRANCH_W_ns", "TREE_HEAVY_BRANCH_N_we", "TREE_HEAVY_BRANCH_S_we", "TREE_HEAVY_BRANCH_NSE", "TREE_HEAVY_BRANCH_NSW", "TREE_HEAVY_BRANCH_NWE", "TREE_HEAVY_BRANCH_SWE", "TREE_HEAVY_BRANCH_S_nw", "TREE_HEAVY_BRANCH_N_se", "TREE_HEAVY_BRANCH_E_sw", "TREE_HEAVY_BRANCH_W_ne", "TREE_HEAVY_BRANCH_SW_n", "TREE_HEAVY_BRANCH_NE_s", "TREE_HEAVY_BRANCH_SE_w", "TREE_HEAVY_BRANCH_NW_e", "TREE_HEAVY_BRANCH_SW", "TREE_HEAVY_BRANCH_NE", "TREE_HEAVY_BRANCH_SE", "TREE_HEAVY_BRANCH_NW", "TREE_HEAVY_BRANCH_NS", "TREE_HEAVY_BRANCH_WE", "TREE_HEAVY_BRANCH_S_n", "TREE_HEAVY_BRANCH_W_e", "TREE_HEAVY_BRANCH_N_s", "TREE_HEAVY_BRANCH_E_w", "TREE_HEAVY_BRANCH_E_n", "TREE_HEAVY_BRANCH_S_e", "TREE_HEAVY_BRANCH_W_s", "TREE_HEAVY_BRANCH_N_w", "TREE_HEAVY_BRANCH_W_n", "TREE_HEAVY_BRANCH_N_e", "TREE_HEAVY_BRANCH_E_s", "TREE_HEAVY_BRANCH_S_w", "TREE_BRANCH_S", "TREE_BRANCH_N", "TREE_BRANCH_E", "TREE_BRANCH_W", "TREE_BRANCH_SE", "TREE_BRANCH_SW", "TREE_BRANCH_NW", "TREE_BRANCH_NE", "TREE_BRANCH_NSE", "TREE_BRANCH_SWE", "TREE_BRANCH_NWE", "TREE_BRANCH_NSW", "TREE_BRANCH_WE", "TREE_BRANCH_NS", "TREE_BRANCH_NSWE", "TREE_BRANCH", "TREE_LEAFLESS_TWIGS_N", "TREE_LEAFLESS_TWIGS_S", "TREE_LEAFLESS_TWIGS_W", "TREE_LEAFLESS_TWIGS_E", "TREE_LEAFLESS_TWIGS", "TREE_LEAFLESS_TWIGS_WE", "TREE_LEAFLESS_TWIGS_NS", "TREE_LEAFLESS_TWIGS_NSWE", "TREE_LEAFLESS_TWIGS_FULL_N", "TREE_LEAFLESS_TWIGS_FULL_S", "TREE_LEAFLESS_TWIGS_FULL_E", "TREE_LEAFLESS_TWIGS_FULL_W", "TREE_LEAFLESS_TWIGS_FULL_SE", "TREE_LEAFLESS_TWIGS_FULL_SW", "TREE_LEAFLESS_TWIGS_FULL_NE", "TREE_LEAFLESS_TWIGS_FULL_NW", "TREE_LEAFLESS_TWIGS_SW", "TREE_LEAFLESS_TWIGS_SE", "TREE_LEAFLESS_TWIGS_NW", "TREE_LEAFLESS_TWIGS_NE", "TREE_LEAFLESS_TWIGS_SWE", "TREE_LEAFLESS_TWIGS_NSW", "TREE_LEAFLESS_TWIGS_NWE", "TREE_LEAFLESS_TWIGS_NSE" };
+static const char* const kTreeLeafTokens[58] = { "TREE_TWIGS_FULL1", "TREE_TWIGS_FULL2", "TREE_TWIGS_FULL3", "TREE_TWIGS_FULL4", "TREE_TWIGS_N", "TREE_TWIGS_S", "TREE_TWIGS_W", "TREE_TWIGS_E", "TREE_TWIGS", "TREE_TWIGS_WE", "TREE_TWIGS_NS", "TREE_TWIGS_NSWE", "TREE_TWIGS_FULL_N", "TREE_TWIGS_FULL_S", "TREE_TWIGS_FULL_E", "TREE_TWIGS_FULL_W", "TREE_TWIGS_FULL_SE", "TREE_TWIGS_FULL_SW", "TREE_TWIGS_FULL_NE", "TREE_TWIGS_FULL_NW", "TREE_TWIGS_SW", "TREE_TWIGS_SE", "TREE_TWIGS_NW", "TREE_TWIGS_NE", "TREE_TWIGS_SWE", "TREE_TWIGS_NSW", "TREE_TWIGS_NWE", "TREE_TWIGS_NSE", "TREE_OVERLEAVES_TRUNK_S", "TREE_OVERLEAVES_TRUNK_N", "TREE_OVERLEAVES_TRUNK_E", "TREE_OVERLEAVES_TRUNK_W", "TREE_OVERLEAVES_TRUNK_SE", "TREE_OVERLEAVES_TRUNK_SW", "TREE_OVERLEAVES_TRUNK_NW", "TREE_OVERLEAVES_TRUNK_NE", "TREE_OVERLEAVES_TRUNK_NSW", "TREE_OVERLEAVES_TRUNK_SWE", "TREE_OVERLEAVES_TRUNK_NWE", "TREE_OVERLEAVES_TRUNK_NSE", "TREE_OVERLEAVES_TRUNK_WE", "TREE_OVERLEAVES_TRUNK_NS", "TREE_OVERLEAVES_TRUNK_NSWE", "TREE_OVERLEAVES_HEAVY_BRANCH_S", "TREE_OVERLEAVES_HEAVY_BRANCH_N", "TREE_OVERLEAVES_HEAVY_BRANCH_E", "TREE_OVERLEAVES_HEAVY_BRANCH_W", "TREE_OVERLEAVES_HEAVY_BRANCH_SE", "TREE_OVERLEAVES_HEAVY_BRANCH_SW", "TREE_OVERLEAVES_HEAVY_BRANCH_NW", "TREE_OVERLEAVES_HEAVY_BRANCH_NE", "TREE_OVERLEAVES_HEAVY_BRANCH_NSW", "TREE_OVERLEAVES_HEAVY_BRANCH_SWE", "TREE_OVERLEAVES_HEAVY_BRANCH_NWE", "TREE_OVERLEAVES_HEAVY_BRANCH_NSE", "TREE_OVERLEAVES_HEAVY_BRANCH_WE", "TREE_OVERLEAVES_HEAVY_BRANCH_NS", "TREE_OVERLEAVES_HEAVY_BRANCH_NSWE" };
+
+static int tree_token_index(const char* const* tokens, size_t count, const std::string& token) {
+    for (size_t i = 0; i < count; ++i)
+        if (token == tokens[i]) return (int)i;
+    return -1;
+}
+
+static std::string canonical_tree_dirs(std::string dirs) {
+    std::string out;
+    for (char c : std::string("NSWE")) if (dirs.find(c) != std::string::npos) out.push_back(c);
+    return out;
+}
+
+static std::string tree_enum_suffix(std::string key, const std::string& prefix) {
+    if (key.compare(0, prefix.size(), prefix) != 0) return std::string();
+    return canonical_tree_dirs(key.substr(prefix.size()));
+}
+
+// Selector transcription for the tiletype-explicit arms; parent-direction refinements are NOT
+// guessed. With no exact token, no key is emitted and the species/tiletype fallback art stands.
+static int tree_wood_selector(df::tiletype tt) {
+    std::string key = ENUM_KEY_STR(tiletype, tt);
+    size_t dead = key.find("Dead");
+    if (dead != std::string::npos) key.erase(dead, 4);
+    std::string token;
+    if (key == "TreeTrunkPillar") token = "TREE_TRUNK_PILLAR";
+    else if (key == "TreeTrunkInterior") token = "TREE_TRUNK_THICK_INTERIOR";
+    else if (key == "TreeTrunkSloping") token = "TREE_TRUNK_SLOPE_TOP";
+    else if (key.compare(0, 14, "TreeTrunkThick") == 0)
+        token = "TREE_TRUNK_THICK_" + tree_enum_suffix(key, "TreeTrunkThick");
+    else if (key.compare(0, 15, "TreeTrunkBranch") == 0)
+        token = "TREE_TRUNK_" + tree_enum_suffix(key, "TreeTrunkBranch");
+    else if (key.compare(0, 9, "TreeTrunk") == 0) {
+        std::string d = tree_enum_suffix(key, "TreeTrunk");
+        if (!d.empty()) token = "TREE_TRUNK_" + d;
+    } else if (key == "TreeBranches" || key == "TreeBranchesSmooth") token = "TREE_BRANCH";
+    else if (key.compare(0, 10, "TreeBranch") == 0) {
+        std::string d = tree_enum_suffix(key, "TreeBranch");
+        token = d.empty() ? "TREE_BRANCH" : "TREE_BRANCH_" + d;
+    }
+    return token.empty() ? -1 : tree_token_index(kTreeWoodTokens, 216, token);
+}
+
+static int tree_leaf_selector(df::tiletype tt, const df::plant_tree_info* ti,
+                              int dx, int dy, int zb) {
+    std::string key = ENUM_KEY_STR(tiletype, tt);
+    if (key.find("Dead") != std::string::npos) return -1;
+    std::string token;
+    if (key == "TreeTwigs" && ti && ti->body && zb >= 0 && zb < ti->body_height && ti->body[zb]) {
+        std::string d;
+        auto occupied = [&](int x, int y) {
+            if (x < 0 || y < 0 || x >= ti->dim_x || y >= ti->dim_y) return false;
+            return (ti->body[zb][x + y * ti->dim_x].whole & 0xff7f) != 0;
+        };
+        if (occupied(dx, dy - 1)) d += 'N';
+        if (occupied(dx, dy + 1)) d += 'S';
+        if (occupied(dx - 1, dy)) d += 'W';
+        if (occupied(dx + 1, dy)) d += 'E';
+        token = d.empty() ? "TREE_TWIGS" : "TREE_TWIGS_" + d;
+    } else if (key.compare(0, 9, "TreeTrunk") == 0) {
+        std::string d = tree_enum_suffix(key, "TreeTrunk");
+        if (!d.empty()) token = "TREE_OVERLEAVES_TRUNK_" + d;
+    } else if (key.compare(0, 10, "TreeBranch") == 0) {
+        std::string d = tree_enum_suffix(key, "TreeBranch");
+        if (!d.empty()) token = "TREE_OVERLEAVES_HEAVY_BRANCH_" + d;
+    }
+    return token.empty() ? -1 : tree_token_index(kTreeLeafTokens, 58, token);
+}
+
+static bool tree_timing_active(int phase, int start, int end) {
+    if (start == -1) return true;
+    return start <= end ? (phase >= start && phase <= end) : (phase >= start || phase <= end);
+}
+
+static uint32_t tree_growth_host(df::tiletype tt) {
+    df::tiletype_shape shp = tileShape(tt);
+    std::string key = ENUM_KEY_STR(tiletype, tt);
+    if (key.find("Root") != std::string::npos) return 0x10;
+    if (key.find("Cap") != std::string::npos) return 0x20;
+    if (shp == df::tiletype_shape::TWIG) return 0x01;
+    if (shp == df::tiletype_shape::BRANCH)
+        return key.find("Smooth") != std::string::npos ? 0x02 : 0x04;
+    if (shp == df::tiletype_shape::TRUNK_BRANCH || shp == df::tiletype_shape::WALL) return 0x08;
+    if (shp == df::tiletype_shape::SAPLING) return 0x40;
+    return 0;
+}
+
+static int tree_growth_selector(df::pmd_growth_flag_graphics_type gt) {
+    switch ((int)gt) {
+    case 2: return 0; // STANDARD_FRUIT_1
+    case 4: return 1; // STANDARD_FRUIT_2
+    case 8: return 2; // STANDARD_FRUIT_3
+    case 5: return 3; // STANDARD_FLOWERS_2 (native reversal)
+    case 3: return 4; // STANDARD_FLOWERS_1
+    default: return -1;
+    }
+}
+
+static TreeGraphicsState compute_tree_graphics(df::plant* plant, df::tiletype tt,
+                                               int tx, int ty, int bz) {
+    TreeGraphicsState out;
+    if (!plant || !plant->tree_info) return out;
+    df::plant_tree_info* ti = plant->tree_info;
+    int dx = tx - (plant->pos.x - ti->dim_x / 2);
+    int dy = ty - (plant->pos.y - ti->dim_y / 2);
+    int zb = bz - plant->pos.z;
+    if (dx < 0 || dy < 0 || dx >= ti->dim_x || dy >= ti->dim_y) return out;
+
+    int wood = tree_wood_selector(tt);
+    if (wood >= 0 && wood < 216) {
+        out.flags |= kTreeGraphicsWoodPresent;
+        out.wood_key = (uint16_t)(wood << 8); // palette-vector field is not typed by df-structures
+    }
+
+    int leaf = tree_leaf_selector(tt, ti, dx, dy, zb);
+    if (leaf < 0 || leaf >= 58) return out;
+    df::plant_raw* raw = df::plant_raw::find(plant->material);
+    if (!raw) return out;
+
+    // Native adds a coordinate hash before the annual modulo that DFHack does not expose, so this
+    // uses the unjittered phase; print ordering, wrapping and the winner law below are exact.
+    int phase = (df::global::cur_year_tick ? *df::global::cur_year_tick : 0) % 403200;
+    if (phase < 0) phase += 403200;
+    int height = ti->body_height > 1 ? (zb * 100) / (ti->body_height - 1) : 0;
+    uint32_t host = tree_growth_host(tt);
+    bool foliage = false;
+    int autumn = 0, best_priority = 0, best_growth = -1;
+    for (size_t gi = 0; gi < raw->growths.size(); ++gi) {
+        df::plant_growth* growth = raw->growths[gi];
+        if (!growth || !(growth->locations.whole & host)) continue;
+        if (height < growth->trunk_height_perc_1 || height > growth->trunk_height_perc_2) continue;
+        // timing_1 == -1 is native's persistent-suppression arm. The six vectors it consults are
+        // not named in current df-structures, so this read-only port cannot inspect them.
+        if (growth->timing_1 != -1 && !tree_timing_active(phase, growth->timing_1, growth->timing_2)) continue;
+        for (df::plant_growth_print* print : growth->prints) {
+            if (!print || print->priority == 0 || !tree_timing_active(phase, print->timing_start, print->timing_end)) continue;
+            int gt = (int)growth->behavior.bits.graphics_type;
+            if (gt == 1) {
+                foliage = true;
+                if (print->color[0] == 6 && print->color[2] == 1) autumn = 1;
+                else if (print->color[0] == 4 && print->color[2] == 1) autumn = 2;
+                else if (print->color[0] == 4) autumn = 3;
+            } else {
+                int converted = tree_growth_selector(growth->behavior.bits.graphics_type);
+                if (converted >= 0 && print->priority > best_priority) {
+                    best_priority = print->priority;
+                    best_growth = converted; // strict > preserves first raw-order tie
+                }
+            }
+        }
+    }
+    if (!foliage) return out;
+    out.flags |= kTreeGraphicsLeafPresent;
+    if (best_growth >= 0) out.flags |= kTreeGraphicsGrowthPresent;
+    out.leaf_key = (uint32_t)(leaf << 8) | (uint32_t)(autumn << 19);
+    if (best_growth >= 0) out.leaf_key |= (uint32_t)best_growth << 16;
+    return out;
 }
 
 static Tail make_farm_crop_tail(uint8_t idx, uint8_t stage, const std::string& id) {
@@ -423,36 +579,14 @@ static Tail make_farm_crop_tail(uint8_t idx, uint8_t stage, const std::string& i
     t.data.insert(t.data.end(), id.begin(), id.begin() + idlen);
     return t;
 }
-// WC-11: appends `state` (matter_state i16 cast to a single byte, -1 None -> 0xFF) AFTER
-// the original 8-byte (mat_type, mat_index, amount) prefix -- the SAME additive-tail
-// pattern WC-1 used for the ITEM tail (§1.1 registry: "0x03 SPATTER... W-C extends").
-// The shared JS decoder (decodeTailData, unmodified) only reads the original 8 bytes and
-// advances by the wire's own length prefix, so it keeps working untouched; a decoder that
-// knows about the extension reads the trailing state byte (WC-12 apply).
-//
-// blood-family color extension (closing a logged WC-12 gap: "creature-range
-// materials get a STABLE hash pick among the 5
-// blood_families since the wire carries no resolved color for spatter yet -- true hue
-// classification needs that wire extension"): appends ANOTHER additive extension AFTER
-// the WC-11 state byte -- a `has_rgb u8` flag followed by `r,g,b u8` (present only when
-// has_rgb!=0, so the tail stays 10 bytes for materials with no resolved color, same
-// "additive, old decoder unaffected" contract as every prior SPATTER extension). Color is
-// resolved the SAME way BUILDINGS_DELTA's `rgb` field already is (world_stream.cpp's
-// building scan): `MaterialInfo(mat_type, mat_index)`'s Solid state_color index into
-// world->raws.descriptors.colors. This lets the client classify a creature blood/ichor/
-// goo material by its REAL hue instead of a stable hash pick -- WC-12's own §2.7 apply
-// note names this exact gap. Client consumption is wired: spatterFamilyFor()'s
-// creature-range branch classifies by the wire rgb (web/js/dwf-tiles.js,
-// bloodFamilyFromRgb / itemSpatterTintRgb) and the decoder ships the `rgb` key
-// (web/js/dwf-wire-v1.js). The wire half is additive/back-compat, so decoders that
-// predate the extension keep working with zero re-golden needed on this field.
+// Appends `state` after the original 8-byte prefix, then an optional has_rgb + (r,g,b). Both are
+// additive: a decoder that reads only the first 8 bytes advances by the wire's own length prefix.
 static Tail make_spatter_tail(uint8_t idx, int mat_type, int mat_index, int amount, int state,
                                bool has_rgb = false, uint8_t r = 0, uint8_t g = 0, uint8_t b = 0) {
     Tail t; t.tile_idx = idx; t.kind = kTailSpatterMat;
     put_i16(t.data, mat_type);
     put_i32(t.data, mat_index);
-    if (amount < 0) amount = 0;
-    if (amount > 65535) amount = 65535;
+    if (amount < 0) amount = 0; if (amount > 65535) amount = 65535;
     put_u16(t.data, (uint16_t)amount);
     t.data.push_back((uint8_t)(int8_t)state);
     if (has_rgb) {
@@ -462,13 +596,8 @@ static Tail make_spatter_tail(uint8_t idx, int mat_type, int mat_index, int amou
     return t;
 }
 
-// blood-family color extension: resolve (mat_type, mat_index)'s Solid state_color to an
-// (r,g,b) triple, mirroring world_stream.cpp's BUILDINGS_DELTA `rgb` resolution exactly
-// (MaterialInfo -> descriptor_color palette lookup). Returns false (no color) for
-// unresolvable pairs (builtin/negative mat_type, out-of-range descriptor index, etc.) --
-// callers fall back to omitting the extension bytes entirely. Takes `world` explicitly
-// (same pure-function convention classify_growth already uses) rather than reaching for
-// df::global::world, since the caller (encode_block) already holds the pointer.
+// Resolves (mat_type, mat_index)'s Solid state_color to an (r,g,b), mirroring BUILDINGS_DELTA's
+// `rgb`. False for an unresolvable pair, and the caller then omits the extension bytes entirely.
 static bool resolve_material_rgb(df::world* world, int mat_type, int mat_index,
                                   uint8_t& r, uint8_t& g, uint8_t& b) {
     if (mat_type < 0 || !world) return false;
@@ -483,10 +612,8 @@ static bool resolve_material_rgb(df::world* world, int mat_type, int mat_index,
     b = (uint8_t)std::min(255, std::max(0, (int)(col->blue  * 255.0f + 0.5f)));
     return true;
 }
-// WC-11: item-spatter (fallen leaves/fruit litter). `growth_class` is resolved server-
-// side (kGrowth* in wire_v1.h); `item_type` is the raw df::item_type of the spattered
-// item (u8 -- every item_type value fits). `amount` is the per-tile int32 amount grid
-// value, clamped to u8 (§1.1 "amount clamped u8").
+// Fallen leaf/fruit litter. growth_class is resolved server-side, item_type is the raw
+// df::item_type, and amount is the per-tile grid value clamped to u8.
 static Tail make_item_spatter_tail(uint8_t idx, uint8_t growth_class, uint8_t item_type, int amount,
                                     bool has_rgb = false, uint8_t r = 0, uint8_t g = 0, uint8_t b = 0) {
     Tail t; t.tile_idx = idx; t.kind = kTailItemSpatter;
@@ -500,9 +627,7 @@ static Tail make_item_spatter_tail(uint8_t idx, uint8_t growth_class, uint8_t it
     }
     return t;
 }
-// WC-15: block flows (mist/smoke/miasma/dragonfire/...). One entry per tile -- the
-// DENSEST flow wins (§WC-15 wire: "keep the densest flow, one entry/tile; DF draws one
-// cloud cell"). `density` is the flow_info::density i16 clamped to u8.
+// Block flows. One entry per tile -- the DENSEST wins, because DF draws one cloud cell.
 static Tail make_flow_tail(uint8_t idx, int flow_type, int density) {
     Tail t; t.tile_idx = idx; t.kind = kTailFlow;
     t.data.push_back((uint8_t)(flow_type & 0xFF));
@@ -510,18 +635,8 @@ static Tail make_flow_tail(uint8_t idx, int flow_type, int density) {
     t.data.push_back((uint8_t)d);
     return t;
 }
-// WC-17: grass coverage. DEVIATION from the spec draft's "plant_id u16" entry layout:
-// a raw numeric plant_index is USELESS to the client without a dictionary translating it
-// back to a species token (world->raws.plants.all's index assignment is not offline-
-// reproducible the way ITEMDEF_DICT's static itemdef vectors are, and building a whole
-// new PLANT_DICT wire message purely to carry a lookup table is disproportionate scope
-// for this item) -- so this carries the resolved TOKEN STRING directly, in the SAME
-// `idlen u8 | id bytes` layout the pre-existing PLANT tail (kind 0x02) already uses for
-// exactly this purpose (df::plant_raw::find(...)->id), just with a trailing `amount u8`
-// appended (additive-tail-growth convention: stable core fields first, extension after).
-// `amount` is already a u8 in DF's own grid (block_square_event_grassst::amount is
-// uint8_t[16][16], NOT int32 -- verified against df.block.xml directly; the spec draft's
-// "int32" claim was stale), so no clamp needed on it.
+// Carries the resolved TOKEN STRING, not a plant index: a raw index is useless to the client
+// without a dictionary, and world->raws.plants order is not offline-reproducible.
 static Tail make_grass_tail(uint8_t idx, const std::string& plant_id, uint8_t amount) {
     Tail t; t.tile_idx = idx; t.kind = kTailGrass;
     uint8_t idlen = (uint8_t)(plant_id.size() > 255 ? 255 : plant_id.size());
@@ -530,11 +645,8 @@ static Tail make_grass_tail(uint8_t idx, const std::string& plant_id, uint8_t am
     t.data.push_back(amount);
     return t;
 }
-// WC-18: one engraved face/floor record. `eflags` is df::engraving_flags.whole masked to
-// the 10 real bits (§1.1 wire table order: floor=0,W=1,E=2,N=3,S=4,hidden=5,NW=6,NE=7,
-// SW=8,SE=9 -- this IS the engine's own bitfield layout, verified against
-// df/engraving_flags.h, so no remapping is needed). `quality` is df::item_quality (i16),
-// clamped to u8 (practical range 0..6 -- Ordinary..Masterpiece).
+// `eflags` is df::engraving_flags.whole masked to its 10 real bits -- DF's own layout IS the
+// wire's, so no remapping. `quality` is df::item_quality clamped to u8.
 static Tail make_engraving_tail(uint8_t idx, uint16_t eflags, int quality) {
     Tail t; t.tile_idx = idx; t.kind = kTailEngraving;
     put_u16(t.data, (uint16_t)(eflags & 0x03FF));
@@ -542,36 +654,24 @@ static Tail make_engraving_tail(uint8_t idx, uint16_t eflags, int quality) {
     t.data.push_back((uint8_t)q);
     return t;
 }
-// WC-19: one designation-priority hit. `priority` is the dig priority LEVEL (1-7, §WC-19
-// sprite source: designation_priority.png rows 0-6) -- the CALLER converts DF's raw
-// block_square_event_designation_priorityst::priority (int32[16][16], stored as level*1000,
-// df.block.xml L206-210) to a level and gates out the default (see the encode-block scan);
-// the earlier version passed the raw level*1000 here and the u8 clamp destroyed it (every
-// tail shipped 255). The u8 clamp below is now harmless (levels are 1-7). Only emitted for
-// non-default priority per the wire's own scoping rule (§WC-19 wire).
+// `priority` is the dig priority LEVEL (1-7). The CALLER converts DF's raw level*1000 and gates
+// out the default: passing the raw value here would saturate the u8 clamp at 255.
 static Tail make_desig_priority_tail(uint8_t idx, int priority) {
     Tail t; t.tile_idx = idx; t.kind = kTailDesigPriority;
     int p = priority < 0 ? 0 : (priority > 255 ? 255 : priority);
     t.data.push_back((uint8_t)p);
     return t;
 }
-// WC-21: one vermin/vermin-colony hit. `race`/`caste` are the raw df::vermin fields;
-// `vflags` bit0 = is_colony, bit1 = a size-threshold "large swarm" hint (amount>=the
-// generator's own SWARM_LARGE cutoff -- calibrated client-side against the art, per
-// §WC-21 apply's "colonies/swarms pick SWARM_* by amount" note; the caller passes the
-// already-classified bit, this function just packs it).
+// `vflags` bit0 is is_colony, bit1 a size-threshold large-swarm hint. The caller passes the
+// already-classified bit; this only packs it.
 static Tail make_vermin_tail(uint8_t idx, int race, int caste, uint8_t vflags,
                              const std::string& token = std::string()) {
     Tail t; t.tile_idx = idx; t.kind = kTailVermin;
     put_u16(t.data, (uint16_t)(race < 0 ? 0xFFFF : race));
     t.data.push_back((uint8_t)(caste < 0 ? 0xFF : caste));
     t.data.push_back(vflags);
-    // Vermin identity extension (WIRE-TAILS): append the resolved creature token
-    // (`idlen u8 | id bytes`) after the 4-byte body, ONLY when resolvable. The `race` field
-    // is a raws INDEX not offline-reproducible into a creatures_map key (the wcclient handoff's
-    // core blocker), so -- exactly like the ITEM identity extension and the GRASS token -- the
-    // server resolves it here (world->raws.creatures.all[race]->creature_id). Absent token keeps
-    // the tail at 4 bytes; old decoders skip by length.
+    // Append the resolved creature token only when resolvable: `race` is a raws INDEX that the
+    // client cannot map offline. An absent token keeps the tail at 4 bytes.
     if (!token.empty()) {
         uint8_t idlen = (uint8_t)(token.size() > 255 ? 255 : token.size());
         t.data.push_back(idlen);
@@ -580,13 +680,8 @@ static Tail make_vermin_tail(uint8_t idx, int race, int caste, uint8_t vflags,
     return t;
 }
 
-// WC-11: classify a PLANT_GROWTH item-spatter's growth into kGrowth* by its raw token
-// (world.raws.plants.all[matindex].growths[growth_index].id, e.g. "LEAVES"/"FRUIT1") --
-// substring match per §WC-11 wire ("LEAF->1, FRUIT->2 with size from the growth's item
-// tile family"; SMALL/LARGE substrings refine size). Non-PLANT_GROWTH item-spatter (rare
-// -- DF's only item-spatter events observed are leaf/fruit litter) classifies OTHER.
-// Memoized per (mat_index, growth_index) pair (§1.5 "a cheap memo" convention, mirrors
-// RFR's isEngravingNew pattern) since the token lookup walks a raws vector.
+// Classifies a PLANT_GROWTH item-spatter into kGrowth* by substring match on its raw growth token.
+// Memoized per (mat_index, growth_index), since the lookup walks a raws vector.
 static uint8_t classify_growth(df::world* world, df::item_type item_type,
                                 int32_t mat_index, int16_t growth_index) {
     if (item_type != df::item_type::PLANT_GROWTH) return kGrowthOther;
@@ -615,11 +710,8 @@ static uint8_t classify_growth(df::world* world, df::item_type item_type,
     return cls;
 }
 
-// ---- WC-18: engraving world-vector index -------------------------------------------
-// world->event.engravings has no per-block index of its own (unlike block->block_events/
-// block->flows, which the SPATTER/ITEM_SPATTER/GRASS/FLOW readers above iterate directly,
-// already scoped to the block being encoded) -- §wire_v1.h's engravings_for_block doc
-// comment explains why a position-keyed cache is built instead of a per-block linear scan.
+// ---- engraving world-vector index ---------------------------------------------------
+// world->event.engravings has no per-block storage, unlike block->block_events and block->flows.
 namespace {
 inline uint64_t eng_bkey(int bx, int by, int bz) {
     return ((uint64_t)(uint32_t)bz << 40) | ((uint64_t)(uint32_t)by << 20) | (uint64_t)(uint32_t)bx;
@@ -664,26 +756,16 @@ const std::vector<EngravingHit>* engravings_for_block(df::world* world, int bx, 
 uint64_t engraving_block_fold(df::world* world, int bx, int by, int bz) {
     const std::vector<EngravingHit>* hits = engravings_for_block(world, bx, by, bz);
     if (!hits) return 0;
-    uint64_t h = 1469598103934665603ull ^ (uint64_t)hits->size();
+    uint64_t h = kFnvOffsetBasis ^ (uint64_t)hits->size();
     for (const EngravingHit& hh : *hits) {
         uint64_t v = ((uint64_t)hh.tile_idx << 24) | ((uint64_t)hh.eflags << 8) | (uint64_t)hh.quality;
-        h ^= v; h *= 1099511628211ull;
+        h ^= v; h *= kFnvPrime;
     }
     return h;
 }
 
-// ---- WC-21: vermin world-vector index -----------------------------------------------
-// Exact same shape as the WC-18 engraving index above (world->event.vermin/
-// vermin_colonies have no per-block storage of their own, unlike SPATTER/FLOW/GRASS which
-// ride block->block_events/block->flows) -- reuses the same "rebuild the whole index only
-// when a tracked vector's SIZE changes" memo, now over TWO vectors (a vermin count OR a
-// colony count change invalidates the index). "Large swarm" is a fixed, provisionally
-// pinned amount threshold (100 -- a starting value, NOT calibrated against the
-// SWARM_LARGE art yet; the client apply/generator work that would calibrate it is
-// deferred) so the bit is at least present on the wire for whoever lands the
-// apply side. `visible` (df::vermin::visible) gates emission -- invisible vermin
-// (underground/hidden) never reach the wire, matching §WC-21's own "keep the... visible
-// filter" note.
+// ---- vermin world-vector index ------------------------------------------------------
+// Same size-change memo as the engraving index, over TWO vectors. `visible` gates emission.
 namespace {
 constexpr int32_t kVerminSwarmLargeAmount = 100;
 struct VerminIndex {
@@ -739,16 +821,13 @@ uint64_t vermin_block_fold(df::world* world, int bx, int by, int bz) {
     for (const VerminHit& hh : *hits) {
         uint64_t v = ((uint64_t)hh.tile_idx << 24) | ((uint64_t)hh.race << 8) |
                      ((uint64_t)hh.caste << 4) | (uint64_t)hh.vflags;
-        h ^= v; h *= 1099511628211ull;
+        h ^= v; h *= kFnvPrime;
     }
     return h;
 }
 
-// ---- TX4: planted farm crops -------------------------------------------------------
-// building_farmplotst only stores the four seasonal crop assignments. The ACTUAL per-tile
-// crop is a PERM contained item: item_seedsst while growing (grow_counter/growdur), then an
-// item_plantst when ripe. These items have flags.in_building and do not ride map_block::items,
-// which is why the ordinary ITEM scan above cannot see them.
+// ---- planted farm crops -------------------------------------------------------------
+// The actual per-tile crop is a building-owned contained item, so the ordinary ITEM scan misses it.
 namespace {
 struct FarmCropIndex {
     std::unordered_map<uint64_t, std::vector<FarmCropHit>> by_block;
@@ -807,14 +886,14 @@ uint64_t farm_crop_block_fold(int bx, int by, int bz) {
     uint64_t h = 7809847782465536322ull ^ (uint64_t)hits->size();
     for (const FarmCropHit& hit : *hits) {
         h ^= ((uint64_t)hit.tile_idx << 8) | hit.stage;
-        h *= 1099511628211ull;
-        for (unsigned char c : hit.plant_id) { h ^= c; h *= 1099511628211ull; }
+        h *= kFnvPrime;
+        h = fnv1a(h, hit.plant_id.data(), hit.plant_id.size());
     }
     return h;
 }
 
-// ---- deterministic self-test fixture (§WA-8.4) -------------------------------------
-// MUST stay byte-identical to tools/harness/gen_wire_fixture.mjs (the golden generator).
+// ---- deterministic self-test fixture ------------------------------------------------
+// MUST stay byte-identical to the golden JS generator.
 std::vector<uint8_t> build_selftest_fixture(uint32_t* out_world_seq) {
     const uint32_t world_seq = 42;
     if (out_world_seq) *out_world_seq = world_seq;
@@ -834,135 +913,89 @@ std::vector<uint8_t> build_selftest_fixture(uint32_t* out_world_seq) {
     { auto& r = A.records[8]; r.tt = 107; r.base_mt = 11; r.base_mi = 12; r.bits = pack_bits(1,4,0,0);
       r.desig1 = pack_desig1(1,1,0); r.desig2 = pack_desig2(1,1); r.spatter_amt = 255;
       r.flags2 = (uint16_t)(kFlag2Item | kFlag2Plant | kFlag2Spatter); }
-    // WC-11: tile(9) fallen-leaves/fruit litter (2 ITEM_SPATTER entries, same tile);
-    // tile(10) a mist flow (WC-15); tile(11) TWO layered material-spatter events (kept
-    // off tile 7/8 deliberately -- the pre-existing WA-12 cache_test.mjs golden-fixture
-    // assertions for tiles 7/8 pin single-event spatterMat values; client "merge multiple
-    // layered decals" support is WC-12 apply work, not landed yet, so a fresh tile proves
-    // the wire's multi-tail-per-tile-idx grammar without touching those assertions).
+    // tile(9) two ITEM_SPATTER entries; tile(10) a mist flow; tile(11) two layered material
+    // spatters -- kept off tiles 7 and 8, whose single-event values a golden test pins.
     { auto& r = A.records[9];  r.tt = 108; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2ItemSpatter; }
     { auto& r = A.records[10]; r.tt = 109; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Flow; }
     { auto& r = A.records[11]; r.tt = 110; r.base_mt = 0; r.base_mi = -1; r.spatter_amt = 255; r.flags2 = kFlag2Spatter; }
-    // WC-17: tile(12) a grass-floor tile carrying one GRASS tail (plant_id/amount).
+    // tile(12) a grass-floor tile carrying one GRASS tail (plant_id/amount).
     { auto& r = A.records[12]; r.tt = 111; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Grass; }
-    // WC-18: tile(13) TWO layered ENGRAVING records (a north wall face + a south wall
-    // face, both engraved) -- proves the client must OR multiple records at one tile_idx
-    // into a combined wall-face mask, not just decode the last one.
+    // tile(13) TWO layered ENGRAVING records, proving the client must OR multiple records at one
+    // tile_idx into a combined wall-face mask rather than decode only the last.
     { auto& r = A.records[13]; r.tt = 112; r.base_mt = 11; r.base_mi = 12; r.flags2 = kFlag2Engraving; }
-    // WC-19: tile(14) a priority-5 dig designation.
+    // tile(14) a priority-5 dig designation.
     { auto& r = A.records[14]; r.tt = 113; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2DesigPriority; }
-    // WC-21: tile(15) TWO layered VERMIN hits (a lone vermin + a colony) -- proves the
-    // client must handle >=1 hit per tile, same multi-record convention as ENGRAVING.
+    // tile(15) TWO layered VERMIN hits, proving >=1 hit per tile, as ENGRAVING does.
     { auto& r = A.records[15]; r.tt = 114; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Vermin; }
-    // WIRE-TAILS: tile(16) a plant-identity item (a SEEDS item whose ITEM tail carries the
-    // plant species token "OAK") and tile(17) a creature-identity item (a CORPSE carrying the
-    // race token "DWARF") -- fresh tiles proving the additive ITEM-tail identity extension
-    // WITHOUT disturbing the ident-less items 5/8/B10 (which stay 12 bytes, proving the
-    // extension is optional/back-compatible). Kept as new tiles per the same "fresh tile
-    // proves the grammar, pinned tiles untouched" convention WC-11/WC-17/WC-21 established.
+    // tile(16) a plant-identity item and tile(17) a creature-identity item, on fresh tiles so the
+    // ident-less items stay 12 bytes and prove the extension is optional.
     { auto& r = A.records[16]; r.tt = 115; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[17]; r.tt = 116; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
-    // TIER-2 (asset/material-parity §4): three fresh item tiles proving the two additive
-    // ITEM-tail extensions -- inorganic identity (ident_kind 3) and cut-gem `shape`.
-    //   tile(18) SMALLGEM  : inorganic ident "GREEN_ZIRCON" + shape 7 (ident AND shape both).
-    //   tile(19) GEM (large): NO ident (a glass gem) + shape -1 (shape-only; the ambiguity
-    //                         case -- 0xFFFF sits where an ident_kind byte would; the decoder
-    //                         carves shape off the tail END first, so identity stays absent).
-    //   tile(20) ROUGH gem : inorganic ident "MICROCLINE", NO shape (ROUGH carries no shape
-    //                        field -- inorganic ident on a non-shape item).
+    // tile(18) inorganic ident + shape; tile(19) shape only, where 0xFFFF sits where an ident_kind
+    // byte would; tile(20) inorganic ident on a non-shape item.
     { auto& r = A.records[18]; r.tt = 117; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[19]; r.tt = 118; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[20]; r.tt = 119; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
-    // ITEM QUALITY FAMILY (2026-07-09): fresh item tiles proving the additive quality block.
-    //   tile(21) q3 fine, no artifact, no wear;  tile(22) q5 masterwork;
-    //   tile(23) q5 + ARTIFACT flag;             tile(24) q0 but wear 1 (proves quality==0 with
-    //                                            a block present -- the "base q0" matrix row);
-    //   tile(25) q4 + wear 3 (worn, second wear level);
-    //   tile(26) SMALLGEM combining inorganic IDENT + gem SHAPE + QUALITY(+artifact) on ONE tail
-    //            (the end-carve stress case: quality carved off the end, then shape, then ident
-    //            in the middle).
+    // Quality-block tiles: (21) q3, (22) q5, (23) q5+artifact, (24) q0 with wear, (25) q4 wear 3,
+    // and (26) ident + shape + quality on ONE tail -- the end-carve stress case.
     { auto& r = A.records[21]; r.tt = 120; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[22]; r.tt = 121; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[23]; r.tt = 122; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[24]; r.tt = 123; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[25]; r.tt = 124; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = A.records[26]; r.tt = 125; r.base_mt = 0; r.base_mi = -1; r.flags2 = kFlag2Item; }
-    // TX1 CONTAINER_PEEK: three fresh container tiles proving the new 0x0A tail kind
-    // (ITEM tail + CONTAINER_PEEK tail on the SAME tile_idx -- the multi-tail-per-tile
-    // grammar every multi-kind tile already uses). item_type ordinals are the REAL
-    // df::item_type values (BARREL=17, BIN=32; contents MEAT=48, PLANT=54, BAR=0) --
-    // load-bearing for the client classifier, verified against df/item_type.h.
-    //   tile(27) wood BARREL + MEAT content (creature mat 19)      -> ITEM_BARREL_TOP_MEAT
-    //   tile(28) wood BARREL + PLANT content, cflags bit0 SET      -> ..._PLANT_SUBTERRANEAN
-    //   tile(29) BIN + BAR content, mat_type 7 (builtin COAL)      -> ITEM_BIN_TOP_COAL
+    // CONTAINER_PEEK on tiles 27-29, each an ITEM tail plus a peek tail at the same tile_idx.
+    // The item_type ordinals here are the REAL df::item_type values and are load-bearing.
     { auto& r = A.records[27]; r.tt = 126; r.base_mt = 0; r.base_mi = -1; r.flags2 = (uint16_t)(kFlag2Item | kFlag2ContainerPeek); }
     { auto& r = A.records[28]; r.tt = 127; r.base_mt = 0; r.base_mi = -1; r.flags2 = (uint16_t)(kFlag2Item | kFlag2ContainerPeek); }
     { auto& r = A.records[29]; r.tt = 128; r.base_mt = 0; r.base_mi = -1; r.flags2 = (uint16_t)(kFlag2Item | kFlag2ContainerPeek); }
-    // WC-1: item(5) exercises a normal subtype + a 3-bit iflags combo + a plain stack;
+    // item(5) exercises a normal subtype + a 3-bit iflags combo + a plain stack;
     // item(8) exercises the subtype==-1 sentinel + a single iflags bit + a stack>255 clamp.
     A.tails.push_back(make_item_tail(5, 12, 34, 5678, 42,
                                       kItemFlagWeb | kItemFlagDump | kItemFlagOnFire, 5));
     A.tails.push_back(make_plant_tail(6, kPartTrunk, "OAK"));
-    // WC-11: tile(7)'s spatter now carries a mat_state byte (Liquid) -- amount/mat_type
-    // unchanged from the pre-WC-11 fixture (cache_test.mjs pins amount==5000/mat_type==9).
+    // tile(7)'s spatter now carries a mat_state byte (Liquid) -- amount/mat_type
+    // unchanged from the earlier fixture (cache_test.mjs pins amount==5000/mat_type==9).
     A.tails.push_back(make_spatter_tail(7, 9, 10, 5000, 1 /*Liquid*/));
     A.tails.push_back(make_item_tail(8, 1, 2, 3, -1, kItemFlagForbid, 999));
     A.tails.push_back(make_plant_tail(8, kPartShrub, ""));
-    // WC-11: tile(8)'s spatter now exercises the matter_state==-1 (None) sentinel byte
+    // tile(8)'s spatter now exercises the matter_state==-1 (None) sentinel byte
     // (encoded 0xFF), on top of the pre-existing amount>65535 clamp.
     A.tails.push_back(make_spatter_tail(8, 13, 14, 65535, -1 /*None sentinel*/));
-    // WC-11: tile(9) two ITEM_SPATTER entries -- LEAVES then FRUIT_LARGE. The item_type
-    // byte is a synthetic test value (56, matching PLANT_GROWTH's ordinal at the time of
-    // writing -- NOT load-bearing here; encode_block's real read uses the true runtime
-    // enum, this fixture only proves the byte layout round-trips).
+    // tile(9) LEAVES then FRUIT_LARGE. The item_type byte is synthetic and not load-bearing here;
+    // encode_block's real read uses the runtime enum.
     A.tails.push_back(make_item_spatter_tail(9, kGrowthLeaves, 56, 60));
     A.tails.push_back(make_item_spatter_tail(9, kGrowthFruitLarge, 56, 12));
-    // WC-15: tile(10) a dense waterfall mist (flow_type=2 Mist).
+    // tile(10) a dense waterfall mist (flow_type=2 Mist).
     A.tails.push_back(make_flow_tail(10, 2 /*Mist*/, 180));
-    // WC-11: tile(11) TWO layered material-spatter events -- Solid then Paste. The SECOND
-    // event also exercises the blood-family color extension's has_rgb/(r,g,b) bytes (a
-    // synthetic resolved color here -- encode_block's real call site resolves this from
-    // MaterialInfo via resolve_material_rgb).
+    // tile(11) two layered spatters, Solid then Paste; the second also exercises the optional
+    // (r,g,b) bytes, with a synthetic colour.
     A.tails.push_back(make_spatter_tail(11, 30, 31, 4000, 0 /*Solid*/));
     A.tails.push_back(make_spatter_tail(11, 40, 41, 1500, 4 /*Paste*/,
                                          /*has_rgb=*/true, 180, 20, 20 /*resolved blood-red*/));
-    // WC-17: tile(12) grass coverage -- token "MEADOW-GRASS" (a real vanilla grass raw
-    // id, plant_grasses.txt), amount=45 (falls in the PARTIAL_2/GRASS_2 tier per §WC-17
-    // apply thresholds).
+    // tile(12) grass coverage with a real vanilla grass token.
     A.tails.push_back(make_grass_tail(12, "MEADOW-GRASS", 45));
-    // WC-18: tile(13) two ENGRAVING records -- north wall face (eflags bit3=0x0008,
-    // quality=3 Fine) then south wall face (bit4=0x0010, quality=5 Masterpiece). The
-    // client OR-combines eflags across all records at one tile to get the combined
-    // ENGRAVED_STONE_WALL_N_S mask and takes the max quality (5) for hover.
+    // tile(13) a north then a south wall face: the client OR-combines eflags across records at one
+    // tile and takes the max quality.
     A.tails.push_back(make_engraving_tail(13, 0x0008 /*north*/, 3));
     A.tails.push_back(make_engraving_tail(13, 0x0010 /*south*/, 5));
-    // WC-19: tile(14) priority 5.
+    // tile(14) priority 5.
     A.tails.push_back(make_desig_priority_tail(14, 5));
-    // WC-21: tile(15) a lone vermin (race 200, caste 0, not a colony) then a colony hit
-    // (race 210, caste 1, is_colony + large-swarm bits both set).
-    // Vermin identity extension: lone vermin (race 200) carries token "HONEY_BEE"; the
-    // colony (race 210) carries "ANT" -- proving the resolved-token extension round-trips.
+    // tile(15) a lone vermin then a colony, each carrying a resolved creature token.
     A.tails.push_back(make_vermin_tail(15, 200, 0, 0, "HONEY_BEE"));
     A.tails.push_back(make_vermin_tail(15, 210, 1, kVerminFlagColony | kVerminFlagSwarmLarge, "ANT"));
-    // WIRE-TAILS: tile(16) SEEDS item (type 40 synthetic) carrying a PLANT identity token
-    // "OAK"; tile(17) CORPSE item (type 41 synthetic) carrying a CREATURE identity token
-    // "DWARF". The item_type bytes are synthetic (like the ITEM_SPATTER fixture's) -- not
-    // load-bearing; encode_block's real reads use the true runtime enum + resolve_item_identity.
+    // tile(16) a plant identity token, tile(17) a creature one. The item_type bytes are synthetic.
     A.tails.push_back(make_item_tail(16, 40, 0, 0, -1, 0, 3, kItemIdentPlant, "OAK"));
     A.tails.push_back(make_item_tail(17, 41, 0, 0, -1, 0, 1, kItemIdentCreature, "DWARF"));
-    // TIER-2: item_type bytes here are the REAL df::item_type ordinals the decoder keys gem
-    // shape off (SMALLGEM=1, GEM=44, ROUGH=3), so they ARE load-bearing (unlike the synthetic
-    // bytes above). tile(18) ident+shape; tile(19) shape-only spawned (-1) glass gem;
-    // tile(20) inorganic ident, no shape.
+    // The item_type bytes here ARE load-bearing: the decoder keys gem shape off SMALLGEM/GEM/ROUGH.
     A.tails.push_back(make_item_tail(18, /*SMALLGEM*/1, 0, 97, -1, 0, 1,
                                       kItemIdentInorganic, "GREEN_ZIRCON", /*has_shape*/true, 7));
     A.tails.push_back(make_item_tail(19, /*GEM*/44, 3 /*GLASS_GREEN*/, 0, -1, 0, 1,
                                       kItemIdentNone, std::string(), /*has_shape*/true, -1));
     A.tails.push_back(make_item_tail(20, /*ROUGH*/3, 0, 100, -1, 0, 1,
                                       kItemIdentInorganic, "MICROCLINE"));
-    // ITEM QUALITY FAMILY tails (make_item_tail's has_quality/quality/qflags/wear params).
-    // tile(21) q3; tile(22) q5; tile(23) q5+artifact; tile(24) q0 wear1; tile(25) q4 wear3;
-    // tile(26) SMALLGEM inorganic ident "RUBY" + shape 3 + q5 + artifact (all extensions on one).
+    // Quality tails: (21) q3, (22) q5, (23) q5+artifact, (24) q0 wear1, (25) q4 wear3, and (26)
+    // ident + shape + quality + artifact on one tail.
     A.tails.push_back(make_item_tail(21, 12, 34, 5678, -1, 0, 1, kItemIdentNone, std::string(),
                                       /*has_shape*/false, 0, /*has_quality*/true, 3, 0, 0));
     A.tails.push_back(make_item_tail(22, 12, 34, 5678, -1, 0, 1, kItemIdentNone, std::string(),
@@ -976,7 +1009,7 @@ std::vector<uint8_t> build_selftest_fixture(uint32_t* out_world_seq) {
     A.tails.push_back(make_item_tail(26, /*SMALLGEM*/1, 0, 55, -1, 0, 1,
                                       kItemIdentInorganic, "RUBY", /*has_shape*/true, 3,
                                       /*has_quality*/true, 5, kItemQFlagArtifact, 0));
-    // TX1 CONTAINER_PEEK tails (see the tile 27-29 comment above).
+    // CONTAINER_PEEK tails (see the tile 27-29 comment above).
     A.tails.push_back(make_item_tail(27, /*BARREL*/17, 420, 30, -1, 0, 1));
     A.tails.push_back(make_container_peek_tail(27, /*MEAT*/48, 19, 5, -1, 0));
     A.tails.push_back(make_item_tail(28, /*BARREL*/17, 420, 30, -1, 0, 1));
@@ -991,15 +1024,11 @@ std::vector<uint8_t> build_selftest_fixture(uint32_t* out_world_seq) {
     B.records[255] = TileRecord{};                                 // void (edge)
     { auto& r = B.records[10];  r.tt = 201; r.base_mt = -1; r.base_mi = -1; r.flags2 = kFlag2Item; }
     { auto& r = B.records[128]; r.tt = 200; r.base_mt = 100; r.base_mi = 200; r.bits = pack_bits(2,7,1,1); }
-    // WC-1: all-negative mats + subtype -1 + zero iflags + a negative stack (clamps to 0).
+    // all-negative mats + subtype -1 + zero iflags + a negative stack (clamps to 0).
     B.tails.push_back(make_item_tail(10, -1, -1, -1, -1, 0, -5));
 
-    // BLOCK C -- tail_count u16 regression proof (cachefix 2026-07-09). A grass-dense block
-    // carrying 256 GRASS tails (one per tile) PLUS 4 ITEM tails at HIGH tile_idx (250-253) =
-    // 260 tails. Under the OLD u8 clamp only the first 255 tails survived -- grass[255] and ALL
-    // FOUR items were truncated off the wire server-side (exactly the invisible-item cluster:
-    // the items sit past position 255). With the u16 count all 260 ride, proving the class is
-    // dead. The items carry unique mat_index (700+k) so the decoder can confirm each survived.
+    // BLOCK C pins the u16 tail_count: 256 GRASS tails plus 4 ITEM tails at high tile_idx. Under a
+    // u8 count the four items were truncated server-side. Their mat_index (700+k) identifies each.
     EncodedBlock C;
     C.bx = 500; C.by = 60; C.bz = 9; C.ver = 300; C.bflags = 0;
     for (int i = 0; i < 256; ++i) {
@@ -1019,32 +1048,21 @@ std::vector<uint8_t> build_selftest_fixture(uint32_t* out_world_seq) {
     return frame;
 }
 
-// ---- DF-reading encoder (§0.3.1) ---------------------------------------------------
-// Raw per-z port of emit_tile_fields' reads: NO see-down descent, NO wallnbr, NO enum
-// strings (client resolves via §0.7 meta). Caller holds the CoreSuspender.
+// ---- DF-reading encoder -------------------------------------------------------------
+// A raw per-z port of emit_tile_fields: no see-down descent, no wallnbr, no enum strings.
 EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_block* block,
                           int bx, int by, int bz, uint32_t ver) {
     EncodedBlock eb;
     eb.bx = (uint16_t)bx; eb.by = (uint16_t)by; eb.bz = (uint16_t)bz;
     eb.ver = ver; eb.bflags = 0;
 
-    // Null/unrevealed/off-map block: all-void records, no tails (§0.3.1).
+    // Null/unrevealed/off-map block: all-void records, no tails.
     if (!block) return eb;
 
     const int base_tx = bx * 16, base_ty = by * 16;
 
-    // WC-15: pre-scan block->flows ONCE (per-block vector, usually empty -- §1.5 budget)
-    // into a per-tile "densest flow wins" table (§WC-15 wire: "keep the densest flow, one
-    // entry/tile"). flow_info::pos is a world coord; NONE-typed entries (defensive) and
-    // any flow outside this block's 16x16 (defensive -- flows are block-owned in
-    // practice) are skipped.
-    // B139: DEAD and density<=0 flows are skipped too. DF RETAINS expired flow_info
-    // records in block->flows (flags.DEAD=1, density decayed to <=0) and re-uses the
-    // slots for later spawns, so without this gate a tile whose miasma just died kept
-    // emitting a zombie density-0 tail forever -- and worse, a tile whose slot was still
-    // dead at encode time shipped density 0 while the oracle showed a LIVE flow (seen
-    // live 2026-07-10: 19 flow tails all density=0 over a refuse pile with live densities
-    // 5..25; block_signature() couldn't see the dead->alive flip, see world_stream.cpp).
+    // Pre-scan block->flows ONCE into a per-tile "densest flow wins" table. DF RETAINS expired
+    // flow_info records with flags.DEAD and re-uses the slots, so skip DEAD and density<=0.
     int8_t  flow_type_at[kTilesPerBlock];
     uint8_t flow_density_at[kTilesPerBlock];
     std::fill(std::begin(flow_type_at), std::end(flow_type_at), (int8_t)-1);
@@ -1052,7 +1070,7 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
     for (size_t fi = 0; fi < block->flows.size(); ++fi) {
         df::flow_info* fl = block->flows[fi];
         if (!fl || (int)fl->type < 0) continue;
-        if (fl->flags.bits.DEAD || fl->density <= 0) continue;   // B139: zombie slots
+        if (fl->flags.bits.DEAD || fl->density <= 0) continue;   // Zombie slots
         if (fl->pos.z != bz) continue;
         int flx = fl->pos.x - base_tx, fly = fl->pos.y - base_ty;
         if (flx < 0 || flx >= 16 || fly < 0 || fly >= 16) continue;
@@ -1064,36 +1082,15 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
         }
     }
 
-    // ---- B269 MINING INDICATORS (damp / warm stone) -----------------------------------------
-    // DF cancels a dig with "Damp stone located." / "Warm stone located." (announcement enum
-    // DIG_CANCEL_DAMP/DIG_CANCEL_WARM, src/announce_taxonomy.gen.h:134-135) and paints
-    // DAMP_STONE_WARNING / WARM_STONE_WARNING on the tile in mining mode. It stores no per-tile
-    // marker for this -- there is no such bit anywhere in df-structures -- so the overlay is
-    // DERIVED from map state each frame, which is why it survives the designation being cleared.
-    //
-    // We evaluate DFHack's own replication of DF's rule (dfhack/plugins/dig.cpp):
-    //   is_wet(x,y,z) := (liquid_type==Water && flow_size>=1) || is_aquifer(x,y,z)   [dig.cpp:291]
-    //   is_aquifer    := designation.water_table && a ROUGH (non-smooth) WALL tiletype [dig.cpp:262]
-    //   is_damp(pos)  := is_wet over the 8 HORIZONTAL neighbours at z + the tile at z+1 [dig.cpp:302]
-    //   is_warm(pos)  := block->temperature_1[x&15][y&15] >= 10075  (the tile ITSELF)   [dig.cpp:235]
-    // The client cannot do this: it never receives z+1 (see-down only descends) and neither the
-    // water_table bit nor tile temperature was ever on the wire.
-    //
-    // PERF (AGENTS.md hard rule 5 -- CoreSuspender starves the sim): the naive form is 9
-    // Maps::getTileDesignation() calls per tile = 2304 block-hash lookups per block. Instead we
-    // build the wet mask ONCE per block: an 18x18 grid covering this block plus its 1-tile border,
-    // plus a 16x16 grid for z+1. That is 324+256 = 580 lookups per block regardless of tile count,
-    // and per-tile damp is then 9 array reads. Only WALL tiles are ever asked (a floor cannot be
-    // mined, so DF never warns about one), and the whole precompute is skipped for a block with no
-    // walls at all.
+    // DF stores no per-tile damp/warm marker: it derives the overlay from map state each frame.
+    // The client cannot -- it never receives z+1, the water_table bit, or tile temperature.
     bool block_has_wall = false;
     for (int wy = 0; wy < 16 && !block_has_wall; ++wy)
         for (int wx = 0; wx < 16; ++wx)
             if (tileShape(block->tiletype[wx][wy]) == df::tiletype_shape::WALL) { block_has_wall = true; break; }
 
-    // wet_here[(ly+1)*18 + (lx+1)] for lx,ly in [-1..16]; wet_above[ly*16+lx] for the z+1 tile.
-    // Zero-initialized so a wall-less block (which skips the fill) can never be read stale, and so
-    // no compiler can flag a may-be-uninitialized path.
+    // wet_here is an 18x18 grid (this block plus a 1-tile border); wet_above is 16x16 for z+1.
+    // Zero-initialized so a wall-less block, which skips the fill, can never read stale.
     bool wet_here[18 * 18] = { false };
     bool wet_above[16 * 16] = { false };
     if (block_has_wall) {
@@ -1102,7 +1099,7 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
             if (!d) return false;
             if (d->bits.flow_size >= 1 && d->bits.liquid_type == df::enums::tile_liquid::Water)
                 return true;
-            if (!d->bits.water_table) return false;            // aquifer bit (dig.cpp is_aquifer)
+            if (!d->bits.water_table) return false;            // the aquifer bit
             df::tiletype* tt2 = DFHack::Maps::getTileType(wx, wy, wz);
             return tt2 && tileShape(*tt2) == df::tiletype_shape::WALL
                        && tileSpecial(*tt2) != df::tiletype_special::SMOOTH;
@@ -1115,21 +1112,16 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 wet_above[gy * 16 + gx] = tile_is_wet(base_tx + gx, base_ty + gy, bz + 1);
     }
 
-    // WC-18: ONE index lookup for the whole block (not per-tile -- engravings_for_block's
+    // ONE index lookup for the whole block (not per-tile -- engravings_for_block's
     // hash lookup by (bx,by,bz) returns the same small vector for all 256 tiles here).
     const std::vector<EngravingHit>* engraving_hits = engravings_for_block(world, bx, by, bz);
-    // WC-21: same one-lookup-per-block pattern for vermin/vermin-colonies.
+    // Same one-lookup-per-block pattern for vermin/vermin-colonies.
     const std::vector<VerminHit>* vermin_hits = vermin_for_block(world, bx, by, bz);
-    // TX4: building-owned planted crops, indexed once per stream tick.
+    // building-owned planted crops, indexed once per stream tick.
     const std::vector<FarmCropHit>* farm_crop_hits = farm_crops_for_block(bx, by, bz);
 
-    // BLACK-GLYPHS/B204: is EVERY tile in this block hidden? Such a block only reaches encode_block
-    // when world_stream's block_shippable let it through because it carries a live designation the
-    // player must see over the black (B133's render half). For those blocks we ship ONLY the
-    // designation -- each tile emits a VOID tiletype (no real tiletype/base material, no sparse
-    // tails), so fog-of-war leaks nothing beyond what the player already designated. Discovered
-    // blocks (>=1 visible tile) are untouched: the whole normal per-tile emission runs, byte-for-
-    // byte as before (golden fixtures unaffected -- they are all discovered blocks).
+    // A fully-hidden block only reaches encode_block when it carries a live designation the player
+    // must see over the black, so ship the designation ONLY and leak nothing else through the fog.
     bool block_fully_hidden = true;
     for (int hy = 0; hy < 16 && block_fully_hidden; ++hy)
         for (int hx = 0; hx < 16; ++hx)
@@ -1155,32 +1147,9 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
             r.tt   = (uint16_t)(int)tt;
             r.bits = pack_bits(liquid, flow, des.bits.hidden ? 1 : 0, des.bits.outside ? 1 : 0);
 
-            // base material (MapCache), -1 when unavailable (§0.3.1).
+            // Construction records own their built-from material; natural tiles use MapCache.
             int base_mt = -1, base_mi = -1;
-            MapExtras::Block* mcb = MC.BlockAtTile(df::coord(tx, ty, bz));
-            if (mcb) {
-                t_matpair bm = mcb->baseMaterialAt(df::coord2d(lx, ly));
-                base_mt = bm.mat_type; base_mi = bm.mat_index;
-            }
-            // B47 ("constructions show as generic stone, not the construction material"):
-            // baseMaterialAt() resolves the tile's NATURAL layer material -- for a
-            // CONSTRUCTION-material tiletype it returns the GEOLAYER stone under the
-            // construction, NOT (-1,-1). So the old `&& base_mt < 0` guard NEVER fired and
-            // every constructed wall/floor shipped the geolayer stone instead of the
-            // built-from material. The built-from material lives in the construction record
-            // itself (world.constructions, mat_type/mat_index of the component item), so the
-            // findAtTile override must win UNCONDITIONALLY for CONSTRUCTION tiles.
-            // Constructions::findAtTile is a pure read (binary search over the sorted
-            // vector, no map/tile writes -- crash-safe under the same CoreSuspender this
-            // whole scan already holds). Only fires for CONSTRUCTION tiles, so natural
-            // terrain wire bytes are unchanged (no re-golden needed for non-construction
-            // fixtures; the golden fort has no constructions on captured cameras --
-            // verify wire-selftest after deploy regardless).
-            if (tmat == df::tiletype_material::CONSTRUCTION) {
-                if (df::construction* con = DFHack::Constructions::findAtTile(df::coord(tx, ty, bz))) {
-                    base_mt = con->mat_type; base_mi = con->mat_index;
-                }
-            }
+            resolve_tile_material(MC, df::coord(tx, ty, bz), tmat, base_mt, base_mi);
             r.base_mt = (int16_t)base_mt;
             r.base_mi = (int16_t)base_mi;
 
@@ -1200,13 +1169,8 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 r.desig2 = pack_desig2(traffic, track);
             }
 
-            // BLACK-GLYPHS/B204: fully-hidden shippable block -> ship the designation ONLY. Void the
-            // tiletype + base material + liquid/flow/hidden bits and emit no sparse tails, so an
-            // undiscovered tile crosses the wire carrying nothing but its designation. The client's
-            // decodeTile reconstitutes a {tt:-1, hidden:1, desig} tile from the surviving desig bytes
-            // and both renderers draw the glyph over black. Undesignated tiles here have desig1==
-            // desig2==0, so they stay pure-void (pure black) on the client -- identical to never
-            // shipping them, but now the block as a whole can carry its designated tiles.
+            // Void the tiletype, material and bits so an undiscovered tile crosses the wire
+            // carrying nothing but its designation; undesignated tiles here stay pure void.
             if (block_fully_hidden) {
                 r.tt = 0xFFFF; r.base_mt = -1; r.base_mi = -1;
                 r.bits = 0; r.spatter_amt = 0; r.flags2 = 0;
@@ -1215,11 +1179,8 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
 
             uint16_t flags2 = 0;
 
-            // B269: damp/warm mining indicators. WALL tiles only (nothing else is mineable, so DF
-            // never warns about one) and revealed tiles only -- an undiscovered tile must not
-            // advertise the water behind it (the client also re-gates on `hidden`, but not shipping
-            // the bit at all is the honest fog-of-war answer). See the precompute above for the
-            // DFHack citations and the perf shape.
+            // WALL tiles only -- nothing else is mineable -- and revealed tiles only: an
+            // undiscovered tile must not advertise the water behind it.
             if (block_has_wall && shp == df::tiletype_shape::WALL && !des.bits.hidden) {
                 const int gx = lx + 1, gy = ly + 1;   // wet_here is the 18x18 bordered grid
                 bool damp = wet_here[(gy - 1) * 18 + (gx - 1)] || wet_here[(gy - 1) * 18 + gx]
@@ -1228,15 +1189,13 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                          || wet_here[(gy + 1) * 18 + gx]       || wet_here[(gy + 1) * 18 + (gx + 1)]
                          || wet_above[ly * 16 + lx];
                 if (damp) flags2 |= kFlag2Damp;
-                // is_warm: the tile's OWN current temperature (dig.cpp:235), not a neighbourhood --
-                // that is what lets DF warn about magma you cannot see yet.
+                // is_warm reads the tile's OWN temperature, not a neighbourhood: that is what
+                // lets DF warn about magma you cannot see yet.
                 if (block->temperature_1[lx][ly] >= 10075) flags2 |= kFlag2Warm;
             }
 
-            // ITEM tail: topmost item on this tile (same 512-cap scan as the emitter).
-            // WC-1: items with the `hidden` flag (INTERFACE_INVISIBLE, df.item.xml L416)
-            // are skipped from candidacy -- DF never draws them -- so the topmost VISIBLE
-            // item still wins (last-match-wins semantics unchanged for the rest).
+            // ITEM tail: topmost item on this tile. Items flagged hidden are skipped from
+            // candidacy -- DF never draws them -- so the topmost VISIBLE item wins.
             {
                 df::item* top = nullptr;
                 const size_t ITEM_SCAN_CAP = 512;
@@ -1248,10 +1207,8 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                     if (it->pos.x == tx && it->pos.y == ty && it->pos.z == bz) top = it;
                 }
                 if (top) {
-                    // WC-1: subtype (0xFFFF sentinel handled by put_i16 casting through
-                    // int16_t), iflags (web/forbid/dump/melt/on_fire), stack_size via
-                    // item_actual (RFR item_reader.cpp:435-439 pattern; 1 when not
-                    // item_actual-derived -- practically never for concrete DF items).
+                    // stack_size comes off item_actual, and is 1 when the item is not
+                    // item_actual-derived.
                     int subtype = (int)top->getSubtype();
                     uint8_t iflags = 0;
                     if (top->flags.bits.spider_web) iflags |= kItemFlagWeb;
@@ -1259,47 +1216,48 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                     if (top->flags.bits.dump)       iflags |= kItemFlagDump;
                     if (top->flags.bits.melt)       iflags |= kItemFlagMelt;
                     if (top->flags.bits.on_fire)    iflags |= kItemFlagOnFire;
+                    // GROWN lives on flags2 in this DF build (df::item_flags2::grown), not flags.
+                    if (top->flags2.bits.grown)     iflags |= kItemFlagGrown;
                     VIRTUAL_CAST_VAR(actual, df::item_actual, top);
                     int stack = actual ? actual->stack_size : 1;
                     int mt = (int)top->getMaterial(), mi_ = (int)top->getMaterialIndex();
-                    // Item identity extension: resolve per-species token (plant seeds/growths,
-                    // creature corpses/vermin-items) so the client draws real art, not a box.
+                    // Resolve the per-species token so the client draws real art, not a box.
                     uint8_t ident_kind = kItemIdentNone; std::string ident;
                     resolve_item_identity(world, top, mt, mi_, ident_kind, ident);
-                    // Tier-2: cut-gem shape -> per-cut art on the client. Only SMALLGEM/GEM
-                    // items carry a `shape` field (df::item_smallgemst / item_gemst); -1 =
-                    // uncut/spawned. Non-gem items ship no shape (has_shape stays false).
+                    // Only SMALLGEM and GEM carry a `shape` field; -1 means uncut or spawned.
+                    // Non-gem items ship no shape at all.
                     bool has_shape = false; int gem_shape = -1;
                     if (df::item_smallgemst* sg = strict_virtual_cast<df::item_smallgemst>(top)) {
                         gem_shape = sg->shape; has_shape = true;
                     } else if (df::item_gemst* lg = strict_virtual_cast<df::item_gemst>(top)) {
                         gem_shape = lg->shape; has_shape = true;
                     }
-                    // ITEM QUALITY FAMILY (2026-07-09): quality (0-5 via getQuality()),
-                    // artifact (flags.bits.artifact), wear (0-3 via item_actual::wear, reusing
-                    // the `actual` cast made above for stack_size). Emit the trailing block ONLY
-                    // when there is something to say -- a plain q0/undamaged/non-artifact item
-                    // stays byte-identical to the pre-quality 12-byte tail (additive/optional).
+                    // Emit the quality block ONLY when there is something to say: a plain,
+                    // undamaged, non-artifact item stays byte-identical to the 12-byte tail.
                     int qv = (int)top->getQuality();
                     uint8_t quality = (uint8_t)(qv < 0 ? 0 : (qv > 5 ? 5 : qv));
                     uint8_t qflags = top->flags.bits.artifact ? kItemQFlagArtifact : 0;
                     int wv = actual ? actual->wear : 0;
                     uint8_t wear = (uint8_t)(wv < 0 ? 0 : (wv > 3 ? 3 : wv));
                     bool has_quality = (quality > 0 || qflags != 0 || wear > 0);
-                    // CORPSETEX-B195: follow DF's OWN corpse->skeleton label so the client draws
-                    // body art for a fresh corpse and switches to skeletal art only when the game
-                    // itself names it a skeleton. False (the default) keeps the tail byte-identical.
+                    // Follow DF's OWN corpse-to-skeleton label, so a fresh corpse keeps body art
+                    // until the game itself names it a skeleton.
                     bool skeletal = item_is_skeletal(top);
                     eb.tails.push_back(make_item_tail((uint8_t)idx, (int)top->getType(),
                                                       mt, mi_, subtype, iflags, stack,
                                                       ident_kind, ident, has_shape, gem_shape,
                                                       has_quality, quality, qflags, wear, skeletal));
+                    uint8_t instrument_class = 0;
+                    bool has_instrument_art = instrument_art_class(top, instrument_class);
+                    bool special_material = item_uses_special_material(world, top);
+                    bool generated_tool = generated_tool_art(top);
+                    if (has_instrument_art || special_material || generated_tool)
+                        eb.tails.push_back(make_item_art_tail((uint8_t)idx, has_instrument_art,
+                                                             instrument_class, special_material,
+                                                             generated_tool));
                     flags2 |= kFlag2Item;
-                    // TX1 CONTAINER_PEEK: a BARREL/BIN with contents renders those contents
-                    // poking out of its open top in native (per-category ITEM_BARREL_TOP_* /
-                    // ITEM_BIN_TOP_* overlay cells -- kTailContainerPeek doc in wire_v1.h).
-                    // Ship the representative FIRST contained item's identity; the client
-                    // classifies the category token. Empty container -> no tail -> no peek.
+                    // A BARREL or BIN with contents renders them poking out of its open top in
+                    // native. Ship the FIRST contained item; an empty container gets no tail.
                     df::item_type tty = top->getType();
                     if (tty == df::item_type::BARREL || tty == df::item_type::BIN) {
                         std::vector<df::item*> contained;
@@ -1310,9 +1268,8 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                         if (rep) {
                             int rmt = (int)rep->getMaterial(), rmi = (int)rep->getMaterialIndex();
                             uint8_t cflags = 0;
-                            // Subterranean-crop flag (plump helmets & co pick the dedicated
-                            // ITEM_BARREL_TOP_PLANT_SUBTERRANEAN cell): plant_raw's
-                            // underground_depth_min > 0 -- surface crops are 0:0.
+                            // Subterranean crops pick a dedicated cell, and plant_raw's
+                            // underground_depth_min > 0 is what identifies them.
                             if (rmt >= 0) {
                                 MaterialInfo rmat(rmt, rmi);
                                 if (rmat.isValid() && rmat.plant
@@ -1327,10 +1284,8 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 }
             }
 
-            // PLANT tail: part from shape/material, id from the exact world plant. A map
-            // column spans every z-level at this x/y; matching only x/y can select a different
-            // plant above or below the rendered tile, producing B90's apparently random plant
-            // swaps. Keep the z match in lockstep with tile_map_dump.cpp's legacy emitter.
+            // PLANT tail: a map column spans every z at this x/y, so matching only x/y selects a
+            // plant above or below the rendered tile. Keep the z match.
             {
                 int part = -1;
                 if      (shp == df::tiletype_shape::SAPLING)      part = kPartSapling;
@@ -1343,26 +1298,15 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 else if (tmat == df::tiletype_material::MUSHROOM) part = kPartTrunk;
                 if (part >= 0) {
                     std::string pid;
+                    df::plant* tree_owner = nullptr;
                     int colx = (tx / 48) * 3, coly = (ty / 48) * 3;
                     if (world->map.column_index && colx >= 0 && coly >= 0
                         && colx < world->map.x_count_block && coly < world->map.y_count_block) {
                         df::map_block_column* col = world->map.column_index[colx][coly];
                         if (col) {
                             const size_t PLANT_CAP = 4096;
-                            // B83/B103: a large tree's trunk/branch/canopy/leaf tiles sit ABOVE
-                            // and AROUND the plant's single root pos (col->plants stores only
-                            // pos, the base of the trunk). The pre-fix exact-pos match therefore
-                            // resolved ONLY the base tile; every other tree-body tile shipped an
-                            // empty species id and fell to tree_map._default on the client --
-                            // willow trunks read as a foreign species (B83), upper canopies read
-                            // as mushrooms/wrong bark (B103). Resolve body/root tiles through the
-                            // owning plant's tree_info extent, mapped to world coords EXACTLY as
-                            // DFHack's own plant.cpp (x_NW = pos.x - dim_x/2, body[z] where
-                            // z = bz - pos.z, present iff (whole & 0x7F) && !blocked) and
-                            // RemoteFortressReader do. Exact-pos still wins (preserves B90's
-                            // exact-z identity for the base tile, saplings, and shrubs -- which
-                            // have no tree_info at all); the body scan is the fallback for tiles
-                            // that never match a root pos.
+                            // A large tree's body tiles sit above and around the plant's single
+                            // root pos, so resolve them through the owning plant's tree_info extent.
                             df::plant* body_match = nullptr;
                             for (size_t pi = 0; pi < col->plants.size() && pi < PLANT_CAP; ++pi) {
                                 df::plant* pl = col->plants[pi];
@@ -1370,6 +1314,7 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                                 if (pl->pos.x == tx && pl->pos.y == ty && pl->pos.z == bz) {
                                     df::plant_raw* pr = df::plant_raw::find(pl->material);
                                     if (pr) pid = pr->id;
+                                    tree_owner = pl;
                                     body_match = nullptr;
                                     break;
                                 }
@@ -1399,31 +1344,33 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                             if (pid.empty() && body_match) {
                                 df::plant_raw* pr = df::plant_raw::find(body_match->material);
                                 if (pr) pid = pr->id;
+                                tree_owner = body_match;
                             }
                         }
+                    }
+                    if (tree_owner && tree_owner->tree_info) {
+                        TreeGraphicsState tg = compute_tree_graphics(tree_owner, tt, tx, ty, bz);
+                        if (tg.flags)
+                            eb.tails.push_back(make_tree_graphics_tail((uint8_t)idx, tg.flags,
+                                                                       tg.wood_key, tg.leaf_key));
                     }
                     eb.tails.push_back(make_plant_tail((uint8_t)idx, (uint8_t)part, pid));
                     flags2 |= kFlag2Plant;
                 }
             }
 
-            // SPATTER + ITEM_SPATTER (WC-11): ALL events at this tile (not first-only),
-            // ordered by amount desc, capped at 4 (DF layers several observed decals --
-            // §WC-11 wire "4 covers observed stacks"). Material spatter's mat_state rides
-            // along (blood/mud/snow/paste read differently). Item-spatter (fallen leaves/
-            // fruit litter) resolves growth_class at emission via classify_growth's memo.
+            // SPATTER + ITEM_SPATTER: ALL events at this tile, ordered by amount descending and
+            // capped at 4, since DF layers several observed decals.
             {
                 struct SpEv { int amt; int16_t mt; int32_t mi; int8_t state; };
                 struct IspEv { int amt; uint8_t growth_class; uint8_t item_type; bool has_rgb; uint8_t r, g, b; };
                 std::vector<SpEv> spevs;
                 std::vector<IspEv> ispevs;
-                // WC-17: grass coverage -- max-amount-wins per tile (RFR's own rule for this
-                // event type, rfr:1307-1314), only tracked here (not pushed) so it can be
-                // gated below by "is this tile actually a grass-material tile" before adding
-                // a tail (§WC-17 wire: "only for tiles whose tiletype material is GRASS_*").
+                // Grass species is the FIRST event in block-vector order whose amount here is
+                // non-zero. Tracked, not pushed, so the gate below decides whether a tail is added.
                 int grass_amt = -1; int32_t grass_plant = -1;
-                // WC-19: designation-priority grid, same "track then gate" pattern as grass
-                // above -- only emitted for non-default (non-zero) priority (§WC-19 wire).
+                // designation-priority grid, same "track then gate" pattern as grass
+                // above -- only emitted for non-default (non-zero) priority.
                 int desig_priority = -1;
                 for (size_t ei = 0; ei < block->block_events.size(); ++ei) {
                     STRICT_VIRTUAL_CAST_VAR(sp, df::block_square_event_material_spatterst, block->block_events[ei]);
@@ -1448,19 +1395,20 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                     STRICT_VIRTUAL_CAST_VAR(gr, df::block_square_event_grassst, block->block_events[ei]);
                     if (gr) {
                         int amt = (int)gr->amount[lx][ly];
-                        if (amt > grass_amt) { grass_amt = amt; grass_plant = gr->plant_index; }
+                        if (grass_amt < 0) {
+                            grass_amt = 0;
+                            grass_plant = gr->plant_index;
+                        }
+                        if (grass_amt == 0 && amt > 0) {
+                            grass_amt = amt;
+                            grass_plant = gr->plant_index;
+                        }
                         continue;
                     }
                     STRICT_VIRTUAL_CAST_VAR(dp, df::block_square_event_designation_priorityst, block->block_events[ei]);
                     if (dp) {
-                        // WC-19 encode fix: DF stores dig priority as level*1000 (our own
-                        // placement.cpp writes clamp(priority,1,7)*1000). Ship the LEVEL (1..7)
-                        // -- the old code shipped the raw level*1000, which the u8 clamp in
-                        // make_desig_priority_tail saturated to 255 on every live tail (badge
-                        // feature inert on the wire). Gate to genuinely non-default priority:
-                        // DF's default is level 4 (4000), so the old `p > 0` gate also fired
-                        // for every default-priority tile, contradicting the wire's own
-                        // "non-default only" scoping. (§WC-19 wire; ledger 2026-07-07.)
+                        // DF stores dig priority as level*1000; ship the LEVEL. The default is
+                        // level 4, so the gate must exclude 4000, not merely zero.
                         int p = dp->priority[lx][ly];
                         if (p > 0 && p != 4000) desig_priority = p / 1000;
                     }
@@ -1481,7 +1429,7 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                     }
                     flags2 |= kFlag2Spatter;
                 }
-                // WC-19: DESIG_PRIORITY tail, gated to non-default priority per the wire's
+                // DESIG_PRIORITY tail, gated to non-default priority per the wire's
                 // own scoping rule.
                 if (desig_priority > 0) {
                     eb.tails.push_back(make_desig_priority_tail((uint8_t)idx, desig_priority));
@@ -1498,41 +1446,25 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                                                                   ispevs[si].g, ispevs[si].b));
                     flags2 |= kFlag2ItemSpatter;
                 }
-                // WC-17: GRASS tail. Originally gated to grass-material tiles only, on the
-                // ASSUMPTION that "DF only draws grass texture on the 4 GRASS_LIGHT/DARK/
-                // DRY/DEAD tiletype_material variants" -- DISPROVED 2026-07-07 by the
-                // grass-escalation's raw-oracle ground truth (the "phantom stone" report):
-                // DF's own render draws grass coverage OVER non-grass surface floors too
-                // (StonePebbles* STONE floors render as sparse pebble clusters on grass;
-                // SoilFloor* SOIL floors render as grass), so the old gate made the client
-                // draw bare dense gravel / bare dirt where the native window shows lawn.
-                // Widened rule: grass-material tiles keep the original amount>=0 tail
-                // (including the amount==0 "worn bare" signal); OTHER tiles get a tail only
-                // when a real positive-amount grass event covers a FLOOR that is OUTSIDE
-                // (keeps stale/edge-case events in dug-out interior rooms from grassifying
-                // them; cavern moss is grass-material and therefore unaffected). The client
-                // whitelists which non-grass ttnames it actually composites grass under
-                // (SoilFloor*/StonePebbles*), so an unknown-shaped tail is simply ignored.
+                // Grass-material tiles keep the amount>=0 tail, including the amount==0 worn-bare
+                // signal; other tiles get one only for a positive event on a floor that is OUTSIDE.
                 bool is_grass_mat = (tmat == df::tiletype_material::GRASS_LIGHT ||
                                      tmat == df::tiletype_material::GRASS_DARK  ||
                                      tmat == df::tiletype_material::GRASS_DRY   ||
                                      tmat == df::tiletype_material::GRASS_DEAD);
-                // B241: PEBBLES and BOULDER are floor-LIKE shapes that DF also draws grass
-                // coverage on (the B241 native oracle shows a boulder sitting directly on
-                // grass; StonePebbles*'s grass composite was the B37/B92 oracle evidence) --
-                // but they are distinct df::tiletype_shape values, so the original
-                // shape==FLOOR gate silently excluded them and the client could never know
-                // whether grass covers a pebble/boulder tile. The client backs boulders with
-                // this tail (dwf-*'s groundBackingCell) and composites grass under
-                // pebbles (the B92 arm) once it arrives; until this DLL ships, it falls back
-                // to ring-1 borrowed grass / dense pebble art.
+                // PEBBLES and BOULDER are floor-LIKE shapes DF also draws grass coverage on, but
+                // they are distinct tiletype_shape values, so a shape==FLOOR gate excludes them.
                 bool floor_like = (shp == df::tiletype_shape::FLOOR ||
                                    shp == df::tiletype_shape::PEBBLES ||
                                    shp == df::tiletype_shape::BOULDER);
                 bool grass_under_floor = (grass_amt > 0 &&
                                           floor_like &&
                                           des.bits.outside);
-                if ((is_grass_mat && grass_amt >= 0) || (!is_grass_mat && grass_under_floor)) {
+                // A shrub, sapling, mushroom or tree does not replace the ground plane: native
+                // still resolves the grass event underneath. Deliberately not outside-gated.
+                bool grass_under_plant = (grass_amt > 0 && (flags2 & kFlag2Plant) != 0);
+                if ((is_grass_mat && grass_amt >= 0) ||
+                    (!is_grass_mat && (grass_under_floor || grass_under_plant))) {
                     std::string gpid;
                     df::plant_raw* gpr = df::plant_raw::find(grass_plant);
                     if (gpr) gpid = gpr->id;
@@ -1541,16 +1473,14 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 }
             }
 
-            // FLOW (WC-15): the pre-scanned densest flow at this tile, if any.
+            // FLOW: the pre-scanned densest flow at this tile, if any.
             if (flow_type_at[idx] >= 0) {
                 eb.tails.push_back(make_flow_tail((uint8_t)idx, flow_type_at[idx], flow_density_at[idx]));
                 flags2 |= kFlag2Flow;
             }
 
-            // ENGRAVING (WC-18): every hit at this tile from the pre-fetched block index
-            // (usually 0; a tile can carry several -- one per engraved face, §wire_v1.h
-            // doc). Emitted as separate tail entries (not merged server-side) so the client
-            // can apply its own combined-mask lookup independent of hit order/count.
+            // Every engraving hit at this tile is emitted as a SEPARATE tail, not merged
+            // server-side, so the client can apply its own combined mask whatever the order.
             if (engraving_hits) {
                 for (const EngravingHit& hh : *engraving_hits) {
                     if (hh.tile_idx != idx) continue;
@@ -1559,7 +1489,7 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 }
             }
 
-            // VERMIN (WC-21): every hit at this tile from the pre-fetched block index (same
+            // VERMIN: every hit at this tile from the pre-fetched block index (same
             // shape as ENGRAVING above -- usually 0, occasionally several vermin on one tile).
             if (vermin_hits) {
                 for (const VerminHit& vh : *vermin_hits) {
@@ -1576,9 +1506,8 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
                 }
             }
 
-            // TX4: one planted crop per farm tile. This is deliberately separate from ITEM:
-            // planted seed items are building-owned and native renders them as crop stages,
-            // not as loose inventory sprites.
+            // One planted crop per farm tile, deliberately separate from ITEM: native renders
+            // these as crop stages, not as loose inventory sprites.
             if (farm_crop_hits) {
                 for (const FarmCropHit& hit : *farm_crop_hits) {
                     if (hit.tile_idx != idx) continue;
@@ -1594,7 +1523,7 @@ EncodedBlock encode_block(df::world* world, MapExtras::MapCache& MC, df::map_blo
     return eb;
 }
 
-// ---- ITEMDEF_DICT (WC-1) ------------------------------------------------------------
+// ---- ITEMDEF_DICT --------------------------------------------------------------------
 std::vector<uint8_t> assemble_itemdef_dict(const ItemDefSubcat subcats[kItemDefSubcatCount]) {
     std::vector<uint8_t> o;
     for (size_t sc = 0; sc < kItemDefSubcatCount; ++sc) {
@@ -1613,8 +1542,8 @@ std::vector<uint8_t> assemble_itemdef_dict(const ItemDefSubcat subcats[kItemDefS
     return o;
 }
 
-// Reads world->raws.itemdefs.* -- the 14 ITEMDEF_VECTORS (Items.cpp:122-136), same order.
-// Caller holds the CoreSuspender; this is intended as a ONE-TIME build (§1.5).
+// Reads the 14 ITEMDEF_VECTORS in the same order. Caller holds the CoreSuspender, and this is
+// meant to run once per world.
 void read_itemdef_dict(df::world* world, ItemDefSubcat out[kItemDefSubcatCount]) {
     if (!world) return;
     auto& d = world->raws.itemdefs;
@@ -1631,8 +1560,28 @@ void read_itemdef_dict(df::world* world, ItemDefSubcat out[kItemDefSubcatCount])
     fill(out[0],  d.weapons);
     fill(out[1],  d.trapcomps);
     fill(out[2],  d.toys);
+    // Preserve each tool's raw identity: generated-art selection travels independently in
+    // kItemArtGeneratedTool, and replacing this token would hide authored tool art.
     fill(out[3],  d.tools);
     fill(out[4],  d.instruments);
+    // Generated instrument ids do not match the eight graphics tokens: native selects the cell
+    // from the definition's performance skill plus its building flag.
+    for (ItemDefEntry& e : out[4]) {
+        if (e.id >= d.instruments.size() || !d.instruments[e.id]) continue;
+        df::itemdef_instrumentst* def = d.instruments[e.id];
+        const char* family = nullptr;
+        switch (def->music_skill) {
+            case df::enums::job_skill::PLAY_KEYBOARD_INSTRUMENT:   family = "KEYBOARD"; break;
+            case df::enums::job_skill::PLAY_STRINGED_INSTRUMENT:   family = "STRINGED"; break;
+            case df::enums::job_skill::PLAY_WIND_INSTRUMENT:       family = "WIND"; break;
+            case df::enums::job_skill::PLAY_PERCUSSION_INSTRUMENT: family = "PERCUSSION"; break;
+            default: break;
+        }
+        if (!family) continue;
+        bool building = def->flags.is_set(df::enums::instrument_flags::PLACED_AS_BUILDING);
+        e.token = std::string("ITEM_INSTRUMENT_") + family +
+                  (building ? "_BUILDING" : "_HANDHELD");
+    }
     fill(out[5],  d.armor);
     fill(out[6],  d.ammo);
     fill(out[7],  d.siege_ammo);

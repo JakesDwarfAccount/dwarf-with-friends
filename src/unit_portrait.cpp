@@ -22,6 +22,7 @@
 #include "unit_portrait.h"
 #include "render_thread_wait.h"
 
+#include "capture_guard.h"
 #include "diagnostics.h"
 #include "save_barrier.h"
 #include "sdl_capture.h"
@@ -61,9 +62,6 @@
 namespace dwf {
 namespace {
 
-constexpr uint32_t SDL_PIXELFORMAT_ARGB8888 = 0x16362004u;
-constexpr int SDL_TEXTUREACCESS_TARGET = 2;
-
 struct SDLSurfaceLite {
     uint32_t flags;
     void* format;
@@ -79,27 +77,11 @@ struct SDLSurfaceLite {
     int refcount;
 };
 
-using pfn_CreateTexture = void* (*)(void*, uint32_t, int, int, int);
-using pfn_SetRenderTarget = int (*)(void*, void*);
-using pfn_RenderReadPixels = int (*)(void*, const void*, uint32_t, void*, int);
-using pfn_DestroyTexture = void (*)(void*);
-using pfn_GetRendererOutputSize = int (*)(void*, int*, int*);
-using pfn_SetRenderDrawColor = int (*)(void*, uint8_t, uint8_t, uint8_t, uint8_t);
-using pfn_RenderClear = int (*)(void*);
 using pfn_ConvertSurfaceFormat = void* (*)(void*, uint32_t, uint32_t);
 using pfn_LockSurface = int (*)(void*);
 using pfn_UnlockSurface = void (*)(void*);
 using pfn_FreeSurface = void (*)(void*);
 
-#ifdef _WIN32
-pfn_CreateTexture p_CreateTexture = nullptr;
-pfn_SetRenderTarget p_SetRenderTarget = nullptr;
-pfn_RenderReadPixels p_RenderReadPixels = nullptr;
-pfn_DestroyTexture p_DestroyTexture = nullptr;
-pfn_GetRendererOutputSize p_GetRendererOutputSize = nullptr;
-pfn_SetRenderDrawColor p_SetRenderDrawColor = nullptr;
-pfn_RenderClear p_RenderClear = nullptr;
-#endif
 pfn_ConvertSurfaceFormat p_ConvertSurfaceFormat = nullptr;
 pfn_LockSurface p_LockSurface = nullptr;
 pfn_UnlockSurface p_UnlockSurface = nullptr;
@@ -109,28 +91,15 @@ std::atomic<bool> g_warned_portrait_diag(false);
 std::atomic<bool> g_warned_portrait_widget_success(false);
 std::atomic<bool> g_warned_portrait_widget_fail(false);
 
-// ---- native portrait generator (exe-pinned direct call) --------------------------------------
-//
-// Steam DF fills unit->portrait_texpos lazily: every native display site (unit sheet,
-// announcement popups, ...) runs `if (portrait_texpos == 0 || flags4.portrait_must_be_refreshed)
-// generate(unit);` before drawing. That generator is a self-contained one-argument routine: it
-// picks the caste's PORTRAIT-flagged creature-graphics entry, composes the 96x96 bust into a new
-// SDL surface registered with DF's texture handler, invalidates the renderer's cached tiles for
-// any texpos it replaces, and stores the fresh index in unit->portrait_texpos. It never touches
-// view_sheets, the interface grid, or any render target, so calling it cannot flash the host UI.
-// (Binary evidence: rules-ledger entry 0005-unit-portrait-generation.)
-//
-// The call is pinned to the exact game build: both the wrapper and the compositor it invokes
-// must match their recorded prologue bytes at the recorded image offsets, or generation reports
-// itself unavailable and the browser keeps its explicit sprite fallback. Any native fault during
-// a call latches generation off for the rest of the session.
-constexpr uintptr_t NATIVE_PORTRAIT_GEN_RVA = 0x1b9610;         // generate-unit-graphics(unit)
+// ---- native portrait generator: the wrapper AND the compositor must match their recorded
+// prologue bytes before either address is called, or DF crashes on an unverified jump ---------
+constexpr uintptr_t NATIVE_PORTRAIT_GEN_RVA = 0x1b9a20;         // generate-unit-graphics(unit)
 constexpr uint8_t NATIVE_PORTRAIT_GEN_SIG[32] = {
     0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x6c, 0x24, 0x18, 0x48, 0x89, 0x74, 0x24, 0x20,
     0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0x81, 0xec, 0xa0, 0x00, 0x00,
     0x00, 0x48,
 };
-constexpr uintptr_t NATIVE_PORTRAIT_COMPOSITOR_RVA = 0x71c610;  // bust compositor (5 args)
+constexpr uintptr_t NATIVE_PORTRAIT_COMPOSITOR_RVA = 0x71e040;  // bust compositor (5 args)
 constexpr uint8_t NATIVE_PORTRAIT_COMPOSITOR_SIG[32] = {
     0x48, 0x8b, 0xc4, 0x55, 0x53, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57,
     0x48, 0x8d, 0xa8, 0xf8, 0xfb, 0xff, 0xff, 0x48, 0x81, 0xec, 0xc8, 0x04, 0x00, 0x00, 0x0f,
@@ -164,8 +133,8 @@ bool resolve_native_generator_locked() {
         return false;
     }
     g_native_gen_fn = const_cast<uint8_t*>(base) + NATIVE_PORTRAIT_GEN_RVA;
-    // PORTRAIT-NATIVE-DIRECT rva=1b9610 -- unique deploy witness for this mechanism.
-    diagnostics_log("DIAG portrait native generator pinned (PORTRAIT-NATIVE-DIRECT rva=1b9610)");
+    // PORTRAIT-NATIVE-DIRECT rva=1b9a20 -- unique deploy witness for this mechanism.
+    diagnostics_log("DIAG portrait native generator pinned (PORTRAIT-NATIVE-DIRECT rva=1b9a20)");
     return true;
 #else
     g_native_gen_unavailable_reason = "native portrait generation is Windows-only";
@@ -186,26 +155,6 @@ bool native_generator_ready(std::string* why) {
 
 
 #ifdef _WIN32
-volatile uint32_t g_seh_code = 0;
-void* g_seh_at = nullptr;
-void* g_seh_access = nullptr;
-
-int seh_filter(_EXCEPTION_POINTERS* ep) {
-    g_seh_code = ep && ep->ExceptionRecord ? ep->ExceptionRecord->ExceptionCode : 0;
-    g_seh_at = ep && ep->ExceptionRecord ? ep->ExceptionRecord->ExceptionAddress : nullptr;
-    g_seh_access = (ep && ep->ExceptionRecord && ep->ExceptionRecord->NumberParameters >= 2)
-        ? reinterpret_cast<void*>(ep->ExceptionRecord->ExceptionInformation[1])
-        : nullptr;
-    return EXCEPTION_EXECUTE_HANDLER;
-}
-
-constexpr DWORD DWF_INVALID_PARAMETER_EXCEPTION = 0xE0424643u;
-
-void __cdecl invalid_parameter_handler(const wchar_t*, const wchar_t*,
-                                       const wchar_t*, unsigned int, uintptr_t) {
-    RaiseException(DWF_INVALID_PARAMETER_EXCEPTION, EXCEPTION_NONCONTINUABLE, 0, nullptr);
-}
-
 int call_native_portrait_generator_seh(void* fn, df::unit* unit) {
     __try {
         reinterpret_cast<pfn_native_portrait_gen>(fn)(unit);
@@ -241,48 +190,29 @@ int call_viewscreen_logic_seh(df::viewscreen* viewscreen) {
     return result;
 }
 
-int call_viewscreen_render_seh(df::viewscreen* viewscreen) {
-    int result = 0;
-    _invalid_parameter_handler old_handler =
-        _set_thread_local_invalid_parameter_handler(invalid_parameter_handler);
-    __try {
-        viewscreen->render(0);
-    } __except(seh_filter(GetExceptionInformation())) {
-        result = 1;
-    }
-    _set_thread_local_invalid_parameter_handler(old_handler);
-    return result;
-}
 #endif
 
-bool resolve_sdl(std::string* err = nullptr) {
+// The surface half of the portrait path; the render-target half resolves through capture_guard.h.
+bool resolve_portrait_sdl(std::string* err = nullptr) {
 #ifdef _WIN32
+    if (!resolve_sdl(err))
+        return false;
+
     HMODULE sdl = GetModuleHandleA("SDL2.dll");
     if (!sdl) {
         if (err) *err = "SDL2.dll is not loaded";
         return false;
     }
 
-    p_CreateTexture = reinterpret_cast<pfn_CreateTexture>(GetProcAddress(sdl, "SDL_CreateTexture"));
-    p_SetRenderTarget = reinterpret_cast<pfn_SetRenderTarget>(GetProcAddress(sdl, "SDL_SetRenderTarget"));
-    p_RenderReadPixels = reinterpret_cast<pfn_RenderReadPixels>(GetProcAddress(sdl, "SDL_RenderReadPixels"));
-    p_DestroyTexture = reinterpret_cast<pfn_DestroyTexture>(GetProcAddress(sdl, "SDL_DestroyTexture"));
-    p_GetRendererOutputSize = reinterpret_cast<pfn_GetRendererOutputSize>(GetProcAddress(sdl, "SDL_GetRendererOutputSize"));
-    p_SetRenderDrawColor = reinterpret_cast<pfn_SetRenderDrawColor>(GetProcAddress(sdl, "SDL_SetRenderDrawColor"));
-    p_RenderClear = reinterpret_cast<pfn_RenderClear>(GetProcAddress(sdl, "SDL_RenderClear"));
     p_ConvertSurfaceFormat = reinterpret_cast<pfn_ConvertSurfaceFormat>(GetProcAddress(sdl, "SDL_ConvertSurfaceFormat"));
     p_LockSurface = reinterpret_cast<pfn_LockSurface>(GetProcAddress(sdl, "SDL_LockSurface"));
     p_UnlockSurface = reinterpret_cast<pfn_UnlockSurface>(GetProcAddress(sdl, "SDL_UnlockSurface"));
     p_FreeSurface = reinterpret_cast<pfn_FreeSurface>(GetProcAddress(sdl, "SDL_FreeSurface"));
 
-    if (p_CreateTexture && p_SetRenderTarget && p_RenderReadPixels &&
-        p_DestroyTexture && p_GetRendererOutputSize && p_SetRenderDrawColor &&
-        p_RenderClear && p_ConvertSurfaceFormat && p_LockSurface &&
-        p_UnlockSurface && p_FreeSurface) {
+    if (p_ConvertSurfaceFormat && p_LockSurface && p_UnlockSurface && p_FreeSurface)
         return true;
-    }
 
-    if (err) *err = "could not resolve SDL2 portrait surface/render-target functions";
+    if (err) *err = "could not resolve SDL2 portrait surface functions";
     return false;
 #else
     if (err) *err = "native portrait rendering is Windows-only";
@@ -291,115 +221,8 @@ bool resolve_sdl(std::string* err = nullptr) {
 }
 
 #ifdef _WIN32
-class TemporaryRenderTarget {
-public:
-    bool begin(std::string* err = nullptr, int requested_w = 0, int requested_h = 0) {
-        if (!resolve_sdl(err))
-            return false;
-
-        auto enabler = df::global::enabler;
-        auto renderer = enabler ? enabler->renderer : nullptr;
-        if (!renderer) {
-            if (err) *err = "portrait target: no renderer";
-            return false;
-        }
-
-        sdl_ = renderer->get_renderer();
-        if (!sdl_) {
-            if (err) *err = "portrait target: get_renderer returned null";
-            return false;
-        }
-
-        int w = 0;
-        int h = 0;
-        p_GetRendererOutputSize(sdl_, &w, &h);
-        if (requested_w > 0) w = requested_w;
-        if (requested_h > 0) h = requested_h;
-        if (w <= 0 || h <= 0) {
-            if (err) *err = "portrait target: bad renderer output size";
-            return false;
-        }
-
-        target_ = p_CreateTexture(sdl_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, w, h);
-        if (!target_) {
-            if (err) *err = "portrait target: SDL_CreateTexture failed";
-            return false;
-        }
-        if (p_SetRenderTarget(sdl_, target_) != 0) {
-            p_DestroyTexture(target_);
-            target_ = nullptr;
-            if (err) *err = "portrait target: SDL_SetRenderTarget failed";
-            return false;
-        }
-
-        w_ = w;
-        h_ = h;
-        active_ = true;
-        return true;
-    }
-
-    bool clear(std::string* err = nullptr) {
-        if (!active_ || !sdl_) {
-            if (err) *err = "portrait target: target inactive";
-            return false;
-        }
-        if (p_SetRenderDrawColor(sdl_, 0, 0, 0, 0) != 0 || p_RenderClear(sdl_) != 0) {
-            if (err) *err = "portrait target: SDL_RenderClear failed";
-            return false;
-        }
-        return true;
-    }
-
-    bool read_frame(CapturedFrame& frame, std::string* err = nullptr) {
-        if (!active_ || !sdl_ || w_ <= 0 || h_ <= 0) {
-            if (err) *err = "portrait target: target inactive";
-            return false;
-        }
-        CapturedFrame next;
-        next.width = w_;
-        next.height = h_;
-        next.bgra.resize(static_cast<size_t>(w_) * h_ * 4);
-        int rc = p_RenderReadPixels(sdl_, nullptr, SDL_PIXELFORMAT_ARGB8888,
-                                    next.bgra.data(), w_ * 4);
-        if (rc != 0) {
-            if (err) *err = "portrait target: SDL_RenderReadPixels failed";
-            return false;
-        }
-        frame = std::move(next);
-        return true;
-    }
-
-    void reset() {
-        if (active_ && sdl_)
-            p_SetRenderTarget(sdl_, nullptr);
-        active_ = false;
-        if (target_) {
-            p_DestroyTexture(target_);
-            target_ = nullptr;
-        }
-        sdl_ = nullptr;
-        w_ = 0;
-        h_ = 0;
-    }
-
-    ~TemporaryRenderTarget() {
-        reset();
-    }
-
-private:
-    void* sdl_ = nullptr;
-    void* target_ = nullptr;
-    int w_ = 0;
-    int h_ = 0;
-    bool active_ = false;
-};
-
-// widget_unit_portrait::render() composes the native portrait texture and writes its texpos into
-// DF's interface grid. It does not paint SDL directly, which is why the former temporary-target
-// readback was blank for nearly every unit. Snapshot the small POD grid, let the native widget run,
-// recover only texpos values it added, then restore the host grid byte-for-byte. Unlike the retired
-// recursive sheet generator, this never opens or rewrites the owning sheet interface and never copies an
-// owning DF structure.
+// widget_unit_portrait::render() writes its texpos into DF's interface grid rather than painting
+// SDL, so the grid is snapshotted and restored byte-for-byte around the native call.
 template <typename T>
 struct GridPlaneSnapshot {
     T* ptr = nullptr;
@@ -600,7 +423,7 @@ bool copy_sdl_surface_to_frame(void* surface_ptr, CapturedFrame& frame, std::str
         if (err) *err = "portrait surface unavailable";
         return false;
     }
-    if (!resolve_sdl(err))
+    if (!resolve_portrait_sdl(err))
         return false;
 
     void* converted = p_ConvertSurfaceFormat(surface_ptr, SDL_PIXELFORMAT_ARGB8888, 0);
@@ -774,14 +597,14 @@ bool copy_unit_portrait_candidate(df::unit* unit, df::enabler* enabler,
     return false;
 }
 
-#ifdef _WIN32
 bool render_viewscreen_isolated(std::string* err = nullptr, int target_w = 0, int target_h = 0) {
+#ifdef _WIN32
     auto viewscreen = DFHack::Gui::getCurViewscreen(true);
     if (!viewscreen) {
         if (err) *err = "no current viewscreen";
         return false;
     }
-    TemporaryRenderTarget target;
+    TemporaryRenderTarget target("portrait target");
     std::string target_err;
     if (!target.begin(&target_err, target_w, target_h)) {
         if (err) *err = target_err;
@@ -800,8 +623,12 @@ bool render_viewscreen_isolated(std::string* err = nullptr, int target_w = 0, in
         return false;
     }
     return true;
-}
+#else
+    (void)target_w; (void)target_h;
+    if (err) *err = "isolated viewscreen rendering is Windows-only";
+    return false;
 #endif
+}
 
 bool capture_unit_icon_with_widget(df::unit* unit, df::enabler* enabler,
                                    CapturedFrame& frame, int32_t& texpos,

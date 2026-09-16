@@ -1,6 +1,5 @@
 -- ---------------------------------------------------------------------------
--- Burial / memorial flows (Phase 5)
--- ---------------------------------------------------------------------------
+-- Burial / memorial flows
 
 function vec_has_ptr(vec, ptr)
     if not vec or not ptr then return false end
@@ -133,10 +132,10 @@ function queue_memorial_slab(unit_id)
     local unit = df.unit.find(tonumber(unit_id) or -1)
     if not unit then return false, 'unit not found' end
     local alive = false
-    pcall(function() alive = dfhack.units.isAlive(unit) end)
+    dwf_probe('lua.probe.unit-alive', function() alive = dfhack.units.isAlive(unit) end)
     if alive then return false, 'cannot memorialize a living unit' end
     local own = false
-    pcall(function() own = dfhack.units.isOwnGroup(unit) end)
+    dwf_probe('lua.probe.unit-own-group', function() own = dfhack.units.isOwnGroup(unit) end)
     if not own then return false, 'unit is not from this fortress' end
     local hfid = unit.hist_figure_id or -1
     if hfid < 0 then return false, 'unit has no historical figure id' end
@@ -155,7 +154,6 @@ function queue_memorial_slab(unit_id)
     return true, 'memorial slab order queued'
 end
 
--- Workshops/furnaces that can receive workshop-specific manager orders.
 function order_workshops()
     local ok, result = pcall(function()
     local rows, seen = {}, {}
@@ -200,29 +198,14 @@ function order_workshops()
     return '{"ok":false,"workshops":[],"error":' .. json_string(result) .. '}\n'
 end
 
--- DIAG (crash hunt): flush-guaranteed file tracer. Open/write/close per line so the
--- line is durably on disk BEFORE the next operation runs -> the last line in the file
--- is unambiguously the last thing that executed before a hard crash.
---
--- Single debug gate, DEFAULT OFF. Every DIAG trace in this file (order_material, workshop_info,
--- add_task, create_shop_order, shop_tasks, DUMP-JOB) routes through wtrace(), so this one flag
--- silences the whole family. Unguarded, wtrace does a printerr + open/append/close file write
--- PER order row PER panel refresh -- render-thread frame cost + stderr.log/dwf-wshop-trace.log
--- churn. The crash these traces were hunting is root-caused & fixed elsewhere (stockpile UI-cache
--- UAF, dump-proven 2026-07-16), so they are dormant instrumentation: flip DWF_DIAG to true only
--- when actively bisecting a NEW workshop/order crash.
+-- Debug gate for every wtrace() below; ON costs a file open/write/close per row per refresh.
 DWF_DIAG = false
 function wtrace(msg)
     if not DWF_DIAG then return end
-    -- ALWAYS printerr (known to flush per-line in practice) so a trace exists even if file I/O
-    -- is unavailable in DFHack's sandbox. The whole file attempt is wrapped in pcall so it can
-    -- NEVER raise an error onto the render thread (a raised error here would itself crash).
     dfhack.printerr('dwf-wshop: ' .. tostring(msg))
-    pcall(function()
-        -- W1: was an absolute path into the ORIGINAL author's DF install ('C:/DaMain/...'), so on
-        -- every other machine io.open returned nil and this tracer silently wrote nothing at all.
-        -- DFHack's working directory IS the DF root (the plugin's own config files live there by
-        -- the same rule), so a bare filename lands in the right place on anybody's install.
+    dwf_probe('lua.probe.wshop-trace-log', function()
+        -- A BARE filename only: DFHack's working directory is the DF root, and an absolute path
+        -- silently writes nothing on any machine but the one it was typed on.
         local f = io.open('dwf-wshop-trace.log', 'a')
         if f and type(f) == 'userdata' then
             f:write(tostring(msg) .. '\n')
@@ -231,8 +214,6 @@ function wtrace(msg)
     end)
 end
 
--- Strip DFHack's "unknown material" placeholder so labels match DF's native UI, which simply omits
--- the material until a reagent is chosen ("Make bed", not "Make unknown material bed").
 function strip_unknown_material(name)
     if not name then return name end
     name = name:gsub('%s+of unknown material', '')   -- "X of unknown material"
@@ -241,26 +222,28 @@ function strip_unknown_material(name)
     return name
 end
 
--- Friendly display name for a manager order.
 function order_label(o)
     local ok, name = pcall(dfhack.job.getManagerOrderName, o)
-    if ok and name and #name > 0 then return strip_unknown_material(name) end
+    if ok and type(name) == 'string' and #name > 0
+       and not name:lower():find('unknown material', 1, true) then
+        local normalized = strip_unknown_material(name)
+        if normalized and #normalized > 0 then return normalized end
+    end
     if o.job_type == df.job_type.CustomReaction and o.reaction_name and #o.reaction_name > 0 then
         return o.reaction_name
     end
     local jt = df.job_type[o.job_type]
     if not jt then return 'Job #' .. tostring(o.job_type) end
-    -- "ConstructBed" -> "Construct Bed"
-    return (jt:gsub('(%l)(%u)', '%1 %2'))
+    return pretty_enum_name(jt)
 end
 
 function order_material(o)
     if not o.mat_type or o.mat_type < 0 then return '' end
     wtrace('order_material: decode mat_type=' .. tostring(o.mat_type) ..
-        ' mat_index=' .. tostring(o.mat_index))   -- DIAG (crash hunt): remove once localized
+        ' mat_index=' .. tostring(o.mat_index))
     local ok, mi = pcall(dfhack.matinfo.decode, o.mat_type, o.mat_index)
     if ok and mi then
-        wtrace('order_material: toString')   -- DIAG
+        wtrace('order_material: toString')
         local ok2, tok = pcall(function() return mi:toString() end)
         if ok2 and tok then return tok end
     end
@@ -271,7 +254,7 @@ function item_type_label(it)
     if it == nil or it < 0 then return 'items' end
     local name = df.item_type[it]
     if not name then return 'item#' .. it end
-    return ITEM_LABEL[name] or (name:lower():gsub('_', ' '))
+    return ITEM_LABEL[name] or pretty_enum_name(name):lower()
 end
 
 local COMPARE_LABEL = {
@@ -283,8 +266,7 @@ local COMPARE_LABEL = {
     [df.logic_condition_type.Not] = '!=',
 }
 
--- Curated "adjective"/property filters for a stock condition (DF's "Adj"). key -> {flags group,
--- bit, label}. Setting the bit makes the condition only count items with that property.
+-- Condition property filters (DF's "Adj"): key -> {flags group, bit, label}.
 local CONDITION_ADJECTIVES = {
     metal        = {'flags3', 'metal',        'metal'},
     wood         = {'flags3', 'wood',         'wooden'},
@@ -300,13 +282,9 @@ local CONDITION_ADJECTIVES = {
     dyeable      = {'flags2', 'dyeable',      'dyeable'},
 }
 
--- Friendly adjective(s) already set on a condition, for display (e.g. "fire-safe metal").
 function condition_adjective_label(c)
     local words = {}
-    -- `empty` is the native barrel/bin/bucket condition shown by B285. It is a real
-    -- job_item_flags1 bit, deliberately kept OUT of CONDITION_ADJECTIVES (this display loop
-    -- special-cases it); the wave-2 write path accepts it explicitly via
-    -- resolve_condition_adjectives.
+    -- 'empty' is a real job_item_flags1 bit, deliberately outside CONDITION_ADJECTIVES.
     local ok_empty, empty = pcall(function() return c.flags1.empty end)
     if ok_empty and empty then table.insert(words, 'empty') end
     for _, spec in pairs(CONDITION_ADJECTIVES) do
@@ -344,8 +322,7 @@ function item_condition_label(c)
     return ('%s %s %d'):format(target, cmp, c.compare_val or 0)
 end
 
--- Native comparison prose directly attested in WO-CONDITIONS-native.png. Other operators stay in
--- the compact enum-symbol form until an oracle pins their words; do not "complete" this by taste.
+-- Comparison prose native is known to use; other operators stay in enum-symbol form.
 local COMPARE_DESCRIPTION = {
     [df.logic_condition_type.GreaterThan] = 'greater than',
     [df.logic_condition_type.LessThan] = 'less than',
@@ -353,10 +330,6 @@ local COMPARE_DESCRIPTION = {
 
 function item_condition_description(c)
     local target = item_type_label(c.item_type)
-    -- B285 wave-2 parity fix: the oracle prints "Amount of empty barrels...", but ITEM_LABEL
-    -- capitalises ("Barrels") and the final first-char lowering below cannot reach it once an
-    -- adjective/material is prepended ("empty Barrels" stayed capital-B). Lowercase the item
-    -- label itself before composing.
     if #target > 0 then target = target:sub(1, 1):lower() .. target:sub(2) end
     if c.mat_type and c.mat_type >= 0 then
         local ok, mi = pcall(dfhack.matinfo.decode, c.mat_type, c.mat_index)
@@ -382,10 +355,8 @@ function order_condition_label(c)
     return ('after #%d %s'):format(c.order_id, ORDER_COND_LABEL[c.condition] or '?')
 end
 
--- DF does not expose the numeric "available" count or a callable manager-condition evaluator
--- through df-structures. It does expose the exact per-row result that DF calculated for the native
--- conditions view. Only publish that result while the view is open for this same order; stale bits
--- from another/closed view must never be presented as current truth.
+-- DF exposes no callable condition evaluator, only the native conditions view's own per-row
+-- result. Publish it only while that view is open for THIS order, never a stale reading.
 function condition_satisfaction_vectors(o)
     local ok, item_results, order_results = pcall(function()
         local conditions = df.global.game.main_interface.info.work_orders.conditions
@@ -478,10 +449,7 @@ function conditions_json(o)
         '],"orderConditions":[' .. table.concat(ords, ',') .. ']'
 end
 
--- List current manager orders as JSON (with conditions + workshop limits).
--- Is a manager (MANAGE_PRODUCTION noble) assigned to the fort? DF won't coordinate work orders
--- without one. Canonical check (see DFHack gui/extended-status): the fort entity's
--- assignments_by_type.MANAGE_PRODUCTION list is non-empty.
+-- DF will not coordinate work orders without a MANAGE_PRODUCTION noble.
 function has_manager()
     local ok, result = pcall(function()
         local ent = df.historical_entity.find(df.global.plotinfo.group_id)
@@ -490,13 +458,43 @@ function has_manager()
     return (ok and result) and true or false
 end
 
+-- Must count exactly what src/hud.cpp is_counted_citizen counts (isCitizen or isResident,
+-- minus corpses and ghosts); a disagreement makes two panels show different forts.
+function fort_population()
+    local ok, count = pcall(function()
+        local n = 0
+        local units = df.global.world and df.global.world.units and df.global.world.units.active or {}
+        for _, unit in ipairs(units) do
+            if unit and dfhack.units.isActive(unit)
+                and not dfhack.units.isDead(unit)
+                and not dfhack.units.isGhost(unit)
+                and (dfhack.units.isCitizen(unit, true) or dfhack.units.isResident(unit, true)) then
+                n = n + 1
+            end
+        end
+        return n
+    end)
+    return (ok and count) or 0
+end
+
+function now_json()
+    local ok, year = pcall(function() return df.global.cur_year end)
+    local ok_tick, tick = pcall(function() return df.global.cur_year_tick end)
+    return '{"year":' .. tostring((ok and year) or 0) ..
+        ',"tick":' .. tostring((ok_tick and tick) or 0) .. '}'
+end
+
 function list_orders()
     local mgr = has_manager()
+    local pop = fort_population()
+    local now = now_json()
     local ok, result = pcall(function()
     local out = {}
+    local head = '{"ok":true,"hasManager":' .. json_bool(mgr) ..
+        ',"population":' .. tostring(pop) .. ',"now":' .. now
     local world = df.global.world
     local all = world and world.manager_orders and world.manager_orders.all
-    if not all then return '{"ok":true,"hasManager":' .. json_bool(mgr) .. ',"orders":[]}\n' end
+    if not all then return head .. ',"orders":[]}\n' end
     for pos = 0, #all - 1 do
         local o = all[pos]
         if o then
@@ -515,13 +513,19 @@ function list_orders()
             '"maxWorkshops":' .. tostring(o.max_workshops or 0),
             '"active":' .. json_bool(o.status.active),
             '"validated":' .. json_bool(o.status.validated),
+            -- finished_year / finished_year_tick: when DF next looks at this order; -1 = never dated.
+            '"finishYear":' .. tostring(o.finished_year or -1),
+            '"finishYearTick":' .. tostring(o.finished_year_tick or -1),
             ok_cond and cond_json or '"itemConditions":[],"orderConditions":[]',
         }
         table.insert(out, '{' .. table.concat(parts, ',') .. '}')
         end
     end
-    return '{"ok":true,"hasManager":' .. json_bool(mgr) .. ',"orders":[' .. table.concat(out, ',') .. ']}\n'
+    return head .. ',"orders":[' .. table.concat(out, ',') .. ']}\n'
     end)
     if ok and result then return result end
-    return '{"ok":false,"hasManager":' .. json_bool(mgr) .. ',"orders":[],"error":' .. json_string(result) .. '}\n'
+    return '{"ok":false,"hasManager":' .. json_bool(mgr) ..
+        ',"population":' .. tostring(pop) .. ',"now":' .. now ..
+        ',"orders":[],"error":' .. json_string(result) .. '}\n'
 end
+

@@ -30,6 +30,8 @@
 #include "portrait_sweep.h"
 #include "unit_sprites.h"
 #include "unit_activity.h"
+#include "unit_status.h"
+#include "unit_status_words.h"
 
 #include "interaction.h"
 
@@ -42,8 +44,11 @@
 #include "modules/Job.h"
 #include "modules/Translation.h"
 #include "modules/Units.h"
+#include "modules/World.h"
 
+#include "df/body_part_layer_raw.h"
 #include "df/body_part_raw.h"
+#include "df/body_part_status.h"
 #include "df/building.h"
 #include "df/building_civzonest.h"
 #include "df/caste_body_info.h"
@@ -58,8 +63,12 @@
 #include "df/emotion_type.h"
 #include "df/entity_position.h"
 #include "df/entity_position_assignment.h"
+#include "df/entity_position_responsibility.h"
 #include "df/entity_raw.h"
 #include "df/goal_type.h"
+#include "df/general_ref.h"
+#include "df/general_ref_type.h"
+#include "df/ghost_type.h"
 #include "df/global_objects.h"
 #include "df/historical_figure.h"
 #include "df/historical_figure_info.h"
@@ -101,16 +110,27 @@
 #include "df/pronoun_type.h"
 #include "df/relationship_profile_hf_visualst.h"
 #include "df/skill_rating.h"
+#include "df/special_mat_table.h"
+#include "df/syndrome.h"
 #include "df/squad.h"
+#include "df/squad_month_positionst.h"
+#include "df/squad_order.h"
+#include "df/squad_order_type.h"
 #include "df/squad_position.h"
 #include "df/squad_position_equipmentst.h"
+#include "df/squad_routine_schedulest.h"
+#include "df/squad_schedule_order.h"
 #include "df/squad_uniform_spec.h"
 #include "df/training_assignment.h"
 #include "df/uniform_category.h"
 #include "df/unit.h"
 #include "df/unit_emotion_memory.h"
 #include "df/unit_health_flags.h"
+#include "df/unit_bp_health_flags.h"
+#include "df/unit_ghost_info.h"
 #include "df/unit_health_info.h"
+#include "df/unit_patient_profile_completed_jobst.h"
+#include "df/unit_patient_profile_syndrome_diagnosisst.h"
 #include "df/unit_inventory_item.h"
 #include "df/unit_labor.h"
 #include "df/unit_preference.h"
@@ -171,8 +191,6 @@ void append_relations(std::ostringstream& body, const std::vector<UnitRelation>&
              << "\"portraitState\":" << json_string(relation.portrait_state) << ","
              << "\"portraitKind\":" << json_string(relation.portrait_kind) << ","
              << "\"colorRole\":" << json_string(relation.color_role) << ","
-             // W4: DF's own profession colour index (0-15, -1 unknown) + the dead flag. Additive --
-             // `colorRole` above is untouched, so an older client keeps its relation-type colours.
              << "\"professionColor\":" << static_cast<int>(relation.profession_color) << ","
              << "\"dead\":" << (relation.dead ? "true" : "false") << ","
              << "\"order\":" << relation.order
@@ -374,7 +392,6 @@ void append_labor_animals(std::ostringstream& body,
              << "\"portraitState\":" << json_string(animal.portrait_state) << ","
              << "\"portraitKind\":" << json_string(animal.portrait_kind) << ","
              << "\"order\":" << animal.order << ","
-             // B233-2: the assignment half (see UnitLaborAnimalRecord).
              << "\"ownerId\":" << animal.owner_id << ","
              << "\"ownerName\":" << json_string(animal.owner_name) << ","
              << "\"assignable\":" << (animal.assignable ? "true" : "false") << ","
@@ -405,6 +422,7 @@ void append_unit_json(std::ostringstream& body, const UnitSheet& unit) {
          << "\"status\":" << json_string(unit.status) << ","
          << "\"training\":" << json_string(unit.training) << ","
          << "\"bodySummary\":" << json_string(unit.body_summary) << ","
+         << "\"hasCombatReports\":" << (unit.has_combat_reports ? "true" : "false") << ","
          << "\"flags\":";
     append_lines(body, unit.flags);
     body << ",\"overviewRelationLines\":";
@@ -421,10 +439,14 @@ void append_unit_json(std::ostringstream& body, const UnitSheet& unit) {
     append_lines(body, unit.overview_need_lines);
     body << ",\"overviewMemoryLines\":";
     append_lines(body, unit.overview_memory_lines);
+    body << ",\"statusWords\":";
+    append_lines(body, unit.status_words);
     body << ",\"statusLines\":";
     append_lines(body, unit.status_lines);
     body << ",\"inventoryLines\":";
     append_lines(body, unit.inventory_lines);
+    body << ",\"diagnosisLevel\":" << unit.diagnosis_level;
+    body << ",\"chiefMedicalAppointed\":" << (unit.chief_medical_appointed ? "true" : "false");
     body << ",\"healthLines\":";
     append_lines(body, unit.health_lines);
     body << ",\"healthStatusLines\":";
@@ -771,7 +793,7 @@ std::string physical_description_sentence(df::unit* unit) {
 
 std::vector<std::string> unit_condition_lines(df::unit* unit) {
     std::vector<std::string> lines;
-    if (!Units::isAlive(unit))
+    if (!unit_is_animate(unit))
         lines.push_back("Dead");
     if (!Units::isSane(unit))
         lines.push_back("Not sane");
@@ -839,28 +861,189 @@ std::vector<std::string> unit_inventory_lines(df::unit* unit) {
     return lines;
 }
 
-std::vector<std::string> unit_health_lines(df::unit* unit, const std::vector<std::string>& conditions) {
-    std::vector<std::string> lines;
-    // Native Status does not synthesize physical-attribute descriptors. Keep actual conditions,
-    // but route the low/high attribute prose to Overview/Description instead of this tab.
-    static const std::vector<std::string> attribute_rows = {
-        "Low stamina", "Weak", "Clumsy", "Fragile", "Recovers slowly",
-        "Disease-prone", "Recovers quickly"
-    };
-    std::vector<std::string> actual_conditions;
-    for (const auto& condition : conditions) {
-        if (condition != "Healthy" && condition != "Injured" &&
-                std::find(attribute_rows.begin(), attribute_rows.end(), condition) == attribute_rows.end())
-            actual_conditions.push_back(condition);
+// ---- the health tab's colour tokens; every health line ships with one as its prefix -----------
+namespace health_hue {
+const char* const kAttribution = "[C:0:0:1]";   // history doctor lines
+const char* const kAccent      = "[C:1:0:1]";   // drowning; drowsiness; lower-tier thirst
+const char* const kInfo        = "[C:2:0:1]";   // nausea; guts spilled; sutures; history dates
+const char* const kNeuro       = "[C:3:0:1]";   // paralysis, numbness, stunned, dizziness; cleaning
+const char* const kDanger      = "[C:4:0:1]";   // bleeding, fever, fractures, severance, surgery
+const char* const kSystemic    = "[C:5:0:1]";   // blood loss, rot, infection, gelded, dehydration
+const char* const kSurface     = "[C:6:0:0]";   // graded surface effects; dents; in-traction
+const char* const kWarning     = "[C:6:0:1]";   // whole-body pain, exertion, tendons, capability
+const char* const kMuted       = "[C:7:0:0]";   // empty states, separators, mild conditions
+const char* const kForeground  = "[C:7:0:1]";   // nerve damage, per-part pain, care flags
+} // namespace health_hue
+
+std::string health_line(const char* hue, const std::string& text) {
+    return std::string(hue) + text;
+}
+void emit(std::vector<std::string>& lines, const char* hue, const std::string& text) {
+    lines.push_back(health_line(hue, text));
+}
+
+// The leading dot is the only thing separating a detail row from its header in a flat line list.
+std::string health_detail(const char* hue, const std::string& text) {
+    return health_line(hue, "." + text);
+}
+
+// D is the chief medical dwarf's effective DIAGNOSE rating, and it is the single integer gating
+// every "can the player see this" test on the health tab: 0 = none usable, 15 = outside a fortress.
+int unit_diagnosis_level(bool* appointed_out = nullptr) {
+    if (appointed_out) *appointed_out = false;
+    if (!DFHack::World::isFortressMode()) {
+        // Report true so no caller can read a false here as "the post is vacant".
+        if (appointed_out) *appointed_out = true;
+        return 15;
     }
-    if (unit->body.wounds.empty() && actual_conditions.empty())
-        return {"No health problems"};
-    if (!unit->body.wounds.empty())
-        lines.push_back(std::to_string(unit->body.wounds.size()) +
-                        (unit->body.wounds.size() == 1 ? " wound" : " wounds"));
-    lines.insert(lines.end(), actual_conditions.begin(), actual_conditions.end());
-    if (!unit->body.wounds.empty())
-        lines.push_back("Detailed wound breakdown is not wired yet.");
+    auto plotinfo = df::global::plotinfo;
+    auto fort = plotinfo ? df::historical_entity::find(plotinfo->group_id) : nullptr;
+    if (!fort)
+        return 0;
+    std::vector<int32_t> health_positions;
+    for (auto position : fort->positions.own) {
+        if (position && position->responsibilities[df::entity_position_responsibility::HEALTH_MANAGEMENT])
+            health_positions.push_back(position->id);
+    }
+    if (health_positions.empty())
+        return 0;
+    const auto& assignments = fort->positions.assignments;
+    for (auto it = assignments.rbegin(); it != assignments.rend(); ++it) {
+        auto asn = *it;
+        if (!asn || asn->histfig == -1)
+            continue;
+        if (std::find(health_positions.begin(), health_positions.end(), asn->position_id) ==
+                health_positions.end())
+            continue;
+        if (appointed_out) *appointed_out = true;   // the post is held, whatever comes of it below
+        df::unit* appointee = nullptr;
+        for (auto u : df::global::world->units.all) {
+            if (u && u->hist_figure_id == asn->histfig) { appointee = u; break; }
+        }
+        auto soul = appointee ? appointee->status.current_soul : nullptr;
+        if (!soul)
+            continue;
+        for (auto skill : soul->skills) {
+            if (skill && skill->id == df::job_skill::DIAGNOSE)
+                return std::max(0, static_cast<int>(skill->rating) - skill->rusty);
+        }
+        return 0;   // appointed and souled, but has never diagnosed anything
+    }
+    return 0;
+}
+
+void emit_counter_ladder(std::vector<std::string>& lines, int D, int32_t v, const char* hue,
+                         const char* high, int gate_high,
+                         const char* mid, int gate_mid,
+                         const char* low, int gate_low) {
+    if (v >= 100)      { if (D >= gate_high) emit(lines, hue, high); }
+    else if (v >= 50)  { if (D >= gate_mid)  emit(lines, hue, mid); }
+    else if (v >= 1)   { if (D >= gate_low)  emit(lines, hue, low); }
+}
+
+// STATUS sub-tab. The emission order below is native's own and is deliberately NOT severity-sorted;
+// re-ranking it is a parity break. A gated line that fails its threshold is absent, never replaced.
+bool unit_is_in_traction(df::unit* unit);
+
+std::vector<std::string> unit_health_status_lines(df::unit* unit, int D) {
+    std::vector<std::string> lines;
+    const bool fortress = DFHack::World::isFortressMode();
+    const auto& counters = unit->counters;
+    const auto& counters2 = unit->counters2;
+    using namespace health_hue;
+
+    if (unit_is_in_traction(unit))
+        emit(lines, kSurface, "Resting in traction.");
+
+    // Ungated: active bleeding must always be visible, whatever D is.
+    int32_t bleed = 0;
+    for (auto wound : unit->body.wounds) {
+        if (!wound) continue;
+        for (auto part : wound->parts)
+            if (part) bleed += part->bleeding;
+    }
+    if (bleed >= 10)     emit(lines, kDanger, "Bleeding heavily.");
+    else if (bleed >= 1) emit(lines, kDanger, "Bleeding.");
+
+    // The only row whose WORDING changes with D instead of the row vanishing.
+    if (unit->body.blood_max > 0) {
+        if (unit->body.blood_count < unit->body.blood_max / 4)
+            emit(lines, kSystemic, D >= 1 ? "Has lost a great deal of blood."
+                                          : "Looks deathly pale.");
+        else if (unit->body.blood_count < unit->body.blood_max / 2)
+            emit(lines, kSystemic, D >= 2 ? "Has lost a noticeable amount of blood."
+                                          : "Looks pale.");
+    }
+
+    emit_counter_ladder(lines, D, counters2.paralysis, kNeuro,
+                        "Completely paralysed.", 0, "Partly paralysed.", 1, "Moving sluggishly.", 3);
+    // Numbness is the odd one out: its top tier is gated at D>=1 and its lowest at D>=5, so at
+    // D == 0 no numbness line appears at any severity. Native's asymmetry -- reproduced, not fixed.
+    emit_counter_ladder(lines, D, counters2.numbness, kNeuro,
+                        "Has lost all feeling.", 1, "Partly numb.", 3, "Slightly numb.", 5);
+    emit_counter_ladder(lines, D, counters2.fever, kDanger,
+                        "Burning with fever.", 0, "Feverish.", 1, "Slightly feverish.", 3);
+    emit_counter_ladder(lines, D, counters.pain, kWarning,
+                        "In extreme pain.", 0, "In moderate pain.", 1, "In slight pain.", 3);
+
+    if (counters2.exhaustion >= 6000)      emit(lines, kWarning, "Exhausted.");
+    else if (counters2.exhaustion >= 4000) emit(lines, kWarning, "Over-exerted.");
+    else if (counters2.exhaustion >= 2000 && D >= 1) emit(lines, kWarning, "Tired.");
+
+    if (counters.stunned > 0 && D >= 2)   emit(lines, kNeuro, "Stunned.");
+    if (counters.dizziness > 0 && D >= 2) emit(lines, kNeuro, "Dizzy.");
+
+    if (counters.winded > 0)
+        emit(lines, unit->flags1.bits.drowning ? kAccent : kMuted,
+             unit->flags1.bits.drowning ? "Drowning." : "Short of breath.");
+    if (counters.nausea > 0 && D >= 1) emit(lines, kInfo, "Nauseous.");
+
+    // Fortress-mode ladder only; DF's adventure/arena cut-offs are different and do not belong here.
+    if (fortress) {
+        if (counters2.sleepiness_timer >= 150000)     emit(lines, kAccent, "Desperate for sleep.");
+        else if (counters2.sleepiness_timer >= 57600 && D >= 1) emit(lines, kAccent, "Drowsy.");
+        if (counters2.thirst_timer >= 50000)          emit(lines, kSystemic, "Dehydrated.");
+        else if (counters2.thirst_timer >= 25000 && D >= 1) emit(lines, kAccent, "Thirsty.");
+        if (counters2.hunger_timer >= 75000)          emit(lines, kDanger, "Starving.");
+        else if (counters2.hunger_timer >= 50000 && D >= 1) emit(lines, kSurface, "Hungry.");
+    }
+
+    const auto& f2 = unit->flags2.bits;
+    if (!f2.breathing_good && f2.breathing_problem)
+        emit(lines, kDanger, "Cannot breathe.");
+    else if (f2.breathing_good && f2.breathing_problem && D >= 1)
+        emit(lines, kMuted, "Has trouble breathing.");
+
+    if (!f2.vision_good && !f2.vision_damaged) emit(lines, kDanger, "Cannot see.");
+    else if (f2.vision_missing && D >= 1)      emit(lines, kWarning, "Vision impaired.");
+    else if (f2.vision_damaged && D >= 3)      emit(lines, kMuted, "Vision slightly impaired.");
+
+    const auto& st = unit->status2;
+    auto capability = [&](int16_t max, int16_t count, const char* lost, const char* partial,
+                          bool half_is_lost) {
+        if (max <= 0 || count >= max) return;
+        if (half_is_lost ? (count <= max / 2) : (count == 0)) emit(lines, kWarning, lost);
+        else emit(lines, kWarning, partial);
+    };
+    capability(st.limbs_stand_max, st.limbs_stand_count, "Cannot stand.", "Has trouble standing.", true);
+    capability(st.limbs_grasp_max, st.limbs_grasp_count, "Cannot grasp.", "Has trouble grasping.", false);
+    // A non-flier with damaged wing-like parts stays silent rather than being told it cannot fly.
+    if (auto caste = Units::getCasteRaw(unit)) {
+        if (caste->flags.is_set(df::caste_raw_flags::FLIER))
+            capability(st.limbs_fly_max, st.limbs_fly_count, "Cannot fly.", "Has trouble flying.", true);
+    }
+
+    bool motor = false, sensory = false;
+    for (auto status : unit->body.components.body_part_status) {
+        if (status.bits.missing) continue;
+        if (status.bits.motor_nerve_severed) motor = true;
+        if (status.bits.sensory_nerve_severed) sensory = true;
+    }
+    if (motor)   emit(lines, kForeground, "Has motor nerve damage.");
+    if (sensory) emit(lines, kForeground, "Has sensory nerve damage.");
+
+    if (lines.empty())
+        emit(lines, kMuted, "No health problems");
     return lines;
 }
 
@@ -868,13 +1051,21 @@ std::vector<std::string> unit_health_description_lines(df::unit* unit) {
     std::vector<std::string> lines;
     if (auto caste = Units::getCasteRaw(unit)) {
         if (!caste->description.empty())
-            lines.push_back(caste->description);
+            lines.push_back(health_line(health_hue::kMuted, caste->description));
     }
-    auto attrs = physical_description_sentence(unit);
-    if (!attrs.empty())
-        lines.push_back(attrs);
+    if (unit->flags3.bits.ghostly) {
+        std::string kind = unit->ghost_info
+            ? pretty_key(DFHack::enum_item_key(unit->ghost_info->type)) : std::string();
+        lines.push_back(health_line(health_hue::kSystemic,
+            kind.empty() ? "Lingers here as a restless spirit."
+                         : "Lingers here as a restless spirit (" + lower_first(kind) + ")."));
+    } else {
+        auto attrs = physical_description_sentence(unit);
+        if (!attrs.empty())
+            lines.push_back(health_line(health_hue::kMuted, attrs));
+    }
     if (lines.empty())
-        lines.push_back("No description available.");
+        lines.push_back(health_line(health_hue::kMuted, "No description available."));
     return lines;
 }
 
@@ -892,8 +1083,6 @@ std::string body_part_name(df::unit* unit, int16_t body_part_id) {
 
 std::vector<UnitInventoryRecord> unit_inventory(df::unit* unit) {
     std::vector<UnitInventoryRecord> records;
-    // df.unit.xml:1292-1303: inventory order is authoritative and each entry carries its
-    // inv_item_role_type plus a body_part_id into unit.body.body_plan.body_parts.
     for (auto inv : unit->inventory) {
         if (!inv || !inv->item)
             continue;
@@ -915,10 +1104,8 @@ std::vector<UnitInventoryRecord> unit_inventory(df::unit* unit) {
              (record.quality >= 2 ? "quality" : "item"));
         records.push_back(std::move(record));
     }
-    // Native's Items view also exposes the item attached to the unit's active hauling job.
-    // It is not guaranteed to have reached unit->inventory yet (notably while gathering a
-    // plant growth), so project current-job item refs here. This endpoint is on demand and
-    // the current job has only a small, bounded item list.
+    // Native's Items view also lists the item on the unit's active hauling job, which may not have
+    // reached unit->inventory yet (a plant growth being gathered), so project the job's item refs.
     if (unit->job.current_job) {
         for (auto ref : unit->job.current_job->items) {
             auto item = ref ? ref->item : nullptr;
@@ -944,70 +1131,409 @@ std::vector<UnitInventoryRecord> unit_inventory(df::unit* unit) {
     return records;
 }
 
-std::vector<std::string> unit_health_wound_lines(df::unit* unit) {
-    std::vector<std::string> lines;
-    for (auto wound : unit->body.wounds) {
-        if (!wound)
+// Returns "" when the raws do not resolve, so the header stays "Left arm" and never "Left arm - layer 3".
+std::string wound_layer_tissue_name(df::unit* unit, df::unit_wound_layerst* layer) {
+    auto plan = unit->body.body_plan;
+    if (!plan || layer->body_part_id < 0 ||
+            layer->body_part_id >= static_cast<int>(plan->body_parts.size()))
+        return "";
+    auto part = plan->body_parts[layer->body_part_id];
+    if (!part || layer->layer_idx < 0 ||
+            layer->layer_idx >= static_cast<int>(part->layers.size()))
+        return "";
+    auto raw = part->layers[layer->layer_idx];
+    return raw ? pretty_key(raw->layer_name) : std::string();
+}
+
+// DFHack's enum has no name for native's traction general-ref, so match on the bench building itself.
+bool unit_is_in_traction(df::unit* unit) {
+    auto job = unit->job.current_job;
+    if (!job || job->job_type != df::job_type::Rest)
+        return false;
+    for (auto ref : job->general_refs) {
+        if (!ref || ref->getType() != df::general_ref_type::BUILDING_DESTINATION)
             continue;
-        for (auto part : wound->parts) {
-            if (!part)
-                continue;
-            std::string line = capitalize_first(body_part_name(unit, part->body_part_id));
-            std::vector<std::string> effects;
-            for (auto effect : part->effect_type)
-                effects.push_back(pretty_key(DFHack::enum_item_key(effect)));
-            if (!effects.empty())
-                line += ": " + join_phrases(effects);
-            if (part->bleeding > 0)
-                line += " (bleeding)";
-            if (part->pain > 0)
-                line += " (pain " + std::to_string(part->pain) + ")";
-            lines.push_back(line);
-            if (lines.size() >= 24)
-                return lines;
-        }
-        if (wound->flags.bits.infection)
-            lines.push_back("An infection is present.");
+        auto building = df::building::find(ref->getID());
+        if (building && building->getType() == df::building_type::TractionBench)
+            return true;
     }
+    return false;
+}
+
+// WOUNDS sub-tab. In fortress mode a wound -- and each layer inside it -- is skipped unless DF has
+// diagnosed it, so a visibly mangled dwarf can legitimately show a blank tab.
+bool wound_is_visible(df::unit_wound* wound, bool fortress) {
+    return !fortress || (wound && wound->flags.bits.diagnosed);
+}
+bool wound_layer_is_visible(df::unit_wound_layerst* layer, bool fortress) {
+    return !fortress || (layer && layer->flags1.bits.diagnosed);
+}
+
+void emit_graded_effects(std::vector<std::string>& lines, df::unit_wound_layerst* layer) {
+    using namespace health_hue;
+    struct Grade { const char* high; const char* mid; const char* low; const char* hue; };
+    const size_t n = std::min(layer->effect_type.size(), layer->effect_perc1.size());
+    for (size_t i = 0; i < n; ++i) {
+        const int16_t perc = layer->effect_perc1[i];
+        if (perc <= 0)
+            continue;
+        Grade g;
+        switch (layer->effect_type[i]) {
+        case df::wound_effect_type::Bruise:
+            g = {"Heavily bruised.", "Moderately bruised.", "Lightly bruised.", kSurface}; break;
+        // Heat and Burn deliberately share one label set.
+        case df::wound_effect_type::Heat:
+        case df::wound_effect_type::Burn:
+            g = {"Seriously burnt.", "Moderately burnt.", "Slightly burnt.", kSurface}; break;
+        case df::wound_effect_type::Frostbite:
+            g = {"Severe frostbite.", "Moderate frostbite.", "Mild frostbite.", kSurface}; break;
+        case df::wound_effect_type::Melting:
+            g = {"Seriously melted.", "Moderately melted.", "Slightly melted.", kSurface}; break;
+        case df::wound_effect_type::Boiling:
+            g = {"Seriously boiled.", "Moderately boiled.", "Slightly boiled.", kSurface}; break;
+        case df::wound_effect_type::Freezing:
+            g = {"Seriously frozen.", "Moderately frozen.", "Slightly frozen.", kSurface}; break;
+        case df::wound_effect_type::Condensation:
+            g = {"Heavy condensation damage.", "Moderate condensation damage.",
+                 "Slight condensation damage.", kSurface}; break;
+        case df::wound_effect_type::Necrosis:
+            g = {"Advanced rot.", "Moderate rot.", "Early rot.", kSystemic}; break;
+        case df::wound_effect_type::Blister:
+            g = {"Badly blistered.", "Moderately blistered.", "Slightly blistered.", kSurface}; break;
+        default:
+            continue;
+        }
+        emit(lines, g.hue, perc >= 100 ? g.high : (perc >= 50 ? g.mid : g.low));
+    }
+}
+
+void emit_structural_damage(std::vector<std::string>& lines, df::unit_wound_layerst* layer,
+                            bool in_traction) {
+    using namespace health_hue;
+    const auto& f1 = layer->flags1.bits;
+    if (layer->cur_penetration_perc <= 0) {
+        if (layer->max_penetration_perc <= 0 && layer->strain > 0)
+            emit(lines, kSurface, "Dented.");
+        return;
+    }
+    if (f1.compound_fracture || layer->jammed_layer_idx != -1)
+        emit(lines, kDanger, "Compound fracture.");
+    else if (f1.overlapping_fracture)
+        emit(lines, in_traction ? kSurface : kDanger,
+             in_traction ? "Overlapping fracture, held in traction."
+                         : "Overlapping fracture, untreated.");
+    else if (layer->flags2.bits.needs_setting)
+        emit(lines, kDanger, "Fracture that still needs setting.");
+
+    const bool apart = layer->cur_penetration_perc >= 100;
+    const char* text;
+    if (f1.cut)          text = apart ? "Cut apart."     : "Cut open.";
+    else if (f1.smashed) text = apart ? "Smashed apart." : "Smashed open.";
+    else if (f1.broken)  text = apart ? "Broken apart."  : "Broken open.";
+    else                 text = apart ? "Torn apart."    : "Torn open.";
+    emit(lines, kDanger, text);
+}
+
+// The emission order in this function is native's own; do not reorder it.
+void emit_wound_layer(std::vector<std::string>& lines, df::unit_wound_layerst* layer, int D,
+                      bool in_traction) {
+    using namespace health_hue;
+    const auto& f1 = layer->flags1.bits;
+    auto detail = [&](const char* hue, const char* text) {
+        lines.push_back(health_detail(hue, text));
+    };
+    auto gated = [&](bool cond, int gate, const char* hue, const char* text) {
+        if (cond && D >= gate) detail(hue, text);
+    };
+
+    if (layer->flags2.bits.gelded)      detail(kSystemic, "Gelded.");
+    if (f1.guts_spilled)                detail(kInfo, "Guts spilled.");
+    if (layer->partially_butchered > 0) detail(kSystemic, "Partly butchered.");
+
+    if (f1.major_artery && D >= 3)      detail(kDanger, "A major artery is cut.");
+    else gated(f1.artery, 5, kDanger, "An artery is cut.");
+
+    if (layer->bleeding >= 10)     detail(kDanger, "Bleeding heavily.");
+    else if (layer->bleeding >= 1) detail(kDanger, "Bleeding.");
+
+    gated(f1.motor_nerve_severed, 1, kForeground, "The motor nerve is severed.");
+    gated(f1.sensory_nerve_severed, 1, kForeground, "The sensory nerve is severed.");
+
+    // The gates get looser as the injury gets milder, so a poor diagnostician sees only the worst.
+    if (f1.tendon_torn)             gated(true, 1, kWarning, "The tendon is torn.");
+    else if (f1.tendon_strained)    gated(true, 3, kWarning, "The tendon is strained.");
+    else if (f1.tendon_bruised)     gated(true, 5, kWarning, "The tendon is bruised.");
+    if (f1.ligament_torn)           gated(true, 1, kWarning, "The ligament is torn.");
+    else if (f1.ligament_sprained)  gated(true, 3, kWarning, "The ligament is sprained.");
+    else if (f1.ligament_bruised)   gated(true, 5, kWarning, "The ligament is bruised.");
+
+    std::vector<std::string> nested;
+    emit_structural_damage(nested, layer, in_traction);
+    emit_graded_effects(nested, layer);
+    for (auto& line : nested) {
+        const size_t close = line.find(']');
+        if (close != std::string::npos)
+            line.insert(close + 1, ".");
+        lines.push_back(line);
+    }
+
+    // Per-part pain is not the whole-body ladder: its cut-offs are 20/10, not 100/50, and it draws
+    // in plain foreground while whole-body pain is warning-yellow. Both differences are native's.
+    if (layer->pain >= 20)     detail(kForeground, "In extreme pain.");
+    else if (layer->pain >= 10) detail(kForeground, "In moderate pain.");
+    else if (layer->pain >= 1 && D >= 1) detail(kForeground, "In minor pain.");
+
+    if (layer->nausea > 0)    detail(kInfo, "Causing nausea.");
+    if (layer->dizziness > 0) detail(kNeuro, "Causing dizziness.");
+
+    std::vector<std::string> ladders;
+    emit_counter_ladder(ladders, D, layer->paralysis, kNeuro,
+                        "Completely paralysed.", 0, "Partly paralysed.", 1, "Moving sluggishly.", 3);
+    emit_counter_ladder(ladders, D, layer->numbness, kNeuro,
+                        "All feeling lost.", 1, "Partly numb.", 3, "Slightly numb.", 5);
+    if (layer->swelling >= 100)     emit(ladders, kWarning, "Severely swollen.");
+    else if (layer->swelling >= 50) emit(ladders, kWarning, "Swollen.");
+    else if (layer->swelling >= 1 && D >= 1) emit(ladders, kWarning, "Slightly swollen.");
+    emit_counter_ladder(ladders, D, layer->impaired, kForeground,
+                        "Function completely impaired.", 0, "Function impaired.", 1,
+                        "Function slightly impaired.", 3);
+    for (auto& line : ladders) {
+        const size_t close = line.find(']');
+        if (close != std::string::npos)
+            line.insert(close + 1, ".");
+        lines.push_back(line);
+    }
+}
+
+std::vector<std::string> unit_health_wound_lines(df::unit* unit, int D) {
+    using namespace health_hue;
+    std::vector<std::string> lines;
+    const bool fortress = DFHack::World::isFortressMode();
+    const bool in_traction = unit_is_in_traction(unit);
+    bool any_wound_shown = false;
+
+    for (auto wound : unit->body.wounds) {
+        if (!wound || !wound_is_visible(wound, fortress))
+            continue;
+        std::vector<std::string> group;
+        for (auto layer : wound->parts) {
+            if (!layer || !wound_layer_is_visible(layer, fortress) || layer->body_part_id == -1)
+                continue;
+            std::string header = capitalize_first(body_part_name(unit, layer->body_part_id));
+            if (layer->layer_idx != -1) {
+                std::string tissue = wound_layer_tissue_name(unit, layer);
+                if (!tissue.empty())
+                    header += " - " + tissue;
+            }
+            group.push_back(health_line(kForeground, header));
+            emit_wound_layer(group, layer, D, in_traction);
+        }
+        if (wound->flags.bits.sutured) emit(group, kForeground, "Has been sutured");
+        if (wound->flags.bits.infection && D >= 1) emit(group, kSystemic, "Infection");
+        if (group.empty())
+            continue;
+        if (any_wound_shown)
+            emit(lines, kMuted, "---"); // separator between shown wounds
+        any_wound_shown = true;
+        lines.insert(lines.end(), group.begin(), group.end());
+    }
+
+    // The two empty-state sentences say different things and must never be collapsed into one.
     if (lines.empty())
-        lines.push_back("No evaluated wounds"); // native-parity display string
+        emit(lines, kMuted, fortress ? "No evaluated wounds" : "No injuries");
     return lines;
 }
 
+// TREATMENT sub-tab. Nothing here consults D -- requests show in full whenever the record exists.
 std::vector<std::string> unit_health_treatment_lines(df::unit* unit) {
+    using namespace health_hue;
     std::vector<std::string> lines;
-    if (auto health = unit->health) {
-        const auto& bits = health->flags.bits;
-        push_if(lines, bits.rq_diagnosis, "Needs diagnosis");
-        push_if(lines, bits.rq_immobilize, "Needs immobilization");
-        push_if(lines, bits.rq_dressing, "Needs dressing");
-        push_if(lines, bits.rq_cleaning, "Needs cleaning");
-        push_if(lines, bits.rq_surgery, "Needs surgery");
-        push_if(lines, bits.rq_suture, "Needs suturing");
-        push_if(lines, bits.rq_setting, "Needs a bone set");
-        push_if(lines, bits.rq_traction, "Needs traction");
-        push_if(lines, bits.rq_crutch, "Needs a crutch");
-        push_if(lines, bits.needs_healthcare, "Under hospital care");
+    auto health = unit->health;
+    if (health) {
+        if (health->flags.bits.rq_diagnosis) emit(lines, kForeground, "Needs a diagnosis.");
+        if (health->flags.bits.rq_crutch)    emit(lines, kForeground, "Needs a crutch.");
+
+        // The display order below is not the bit order, and needs_bandage / needs_cast are
+        // deliberately never shown on this sub-tab.
+        for (size_t part_id = 0; part_id < health->body_part_flags.size(); ++part_id) {
+            const auto& b = health->body_part_flags[part_id].bits;
+            std::vector<std::string> rows;
+            // DRESSING is the only one of these eight drawn muted; that is native's, not an artefact.
+            if (b.inoperable_rot) emit(rows, kSystemic, "Rot is beyond treatment.");
+            if (b.rq_cleaning)    emit(rows, kNeuro, "Needs cleaning.");
+            if (b.rq_surgery)     emit(rows, kDanger, "Needs surgery.");
+            if (b.rq_suture)      emit(rows, kInfo, "Needs sutures.");
+            if (b.rq_setting)     emit(rows, kWarning, "Needs the bone set.");
+            if (b.rq_dressing)    emit(rows, kMuted, "Needs dressing.");
+            if (b.rq_traction)    emit(rows, kWarning, "Needs traction.");
+            if (b.rq_immobilize)  emit(rows, kWarning, "Needs immobilizing.");
+            if (rows.empty())
+                continue;
+            emit(lines, kForeground,
+                 capitalize_first(body_part_name(unit, static_cast<int16_t>(part_id))));
+            for (auto& row : rows) {
+                const size_t close = row.find(']');
+                if (close != std::string::npos)
+                    row.insert(close + 1, "\xc2\xb7 ");
+                lines.push_back(row);
+            }
+        }
     }
     if (lines.empty())
-        lines.push_back("No treatment scheduled"); // native-parity display string
+        emit(lines, kMuted, "No treatment scheduled");
     return lines;
+}
+
+// HISTORY sub-tab: the syndrome-diagnosis and completed-job vectors interleave into one timeline.
+struct HealthHistoryRecord {
+    int32_t year = 0;
+    int32_t year_time = 0;
+    bool is_diagnosis = false;
+    size_t source_index = 0;
+};
+
+// year_time / 1200 is a day-of-year ordinal; 28 days to a month.
+std::string health_history_date(int32_t year, int32_t year_time) {
+    static const char* const kMonths[12] = {
+        "Granite", "Slate", "Felsite", "Hematite", "Malachite", "Galena",
+        "Limestone", "Sandstone", "Timber", "Moonstone", "Opal", "Obsidian"
+    };
+    const int ordinal_day = std::max(0, year_time / 1200);
+    const int day_index = ordinal_day % 28;
+    const int month_index = std::min(11, ordinal_day / 28);
+    const int day = day_index + 1;
+    const char* suffix = (day % 10 == 1 && day != 11) ? "st"
+                       : (day % 10 == 2 && day != 12) ? "nd"
+                       : (day % 10 == 3 && day != 13) ? "rd" : "th";
+    return std::to_string(day) + suffix + " " + kMonths[month_index] + ", " + std::to_string(year);
+}
+
+// DELIBERATE DEVIATION, documented per spec §1.7: R43 does not name a colour for the "placed in
+// traction" clause. It is grouped here with splint and set-bone -- its siblings in the ledger's
+// request row ("setting, traction and immobilization requests" are all yellow) -- rather than
+// silently falling through to white. This is the one history colour that is inferred, not read.
+struct HistoryClause {
+    const char* hue = nullptr;   // null when there is no clause at all
+    std::string text;
+};
+
+// A job type absent from this table emits no clause and so no line at all -- native's behaviour.
+HistoryClause health_history_job_clause(df::unit* unit,
+                                        df::unit_patient_profile_completed_jobst* record) {
+    using namespace health_hue;
+    auto part = [&](int32_t id) {
+        return body_part_name(unit, static_cast<int16_t>(id));
+    };
+    auto material = [&](int32_t mat_type, int32_t mat_index) {
+        MaterialInfo info(mat_type, mat_index);
+        std::string name = info.toString();
+        return name.empty() ? std::string("something") : lower_first(name);
+    };
+    switch (record->job_type) {
+    case df::job_type::RecoverWounded:
+        return {kForeground, "was carried to a resting place"};
+    case df::job_type::DiagnosePatient:
+        return {kForeground, "was examined"};
+    case df::job_type::DressWound:
+        return {kForeground, "had a " +
+                material(record->info.bandage.mat_type, record->info.bandage.mat_index) +
+                " dressing applied to the " + part(record->info.bandage.body_part_id)};
+    case df::job_type::BringCrutch:
+        return {kForeground, "was brought a crutch"};
+    case df::job_type::ApplyCast:
+        return {kForeground, "had a " +
+                material(record->info.bandage.mat_type, record->info.bandage.mat_index) +
+                " cast applied to the " + part(record->info.bandage.body_part_id)};
+    case df::job_type::ImmobilizeBreak:
+        return {kWarning, "had a " +
+                material(record->info.bandage.mat_type, record->info.bandage.mat_index) +
+                " splint applied to the " + part(record->info.bandage.body_part_id)};
+    case df::job_type::SetBone:
+        return {kWarning, "had the " + part(record->info.bandage.body_part_id) + " set"};
+    case df::job_type::PlaceInTraction:
+        return {kWarning, "was placed in traction"};
+    case df::job_type::CleanPatient:
+        return {kNeuro, record->info.bandage.mat_type == -1
+            ? "was cleaned"
+            : "was cleaned with " + material(record->info.bandage.mat_type,
+                                             record->info.bandage.mat_index)};
+    case df::job_type::Surgery:
+        switch (record->info.surgery.subtype) {
+        case df::job_subtype_surgery::StopBleeding:
+            return {kDanger, "had bleeding halted"};
+        case df::job_subtype_surgery::RepairCompoundFracture:
+            return {kDanger, "had a compound fracture of the " +
+                    part(record->info.surgery.body_part_id) + " repaired"};
+        case df::job_subtype_surgery::RemoveRottenTissue:
+            return {kDanger, record->info.surgery.amputated_part_id == -1
+                ? "had decayed tissue removed from the " + part(record->info.surgery.body_part_id)
+                : "had the " + part(record->info.surgery.amputated_part_id) + " removed entirely"};
+        default:
+            return {};
+        }
+    case df::job_type::Suture:
+        return {kDanger, "had " +
+                material(record->info.bandage.mat_type, record->info.bandage.mat_index) +
+                " sutures placed on the " + part(record->info.bandage.body_part_id)};
+    default:
+        return {};
+    }
 }
 
 std::vector<std::string> unit_health_history_lines(df::unit* unit) {
+    using namespace health_hue;
     std::vector<std::string> lines;
-    if (unit->body.wounds.empty()) {
-        lines.push_back("No medical history"); // native-parity display string
+    auto health = unit->health;
+    if (!health) {
+        emit(lines, kMuted, "No medical history");
         return lines;
     }
-    int32_t oldest = 0;
-    for (auto wound : unit->body.wounds)
-        if (wound && wound->age > oldest)
-            oldest = wound->age;
-    lines.push_back(std::to_string(unit->body.wounds.size()) +
-                    (unit->body.wounds.size() == 1 ? " active wound" : " active wounds") +
-                    ", oldest " + std::to_string(oldest) + " ticks old.");
-    lines.push_back("Full medical history beyond active wounds is out of scope.");
+
+    // A diagnosis record has no year_time of its own; its season_count is the in-year time.
+    std::vector<HealthHistoryRecord> records;
+    for (size_t i = 0; i < health->syndrome_diagnosis.size(); ++i) {
+        auto rec = health->syndrome_diagnosis[i];
+        if (rec) records.push_back({rec->year, rec->season_count, true, i});
+    }
+    for (size_t i = 0; i < health->op_history.size(); ++i) {
+        auto rec = health->op_history[i];
+        if (rec) records.push_back({rec->year, rec->year_time, false, i});
+    }
+    std::stable_sort(records.begin(), records.end(),
+                     [](const HealthHistoryRecord& a, const HealthHistoryRecord& b) {
+                         return a.year != b.year ? a.year < b.year : a.year_time < b.year_time;
+                     });
+
+    for (const auto& shim : records) {
+        HistoryClause clause;
+        int32_t worker_id = -1;
+        if (shim.is_diagnosis) {
+            auto rec = health->syndrome_diagnosis[shim.source_index];
+            worker_id = rec->worker_unid;
+            auto world = df::global::world;
+            if (world && rec->syndrome_ind >= 0 &&
+                    rec->syndrome_ind < static_cast<int32_t>(world->raws.mat_table.syndromes.all.size())) {
+                auto syndrome = world->raws.mat_table.syndromes.all[rec->syndrome_ind];
+                if (syndrome && !syndrome->syn_name.empty())
+                    clause = {kMuted, "was diagnosed with " + lower_first(syndrome->syn_name)};
+            }
+        } else {
+            auto rec = health->op_history[shim.source_index];
+            worker_id = rec->doctor_id;
+            clause = health_history_job_clause(unit, rec);
+            if (clause.text.empty())
+                continue;
+        }
+        // A mid-line [C:] token is honoured exactly like a leading one by the client's parser.
+        if (!clause.text.empty())
+            emit(lines, kInfo, health_history_date(shim.year, shim.year_time) + " - " +
+                               std::string(clause.hue) + capitalize_first(clause.text) + ".");
+        if (auto worker = df::unit::find(worker_id))
+            lines.push_back(health_detail(kAttribution, DFHack::Units::getReadableName(worker)));
+    }
+
+    if (lines.empty())
+        emit(lines, kMuted, "No medical history");
     return lines;
 }
 
@@ -1083,11 +1609,8 @@ std::vector<UnitSkillRecord> unit_skill_records(df::unit* unit) {
         record.rusty = skill->rusty > 0;
         record.experience = skill->experience;
         record.xp_threshold = rating_attrs.xp_threshold;
-        // Native skill-row color = the SKILL's profession color (text-color spec §2.5, live-
-        // verified: "Competent Miner" 7 == MINER, "Adequate Bone Carver" 9 == BONE_CARVER, same
-        // level word / different color -- disproving any level-keyed rule). Chain:
-        // profession.color[ job_skill.profession[ skill ] ]. profession `color` defaults to -1
-        // (df.d_basics.xml:5039) which we pass through as "no native color".
+        // Native colours a skill row by the SKILL's profession, not its level:
+        // profession.color[ job_skill.profession[skill] ]; a colour of -1 means "no native colour".
         {
             df::profession prof = attrs.profession;
             if (df::enum_traits<df::profession>::is_valid(static_cast<int16_t>(prof)))
@@ -1213,9 +1736,8 @@ int room_category_index(df::civzone_type type) {
 }
 
 std::string room_quality_label(df::building_civzonest* zone, df::unit* unit, int category) {
-    // Buildings.cpp:1552-1576 is the canonical helper. In DFHack 53.15-r1 its v50 body is
-    // intentionally stubbed, so fall back to building::getPersonalValue(), the v50 virtual that
-    // replaced getRoomValue(), and the same dfhack_room_quality_level thresholds/labels.
+    // Buildings::getRoomDescription's v50 body is stubbed in DFHack, so fall back to
+    // building::getPersonalValue() and the dfhack_room_quality_level thresholds.
     std::string description = Buildings::getRoomDescription(static_cast<df::building*>(zone), unit);
     if (!description.empty())
         return description;
@@ -1241,8 +1763,6 @@ std::vector<UnitRoom> unit_rooms(df::unit* unit) {
         {"Dining Room", false, -1, "", ""},
         {"Tomb", false, -1, "", ""}
     };
-    // df.unit.xml:2757 and df.building.xml:1059-1083: owned_buildings are civzones whose
-    // civzone_type identifies the native Office/Bedroom/DiningHall/Tomb profile slots.
     for (auto zone : unit->owned_buildings) {
         if (!zone)
             continue;
@@ -1254,8 +1774,7 @@ std::vector<UnitRoom> unit_rooms(df::unit* unit) {
         room.building_id = zone->id;
         room.name = Buildings::getName(static_cast<df::building*>(zone));
         room.quality = room_quality_label(zone, unit, category);
-        // B176: bounding-box midpoint of the civzone -- always valid (unlike a possibly-zero
-        // centerx on some zones), and close enough for the client's zoom-to-room camera jump.
+        // Bounding-box midpoint: some civzones carry a zero centerx, so it is not usable here.
         room.center_x = (zone->x1 + zone->x2) / 2;
         room.center_y = (zone->y1 + zone->y2) / 2;
         room.center_z = zone->z;
@@ -1277,20 +1796,8 @@ std::vector<std::string> unit_labor_location_lines(df::unit*) {
     return {"No location assignments"}; // native-parity display string
 }
 
-// B233-2: WORK ANIMALS (Labor > Work animals), rebuilt on DF's real work-animal field.
-//
-// The previous implementation listed plotinfo.training.training_assignments -- that is the ANIMAL
-// TRAINING assignment ("who TRAINS this creature", INFO_ASSIGN_TRAINER), a different DF concept
-// from a WORK ANIMAL ("assign this creature as a work animal for a specific citizen",
-// INFO_ASSIGN_WORK_ANIMAL, df.d_interface.xml:3742). DF stores the latter on the ANIMAL as
-//   unit.relationship_ids[unit_relationship_type::PetOwner]   (df.unit.xml:1574 + :2732)
-// which is exactly what DFHack's own AssignWorkAnimal overlay counts per citizen
-// (dfhack plugins/lua/sort/info.lua:452-460) and what Units::isPet() reads. So the tab now shows,
-// for THIS citizen: the animals it already owns as work animals, plus the unowned war/hunting
-// animals of the fort it COULD be given (the same eligibility DF's own screen lists).
-//
-// B214: world.units.active retains corpses and real ghosts -- every list here is filtered by the
-// living predicate, so a dead war dog can never appear as assignable.
+// A work animal is stored on the ANIMAL as relationship_ids[PetOwner], not in
+// plotinfo.training.training_assignments, which is DF's separate "who trains this creature" list.
 std::vector<UnitLaborAnimalRecord> unit_labor_work_animals(df::unit* owner) {
     std::vector<UnitLaborAnimalRecord> records;
     auto world = df::global::world;
@@ -1304,11 +1811,8 @@ std::vector<UnitLaborAnimalRecord> unit_labor_work_animals(df::unit* owner) {
         const int32_t animal_owner =
             animal->relationship_ids[df::enums::unit_relationship_type::PetOwner];
         const bool assigned = (animal_owner == owner->id);
-        // Eligible-for-this-citizen == DF's AssignWorkAnimal list: a tame war/hunting animal of our
-        // own civ that nobody owns yet. work_animal_blocked_reason() is the SINGLE gate shared with
-        // the write (info_panel.cpp), so the UI can never offer a row the write would refuse -- an
-        // animal that LOOKS eligible but the write refuses (the histfig case) is still listed, with
-        // assignable=false and the reason, instead of vanishing with no explanation.
+        // work_animal_blocked_reason() is the single gate shared with the write, so the list can
+        // never offer a row the write would refuse; a blocked animal is listed with its reason.
         const bool candidate = animal_owner == -1 && owner_is_citizen &&
                                Units::isOwnCiv(animal) && Units::isTame(animal) &&
                                (Units::isWar(animal) || Units::isHunter(animal));
@@ -1349,10 +1853,6 @@ std::vector<UnitLaborAnimalRecord> unit_labor_work_animals(df::unit* owner) {
                 record.owner_name = Units::getReadableName(owner_unit);
         }
         record.assignment_state = assigned ? "assigned" : "assignable";
-        // `assignable` == "the assign/unassign button may be shown". It tracks the WRITE gate
-        // exactly: an already-assigned animal is unassignable-able (the write clears PetOwner) only
-        // when the write would accept it, so a blocked (histfig) animal shows its reason in both
-        // directions rather than a button that 400s.
         record.assignable = (assigned || offerable) && blocked.empty();
         record.blocked_reason = record.assignable ? "" : blocked;
         record.eligibility_reason = assigned
@@ -1374,7 +1874,7 @@ std::vector<std::string> unit_labor_work_animal_lines(
         const std::vector<UnitLaborAnimalRecord>& animals) {
     std::vector<std::string> lines;
     for (const auto& animal : animals)
-        lines.push_back(animal.name + " — " + animal.training_type +
+        lines.push_back(animal.name + " - " + animal.training_type +
                         (animal.assignment_state == "assigned" ? " (assigned)" : ""));
     if (lines.empty())
         lines.push_back("No assigned or assignable work animals"); // native-parity display string
@@ -1400,8 +1900,7 @@ std::vector<std::string> unit_labor_lines(df::unit* unit) {
 
 std::vector<std::string> unit_relation_lines(df::unit* unit) {
     std::vector<std::string> lines;
-    // relationship_ids contains only the simple slots [0, NUM). The enum continues with social
-    // relationship labels stored elsewhere, so iterating the full enum reads past this array.
+    // relationship_ids holds only the simple slots [0, NUM); iterating the full enum reads past it.
     const size_t relation_count = std::min(
         std::size(unit->relationship_ids),
         static_cast<size_t>(df::unit_relationship_type::NUM));
@@ -1505,16 +2004,12 @@ UnitRelation relation_for_hf(df::historical_figure* hf, const std::string& label
     relation.color_role = color_role;
     relation.order = order;
     auto live = df::unit::find(hf->unit_id);
-    if (live && Units::isAlive(live) && Units::isActive(live))
+    if (live && unit_is_animate(live) && Units::isActive(live))
         relation.unit_id = live->id;
     else
         live = nullptr;
-    // W4: DF's own profession colour. `Units::getCasteProfessionColor(race, caste, profession)`
-    // (modules/Units.h:335) is the exact function DF's own profession-coloured name lines use, and
-    // the historical figure carries all three inputs (df/historical_figure.h: profession, race,
-    // caste), so it works for the dead and the off-site alike -- not just for loaded units.
-    // DEATH: `historical_figure::died_year` is -1 while alive (df/historical_figure.h:42). That is
-    // the authoritative flag; a missing live unit only means "not on this map right now".
+    // The histfig carries race, caste and profession, so this works for the dead and the off-site
+    // too; died_year == -1 is the authoritative alive flag, not the absence of a live unit.
     relation.profession_color =
         Units::getCasteProfessionColor(hf->race, hf->caste, hf->profession);
     relation.dead = hf->died_year != -1;
@@ -1535,7 +2030,6 @@ std::vector<UnitRelation> unit_relations(df::unit* unit) {
 
     auto hf = df::historical_figure::find(unit->hist_figure_id);
     if (hf) {
-        // df.history_figure.xml:1021-1071: family/deity links are typed histfig_hf_link records.
         size_t child_count = std::count_if(hf->histfig_links.begin(), hf->histfig_links.end(),
             [](auto link) { return link && link->getType() == df::histfig_hf_link_type::CHILD; });
         int family_sequence = 0;
@@ -1553,8 +2047,7 @@ std::vector<UnitRelation> unit_relations(df::unit* unit) {
                                 family_relation_order(type) + family_sequence++));
         }
 
-        // df.history_figure.xml:773-795: rank zero is suppressed. The remaining native social
-        // labels are determined by core.love (Friend <=74, Close Friend <=99, Kindred at 100).
+        // core.love bands: Friend <= 74, Close friend <= 99, Kindred at 100; rank 0 is suppressed.
         if (hf->info && hf->info->relationships) {
             for (auto profile : hf->info->relationships->hf_visual) {
                 if (!profile || static_cast<int>(profile->rank) == 0 || profile->core.love < 50)
@@ -1568,8 +2061,7 @@ std::vector<UnitRelation> unit_relations(df::unit* unit) {
         }
     }
 
-    // df.unit.xml:2732: direct unit relations are exactly [0, NUM). Merge only the persistent
-    // profile categories; transient attacker/drag/mount mechanics are suppressed by native UI.
+    // Only the persistent profile categories: native suppresses the transient attacker/drag/mount slots.
     const size_t relation_count = std::min(
         std::size(unit->relationship_ids),
         static_cast<size_t>(df::unit_relationship_type::NUM));
@@ -1581,7 +2073,7 @@ std::vector<UnitRelation> unit_relations(df::unit* unit) {
                 direct_type != df::unit_relationship_type::Father)
             continue;
         auto live = df::unit::find(unit->relationship_ids[i]);
-        if (!live || !Units::isAlive(live) || !Units::isActive(live))
+        if (!live || !unit_is_animate(live) || !Units::isActive(live))
             continue;
         auto target_hf = df::historical_figure::find(live->hist_figure_id);
         df::histfig_hf_link_type hf_type = df::histfig_hf_link_type::NONE;
@@ -1599,9 +2091,6 @@ std::vector<UnitRelation> unit_relations(df::unit* unit) {
             relation.profession = Units::getProfessionName(live);
             relation.unit_id = live->id;
             relation.color_role = "family";
-            // W4: no historical figure on this branch (pets, unhistoric kin), so read the colour and
-            // the death state off the live unit -- Units::getProfessionColor / Units::isDead, the
-            // unit-side twins of the histfig reads in relation_for_hf.
             relation.profession_color = Units::getProfessionColor(live);
             relation.dead = Units::isDead(live);
             relation.order = family_relation_order(hf_type);
@@ -1656,7 +2145,6 @@ std::vector<UnitGroup> unit_groups(df::unit* unit) {
     auto hf = df::historical_figure::find(unit->hist_figure_id);
     if (!hf)
         return groups;
-    // df.history_figure.xml:813-899,1068: active affiliations are typed entity_links.
     for (auto link : hf->entity_links) {
         if (!link || std::find(entity_ids.begin(), entity_ids.end(), link->entity_id) != entity_ids.end())
             continue;
@@ -1681,21 +2169,80 @@ std::vector<UnitGroup> unit_groups(df::unit* unit) {
     return groups;
 }
 
+// ---- MILITARY > SQUAD: native draws the squad name and ONE current order, nothing else ---------
+// No position name, no squad id, no patrol timer: printing any of them reads as a debug dump.
+static df::squad_order* unit_current_squad_order(df::unit* unit, df::squad* squad) {
+    if (!squad)
+        return nullptr;
+    int pos_idx = unit->military.squad_position;
+    // Tier 1 -- the member's own order.
+    if (pos_idx >= 0 && pos_idx < static_cast<int>(squad->positions.size())) {
+        auto pos = squad->positions[pos_idx];
+        if (pos && !pos->orders.empty() && pos->orders[0])
+            return pos->orders[0];
+    }
+    // Tier 2 -- the squad-wide order.
+    if (!squad->orders.empty() && squad->orders[0])
+        return squad->orders[0];
+    // Tier 3 -- the active routine's order for this month and position (1200 ticks/day, 28 days/month).
+    int routine_idx = squad->cur_routine_idx;
+    if (routine_idx < 0 || routine_idx >= static_cast<int>(squad->schedule.routine.size()))
+        return nullptr;
+    auto routine = squad->schedule.routine[routine_idx];
+    if (!routine)
+        return nullptr;
+    int year_tick = df::global::cur_year_tick ? *df::global::cur_year_tick : 0;
+    int month = std::min(11, std::max(0, year_tick / 1200) / 28);
+    auto& entry = routine->month[month];
+    if (pos_idx < 0 || pos_idx >= static_cast<int>(entry.order_assignments.size()))
+        return nullptr;
+    auto assignment = entry.order_assignments[pos_idx];
+    if (!assignment)
+        return nullptr;
+    int order_idx = assignment->assigned_order_idx;
+    if (order_idx < 0 || order_idx >= static_cast<int>(entry.orders.size()))
+        return nullptr;
+    auto scheduled = entry.orders[order_idx];
+    return scheduled ? scheduled->order : nullptr;
+}
+
 std::vector<std::string> unit_military_lines(df::unit* unit) {
     std::vector<std::string> lines;
-    if (unit->military.squad_id == -1)
+    if (unit->military.squad_id == -1) {
         lines.push_back("No squad assigned");
-    else {
-        lines.push_back("Squad id: " + std::to_string(unit->military.squad_id));
-        lines.push_back("Squad position: " + std::to_string(unit->military.squad_position));
-        lines.push_back("Patrol timer: " + std::to_string(unit->military.patrol_timer));
+        return lines;
     }
+    auto squad = df::squad::find(unit->military.squad_id);
+    if (!squad) {
+        // Never fall back to printing the raw squad id here.
+        lines.push_back("Squad data unavailable.");
+        return lines;
+    }
+    std::string name = squad->alias;
+    if (name.empty())
+        name = Translation::translateName(&squad->name, true);
+    if (name.empty())
+        name = "Squad " + std::to_string(squad->id);
+    lines.push_back("[C:7:0:1]" + name);
+
+    auto order = unit_current_squad_order(unit, squad);
+    std::string description;
+    if (order)
+        order->getDescription(&description);
+    if (description.empty())
+        // Native's own no-order line: plain white, NOT bright.
+        lines.push_back("[C:7:0:0]No orders");
+    else
+        lines.push_back((order->getType() == df::squad_order_type::KILL_LIST
+                             ? "[C:4:0:1]" : "[C:2:0:1]") + description);
     return lines;
 }
 
 std::vector<std::string> unit_military_uniform_lines(df::unit* unit) {
+    // Native reuses "No squad assigned" here rather than "No uniform assigned". The rest of this
+    // builder walks uniform CATEGORY SPECS; native's sub-tab lists the position's assigned ITEMS.
     if (unit->military.squad_id == -1)
-        return {"No uniform assigned"};
+        return {"No squad assigned"};
     auto squad = df::squad::find(unit->military.squad_id);
     if (!squad)
         return {"Squad data unavailable."};
@@ -1785,6 +2332,8 @@ std::vector<std::string> unit_overview_relation_lines(df::unit* unit) {
     int32_t spouse_id = unit->relationship_ids[df::enums::unit_relationship_type::Spouse];
     if (spouse_id != -1)
         lines.push_back("Spouse: " + related_unit_label(spouse_id));
+    // No Lover line: Lover sits past the [0, NUM) terminator, so indexing it reads off the end of
+    // relationship_ids. Lover lives on the historical figure as a LOVER hf-link instead.
     int32_t owner_id = unit->relationship_ids[df::enums::unit_relationship_type::PetOwner];
     if (owner_id != -1)
         lines.push_back("Owner: " + related_unit_label(owner_id));
@@ -2213,23 +2762,16 @@ std::string native_emotion_word(df::emotion_type emotion) {
     }
 }
 
-// DF's OWN emotion color, from the binary-extracted enum attr (df.d_basics.xml:686,
-// `df::emotion_type::color`, int8 curses index, default 7). This is the exact table DF uses to
-// color the emotion word in thoughts text -- e.g. ADORATION=11 (bright cyan), UNEASINESS=6 (brown),
-// SATISFACTION=10 (bright green) -- live-verified against the running game (text-color spec §2.4,
-// §5). Returns -1 for an invalid emotion so the client themes by role instead of inventing a hue.
+// DF's own emotion colour: the emotion_type `color` attr, an int8 curses index. Returns -1 for an
+// invalid emotion so the client themes by role instead of inventing a hue.
 int emotion_native_color(df::emotion_type emotion) {
     if (!df::enum_traits<df::emotion_type>::is_valid(static_cast<int32_t>(emotion)))
         return -1;
     return static_cast<int>(df::enum_traits<df::emotion_type>::attrs(emotion).color);
 }
 
-// Valence as DATA, not a hand-sorted word list (the deletion in text-color spec §3.4). DF's
-// `divider` attr is a stress divider whose SIGN is the valence: negative divider = positive
-// emotion, positive divider = negative emotion, zero = neutral (df.d_basics.xml:687). The old
-// ~55-case hand switch could never agree with DF's ~130 emotions; this covers all of them and
-// versions with df-structures. `role` now drives only weight/emphasis theming -- hue comes from
-// emotion_native_color.
+// Valence is the SIGN of DF's `divider` attr: negative = positive emotion, positive = negative,
+// zero = neutral. `role` drives weight and emphasis only; hue comes from emotion_native_color.
 std::string emotion_role(df::emotion_type emotion) {
     if (!df::enum_traits<df::emotion_type>::is_valid(static_cast<int32_t>(emotion)))
         return "emotion-neutral";
@@ -2260,8 +2802,6 @@ UnitThoughtRecord make_thought_record(df::unit* unit, const std::string& categor
         std::to_string(year_tick);
     record.order = order;
     record.spans.push_back({pronoun_subject(unit) + (current ? " feels " : " felt "), "neutral"});
-    // The emotion word itself carries DF's OWN color index (text-color spec §3.4). role stays for
-    // theming; color is authoritative for hue on the client.
     UnitTextSpan emotion_span;
     emotion_span.text = native_emotion_word(emotion);
     emotion_span.role = emotion_role(emotion);
@@ -2390,11 +2930,8 @@ std::vector<std::string> unit_personality_need_lines(df::unit* unit) {
     return lines;
 }
 
-// `color` is DF's native curses index for the whole clause, or -1 for "no native color, theme by
-// role". DF's personality_raw_str wraps each clause in a single [C:fg:bg:bright] run (text-color
-// spec §2.2, §5 second probe), so the subject, phrase, and period share one color -- we mirror that
-// by stamping the same index on all three spans. Callers that pass no color (mannerisms/quirks,
-// which the live probe found token-free -> parser default) leave the spans uncolored.
+// DF wraps each personality clause in ONE [C:fg:bg:bright] run, so subject, phrase and period all
+// carry the same index; callers that pass no colour (mannerisms, quirks) leave the spans plain.
 void append_sentence(UnitTextParagraph& paragraph, const std::string& subject,
                      const std::string& phrase, const std::string& role, int color = -1) {
     if (!paragraph.spans.empty())
@@ -2433,9 +2970,7 @@ std::vector<UnitTextParagraph> unit_personality_trait_narrative(df::unit* unit) 
     UnitTextParagraph aptitude;
     for (const auto& entry : mental_phrases) {
         int value = mental_attr_value(unit, entry.type);
-        // Native attribute-summary valence color (text-color spec §5 second probe: the aptitude
-        // clauses are [C:2:0:0] green for a strength / [C:4:0:0] red for a weakness). 2 = green,
-        // 4 = red in the curses palette.
+        // Native aptitude clauses: curses 2 = green for a strength, 4 = red for a weakness.
         if (value >= mental_attr_high_threshold(unit, entry.type))
             append_sentence(aptitude, pronoun_subject(unit), entry.high, "positive", 2);
         else if (value < mental_attr_low_threshold(unit, entry.type))
@@ -2503,9 +3038,8 @@ std::vector<UnitTextParagraph> unit_personality_trait_narrative(df::unit* unit) 
         {ART_INCLINED, "is moved by art and natural beauty", "does not care about art or natural beauty"},
     };
     UnitTextParagraph facets;
-    // Native colors the whole trait-facet paragraph bright white (text-color spec §5 second probe:
-    // the trait paragraph is [P][C:7:0:1] -> curses index 7 + bright*8 = 15). No per-facet valence
-    // hue exists in native, so every facet clause is the same 15, not a positive/negative split.
+    // Native draws the whole trait-facet paragraph bright white (7 + bright = 15), with no
+    // per-facet valence split.
     for (const auto& entry : facet_phrases) {
         if (trait_high(unit, entry.type))
             append_sentence(facets, pronoun_subject(unit), entry.high, "neutral", 15);
@@ -2573,10 +3107,10 @@ std::string value_subject(df::value_type type) {
 
 const int32_t* cultural_values(df::unit_soul* soul) {
     if (auto identity = df::cultural_identity::find(soul->personality.cultural_identity))
-        return identity->values;
+        return identity->values.data();
     if (auto entity = df::historical_entity::find(soul->personality.civ_id))
         if (entity->entity_raw)
-            return entity->entity_raw->values;
+            return entity->entity_raw->values.data();
     return nullptr;
 }
 
@@ -2778,18 +3312,14 @@ std::string need_band_role(const std::string& band) {
     return "neutral";
 }
 
-// DF's OWN need-focus band color, from live-probe of the needs sub-tab's [C:fg:bg:bright] tokens
-// (text-color spec §2.7 + §5 second probe -- band derived from personality_needst.focus_level,
-// df.personality.xml:1411). Only the FOUR bands the probe actually captured are pinned; the other
-// three (level-headed, untroubled, badly-distracted) were never observed on a live sheet, so they
-// return -1 and the client themes them by role instead of an invented hue -- pending the §4 sheet
-// harvest. Do NOT guess a gradient for the missing bands.
+// Only the four bands a live sheet was actually observed to colour are pinned; the other three
+// return -1 so the client themes them by role. Do not fill in a gradient for the missing bands.
 int need_band_native_color(const std::string& band) {
-    if (band == "unfettered")     return 10;  // bright green  (spec §2.7: "unfettered" 10)
-    if (band == "not-distracted") return 7;   // white/lgray   (spec §2.7: "not distracted" 7)
-    if (band == "unfocused")      return 6;   // brown         (spec §2.7: "unfocused" 6)
-    if (band == "distracted")     return 14;  // yellow (6+br) (spec §2.7: "distracted" 6+bright=14)
-    return -1;                                // level-headed / untroubled / badly-distracted: unpinned
+    if (band == "unfettered")     return 10;  // bright green
+    if (band == "not-distracted") return 7;   // white / light grey
+    if (band == "unfocused")      return 6;   // brown
+    if (band == "distracted")     return 14;  // yellow
+    return -1;                                // level-headed / untroubled / badly-distracted
 }
 
 std::vector<UnitNeedRecord> unit_need_records(df::unit* unit, std::string& focus_summary) {
@@ -2814,10 +3344,6 @@ std::vector<UnitNeedRecord> unit_need_records(df::unit* unit, std::string& focus
         record.target_name = historical_figure_name_or_blank(need->deity_id);
         auto clause = need_clause(need->id, record.target_name);
         record.spans.push_back({pronoun_subject(unit) + " is ", "neutral"});
-        // The band word carries DF's OWN color index (text-color spec §2.7); role stays for
-        // theming, color is authoritative for hue. -1 for the unpinned bands (see
-        // need_band_native_color) so the client does not invent one. These spans are shared by both
-        // the top-level `needs` payload and personalityNarrative.needs, so both surfaces color.
         record.spans.push_back({need_band_text(record.satisfaction_band),
                                 need_band_role(record.satisfaction_band),
                                 need_band_native_color(record.satisfaction_band)});
@@ -2853,7 +3379,6 @@ UnitSheet build_unit_sheet(df::unit* unit) {
     sheet.portrait_state = unit->portrait_texpos > 0 ? "ready" :
         (unit->portrait_texpos == 0 ? "pending" : "unavailable");
     sheet.portrait_kind = unit->portrait_texpos >= 0 ? "native" : "none";
-    // Raw tokens are stable portrait-map keys. Keep the bounds checks identical to info_panel.cpp.
     if (auto world = df::global::world) {
         if (unit->race >= 0 && static_cast<size_t>(unit->race) < world->raws.creatures.all.size()) {
             if (auto cr = world->raws.creatures.all[unit->race]) {
@@ -2865,12 +3390,8 @@ UnitSheet build_unit_sheet(df::unit* unit) {
             }
         }
     }
-    // WD-24: DF's unit sheet shows name+title and the quoted nickname as two SEPARATE header
-    // lines (26-unit-sheet.png: "Rigoth Oslanan, expedition leader" / "\"Rigoth Windyawn\"").
-    // dfhack's getReadableName(unit) mashes both into one string ('native "nickname", prof');
-    // skip_english=true gives us line 1 without the nickname, and Translation::translateName's
-    // english-name form (same call formatReadableName uses internally) gives us the nickname
-    // alone -- empty when the unit has never been nicknamed, matching the capture's behavior.
+    // DF's sheet shows name+title and the quoted nickname as two SEPARATE lines, so the nickname
+    // comes from Translation::translateName below, never from Units::getReadableName's one string.
     sheet.name = Units::getReadableName(unit, true);
     if (sheet.name.empty())
         sheet.name = Units::getRaceReadableName(unit);
@@ -2879,22 +3400,31 @@ UnitSheet build_unit_sheet(df::unit* unit) {
     sheet.race = Units::getRaceReadableName(unit);
     sheet.profession = Units::getProfessionName(unit);
     sheet.profession_color = Units::getProfessionColor(unit);
-    // Build the world fallback once for this single-unit serialization pass. The resolver checks
-    // the job and four unit-side activity channels before consulting this O(1) lookup.
     WorldActivityIndex world_activities;
     sheet.current_job = unit_current_job_label(unit, world_activities);
     sheet.age = unit_age_label(unit);
     sheet.sex = unit_sex_label(unit);
     sheet.status_lines = unit_condition_lines(unit);
+    sheet.status_words = unit_status_words(unit);
     sheet.status = sheet.status_lines.empty() ? "Healthy" : sheet.status_lines.front();
     sheet.training = unit_training_label(unit);
     sheet.body_summary = unit->body.wounds.empty() ? "No health problems" :
         std::to_string(unit->body.wounds.size()) + (unit->body.wounds.size() == 1 ? " wound" : " wounds");
+    for (int log_type = 0; log_type < 3; ++log_type) {
+        if (!unit->reports.log[log_type].empty()) {
+            sheet.has_combat_reports = true;
+            break;
+        }
+    }
     sheet.inventory_lines = unit_inventory_lines(unit);
     sheet.inventory = unit_inventory(unit);
-    sheet.health_lines = unit_health_lines(unit, sheet.status_lines);
-    sheet.health_status_lines = sheet.health_lines;
-    sheet.health_wound_lines = unit_health_wound_lines(unit);
+    bool chief_medical_appointed = false;
+    const int diagnosis_level = unit_diagnosis_level(&chief_medical_appointed);
+    sheet.diagnosis_level = diagnosis_level;
+    sheet.chief_medical_appointed = chief_medical_appointed;
+    sheet.health_status_lines = unit_health_status_lines(unit, diagnosis_level);
+    sheet.health_lines = sheet.health_status_lines;   // legacy field: Status is the default sub-tab
+    sheet.health_wound_lines = unit_health_wound_lines(unit, diagnosis_level);
     sheet.health_treatment_lines = unit_health_treatment_lines(unit);
     sheet.health_history_lines = unit_health_history_lines(unit);
     sheet.health_description_lines = unit_health_description_lines(unit);
@@ -2972,8 +3502,7 @@ std::string unit_sheet_json(const std::string& player,
          << "\"kind\":\"unit\","
          << "\"title\":" << json_string(unit.name) << ","
          << "\"tile\":{\"x\":" << tile.x << ",\"y\":" << tile.y << ",\"z\":" << tile.z << "},"
-         // W2: is THIS player's camera following this unit (client_state.h FollowTarget)? Drives
-         // UNIT_SHEET_CAMERA_ACTIVE, the green camera tile, which could never light before.
+         // is THIS player's camera following this unit (FollowTarget)?
          << "\"following\":" << (following ? "true" : "false") << ","
          << "\"wireBatch\":" << json_string(kWireBatchMarker) << ","
          << "\"unit\":";
@@ -3022,13 +3551,12 @@ bool unit_sheet_on_render_thread(int32_t unit_id,
     return true;
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// ---- this module's HTTP routes ----------------------------------------------------------------
 void register_unit_routes(httplib::Server& server) {
-    // WD-22: Tasks tab cancel button (14-info-tasks.png) -- POST /task-cancel?job=<jobId>.
+    // Build witness, stamped on the X-DWF-Wire-Witness header below.
+    static constexpr const char* kTaskActionWitness = "DWF-SOL-DEF020-064-STATUSWORDS-20260730";
+
+    // POST /task-cancel?job=<jobId>
     auto task_cancel_handler = [](const httplib::Request& req, httplib::Response& res) {
         int job_id = -1;
         if (!query_int(req, "job", job_id)) {
@@ -3049,9 +3577,46 @@ void register_unit_routes(httplib::Server& server) {
     server.Get("/task-cancel", task_cancel_handler);
     server.Post("/task-cancel", task_cancel_handler);
 
-    // B16: Pets/Livestock action buttons -- POST /livestock-action?unit=<id>&action=<slaughter|
-    // war|hunt|pet>. Toggles DF's own flag/designation for the animal and returns the new state so
-    // the client can flip the button without a full panel re-fetch.
+    // POST /task-action -- native's four non-details controls in Info > Tasks, keyed by job id.
+    // Every write is re-gated on the render thread: a job can finish between the GET and this POST.
+    server.Post("/task-action", [](const httplib::Request& req, httplib::Response& res) {
+        int job_id = -1;
+        if (!query_int(req, "job", job_id) || !req.has_param("action")) {
+            res.status = 400;
+            res.set_content("{\"ok\":false,\"error\":\"missing job/action\"}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+
+        TaskJobActionResult result;
+        std::string err;
+        const std::string action = req.get_param_value("action");
+        if (!task_job_action_on_render_thread(job_id, action, result, &err)) {
+            res.status = 400;
+            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+
+        if (action != "recenter")
+            notify_player_input();
+        std::ostringstream body;
+        body << "{\"ok\":true"
+             << ",\"repeat\":" << (result.repeat ? "true" : "false")
+             << ",\"suspended\":" << (result.suspended ? "true" : "false")
+             << ",\"hasWorker\":" << (result.has_worker ? "true" : "false");
+        if (result.has_pos) {
+            body << ",\"pos\":{\"x\":" << result.x
+                 << ",\"y\":" << result.y
+                 << ",\"z\":" << result.z << "}";
+        }
+        body << "}\n";
+        res.set_header("Cache-Control", "no-store");
+        res.set_header("X-DWF-Wire-Witness", kTaskActionWitness);
+        res.set_content(body.str(), "application/json; charset=utf-8");
+    });
+
+    // POST /livestock-action?unit=<id>&action=<slaughter|war|hunt|pet>
     auto livestock_action_handler = [](const httplib::Request& req, httplib::Response& res) {
         int unit_id = -1;
         if (!query_int(req, "unit", unit_id)) {
@@ -3060,11 +3625,10 @@ void register_unit_routes(httplib::Server& server) {
             return;
         }
         std::string action = req.has_param("action") ? req.get_param_value("action") : "";
-        // B33: optional trainer unit id for "assign-trainer" (-1/absent => any available trainer).
+        // trainer: -1/absent = any available trainer; -2 = any trainer not already committed.
         int trainer_id = -1;
         query_int(req, "trainer", trainer_id);
-        // B233-2: optional owner unit id for "assign-work-animal" (-1/absent => clear the
-        // work-animal assignment, i.e. native's "Remove assignment").
+        // owner: -1/absent clears the assignment, i.e. native's "Remove assignment".
         int owner_id = -1;
         query_int(req, "owner", owner_id);
         LivestockState state;
@@ -3081,8 +3645,7 @@ void register_unit_routes(httplib::Server& server) {
     server.Get("/livestock-action", livestock_action_handler);
     server.Post("/livestock-action", livestock_action_handler);
 
-    // B7: Native-style unit nickname editing. The render-thread helper validates the unit id
-    // before writing only df::unit::name.nickname; an empty nickname intentionally clears it.
+    // Writes only unit.name.nickname; an empty nickname deliberately clears it.
     auto unit_nickname_handler = [](const httplib::Request& req, httplib::Response& res) {
         int unit_id = -1;
         if (!query_int(req, "unit", unit_id) || !req.has_param("nickname")) {
@@ -3172,17 +3735,8 @@ void register_unit_routes(httplib::Server& server) {
         res.set_content(reinterpret_cast<const char*>(png.data()), png.size(), "image/png");
     });
 
-    // WE-2: per-unit composite export service (spec:
-    // docs/superpowers/specs/2026-07-07-WE-dwarf-compositing-spec.md). DF composites every
-    // layered unit into its own runtime texpos cells; this route serves those SAME pixels,
-    // copied verbatim off the render thread and cached content-addressed by their hash --
-    // never touches DF state at serve time. Registering the route also lazily starts the
-    // background export worker (inert until `capture-unit-sprites on`, see unit_sprites.cpp).
-    //
-    // GET /unit-sprite/<16-hex>.png -> cache lookup ONLY; 404 if the hash was never produced
-    // or has since been evicted (client falls back / refetches on the next hash sighting).
-    // The path regex itself enforces the hygiene rule (exactly 16 lowercase hex + ".png";
-    // same discipline as /sprites/img/) -- anything else simply doesn't match this route.
+    // GET /unit-sprite/<16-hex>.png -- cache lookup only; 404 when the hash was never produced or
+    // has been evicted. The path regex is the whitelist: nothing but 16 lowercase hex reaches here.
     unit_sprite_export_ensure_started();
     server.Get(R"(/unit-sprite/([0-9a-f]{16})\.png)", [](const httplib::Request& req, httplib::Response& res) {
         std::string hash = req.matches.size() > 1 ? req.matches[1].str() : std::string();
@@ -3197,9 +3751,41 @@ void register_unit_routes(httplib::Server& server) {
         res.set_content(reinterpret_cast<const char*>(png.data()), png.size(), "image/png");
     });
 
-    // GET /unit-sprite (no hash segment) -> JSON snapshot of unit_id -> {hash,sw,sh,ax,ay} +
-    // exporter stats. This item's manual oracle-parity/QA surface (WE-3 will additionally put
-    // the same fields on the live AUX wire; WE-8 formalizes the shipping gate against it).
+    // `path` is resolved by unit_sprite_export_key's closed whitelist, so an unknown key can never
+    // become an arbitrary native texture-table read.
+    server.Get("/unit-sprite-key", [](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("path")) {
+            res.status = 400;
+            res.set_content("{\"ok\":false,\"error\":\"missing path\"}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+        int unit_id = -1;
+        int race = -1;
+        int caste = -1;
+        int profession = 0;
+        query_int(req, "id", unit_id);       // optional for definition/global cells
+        query_int(req, "race", race);
+        query_int(req, "caste", caste);
+        query_int(req, "profession", profession);
+        UnitSpriteRecord sprite;
+        std::string err;
+        if (!unit_sprite_export_key(unit_id, race, caste, req.get_param_value("path"), profession, sprite, &err)) {
+            res.status = 404;
+            res.set_content("{\"ok\":false,\"error\":" + json_string(err) + "}\n",
+                            "application/json; charset=utf-8");
+            return;
+        }
+        std::ostringstream out;
+        out << "{\"ok\":true,\"ah\":\"" << sprite.hash << "\""
+            << ",\"sw\":" << sprite.sw << ",\"sh\":" << sprite.sh
+            << ",\"ax\":" << sprite.ax << ",\"ay\":" << sprite.ay
+            << ",\"url\":\"/unit-sprite/" << sprite.hash << ".png\"}";
+        res.set_header("Cache-Control", "no-store");
+        res.set_content(out.str(), "application/json; charset=utf-8");
+    });
+
+    // GET /unit-sprite (no hash) -> snapshot of unit_id -> {hash,sw,sh,ax,ay} plus exporter stats.
     server.Get("/unit-sprite", [](const httplib::Request&, httplib::Response& res) {
         auto snap = unit_sprite_snapshot();
         auto stats = unit_sprite_export_stats();

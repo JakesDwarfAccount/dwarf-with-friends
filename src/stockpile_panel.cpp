@@ -28,6 +28,7 @@
 
 #include "Core.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "modules/Buildings.h"
@@ -57,10 +58,7 @@ std::recursive_mutex g_stockpile_mutex;
 
 template <typename Fn>
 bool run_stockpile_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> module_lock(g_stockpile_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_stockpile_mutex, std::forward<Fn>(fn));
 }
 
 df::building_stockpilest* find_stockpile(int32_t id) {
@@ -218,10 +216,7 @@ std::string stockpile_info_json_on_core_thread(int32_t id) {
           << ",\"size\":{\"w\":" << (sp->x2 - sp->x1 + 1)
           << ",\"h\":" << (sp->y2 - sp->y1 + 1) << "}"
           << ",\"extents\":\"";
-        // Row-major '0'/'1' membership bitmap over pos/size -- the same wire shape /zones uses for
-        // extent-shaped zones. The exact-mask repaint client stages its draft from this so an
-        // existing interior hole survives a repaint honestly. A pile with no extents array (or a
-        // stale one that does not cover the current rect) is a plain rectangle: all '1'.
+        // extents: row-major '0'/'1' membership bitmap over pos/size, the shape /zones also emits.
         {
             const int ew = sp->x2 - sp->x1 + 1;
             const int eh = sp->y2 - sp->y1 + 1;
@@ -284,11 +279,8 @@ bool remove_stockpile_on_core_thread(int32_t id) {
         auto sp = find_stockpile(id);
         if (!sp)
             return false;
-        // Dump-proven UAF 2026-07-16: Buildings::deconstruct frees the building_stockpilest but
-        // never clears game.main_interface.custom_stockpile.{open,abd,sp} / stockpile.cur_bld. If
-        // the host has the custom stockpile-settings screen open on this pile, DF's renderer
-        // virtual-calls getName() on the freed building next frame -> 0xc0000005. Purge under this
-        // CoreSuspender before the free (shared helper; see src/ui_cache_purge.cpp).
+        // Buildings::deconstruct frees the pile but leaves main_interface.custom_stockpile still
+        // pointing at it, so DF renders freed memory next frame unless this purge runs first.
         purge_ui_caches_for_building(sp);
         return Buildings::deconstruct(sp);
     });
@@ -331,55 +323,55 @@ bool set_stockpile_link_on_core_thread(int32_t id, int32_t target_id, const std:
             if (err) *err = "target cannot link to stockpiles";
             return false;
         }
-        bool give = mode == "give";
-        bool take = mode == "take";
+        // DF stores no vector for "exchange": it is the give and take passes applied together.
+        const bool exchange = mode == "exchange";
+        const bool give = exchange || mode == "give";
+        const bool take = exchange || mode == "take";
         if (!give && !take) {
-            if (err) *err = "mode must be give or take";
+            if (err) *err = "mode must be give, take or exchange";
             return false;
         }
 
-        if (auto target_sp = virtual_cast<df::building_stockpilest>(target)) {
-            if (give) {
-                if (on) {
-                    ptr_vector_add_unique(sp->links.give_to_pile, target_sp);
-                    ptr_vector_add_unique(target_sp->links.take_from_pile, sp);
-                } else {
-                    ptr_vector_remove_all(sp->links.give_to_pile, target_sp);
-                    ptr_vector_remove_all(target_sp->links.take_from_pile, sp);
-                }
-            } else {
-                if (on) {
-                    ptr_vector_add_unique(sp->links.take_from_pile, target_sp);
-                    ptr_vector_add_unique(target_sp->links.give_to_pile, sp);
-                } else {
-                    ptr_vector_remove_all(sp->links.take_from_pile, target_sp);
-                    ptr_vector_remove_all(target_sp->links.give_to_pile, sp);
-                }
-            }
-        } else {
-            auto target_links = target->getStockpileLinks();
+        df::stockpile_links* target_links = nullptr;
+        auto target_sp = virtual_cast<df::building_stockpilest>(target);
+        if (!target_sp) {
+            target_links = target->getStockpileLinks();
             if (!target_links) {
                 if (err) *err = "target has no stockpile link data";
                 return false;
             }
-            if (give) {
+        }
+
+        auto apply_direction = [&](bool giving) {
+            if (target_sp) {
+                auto& ours = giving ? sp->links.give_to_pile : sp->links.take_from_pile;
+                auto& theirs = giving ? target_sp->links.take_from_pile
+                                      : target_sp->links.give_to_pile;
                 if (on) {
-                    ptr_vector_add_unique(sp->links.give_to_workshop, target);
-                    ptr_vector_add_unique(target_links->take_from_pile, sp);
+                    ptr_vector_add_unique(ours, target_sp);
+                    ptr_vector_add_unique(theirs, sp);
                 } else {
-                    ptr_vector_remove_all(sp->links.give_to_workshop, target);
-                    ptr_vector_remove_all(target_links->take_from_pile, sp);
+                    ptr_vector_remove_all(ours, target_sp);
+                    ptr_vector_remove_all(theirs, sp);
                 }
             } else {
+                auto& ours = giving ? sp->links.give_to_workshop : sp->links.take_from_workshop;
+                auto& theirs = giving ? target_links->take_from_pile
+                                      : target_links->give_to_pile;
                 if (on) {
-                    ptr_vector_add_unique(sp->links.take_from_workshop, target);
-                    ptr_vector_add_unique(target_links->give_to_pile, sp);
+                    ptr_vector_add_unique(ours, target);
+                    ptr_vector_add_unique(theirs, sp);
                 } else {
-                    ptr_vector_remove_all(sp->links.take_from_workshop, target);
-                    ptr_vector_remove_all(target_links->give_to_pile, sp);
+                    ptr_vector_remove_all(ours, target);
+                    ptr_vector_remove_all(theirs, sp);
                 }
             }
-        }
+        };
+
+        if (give)
+            apply_direction(true);
+        if (take)
+            apply_direction(false);
 
         return true;
     });
@@ -419,10 +411,6 @@ bool finish_stockpile_repaint_on_core_thread(int32_t old_id, int32_t new_id,
         replace_stockpile_link_refs(old_sp, new_sp);
 
         old_sp->stockpile_number = -1;
-        // Repaint/resize deconstructs the OLD pile every time (even a 1-tile resize). Same
-        // dump-proven UAF as /stockpile-remove: if the host has the custom stockpile-settings
-        // screen open on old_sp, its pointer is cached in main_interface.custom_stockpile /
-        // stockpile.cur_bld and DF renders the freed pile next frame. Purge before the free.
         purge_ui_caches_for_building(old_sp);
         if (!Buildings::deconstruct(old_sp)) {
             if (err) *err = "old stockpile could not be removed";
@@ -435,20 +423,19 @@ bool finish_stockpile_repaint_on_core_thread(int32_t old_id, int32_t new_id,
     });
 }
 
-// Exact-mask repaint (mode=replace): carve the '0' cells of a row-major '0'/'1' bitmap out of the
-// FRESHLY CREATED replacement pile before finish_stockpile_repaint copies the old pile's settings
-// onto it. This mirrors zones' proven exact-shape pipeline (building_zone.cpp
-// apply_zone_repaint_in_place_on_core_thread): allocate + fully initialize the new extents BEFORE
-// touching DF state, so an allocation failure changes nothing. Carve-only by design -- a tile DF's
-// own placement validation excluded at construct time (extents already None, e.g. under another
-// building) is never re-added, so DF stays the authority on which tiles a pile may cover.
-bool carve_stockpile_extent_mask_on_core_thread(int32_t id, int x1, int y1, int x2, int y2,
-                                                int z, const std::string& mask,
-                                                std::string* err) {
+// Mutate the pile in place, never carve a replacement: a replacement overlaps the original, so
+// Buildings::checkFreeTiles (via constructAbstract) withholds the tiles it already held.
+bool apply_stockpile_repaint_in_place_on_core_thread(int32_t id, int x1, int y1, int x2, int y2,
+                                                     int z, const std::string& mask,
+                                                     std::string* err) {
     return run_stockpile_locked([&]() -> bool {
         auto sp = find_stockpile(id);
         if (!sp) {
             if (err) *err = "not a stockpile";
+            return false;
+        }
+        if (sp->z != z) {
+            if (err) *err = "repaint footprint is on a different z-level than the stockpile";
             return false;
         }
         const int width = x2 - x1 + 1;
@@ -458,47 +445,49 @@ bool carve_stockpile_extent_mask_on_core_thread(int32_t id, int x1, int y1, int 
             if (err) *err = "repaint bitmap size does not match its bounds";
             return false;
         }
-        if (sp->x1 != x1 || sp->y1 != y1 || sp->x2 != x2 || sp->y2 != y2 || sp->z != z) {
-            if (err) *err = "replacement stockpile footprint mismatch";
+        int64_t remaining = 0;
+        for (char c : mask)
+            if (c == '1')
+                ++remaining;
+        if (!remaining) {
+            if (err) *err = "repaint cannot erase an entire stockpile; stockpile left unchanged";
             return false;
         }
-        const bool shaped = sp->room.extents && sp->isExtentShaped() &&
-            sp->room.width == width && sp->room.height == height;
+        // `next` is allocated and filled before any DF field moves, so a failure changes nothing.
         std::unique_ptr<df::building_extents_type[]> next(
             new (std::nothrow) df::building_extents_type[static_cast<size_t>(cells)]);
         if (!next) {
             if (err) *err = "not enough memory to repaint stockpile safely";
             return false;
         }
-        int64_t remaining = 0;
-        for (size_t i = 0; i < static_cast<size_t>(cells); ++i) {
-            const bool present = mask[i] == '1' &&
-                (!shaped || sp->room.extents[i] != df::building_extents_type::None);
-            next[i] = present ? df::building_extents_type::Stockpile
-                              : df::building_extents_type::None;
-            if (present)
-                ++remaining;
-        }
-        if (!remaining) {
-            if (err) *err = "repaint cannot erase an entire stockpile; stockpile left unchanged";
-            return false;
-        }
+        // extents value Stockpile (1) marks an included tile; None (0) is a shaped hole.
+        for (size_t i = 0; i < static_cast<size_t>(cells); ++i)
+            next[i] = mask[i] == '1' ? df::building_extents_type::Stockpile
+                                     : df::building_extents_type::None;
+
         auto old_extents = sp->room.extents;
         sp->room.extents = next.release();
         sp->room.x = x1;
         sp->room.y = y1;
         sp->room.width = width;
         sp->room.height = height;
+        sp->x1 = x1;
+        sp->y1 = y1;
+        sp->x2 = x2;
+        sp->y2 = y2;
+        sp->centerx = x1 + width / 2;
+        sp->centery = y1 + height / 2;
         delete[] old_extents;
+
+        sp->storage.container_type.clear();
+        sp->storage.container_item_id.clear();
+        sp->storage.container_x.clear();
+        sp->storage.container_y.clear();
         return true;
     });
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// -------------------------------------------------------------------------------- HTTP routes
 void register_stockpile_routes(httplib::Server& server) {
     server.Get("/stockpile-info", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
@@ -738,15 +727,6 @@ void register_stockpile_routes(httplib::Server& server) {
     server.Get("/stockpile-toggle-all", stockpile_toggle_all_handler);
     server.Post("/stockpile-toggle-all", stockpile_toggle_all_handler);
 
-    // POST /stockpile-repaint. Two shapes, mirroring /zone-repaint (building_zone.cpp):
-    //   mode=replace -- the exact world-addressed '0'/'1' bitmap the staged native repaint
-    //     session commits on Accept (interior holes and all). The replacement pile is created
-    //     over the mask's tight bounding rect (inert, "none" -- B137), the mask's holes are
-    //     carved out of it, and ONLY THEN does finish_stockpile_repaint copy the old pile's
-    //     settings/links/name across and deconstruct the old pile (with the UI-cache purge,
-    //     the dump-proven UAF fix -- see finish_stockpile_repaint_on_core_thread).
-    //   legacy camera-relative px/py/px2/py2 rectangle -- unchanged, still serves the new-pile
-    //     paint-extend flow and older clients.
     auto stockpile_repaint_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         int id = -1;
@@ -791,8 +771,6 @@ void register_stockpile_routes(httplib::Server& server) {
                                 "tile value\n", "text/plain; charset=utf-8");
                 return;
             }
-            // Tight bounds of the painted tiles: the pile's rect is exactly what was painted,
-            // never a loose client bounding box padded with empty border rows.
             int tx1 = hx + 1, ty1 = hy + 1, tx2 = lx - 1, ty2 = ly - 1;
             for (int y = ly; y <= hy; ++y)
                 for (int x = lx; x <= hx; ++x)
@@ -817,19 +795,8 @@ void register_stockpile_routes(httplib::Server& server) {
                                     static_cast<size_t>(y - ly) * mw];
 
             std::string err;
-            int new_id = -1;
-            if (!create_stockpile_at_world_rect_via_lua(tx1, ty1, tx2, ty2, rz, "none",
-                                                        new_id, &err)) {
-                res.status = 400;
-                res.set_content("stockpile-repaint failed: " + err + "\n",
-                                "text/plain; charset=utf-8");
-                return;
-            }
-            if (!carve_stockpile_extent_mask_on_core_thread(new_id, tx1, ty1, tx2, ty2, rz,
-                                                            trimmed, &err)) {
-                remove_stockpile_on_core_thread(new_id);
-                // Every painted tile refused by DF's own placement validation is a refusal of
-                // the shape, not a malformed request -- same 409 contract as the zone route.
+            if (!apply_stockpile_repaint_in_place_on_core_thread(id, tx1, ty1, tx2, ty2, rz,
+                                                                 trimmed, &err)) {
                 const bool refusal = err.find("erase an entire stockpile") != std::string::npos;
                 res.status = refusal ? 409 : 400;
                 res.set_content(std::string(refusal ? "stockpile-repaint refused: "
@@ -837,34 +804,23 @@ void register_stockpile_routes(httplib::Server& server) {
                                 "text/plain; charset=utf-8");
                 return;
             }
-            int final_id = new_id;
-            if (!finish_stockpile_repaint_on_core_thread(id, new_id, final_id, &err)) {
-                remove_stockpile_on_core_thread(new_id);
-                res.status = 400;
-                res.set_content("stockpile-repaint failed: " + err + "\n",
-                                "text/plain; charset=utf-8");
-                return;
-            }
             res.set_header("Cache-Control", "no-store");
-            res.set_content("{\"ok\":true,\"id\":" + std::to_string(final_id) + "}\n",
+            res.set_content("{\"ok\":true,\"id\":" + std::to_string(id) + "}\n",
                             "application/json; charset=utf-8");
             return;
         }
 
         int px = 0;
         int py = 0;
+        int px2 = 0;
+        int py2 = 0;
         int frame_w = 0;
         int frame_h = 0;
-        if (!query_int(req, "px", px) || !query_int(req, "py", py) ||
-                !query_int(req, "w", frame_w) || !query_int(req, "h", frame_h)) {
+        if (!parse_frame_rect(req, px, py, px2, py2, frame_w, frame_h)) {
             res.status = 400;
             res.set_content("missing id/px/py/w/h\n", "text/plain; charset=utf-8");
             return;
         }
-        int px2 = px;
-        int py2 = py;
-        query_int(req, "px2", px2);
-        query_int(req, "py2", py2);
 
         Camera camera;
         std::string err;
@@ -876,10 +832,8 @@ void register_stockpile_routes(httplib::Server& server) {
 
         int new_id = -1;
         normalize_frame_to_viewport(camera, frame_w, frame_h);
-        // B137: the replacement pile is created INERT ("none") -- its real settings are copied
-        // from the old pile by finish_stockpile_repaint below. The old "all" preset opened a
-        // window (between this create and the finish, the game can tick) where the temp pile
-        // accepted everything and could attract hauling jobs.
+        // The temp pile must be created with preset "none": the game can tick before
+        // finish_stockpile_repaint_on_core_thread copies the real settings, and "all" attracts haulers.
         if (!create_stockpile_via_lua(camera, px, py, px2, py2, frame_w, frame_h,
                                       "none", new_id, &err)) {
             res.status = 400;

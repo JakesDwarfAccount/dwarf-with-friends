@@ -38,11 +38,8 @@ struct LuaBridgeHealth {
 
 LuaBridgeHealth lua_bridge_health_snapshot();
 
-// B228 (missions): run DFHack's OWN scripts/fix/stuck-squad.lua to bring home squads that DF
-// stranded (an army with controller_id != 0 and a null controller pointer -- dwarves that left on
-// a mission and can never return). We do NOT reimplement the repair: this calls the upstream
-// script through dwf.lua's missions_rescue_stuck(), which reqscript()s it. Returns the
-// number of squads it rescued and the script's own console text. See src/missions.h.
+// Calls DFHack's own scripts/fix/stuck-squad.lua through dwf.lua's missions_rescue_stuck();
+// the repair itself is never reimplemented here.
 bool mission_rescue_stuck_via_lua(int& out_rescued, std::string& out_text, std::string* err = nullptr);
 
 std::string building_catalog_json_via_lua(std::string* err = nullptr);
@@ -57,8 +54,6 @@ bool place_building_via_lua(const Camera& camera, int px, int py, int px2, int p
 bool create_stockpile_via_lua(const Camera& camera, int px, int py, int px2, int py2,
                               int frame_w, int frame_h, const std::string& preset,
                               int& out_id, std::string* err = nullptr);
-// World-rect variant for /stockpile-repaint mode=replace (exact-mask repaint): the client sends
-// the repaint footprint world-addressed, so no camera/pixel conversion is involved.
 bool create_stockpile_at_world_rect_via_lua(int x1, int y1, int x2, int y2, int z,
                                             const std::string& preset, int& out_id,
                                             std::string* err = nullptr);
@@ -66,9 +61,6 @@ bool create_zone_via_lua(const Camera& camera, int px, int py, int px2, int py2,
                          int frame_w, int frame_h, const std::string& zone_type,
                          int& out_id, std::string* err = nullptr);
 
-// Same lua-side "create_zone" as create_zone_via_lua, but takes an already-resolved WORLD tile
-// rectangle directly (no pixel/viewport conversion). Used by /zone-repaint (building_zone.cpp),
-// which computes the trimmed/extended footprint itself before recreating the zone there.
 bool create_zone_at_world_rect_via_lua(int x1, int y1, int x2, int y2, int z,
                                        const std::string& zone_type, int& out_id,
                                        std::string* err = nullptr);
@@ -86,10 +78,8 @@ bool stockpile_toggle_all_via_lua(int32_t id, const std::string& cat,
 bool stockpile_set_preset_via_lua(int32_t id, const std::string& preset,
                                   const std::string& mode, std::string* err = nullptr);
 
-// B231 -- per-stop DESIRED ITEMS. df::hauling_stop.settings is a df::stockpile_settings (the same
-// struct a pile carries), so these are the five calls above pointed at a route stop instead of a
-// building. They run through the SAME dwf.lua SP_CATEGORIES machinery -- there is no second
-// copy of the item filter. DFHack does exactly this in plugins/stockpiles (get_stop_settings()).
+// per-stop DESIRED ITEMS: df::hauling_stop.settings IS a df::stockpile_settings, so these are the
+// five calls above pointed at a route stop. Same SP_CATEGORIES machinery -- no second item filter.
 std::string hauling_stop_settings_snapshot_via_lua(int32_t route_id, int32_t stop_id,
                                                    std::string* err = nullptr);
 std::string hauling_stop_items_via_lua(int32_t route_id, int32_t stop_id, const std::string& cat,
@@ -102,12 +92,8 @@ bool hauling_stop_toggle_all_via_lua(int32_t route_id, int32_t stop_id, const st
 bool hauling_stop_set_preset_via_lua(int32_t route_id, int32_t stop_id, const std::string& preset,
                                      const std::string& mode, std::string* err = nullptr);
 
-// One-shot save healing, run from plugin_onstatechange(SC_WORLD_LOADED): dwf.lua's
-// repair_incomplete_stockpile_settings() grows any missing category material lists (as
-// unselected) across all three settings holders -- stockpile buildings, hauling-route stops,
-// and plotinfo.stockpile.custom_settings. Old saves can carry enabled categories with
-// under-sized lists, which DF's item matching dereferences blind. Returns the number of
-// holders and category lists it had to fix.
+// One-shot save healing at SC_WORLD_LOADED: old saves can carry enabled stockpile categories with
+// under-sized material lists, which DF's item matching dereferences blind.
 bool repair_stockpile_settings_via_lua(int& out_holders, int& out_categories,
                                        std::string* err = nullptr);
 
@@ -132,9 +118,8 @@ bool zone_location_action_via_lua(int32_t zone_id, const std::string& action,
                                   const std::string& kind, int32_t location_id,
                                   std::string* err = nullptr);
 
-// B229: Places > Locations depth. `location_id` is an abstract_building id (site-local), NOT a
-// zone/building id. The action's payload rides in `kind` (occupation type key or "id:<occId>",
-// "hf:<id>"/"religion:<id>", or a profession key) -- see location_action() in dwf.lua.
+// `location_id` is an abstract_building id (site-local), NOT a zone/building id. The action's
+// payload rides in `kind` -- see location_action() in dwf.lua.
 std::string location_detail_json_via_lua(int32_t location_id, std::string* err = nullptr);
 bool location_action_via_lua(int32_t location_id, const std::string& action,
                              const std::string& kind, int32_t unit_id,
@@ -160,6 +145,8 @@ bool edit_item_condition_via_lua(int32_t id, int32_t index, const std::string& c
                                  std::string* err = nullptr);
 bool add_order_condition_via_lua(int32_t id, int32_t other_id, const std::string& type,
                                  std::string* err = nullptr);
+bool edit_order_condition_via_lua(int32_t id, int32_t index, const std::string& type,
+                                  std::string* err = nullptr);
 bool remove_condition_via_lua(int32_t id, const std::string& kind, int32_t index,
                               std::string* err = nullptr);
 bool set_order_max_workshops_via_lua(int32_t id, int32_t max_workshops,
@@ -168,29 +155,16 @@ bool set_order_workshop_via_lua(int32_t id, int32_t workshop_id,
                                 std::string* err = nullptr);
 bool reorder_order_via_lua(int32_t id, int32_t direction, std::string* err = nullptr);
 
-// ---- WT26 DFHack command console --------------------------------------------------------------
-// Catalog: helpdb's own command list + short-help blurbs, as JSON. Read-only, no core mutation,
-// static for a play session -> the client fetches it ONCE and filters client-side.
+// ---- DFHack command console --------------------------------------------------------------
 std::string console_catalog_json_via_lua(std::string* err = nullptr);
 
-// Run one DFHack command line and return its captured console text (colored fragments flattened by
-// the same lua_output_text path every other bridge fn uses) + DFHack's command_result status.
-//
-// *** THIS FN RE-APPLIES THE BLOCKLIST (dwf::console::command_denied, src/console_policy.h)
-// BEFORE it executes anything -- the SAME table the POST /console/run handler checks. It is a
-// backstop, not a duplicate: it exists so that NO future C++ caller of this bridge can reach
-// dfhack.run_command_silent without passing the gate. A denied command returns false with the deny
-// reason in *err and executes NOTHING. ***
-//
-// The command runs under a CoreSuspender for its whole duration and CANNOT be interrupted (spec
-// section 7) -- containment is prevention (the table), never a timeout.
+// Re-applies dwf::console::command_denied itself, so no C++ caller of this bridge can reach
+// dfhack.run_command_silent ungated. A denied command returns false and executes nothing.
 bool console_run_via_lua(const std::string& command, int& out_status, std::string& out_text,
                          std::string* err = nullptr);
 
-// ---- HOST-WRITES (B226 browser barter / B227 justice convict) ----------------------------------
-// Thin wrappers over the hw_* Lua engine (dwf.lua, "HOST-WRITES" section). All return
-// self-describing JSON ({"ok":...}) or "" with *err set when the bridge itself failed. The
-// action entries serialize behind a global drive mutex: one native-UI drive at a time.
+// ---- HOST-WRITES (browser barter / justice convict) --------------------------------------------
+// Thin wrappers over dwf.lua's hw_* engine: self-describing JSON, or "" with *err set on failure.
 std::string trade_state_json_via_lua(std::string* err = nullptr);
 std::string trade_action_json_via_lua(const std::string& action, const std::string& arg1,
                                       const std::string& arg2, const std::string& arg3,
@@ -200,13 +174,10 @@ std::string justice_state_json_via_lua(std::string* err = nullptr);
 std::string justice_action_json_via_lua(const std::string& action, int32_t crime_id,
                                         int32_t unit_id, std::string* err = nullptr);
 std::string hostwrites_widgets_json_via_lua(const std::string& root, std::string* err = nullptr);
-// Reads one boolean from the host-controlled dfcapture-hostwrites.json via the same Lua loader
-// used by trade/justice. Missing file, invalid JSON, missing key, and non-boolean values all fail
-// closed. This does not expose a way for HTTP clients to change the file.
+// Reads one flag from dfcapture-hostwrites.json. Missing file, invalid JSON, missing key and
+// non-boolean values all FAIL CLOSED.
 bool hostwrite_flag_enabled_via_lua(const std::string& flag, std::string* err = nullptr);
 
-// HTTP status for a hostwrites JSON verdict: 200 ok / 501 guarded-behind-probe (keeps the old
-// clients' "host-only" handling working verbatim) / 503 retry-not-converged / 400 anything else.
 inline int hostwrites_status_for(const std::string& json) {
     if (json.find("\"ok\":true") != std::string::npos) return 200;
     if (json.find("\"guarded\":true") != std::string::npos) return 501;

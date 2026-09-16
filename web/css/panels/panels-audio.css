@@ -1,0 +1,114 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.audio {
+  .audio-hidden {
+    display: none;
+  }
+  /* Audio popover */
+  #dfAudioPop {
+    position: fixed;
+    top: 44px;
+    right: 8px;
+    z-index: 9100;
+    width: 258px;
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-body);
+    border: 1px solid var(--dwfui-gold);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+    display: none;
+  }
+  #dfAudioPop.open {
+    display: block;
+  }
+  #dfAudioPop h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    color: var(--dwfui-text-numeric);
+  }
+  #dfAudioPop h4.pf-handle {
+    cursor: move;
+    user-select: none;
+  }
+  #dfAudioPop h4 .pf-x {
+    float: right;
+    font-size: 12px !important;
+    padding: 0;
+  }
+  #dfAudioPop .audio-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 5px 0;
+  }
+  #dfAudioPop .audio-row label {
+    flex: 0 0 58px;
+    color: var(--dwfui-text-secondary);
+  }
+  #dfAudioPop .audio-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--dwfui-text-numeric);
+    height: 4px;
+    cursor: pointer;
+  }
+  #dfAudioPop .audio-row input[type="range"]:focus {
+    outline: 1px solid var(--dwfui-gold-bright);
+    outline-offset: 2px;
+  }
+  #dfAudioPop .audio-message {
+    color: var(--dwfui-text-warning);
+    margin: 6px 0 2px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  #dfAudioPop .now {
+    color: var(--dwfui-text-good);
+    margin: 4px 0 6px;
+    font-size: 11px;
+  }
+  #dfAudioPop .audio-row.music {
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #dfAudioPop .audio-track {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #dfAudioPop .clicklbl {
+    flex: 1;
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+  }
+  #dfAudioPop hr {
+    border: 0;
+    border-top: 1px solid var(--dwfui-hatch);
+    margin: 8px 0;
+  }
+}

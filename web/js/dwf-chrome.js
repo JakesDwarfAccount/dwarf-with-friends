@@ -18,17 +18,8 @@
 // Full license: see LICENSE. Third-party credits: see NOTICE.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
-//
-// WD-3: interface-sprite blit helper. Loads /interface_map.json (built by
-// tools/ws2/build_interface_map.py from the local DF install's
-// graphics_interface.txt -- TOKEN -> {img, cx, cy, w, h}, all in pixels) and
-// exposes dfChromeIcon(token, sizePx) so chrome code (toolbar, top bar,
-// info-window tabs, ...) can blit DF's real interface art instead of
-// letters/emoji/CSS glyphs. Loads BEFORE dwf-controls-placement.js
-// (see index.html) -- classic <script> tags share one top-level lexical
-// scope, so the plain top-level declarations below are visible to every
-// script tag loaded after this one, same convention as the rest of the
-// dwf-*.js split.
+// ---- Interface-sprite blit helper: /interface_map.json maps TOKEN -> {img, cx, cy, w, h} in pixels. ----
+// Loads BEFORE dwf-controls-placement.js; classic scripts share one top-level scope.
 
   const DF_CHROME_MAP_URL = "/interface_map.json";
   const DF_CHROME_ASSET_BASE = "/asset/";
@@ -69,10 +60,7 @@
     return img;
   }
 
-  // Integer pixel-art scale: the largest whole multiple of the cell's native
-  // footprint that fits inside sizePx (min 1 -- DF art is never sub-sampled
-  // below native resolution, matching how DF itself only ever integer-scales
-  // its own interface bitmaps, e.g. the classic 1400x1000 window's 2x cells).
+  // Integer pixel-art scale, minimum 1: DF art is never sub-sampled below its native resolution.
   function _dfChromeScaleFor(rec, sizePx) {
     if (!rec || !rec.w || !rec.h) return 1;
     const target = sizePx || Math.max(rec.w, rec.h);
@@ -109,20 +97,15 @@
     else loadDfChromeMap().then(apply);
   }
 
-  // Same as dfChromeUpdateIcon but painting a raw {img,cx,cy,w,h} cell record
-  // directly instead of resolving it by TOKEN -- for the handful of legacy
-  // toolbar icons whose real DF token isn't identified yet (WD-4 territory:
-  // the info-window cluster buttons carry unverified placeholder cells in
-  // dwf-controls-placement.js pending a real BUTTON_* token match).
+  // Paints a raw {img,cx,cy,w,h} cell instead of resolving a TOKEN. ONLY for a sub-cell of a real
+  // token, which has no name of its own; anything named goes through dfChromeIcon/dfChromeUpdateIcon.
   function dfChromeUpdateIconFromCell(canvas, rec, sizePx) {
     if (!canvas || !rec) return;
     _dfChromePaint(canvas, rec, _dfChromeScaleFor(rec, sizePx));
   }
 
-  // Returns a <canvas> element blitting `token`'s cell at up to sizePx
-  // (integer-scaled, nearest-neighbor). Safe to append immediately: if the
-  // interface map or sheet image hasn't loaded yet, the canvas starts blank
-  // and repaints itself once the data arrives.
+  // Safe to append immediately: if the map or sheet image has not loaded, the canvas starts blank and
+  // repaints itself once the data arrives.
   function dfChromeIcon(token, sizePx) {
     const canvas = document.createElement("canvas");
     canvas.className = "df-chrome-icon";
@@ -146,6 +129,7 @@
   window.DFChrome = {
     loadMap: loadDfChromeMap,
     getCell: dfChromeGetCell,
+    sheetImage: _dfChromeSheetImage,
     icon: dfChromeIcon,
     iconFromCell: dfChromeIconFromCell,
     updateIcon: dfChromeUpdateIcon,

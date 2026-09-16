@@ -1,0 +1,246 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.hospital {
+  .hospital-panel .hospital-section {
+    padding: 4px 0 6px;
+    border-top: 1px solid var(--dwfui-surface);
+    margin-top: 4px;
+  }
+  .hospital-panel .hospital-section-label {
+    color: var(--dwfui-text-heading);
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+    margin: 4px 10px 2px;
+  }
+  .hospital-panel .hospital-dim {
+    color: var(--dwfui-text-secondary);
+    font-weight: 400;
+  }
+  .hospital-panel .hospital-badge {
+    display: inline-block;
+    padding: 0 5px;
+    margin: 0 3px 2px 0;
+    border-radius: 2px;
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-row);
+    font:
+      700 10px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .hospital-panel .hospital-badge.ok {
+    background: var(--dwfui-slate);
+    color: var(--dwfui-text-good);
+  }
+  .hospital-panel .hospital-badge.warn {
+    background: var(--dwfui-gold-bevel-mid);
+    color: var(--dwfui-text-danger);
+  }
+  .hospital-panel .hospital-badge.want {
+    background: var(--dwfui-gold-bevel-mid);
+    color: var(--dwfui-text-numeric);
+  }
+  .hospital-panel .hospital-supply {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "label label label label" "meta flag . ctrl";
+    align-items: center;
+    gap: 4px 8px;
+    row-gap: 1px;
+    margin: 3px 10px;
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+    color: var(--dwfui-text-row);
+  }
+  .hospital-panel .hospital-supply-label {
+    grid-area: label;
+    min-width: 0;
+    color: var(--dwfui-text-row);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-supply-meta {
+    grid-area: meta;
+    justify-self: start;
+    color: var(--dwfui-text-secondary);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-supply-flag {
+    grid-area: flag;
+    justify-self: start;
+    min-width: 0;
+  }
+  .hospital-panel .hospital-supply-flag .hospital-badge {
+    margin: 0;
+  }
+  .hospital-panel .hospital-doctor {
+    margin: 3px 10px;
+    min-width: 0;
+  }
+  .hospital-panel .hospital-doctor-name {
+    color: var(--dwfui-text-row);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-doctor-labs {
+    margin-top: 2px;
+  }
+  .hospital-panel .hospital-post {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    margin: 3px 10px;
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .hospital-panel .hospital-post-label {
+    min-width: 0;
+    color: var(--dwfui-text-row);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-post-holder {
+    min-width: 0;
+    justify-self: end;
+    color: var(--dwfui-text-row);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-post-holder .hospital-dim {
+    font-style: italic;
+  }
+  /* DECLARED LAYOUT DIVERGENCE: native lays this row out on ONE line, on a full-window location page.
+   In a 380px panel that collapses the name column, so the name takes a second line. */
+  .hospital-panel .hospital-staff {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon role ctrl" "port name name";
+    align-items: center;
+    gap: 2px 6px;
+    margin: 3px 10px;
+    min-height: 26px;
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .hospital-panel .hospital-staff-icon {
+    grid-area: icon;
+    display: flex;
+    align-items: center;
+  }
+  .hospital-panel .hospital-staff-role {
+    grid-area: role;
+    min-width: 0;
+    color: var(--dwfui-text-row);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-staff-portrait {
+    grid-area: port;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+  }
+  .hospital-panel .hospital-staff-name {
+    grid-area: name;
+    min-width: 0;
+    color: var(--dwfui-text-row);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* A vacant row has no name, so its second line has nothing to hold it open. */
+  .hospital-panel .hospital-staff.vacant .hospital-staff-name {
+    display: none;
+  }
+  /* The action cluster is pinned right, in native's order: specialization latch, then remove. */
+  .hospital-panel .hospital-staff-ctrl {
+    grid-area: ctrl;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .hospital-panel .hospital-staff.vacant .hospital-staff-role {
+    font-weight: 400;
+    color: var(--dwfui-text-secondary);
+  }
+  .hospital-panel .hospital-staff-note {
+    margin: 4px 10px;
+  }
+
+  .hospital-panel .hospital-staff-picker {
+    margin: 2px 10px 6px 22px;
+    border-left: 2px solid var(--dwfui-slab);
+    padding-left: 6px;
+  }
+  .hospital-panel .hospital-cand-list {
+    max-height: 190px;
+  }
+  .hospital-panel .hospital-cand {
+    padding: 2px 4px;
+    cursor: pointer;
+    min-width: 0;
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hospital-panel .hospital-cand:hover {
+    background: var(--dwfui-hatch);
+  }
+  .hospital-panel .hospital-cand-name {
+    color: var(--dwfui-text-row);
+  }
+
+  .hospital-panel .hospital-supply-ctrl {
+    grid-area: ctrl;
+  }
+}

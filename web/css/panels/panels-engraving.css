@@ -1,0 +1,66 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.engraving {
+  .engraving-window .engrave-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 10px;
+    font:
+      400 11px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .engraving-window .engrave-key {
+    color: var(--dwfui-text-secondary);
+  }
+  .engraving-window .engrave-val {
+    color: var(--dwfui-text-body);
+    text-align: right;
+  }
+  .engraving-window .engrave-scroll {
+    max-height: 220px;
+    margin: 12px 0 4px;
+  }
+  .engraving-window .engrave-prose {
+    color: var(--dwfui-text-prose);
+    font:
+      400 12px/1.45 ui-monospace,
+      Consolas,
+      monospace;
+    padding: 4px 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .engraving-window .engrave-note {
+    color: var(--dwfui-text-secondary);
+    font:
+      400 11px/1.5 ui-monospace,
+      Consolas,
+      monospace;
+    padding: 6px 10px 10px;
+  }
+}

@@ -21,6 +21,7 @@
 
 #include "sdl_capture.h"
 
+#include "capture_guard.h"
 #include "client_state.h"   // note_host_camera (host-camera cache warmer)
 #include "diagnostics.h"
 #include "image_encoder.h"
@@ -30,8 +31,6 @@
 #include "VersionInfo.h"
 #include "modules/DFSDL.h"
 #include "modules/Gui.h"
-
-#include "sdl_dlsym.h"
 
 #include "df/buildreq.h"
 #include "df/enabler.h"
@@ -71,16 +70,6 @@
 namespace dwf {
 namespace {
 
-constexpr uint32_t SDL_PIXELFORMAT_ARGB8888 = 0x16362004u;
-constexpr int SDL_TEXTUREACCESS_TARGET = 2;
-
-using pfn_CreateTexture = void* (*)(void*, uint32_t, int, int, int);
-using pfn_SetRenderTarget = int (*)(void*, void*);
-using pfn_RenderReadPixels = int (*)(void*, const void*, uint32_t, void*, int);
-using pfn_DestroyTexture = void (*)(void*);
-using pfn_GetRendererOutputSize = int (*)(void*, int*, int*);
-using pfn_SetRenderDrawColor = int (*)(void*, uint8_t, uint8_t, uint8_t, uint8_t);
-using pfn_RenderClear = int (*)(void*);
 #ifdef _WIN32
 using pfn_RenderMapLegacy = void (__stdcall *)(int);
 using pfn_NativeClear = void (*)(int64_t, int32_t, int32_t);
@@ -88,14 +77,6 @@ using pfn_NativeSetup = void (*)();
 using pfn_NativeFill = void (*)(int64_t, int32_t);
 using pfn_NativeBlit = void (*)(uintptr_t);
 #endif
-
-pfn_CreateTexture p_CreateTexture = nullptr;
-pfn_SetRenderTarget p_SetRenderTarget = nullptr;
-pfn_RenderReadPixels p_RenderReadPixels = nullptr;
-pfn_DestroyTexture p_DestroyTexture = nullptr;
-pfn_GetRendererOutputSize p_GetRendererOutputSize = nullptr;
-pfn_SetRenderDrawColor p_SetRenderDrawColor = nullptr;
-pfn_RenderClear p_RenderClear = nullptr;
 
 #ifdef _WIN32
 enum class RenderMapMode {
@@ -149,46 +130,12 @@ constexpr int32_t RECT_BR = 128791;
 #endif
 
 #ifdef _WIN32
-volatile uint32_t g_seh_code = 0;
-void* g_seh_at = nullptr;
-void* g_seh_access = nullptr;
-
-const DWORD DWF_INVALID_PARAMETER_EXCEPTION = 0xE0424643u;
-
-static int dwf_seh_filter(_EXCEPTION_POINTERS* ep) {
-    g_seh_code = ep && ep->ExceptionRecord ? ep->ExceptionRecord->ExceptionCode : 0;
-    g_seh_at = ep && ep->ExceptionRecord ? ep->ExceptionRecord->ExceptionAddress : nullptr;
-    g_seh_access = (ep && ep->ExceptionRecord &&
-                    ep->ExceptionRecord->NumberParameters >= 2)
-        ? reinterpret_cast<void*>(ep->ExceptionRecord->ExceptionInformation[1])
-        : nullptr;
-    return EXCEPTION_EXECUTE_HANDLER;
-}
-
-static void __cdecl dwf_invalid_parameter_handler(
-        const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {
-    RaiseException(DWF_INVALID_PARAMETER_EXCEPTION, EXCEPTION_NONCONTINUABLE, 0, nullptr);
-}
-
-static int call_viewscreen_render_seh(df::viewscreen* viewscreen) {
-    int fault = 0;
-    _invalid_parameter_handler old_handler =
-        _set_thread_local_invalid_parameter_handler(dwf_invalid_parameter_handler);
-    __try {
-        viewscreen->render(0);
-    } __except(dwf_seh_filter(GetExceptionInformation())) {
-        fault = 1;
-    }
-    _set_thread_local_invalid_parameter_handler(old_handler);
-    return fault;
-}
-
 static bool call_set_viewport_zoom_factor_seh(df::renderer* renderer, int32_t factor) {
     bool ok = false;
     __try {
         renderer->set_viewport_zoom_factor(factor);
         ok = true;
-    } __except(dwf_seh_filter(GetExceptionInformation())) {
+    } __except(seh_filter(GetExceptionInformation())) {
         ok = false;
     }
     return ok;
@@ -199,14 +146,14 @@ static bool call_update_full_viewport_seh(df::renderer* renderer, df::graphic_vi
     __try {
         renderer->update_full_viewport(vp);
         ok = true;
-    } __except(dwf_seh_filter(GetExceptionInformation())) {
+    } __except(seh_filter(GetExceptionInformation())) {
         ok = false;
     }
     return ok;
 }
 
 static uint8_t g_dummy_follow[0x4000] = {0};
-constexpr uintptr_t VIEW_FOLLOW_RVA = 0x23d9db0; // DF 53.15 (was 0x23d2df0 on Steam 53.14)
+constexpr uintptr_t VIEW_FOLLOW_RVA = 0x23e5110; // DF 53.16 (was 0x23d9db0 on Steam 53.15)
 
 static int call_native_sequence_seh(uintptr_t map_renderer) {
     void** p_follow = reinterpret_cast<void**>(g_exe_base + VIEW_FOLLOW_RVA);
@@ -225,164 +172,13 @@ static int call_native_sequence_seh(uintptr_t map_renderer) {
         stage = 4;
         p_NativeBlit(map_renderer);
         result = 0;
-    } __except(dwf_seh_filter(GetExceptionInformation())) {
+    } __except(seh_filter(GetExceptionInformation())) {
         result = stage;
     }
 
     *p_follow = saved_follow;
     return result;
 }
-#endif
-
-bool resolve_sdl(std::string* err) {
-#ifdef _WIN32
-    HMODULE sdl = GetModuleHandleA("SDL2.dll");
-    if (!sdl) {
-        if (err) *err = "SDL2.dll is not loaded";
-        return false;
-    }
-
-    p_CreateTexture = reinterpret_cast<pfn_CreateTexture>(GetProcAddress(sdl, "SDL_CreateTexture"));
-    p_SetRenderTarget = reinterpret_cast<pfn_SetRenderTarget>(GetProcAddress(sdl, "SDL_SetRenderTarget"));
-    p_RenderReadPixels = reinterpret_cast<pfn_RenderReadPixels>(GetProcAddress(sdl, "SDL_RenderReadPixels"));
-    p_DestroyTexture = reinterpret_cast<pfn_DestroyTexture>(GetProcAddress(sdl, "SDL_DestroyTexture"));
-    p_GetRendererOutputSize = reinterpret_cast<pfn_GetRendererOutputSize>(GetProcAddress(sdl, "SDL_GetRendererOutputSize"));
-    p_SetRenderDrawColor = reinterpret_cast<pfn_SetRenderDrawColor>(GetProcAddress(sdl, "SDL_SetRenderDrawColor"));
-    p_RenderClear = reinterpret_cast<pfn_RenderClear>(GetProcAddress(sdl, "SDL_RenderClear"));
-
-    if (p_CreateTexture && p_SetRenderTarget && p_RenderReadPixels &&
-        p_DestroyTexture && p_GetRendererOutputSize &&
-        p_SetRenderDrawColor && p_RenderClear) {
-        return true;
-    }
-
-    if (err) *err = "could not resolve required SDL2 render-target functions";
-    return false;
-#else
-    p_CreateTexture = reinterpret_cast<pfn_CreateTexture>(sdl_symbol("SDL_CreateTexture"));
-    p_SetRenderTarget = reinterpret_cast<pfn_SetRenderTarget>(sdl_symbol("SDL_SetRenderTarget"));
-    p_RenderReadPixels = reinterpret_cast<pfn_RenderReadPixels>(sdl_symbol("SDL_RenderReadPixels"));
-    p_DestroyTexture = reinterpret_cast<pfn_DestroyTexture>(sdl_symbol("SDL_DestroyTexture"));
-    p_GetRendererOutputSize = reinterpret_cast<pfn_GetRendererOutputSize>(sdl_symbol("SDL_GetRendererOutputSize"));
-    p_SetRenderDrawColor = reinterpret_cast<pfn_SetRenderDrawColor>(sdl_symbol("SDL_SetRenderDrawColor"));
-    p_RenderClear = reinterpret_cast<pfn_RenderClear>(sdl_symbol("SDL_RenderClear"));
-
-    if (p_CreateTexture && p_SetRenderTarget && p_RenderReadPixels &&
-        p_DestroyTexture && p_GetRendererOutputSize &&
-        p_SetRenderDrawColor && p_RenderClear) {
-        return true;
-    }
-
-    if (err) *err = "could not resolve required SDL2 render-target functions";
-    return false;
-#endif
-}
-
-#ifdef _WIN32
-class TemporaryRenderTarget {
-public:
-    bool begin(std::string* err = nullptr, int requested_w = 0, int requested_h = 0) {
-        if (!resolve_sdl(err))
-            return false;
-
-        auto enabler = df::global::enabler;
-        df::renderer* renderer = enabler ? enabler->renderer : nullptr;
-        if (!renderer) {
-            if (err) *err = "native map render target: no renderer";
-            return false;
-        }
-
-        sdl_ = renderer->get_renderer();
-        if (!sdl_) {
-            if (err) *err = "native map render target: get_renderer() returned null";
-            return false;
-        }
-
-        int w = 0;
-        int h = 0;
-        p_GetRendererOutputSize(sdl_, &w, &h);
-        if (w <= 0 || h <= 0) {
-            if (err) *err = "native map render target: bad renderer output size";
-            return false;
-        }
-        if (requested_w > 0) w = requested_w;
-        if (requested_h > 0) h = requested_h;
-
-        target_ = p_CreateTexture(sdl_, SDL_PIXELFORMAT_ARGB8888,
-                                  SDL_TEXTUREACCESS_TARGET, w, h);
-        if (!target_) {
-            if (err) *err = "native map render target: SDL_CreateTexture failed";
-            return false;
-        }
-
-        if (p_SetRenderTarget(sdl_, target_) != 0) {
-            p_DestroyTexture(target_);
-            target_ = nullptr;
-            if (err) *err = "native map render target: SDL_SetRenderTarget failed";
-            return false;
-        }
-
-        w_ = w;
-        h_ = h;
-        active_ = true;
-        return true;
-    }
-
-    bool clear(std::string* err = nullptr) {
-        if (!active_ || !sdl_) {
-            if (err) *err = "native map render target: target is not active";
-            return false;
-        }
-        if (p_SetRenderDrawColor(sdl_, 0, 0, 0, 0) != 0 || p_RenderClear(sdl_) != 0) {
-            if (err) *err = "native map render target: SDL_RenderClear failed";
-            return false;
-        }
-        return true;
-    }
-
-    bool read_frame(CapturedFrame& frame, std::string* err = nullptr) {
-        if (!active_ || !sdl_ || w_ <= 0 || h_ <= 0) {
-            if (err) *err = "native map render target: target is not active";
-            return false;
-        }
-        CapturedFrame next;
-        next.width = w_;
-        next.height = h_;
-        next.bgra.resize(static_cast<size_t>(w_) * h_ * 4);
-        int rc = p_RenderReadPixels(sdl_, nullptr, SDL_PIXELFORMAT_ARGB8888,
-                                    next.bgra.data(), w_ * 4);
-        if (rc != 0) {
-            if (err) *err = "native map render target: SDL_RenderReadPixels failed";
-            return false;
-        }
-        frame = std::move(next);
-        return true;
-    }
-
-    void reset() {
-        if (active_ && sdl_)
-            p_SetRenderTarget(sdl_, nullptr);
-        active_ = false;
-        if (target_) {
-            p_DestroyTexture(target_);
-            target_ = nullptr;
-        }
-        sdl_ = nullptr;
-        w_ = 0;
-        h_ = 0;
-    }
-
-    ~TemporaryRenderTarget() {
-        reset();
-    }
-
-private:
-    void* sdl_ = nullptr;
-    void* target_ = nullptr;
-    int w_ = 0;
-    int h_ = 0;
-    bool active_ = false;
-};
 
 bool resolve_render_map(std::string* err = nullptr) {
     if (g_render_map_mode != RenderMapMode::None)
@@ -403,14 +199,11 @@ bool resolve_render_map(std::string* err = nullptr) {
         return false;
     }
     const uintptr_t base = reinterpret_cast<uintptr_t>(exe);
-    // DF 53.15 (Steam) native map-render RVAs. Re-derived 2026-06-27 after DF updated
-    // 53.14 -> 53.15 (the engine moved this machine code, which silently broke per-player
-    // pan/zoom). The prologue signatures below are byte-identical across the two builds;
-    // only the addresses moved. Old 53.14 values kept in comments for reference.
-    const uintptr_t CLEAR_RVA = 0x8bcb60; // 53.14 was 0x8ba0f0
-    const uintptr_t SETUP_RVA = 0x801630; // 53.14 was 0x7febc0
-    const uintptr_t FILL_RVA = 0xe949e0;  // 53.14 was 0xe915c0
-    const uintptr_t BLIT_RVA = 0xaeead0;  // 53.14 was 0xaec020
+    // DF 53.16 (Steam) native map-render RVAs; the prologue probes below verify each one.
+    const uintptr_t CLEAR_RVA = 0x8be780;
+    const uintptr_t SETUP_RVA = 0x803250;
+    const uintptr_t FILL_RVA = 0xe9afe0;
+    const uintptr_t BLIT_RVA = 0xaf1190;
 
     struct Probe {
         uintptr_t rva;
@@ -432,7 +225,7 @@ bool resolve_render_map(std::string* err = nullptr) {
         if (std::memcmp(reinterpret_cast<const uint8_t*>(base + p.rva), p.sig, p.n) != 0) {
             if (err) {
                 *err = std::string("native map render: prologue mismatch for ") +
-                       p.name + " (binary differs from Steam 53.15)";
+                       p.name + " (binary differs from Steam 53.16)";
             }
             return false;
         }
@@ -440,7 +233,7 @@ bool resolve_render_map(std::string* err = nullptr) {
 
     uintptr_t map_renderer = core.vinfo->getAddress("map_renderer");
     if (!map_renderer)
-        map_renderer = base + 0x238f2c0; // DF 53.15 (was 0x2388300); normally resolved via the symbol above
+        map_renderer = base + 0x239a620; // DF 53.16 (was 0x238f2c0); normally resolved via the symbol above
 
     g_map_renderer_addr = map_renderer;
     g_exe_base = base;
@@ -450,7 +243,7 @@ bool resolve_render_map(std::string* err = nullptr) {
     p_NativeBlit = reinterpret_cast<pfn_NativeBlit>(base + BLIT_RVA);
     g_render_map_mode = RenderMapMode::NativeSequence;
     if (!g_warned_recovered_render_map.exchange(true)) {
-        diagnostics_log("DIAG: resolved DF 53.15 native map-render sequence "
+        diagnostics_log("DIAG: resolved DF 53.16 native map-render sequence "
                         "(clear/setup/fill/blit) -- independent map render, no UI state.");
     }
     return true;
@@ -909,11 +702,8 @@ void* tile_layer_ptr(df::graphic_viewportst* vp, int i) {
     }
 }
 
-// Copies the 26 layer arrays from a viewport that HAS JUST BEEN RENDERED (arrays populated &
-// valid). Reading these cold -- without render_map_for_current_window first -- was the SIGSEGV
-// in dwf_plug's tiledump callback (stale/null layer pointers). Every source pointer is
-// null-checked and every dereference is SEH-guarded; a null/faulting layer is written as zeros
-// so a legitimately-absent layer (scout: some are null per frame) never crashes the dump.
+// Only call this on a viewport that HAS JUST BEEN RENDERED. Reading these arrays cold -- without
+// render_map_for_current_window first -- SIGSEGVs on stale or null layer pointers.
 void fill_tile_layer_dump(df::graphic_viewportst* vp, TileLayerDump& out) {
     out.ok = false;
     if (!vp)
@@ -1016,7 +806,7 @@ bool draw_designation_grid_seh(df::graphic_viewportst* vp, const Camera& camera)
             }
         }
         ok = true;
-    } __except(dwf_seh_filter(GetExceptionInformation())) {
+    } __except(seh_filter(GetExceptionInformation())) {
         ok = false;
     }
     return ok;
@@ -1044,7 +834,7 @@ bool render_map_for_current_window(std::string* err = nullptr) {
         return false;
     }
 
-    TemporaryRenderTarget native_target;
+    TemporaryRenderTarget native_target("native map render target");
     std::string target_err;
     if (!native_target.begin(&target_err)) {
         if (err) *err = target_err;
@@ -1056,15 +846,20 @@ bool render_map_for_current_window(std::string* err = nullptr) {
 
     int fault = call_native_sequence_seh(g_map_renderer_addr);
     if (fault != 0) {
-        static const char* stage_name[] = {
-            "none", "clear(0x8bcb60)", "setup(0x801630)",
-            "fill(0xe949e0)", "blit(0xaeead0)"
+        static const char* stage_name[] = {"none", "clear", "setup", "fill", "blit"};
+        const uintptr_t stage_fn[] = {
+            0, reinterpret_cast<uintptr_t>(p_NativeClear),
+            reinterpret_cast<uintptr_t>(p_NativeSetup),
+            reinterpret_cast<uintptr_t>(p_NativeFill),
+            reinterpret_cast<uintptr_t>(p_NativeBlit),
         };
         static std::atomic<uint32_t> fault_count{0};
         if ((fault_count.fetch_add(1) % 600) == 0) {
             std::ostringstream msg;
             msg << "DIAG NATIVE FAULT @ stage " << fault << " "
-                << stage_name[fault] << ": code=0x" << std::hex << g_seh_code
+                << stage_name[fault] << "(exe+0x" << std::hex
+                << (stage_fn[fault] - g_exe_base) << ")"
+                << ": code=0x" << g_seh_code
                 << " ip=exe+0x" << (reinterpret_cast<uintptr_t>(g_seh_at) - g_exe_base)
                 << " access=0x" << reinterpret_cast<uintptr_t>(g_seh_access);
             diagnostics_log(msg.str());
@@ -1090,7 +885,7 @@ bool render_viewscreen_without_overlay(std::string* err = nullptr) {
         return false;
     }
 
-    TemporaryRenderTarget target;
+    TemporaryRenderTarget target("native map render target");
     std::string target_err;
     if (!target.begin(&target_err)) {
         if (err) *err = target_err;
@@ -1114,6 +909,8 @@ bool render_viewscreen_without_overlay(std::string* err = nullptr) {
 }
 #endif
 
+// Every call site is inside a #ifdef _WIN32 block, so on Linux this is an unused
+// internal-linkage function (-Wunused-function). Guard the definition to match its callers.
 #ifdef _WIN32
 bool host_interacting() {
     auto game = df::global::game;
@@ -1401,7 +1198,7 @@ bool clamp_camera(Camera& camera, std::string* err) {
         request->camera.z = std::max(0, std::min(request->camera.z, std::max(0, world->map.z_count - 1)));
         request->done.set_value(true);
 #ifdef _WIN32
-        } __except(dwf_seh_filter(GetExceptionInformation())) {
+        } __except(seh_filter(GetExceptionInformation())) {
             request->err = "SEH fault while clamping camera";
             request->done.set_value(false);
         }
@@ -1526,22 +1323,11 @@ bool capture_shifted(const Camera& camera, CapturedFrame& frame,
                      bool include_ui = true, std::string* err = nullptr,
                      bool restore_host_buffers = true,
                      TileLayerDump* layer_dump = nullptr) {
-    // capture_shifted always runs ON the render thread (via capture_camera_frame_on_render_thread,
-    // or the capture/capture-at commands' runOnRenderThread). Read the host camera DIRECTLY here:
-    // calling the marshaling read_host_camera() would queue ANOTHER render-thread task behind this
-    // one, which can never run while we're occupying the render thread -> 3s self-deadlock timeout
-    // ("timed out reading host camera on render thread") -> every frame fails -> black webview.
+    // Always runs ON the render thread, so read the host camera directly: read_host_camera() would
+    // queue another render-thread task behind this one, which can never run -> every frame black.
 #ifdef _WIN32
-    // HARD GATE (crash fix 2026-06-27): only run the native map render while a fortress map view
-    // is actually live. During title/load/save -- and especially world TEARDOWN when a fort is
-    // exited (top viewscreen becomes viewscreen_titlest / viewscreen_game_cleanerst) -- DF's MAIN
-    // thread frees the map + renderer while this render thread would still be reading them. That
-    // produced the null/wild-pointer "NATIVE FAULT @ fill/blit" entries in dwf.log AND, more
-    // seriously, a crash on DF's own main thread mid-teardown ("Advancing unit moves") that our
-    // SEH cannot catch (SEH only guards THIS thread; it can't stop the main thread from faulting
-    // on a map we race). getViewscreenByType<dwarfmodest>(0) scans the whole viewscreen stack, so
-    // it stays valid under menus/overlays during play and is null only when there is genuinely no
-    // live fort -- exactly the moments we must not touch the map.
+    // HARD GATE: only render the native map while a live fortress view exists. During
+    // title/load/save/teardown DF's MAIN thread frees the map under us, where SEH cannot help.
     if (!DFHack::Gui::getViewscreenByType<df::viewscreen_dwarfmodest>(0)) {
         if (err) *err = "no live fortress view (capture skipped during menu/load/teardown)";
         return false;
@@ -1555,10 +1341,11 @@ bool capture_shifted(const Camera& camera, CapturedFrame& frame,
     saved.x = *df::global::window_x;
     saved.y = *df::global::window_y;
     saved.z = *df::global::window_z;
-    // Warm the cross-thread host-camera cache (direct read, we ARE the render thread) so
-    // camera_for_player's fallback never marshals back here (client_state.cpp crash fix).
+    // Warm the host-camera cache so camera_for_player's fallback never marshals back here.
     note_host_camera(saved);
 
+    // Only ever READ inside the #ifdef _WIN32 restore block below, so on Linux it is a
+    // set-but-never-used local (-Wunused-but-set-variable). Guard it with its reader.
 #ifdef _WIN32
     bool needs_full_host_restore = false;
 #endif
@@ -1644,6 +1431,8 @@ bool capture_shifted(const Camera& camera, CapturedFrame& frame,
         if (err) *err = map_err;
         return false;
     }
+    // No assignment here: the variable no longer exists on this branch, and the restore block
+    // that reads it is Windows-only.
 #endif
 
 #ifdef _WIN32
@@ -1675,10 +1464,7 @@ bool capture_shifted(const Camera& camera, CapturedFrame& frame,
     }
 #endif
 
-    // WS2 T0: copy the tile-layer arrays HERE -- the map has been rendered for this window
-    // (render_map_for_current_window / viewscreen fallback above), so the screentexpos_* arrays
-    // are populated and valid, and we are still on the render thread before any restore. This is
-    // the same validated moment the interface-grid save/restore uses.
+    // The validated post-render moment: the arrays are populated and no restore has run yet.
 #ifdef _WIN32
     if (layer_dump && gps && gps->main_viewport)
         fill_tile_layer_dump(gps->main_viewport, *layer_dump);
@@ -1955,17 +1741,13 @@ bool capture_camera_jpeg(const Camera& camera, std::vector<uint8_t>& jpeg, std::
 bool capture_frame_with_tile_layers(const Camera& camera, CapturedFrame& frame,
                                     TileLayerDump& layers, std::string* err) {
 #ifdef _WIN32
-    // Marshal onto the render thread and run the SAME guarded capture path the live stream uses
-    // (capture_shifted: live-fort gate, window coords, ViewportZoomGuard, render_map). The layer
-    // arrays are copied inside it once the map is rendered, so they are never read cold.
     std::lock_guard<std::recursive_mutex> lock(g_capture_mutex);
     auto prom = std::make_shared<std::promise<bool>>();
     auto fut = prom->get_future();
     std::string local_err;
     DFHack::runOnRenderThread([&, prom]() {
         std::string e;
-        // Single-level capture only (no see-down compositing) so the frame and the layer arrays
-        // describe the same viewport at the same tick.
+        // Single-level capture (no see-down compositing) so frame and layers share one tick.
         bool ok = capture_shifted(camera, frame, true, &e, true, &layers);
         if (!ok)
             local_err = e;
@@ -2022,10 +1804,8 @@ bool capture_camera_jpeg_cached(const std::string& player, const Camera& camera,
     const auto now = std::chrono::steady_clock::now();
     const int32_t sim = current_sim_counter();
 
-    // Throttle floor: never re-render for one player more often than twice the cost of a
-    // render. Idle window: while the sim is paused/unticked and the camera is still, the
-    // map only changes through host edits (designations, zones), so a short reuse window
-    // keeps those visible within 250ms while making paused viewing nearly free.
+    // Throttle floor: never re-render for one player more often than twice a render's own cost.
+    // Idle reuse: while the sim is unticked and the camera still, only host edits change the map.
     const auto throttle = std::chrono::milliseconds(
         std::min(500, std::max(40, 2 * g_last_capture_ms.load())));
     constexpr std::chrono::milliseconds IDLE_REUSE(250);

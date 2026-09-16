@@ -134,11 +134,6 @@ void bake_sweep_submit_candidates(const std::vector<BakeSweepPoint>& points,
     g_auto_done = true;
 }
 
-bool bake_sweep_active() {
-    std::lock_guard<std::mutex> lock(g_mu);
-    return !g_steps.empty() || g_auto_pending || g_manual_pending;
-}
-
 void bake_sweep_tick(std::recursive_mutex& capture_mu) {
     Camera target;
     {

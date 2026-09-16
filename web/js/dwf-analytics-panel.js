@@ -19,34 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// WT13 "Fortress activity" -- a summonable analytics overview of what players have DONE.
-//
-// DATA LAYER (what actually exists, be precise): the plugin's AttributionRegistry (src/
-// attribution.cpp) stamps a creator name onto every web-issued mutation that returns a stable DF
-// id -- BUILDINGS (workshops/furnaces/furniture AND each tile of a multi-tile construction, so a
-// 10-tile wall = 10 building ids), STOCKPILES, ZONES (rooms), and manager WORK ORDERS. It is
-// exposed verbatim as GET /attrib = {world, buildings:{id:name}, orders, stockpiles, zones}.
-// This screen AGGREGATES that map CLIENT-SIDE (count ids per name per section) -- no server change.
-//
-// THE COUNTING WINDOW (stated honestly, in the UI too): the registry lives in plugin memory,
-// SESSION-ONLY. It survives a browser refresh (the server holds it), but it resets when the host
-// restarts Dwarf Fortress / reloads the plugin / switches world (attribution.cpp clears on a new
-// save_dir). So these are "since the fort was loaded" counts -- NOT all-time. analyticsWindowLabel()
-// says exactly that and it is rendered at the top of the panel.
-//
-// WHAT IS NOT TRACKED (honest gaps, surfaced as greyed "not tracked yet" rows, never faked):
-// dig/mining, tree-cutting, plant gathering, smoothing/engraving, item marking (forbid/dump/claim),
-// squad/military orders -- all are tile/item DESIGNATIONS with no stable object id to attribute, so
-// the registry never sees them. When the attribution layer grows to cover them, they graduate from
-// the gaps list to real columns.
-//
-// UI: built entirely from DWFUI (headerHtml + statTileHtml + barRowHtml + rowHtml) -- no hand-rolled
-// markup, no per-module palette (all colours live in web/css/dwf.css .an-* / .dwfui-*).
-//
-// The pure shapers (analyticsAggregate / analyticsWindowLabel + the ANALYTICS_* tables) take plain
-// JSON and return display structs with NO DOM/fetch dependency, so
-// tools/harness/analytics_fixture_test.mjs exercises them (incl. seeded-bad rows) offline. They are
-// node-exported at the bottom behind a browser-safe guard.
+// ---- Fortress activity: aggregates GET /attrib client-side into per-player counts. ----
+// The registry is SESSION-ONLY and resets when the host reloads, so these are "since the fort was loaded".
 
   // ---- pure data model (node-testable) --------------------------------------------------------
 
@@ -69,10 +43,8 @@
     { label: "Squad & military orders",         note: "not attributed yet" },
   ];
 
-  // Aggregate a /attrib payload (raw OR already attribParse'd -- same {world, buildings, ...} shape)
-  // into per-player counts. DEFENSIVE by design: counts only non-empty STRING creator names, so a
-  // garbage/partial payload (numeric or empty values, a missing section, null/42) yields an honest
-  // empty result and never throws or fabricates a count for an unknown creator.
+  // DEFENSIVE by design: only non-empty STRING creator names are counted, so a garbage or partial
+  // payload yields an honest empty result instead of a fabricated count.
   function analyticsAggregate(payload) {
     const src = (payload && typeof payload === "object") ? payload : {};
     const world = typeof src.world === "string" ? src.world : "";
@@ -133,22 +105,22 @@
 
   function _anUntrackedHtml(D) {
     const rows = ANALYTICS_UNTRACKED.map(u => D.rowHtml({
-      cls: "an-untracked-row", label: u.label,
-      sub: { text: u.note, cls: "an-untracked-note" },
-      trailing: `<span class="an-dash">—</span>`,
+      cls: "activity-untracked-row", label: u.label,
+      sub: { text: u.note, cls: "activity-untracked-note" },
+      trailing: `<span class="activity-dash">—</span>`,
     })).join("");
-    return `<div class="an-section-title">Not tracked yet</div>` +
-      `<div class="an-kinds">${rows}</div>`;
+    return `<div class="activity-section-title">Not tracked yet</div>` +
+      `<div class="activity-kinds">${rows}</div>`;
   }
 
   // Build the whole panel body from an aggregate. Pure string assembly (DOM-free besides DWFUI).
   function anRenderBody(agg) {
     const D = _anUI();
     if (!D) return "";
-    const windowLine = `<div class="an-window">${D.esc(analyticsWindowLabel())}</div>`;
+    const windowLine = `<div class="activity-window">${D.esc(analyticsWindowLabel())}</div>`;
     if (!agg || agg.empty) {
       return windowLine +
-        `<div class="an-empty">No tracked activity yet. Build something, designate a room, drop a ` +
+        `<div class="activity-empty">No tracked activity yet. Build something, designate a room, drop a ` +
         `stockpile, or queue a work order — it'll show up here.</div>` +
         _anUntrackedHtml(D);
     }
@@ -167,23 +139,23 @@
         sub: `${agg.fun.topBuilder.count} construction${agg.fun.topBuilder.count === 1 ? "" : "s"}`,
       }) : "",
     ].join("");
-    const tilesRow = `<div class="an-tiles">${tiles}</div>`;
+    const tilesRow = `<div class="activity-tiles">${tiles}</div>`;
     // Per-player leaderboard as proportional bar rows (bar = share of the busiest player's total).
     const max = agg.players[0].total || 1;
     const bars = agg.players.map(p => D.barRowHtml({
       label: p.name, value: p.total, max, tone: "gold",
       sub: _anBreakdown(p.counts),
     })).join("");
-    const board = `<div class="an-section-title">Who's been busy</div>` +
-      `<div class="an-board">${bars}</div>`;
+    const board = `<div class="activity-section-title">Who's been busy</div>` +
+      `<div class="activity-board">${bars}</div>`;
     // By-kind totals.
     const kindRows = ANALYTICS_KINDS.map(k => D.rowHtml({
-      cls: "an-kind-row", label: k.label,
-      sub: { text: k.blurb, cls: "an-kind-blurb" },
-      trailing: `<span class="an-kind-total">${agg.grand[k.key]}</span>`,
+      cls: "activity-kind-row", label: k.label,
+      sub: { text: k.blurb, cls: "activity-kind-blurb" },
+      trailing: `<span class="activity-kind-total">${agg.grand[k.key]}</span>`,
     })).join("");
-    const kinds = `<div class="an-section-title">By kind</div>` +
-      `<div class="an-kinds">${kindRows}</div>`;
+    const kinds = `<div class="activity-section-title">By kind</div>` +
+      `<div class="activity-kinds">${kindRows}</div>`;
     return windowLine + tilesRow + board + kinds + _anUntrackedHtml(D);
   }
 
@@ -197,11 +169,10 @@
     if (anShell || typeof document === "undefined") return anShell;
     const D = _anUI();
     const panel = document.createElement("div");
-    panel.className = "an-panel";
-    panel.style.display = "none";
-    const head = D ? D.headerHtml({ cls: "an-head", title: "Fortress activity", close: { title: "Close" } })
-      : `<div class="an-head">Fortress activity</div>`;
-    panel.innerHTML = `${head}<div class="an-body"></div>`;
+    panel.className = "activity-panel";
+    const head = D ? D.headerHtml({ cls: "activity-head", title: "Fortress activity", close: { title: "Close" } })
+      : `<div class="activity-head">Fortress activity</div>`;
+    panel.innerHTML = `${head}<div class="activity-body"></div>`;
     document.body.appendChild(panel);
     // Right-click anywhere closes (native DF convention, matching the combat log).
     panel.addEventListener("contextmenu", e => { e.preventDefault(); anClose(); });
@@ -210,12 +181,12 @@
     panel.addEventListener("click", e => {
       if (e.target.closest && e.target.closest("[data-bld-close]")) { e.preventDefault(); anClose(); }
     });
-    anShell = { panel, body: panel.querySelector(".an-body") };
+    anShell = { panel, body: panel.querySelector(".activity-body") };
     if (typeof window !== "undefined" && window.DFPanelFrame) {
       window.DFPanelFrame.register({
         key: "analytics", el: () => anShell && anShell.panel, title: "Fortress activity",
-        headSel: ".an-head", closable: true, resizable: { minW: 340, minH: 260 },
-        fillSel: ".an-body", persistOpen: false,
+        headSel: ".activity-head", closable: true, resizable: { minW: 340, minH: 260 },
+        fillSel: ".activity-body", persistOpen: false,
         defaultPos: (vw, vh) => ({ anchor: "tl", x: 80, y: 60, w: 460, h: 520 }),
         open: () => { if (!anOpen) openAnalyticsPanel(); },
         close: () => anClose(),
@@ -236,7 +207,7 @@
         const r = await fetch(`/attrib?t=${Date.now()}`, { cache: "no-store" });
         if (r.ok) state = await r.json();
       }
-    } catch (_) { /* keep the last paint; try again on the next tick */ }
+    } catch { /* retain the last paint; the open-panel timer retries next tick */ }
     if (!anShell) return;
     anShell.body.innerHTML = anRenderBody(analyticsAggregate(state));
   }
@@ -244,9 +215,10 @@
   function openAnalyticsPanel() {
     const shell = anEnsureShell();
     if (!shell) return;
-    shell.panel.style.display = "flex";
+    shell.panel.classList.add("activity-panel-open");
     anOpen = true;
-    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("analytics", true); } catch (_) {}
+    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("analytics", true); }
+    catch (err) { DwfErr.report("analytics.panel-open", err); }
     anLoad();
     if (!anTimer) anTimer = setInterval(() => { if (anOpen) anLoad(); }, 3000);
   }
@@ -254,8 +226,9 @@
   function anClose() {
     anOpen = false;
     if (anTimer) { clearInterval(anTimer); anTimer = null; }
-    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("analytics", false); } catch (_) {}
-    if (anShell) anShell.panel.style.display = "none";
+    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("analytics", false); }
+    catch (err) { DwfErr.report("analytics.panel-close", err); }
+    if (anShell) anShell.panel.classList.remove("activity-panel-open");
   }
 
   function toggleAnalyticsPanel() { if (anOpen) anClose(); else openAnalyticsPanel(); }

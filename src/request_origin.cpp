@@ -48,13 +48,4 @@ bool request_has_host_authority(const httplib::Request& req) {
     return origin_has_host_authority(request_origin(req));
 }
 
-const char* request_origin_name(RequestOrigin origin) {
-    switch (origin) {
-    case RequestOrigin::LocalHost: return "local-host";
-    case RequestOrigin::SupportedTunnel: return "supported-tunnel";
-    case RequestOrigin::RemotePlayer: return "remote-player";
-    default: return "untrusted-proxy-metadata";
-    }
-}
-
 } // namespace dwf

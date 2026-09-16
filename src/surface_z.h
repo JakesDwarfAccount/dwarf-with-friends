@@ -25,11 +25,6 @@
 
 namespace dwf {
 
-// df.d_basics.xml's complete canopy matrix is:
-//   TREE     x WALL/RAMP/BRANCH/TRUNK_BRANCH/TWIG
-//   MUSHROOM x WALL/RAMP/FLOOR (living and dead giant-mushroom caps)
-// Leaves are graphics on the tree-part tiletypes, not a separate tiletype material. Branches
-// are pathable in DF, but are not the ground surface that recenter/first-join should target.
 inline bool surface_z_skips_canopy(df::tiletype tile) {
     const auto material = DFHack::tileMaterial(tile);
     const auto shape = DFHack::tileShape(tile);

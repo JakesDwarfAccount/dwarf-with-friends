@@ -1,32 +1,26 @@
-// dwf - PAUSE-ANIM: server-driven pause-aware WORLD animation clock (B206)
+// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
 //
-// TX18 put miasma (and every other EVENT_FLOWS art) on the client's shared 4Hz animation
-// clock, and WB-15 put fire / water shimmer / machine frames / animated creatures on the GL
-// u_timeMs clock. BOTH of those clocks tick on WALL time (performance.now / Date.now), so they
-// kept animating while the GAME was paused -- The owner: "miasma animation does not stop when game is
-// paused". Native DF freezes every game-WORLD animation on pause (the whole model tick halts);
-// only UI feedback (status-icon blink, active-designation blink, cursor pulses, presence
-// cursors) keeps moving.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
 //
-// This module is the single source of truth for "how much wall time has been spent paused".
-// A world-animation clock is simply `wallMs - offset(wallMs)`:
-//   * offset() grows at exactly the wall rate WHILE paused, so subtracting it from ANY
-//     wall-rate clock (perf.now OR Date.now) freezes that clock -> the current frame is HELD.
-//   * on resume, the paused span is folded into `accumMs` once, so the world clock CONTINUES
-//     from the exact value it held -- no jump, no skipped frames.
-// Because offset() is a pure DURATION it is epoch-agnostic: the GL renderer (perf.now epoch)
-// and the canvas2d machine clock (Date.now epoch) can each subtract it correctly. The frozen
-// constant differs per epoch, but each animation is independent (floor(t/period) % frames), so
-// a constant per-clock offset is invisible; only the freeze + resume-continuity matter.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
 //
-// Pause STATE is the SERVER's, never a local button guess:
-//   * dwf-pause.js onPause() -> setPaused(msg.paused)  (WP-B pause-arbiter broadcast; the
-//     game is paused server-globally for every player, so this is authoritative + immediate);
-//   * dwf-unit-hud-notifications.js renderHud() -> setPaused(hud.paused) as the fallback
-//     for an old DLL with no broadcast, and to seed the state before the first broadcast.
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
-// Inert-graceful: if this module never loads, both renderers fall back to raw wall time (the
-// pre-B206 behaviour) -- offset() reads as 0, nothing throws.
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// dwf-animclock.js -- the pause-aware world animation clock: how much wall time has been spent
+// paused, so any wall-rate clock minus offset() freezes on pause and resumes without a jump.
 (function () {
   "use strict";
 
@@ -38,9 +32,8 @@
   var accumMs = 0;        // total wall time spent in COMPLETED paused spans (a pure duration)
   var pauseStartMs = 0;   // wall clock (pnow epoch) at the start of the CURRENT paused span
 
-  // Total wall time to subtract so paused spans don't advance the world clock. During an open
-  // pause span this includes the in-progress span (pnow()-pauseStartMs), which grows at the wall
-  // rate -- that is what freezes `wallMs - offset(wallMs)`.
+  // During an open pause span this includes the in-progress span, which grows at the wall rate -- that
+  // is what freezes `wallMs - offset(wallMs)`.
   function offset(wallMs) {
     if (!paused) return accumMs;
     var t = (typeof wallMs === "number" && isFinite(wallMs)) ? wallMs : pnow();

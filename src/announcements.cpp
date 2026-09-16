@@ -52,12 +52,6 @@ namespace {
 
 std::recursive_mutex g_reports_mutex;
 
-// Panel 1 (announcements/reports) gap per the WS3 plan: /notifications already exposes the
-// alert stack + a flat `recent` dump of world->status.reports, but nothing lets the client
-// page through the full log incrementally or ask for one category only. This file is a
-// self-contained read-only provider for that -- it does not touch notifications.cpp/.h, it
-// just walks the same df::report source the same way copy_report()/append_report_json() do.
-
 int alert_type_for_report(df::report* report) {
     if (!report)
         return static_cast<int>(df::announcement_alert_type::GENERAL);
@@ -99,14 +93,7 @@ std::string resolve_histfig_references(std::string text) {
     return text;
 }
 
-bool valid_pos(df::world* world, const df::coord& pos) {
-    return world && pos.x >= 0 && pos.y >= 0 && pos.z >= 0 &&
-        pos.x < world->map.x_count &&
-        pos.y < world->map.y_count &&
-        pos.z < world->map.z_count;
-}
-
-ReportEntry copy_report_entry(df::world* world, df::report* report) {
+ReportEntry copy_report_entry(df::world* /*world*/, df::report* report) {
     ReportEntry out;
     if (!report)
         return out;
@@ -124,11 +111,12 @@ ReportEntry copy_report_entry(df::world* world, df::report* report) {
     out.year = report->year;
     out.time = report->time;
     out.zoom_type = static_cast<int>(report->zoom_type);
-    out.has_pos = report->zoom_type != df::report_zoom_type::NONE && valid_pos(world, report->pos);
+    // -30000 is DF's off-map x sentinel; zoom_type is recenter payload, not an availability test
+    out.has_pos = report->pos.x != -30000;
     if (out.has_pos)
         out.pos = Camera{report->pos.x, report->pos.y, report->pos.z};
     out.zoom_type2 = static_cast<int>(report->zoom_type2);
-    out.has_pos2 = report->zoom_type2 != df::report_zoom_type::NONE && valid_pos(world, report->pos2);
+    out.has_pos2 = report->pos2.x != -30000;
     if (out.has_pos2)
         out.pos2 = Camera{report->pos2.x, report->pos2.y, report->pos2.z};
     out.activity_id = report->activity_id;
@@ -139,11 +127,7 @@ ReportEntry copy_report_entry(df::world* world, df::report* report) {
     return out;
 }
 
-// B232. The whole classification cost per examined report: two array indexes and (only for a Misc
-// row) a walk of a 16-entry rescue table. No allocation, no string work, no DF call -- which is the
-// entire reason the taxonomy is BAKED (announce_taxonomy.gen.h) rather than parsed at runtime.
-// The EXPENSIVE part of a page is copy_report_entry (translateName + std::string), and that is
-// bounded by max_reports, never by the size of the fort's log.
+// Keep this allocation-free and DF-call-free: it runs once per EXAMINED report, up to scan_budget.
 inline bool report_matches(df::report* report, const ReportsQuery& query) {
     const int type = static_cast<int>(report->type);
     const int alert = alert_type_for_report(report);
@@ -168,9 +152,6 @@ bool build_reports_page(const ReportsQuery& query, ReportsPage& page, std::strin
     page.total_reports = static_cast<int32_t>(reports.size());
     page.next_before_id = query.before_id;
 
-    // Optional counts pass. O(N) but each entry costs the two array indexes above -- no copies,
-    // no strings. This is what the chips are built from, and the client asks for it ONCE (on open),
-    // not on every 2s poll.
     if (query.want_counts) {
         page.has_counts = true;
         for (size_t i = 0; i < reports.size(); ++i) {
@@ -184,15 +165,8 @@ bool build_reports_page(const ReportsQuery& query, ReportsPage& page, std::strin
         }
     }
 
-    // Reports are id-ordered ascending in this vector. Walk BACKWARD from `before_id` (or from the
-    // end), collecting newest-first, then reverse. Backward is the right direction for both jobs:
-    // the newest page is the one the screen opens on, and "load older" is just another step back.
-    //
-    // CONTINUATION TAILS. DF wraps a long message (every real combat line) into a LEAD report
-    // followed by continuation reports. The old code matched on any entry, so a page could begin
-    // mid-sentence with an orphan continuation line -- which is precisely why combat read as a wall
-    // of fragments. Here only a LEAD can match, and when one does we pull its whole continuation run
-    // forward with it. Tails do NOT count against max_reports: a message arrives whole or not at all.
+    // Only a LEAD may match: matching a continuation report would start a page mid-sentence.
+    // Its tail is pulled forward with it and does NOT count against max_reports.
     std::vector<ReportEntry> collected; // newest-first, each element a whole message's worth
     int matched_leads = 0;
     for (size_t i = reports.size(); i-- > 0;) {
@@ -211,11 +185,8 @@ bool build_reports_page(const ReportsQuery& query, ReportsPage& page, std::strin
         const bool is_candidate =
             !report->flags.bits.continuation && report_matches(report, query);
 
-        // ORDER IS LOAD-BEARING. The full-page break happens BEFORE this entry is consumed, so
-        // next_before_id is never advanced past a report we did not return. Advancing it here would
-        // silently DROP that report: the next `before=` page starts below it and nobody ever sees
-        // it. (This is exactly what the first draft did, and what the paging fixture caught -- one
-        // report vanished at every page boundary.)
+        // ORDER IS LOAD-BEARING: break BEFORE consuming this entry. Advancing next_before_id past a
+        // report we did not return drops it -- the next `before=` page starts below it.
         if (is_candidate && matched_leads >= query.max_reports) {
             page.truncated = true;
             break;
@@ -230,9 +201,7 @@ bool build_reports_page(const ReportsQuery& query, ReportsPage& page, std::strin
             continue;
         ++matched_leads;
 
-        // The lead, then its continuation tail in forward order -- pushed reversed here because
-        // `collected` is newest-first and gets reversed wholesale below. Tails are FREE: they do
-        // not count against max_reports, so a message always arrives whole.
+        // pushed reversed here because `collected` is newest-first and gets reversed wholesale below
         std::vector<ReportEntry> message;
         message.push_back(copy_report_entry(world, report));
         for (size_t j = i + 1; j < reports.size(); ++j) {
@@ -291,10 +260,7 @@ void append_report_entry_json(std::ostringstream& body, const ReportEntry& repor
     body << ",\"activityId\":" << report.activity_id
          << ",\"activityEventId\":" << report.activity_event_id
          << ",\"speakerId\":" << report.speaker_id;
-    // B232: the section is resolved SERVER-SIDE and shipped, so the client never re-derives it
-    // (and so `section=` filtering + paging can agree with what the rows actually say). `box` and
-    // `alert` are the two flags the screen renders as badges -- DF's own "this one stopped the game"
-    // and "this one lit the alert button" marks.
+    // Shipped resolved so the client never re-derives it and `section=` filtering agrees with the rows.
     const int section = (report.section >= 0 && report.section < taxonomy::SECTION_COUNT)
         ? report.section : taxonomy::SECTION_MISC;
     body << ",\"section\":" << json_string(taxonomy::SECTION_INFO[section].key)
@@ -317,10 +283,6 @@ std::string unit_log_key(int log_type) {
     return DFHack::enum_item_key(static_cast<df::unit_report_type>(log_type));
 }
 
-// COMBAT-LOG DEPTH: resolve a unit's Combat/Sparring/Hunting logs into whole (continuation-joined)
-// report entries. unit.reports.log[type] holds LEAD report ids only; we walk world.status.reports
-// once, opening a run at each wanted lead and attaching its continuation tail so multi-line combat
-// messages arrive complete. max_reports caps the number of LEADS (tails never count against it).
 bool build_unit_reports_page(int32_t unit_id, int log_filter, int32_t since_id,
                              int max_reports, UnitReportsPage& page, std::string* err) {
     auto world = df::global::world;
@@ -341,8 +303,7 @@ bool build_unit_reports_page(int32_t unit_id, int log_filter, int32_t since_id,
     }
     page.unit_found = true;
 
-    // Wanted lead ids from the requested log(s). unit_report_type has 3 valid values (0..2);
-    // if the same id appears in two logs the first (lowest-index) log wins.
+    // if the same id appears in two logs, the lowest-index log wins
     std::unordered_map<int32_t, int> lead_log;
     const int n_logs = 3;
     for (int lt = 0; lt < n_logs; ++lt) {
@@ -615,13 +576,6 @@ int resolve_section_param(const httplib::Request& req) {
 }
 
 void register_reports_routes(httplib::Server& server) {
-    // B232 -- the full announcements/reports SCREEN's route. Same path, superset of params:
-    //   since=<id>      follow the tail (new since last poll)          [pre-existing]
-    //   before=<id>     BACKFILL: the page OLDER than this id          [new -- the whole log]
-    //   section=<key>   combat|sieges|artifacts|trade|nobles|deaths|misc|all   [new]
-    //   category=<n|k>  announcement_alert_type filter                 [pre-existing]
-    //   counts=1        include per-section totals for the chips       [new]
-    //   max=<n>         cap on MESSAGES (1..500); continuation tails are free
     server.Get("/reports", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         ReportsQuery query;
@@ -650,7 +604,6 @@ void register_reports_routes(httplib::Server& server) {
         res.set_content(reports_json(player, page), "application/json; charset=utf-8");
     });
 
-    // COMBAT-LOG DEPTH: per-unit Combat/Sparring/Hunting log, continuation-joined, live-followable.
     server.Get("/combat-reports", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         int unit_id = -1;

@@ -28,10 +28,7 @@
 #include <vector>
 
 #include "client_state.h"
-// capture_state_mutex() lives in sdl_capture.h -- taken BEFORE the CoreSuspender, in the same order
-// every other read route uses (see status_truth.cpp's note on why omitting it only breaks at the
-// orchestrator build, since this file compiles nowhere in the agent worktree).
-#include "sdl_capture.h"
+#include "sdl_capture.h"   // capture_state_mutex()
 #include "json_util.h"
 #include "unit_status.h"
 
@@ -55,11 +52,8 @@ namespace dwf {
 
 namespace {
 
-// The 41 UNIT_STATUS rows, in the game's own sheet order (spec §2.1 -- verbatim from
-// data/vanilla/vanilla_interface/graphics/graphics_interface.txt:2439-2479). Row index == sheet
-// row == index into the UNIT_STATUS page's texpos vector, so this names a texpos hit for free.
-// This is the ONLY place the harvest hard-codes the row order; the runtime texpos VALUES are always
-// re-read from df.global.texture per session (spec: "contiguity is an observation, not a contract").
+// The UNIT_STATUS rows in the game's own sheet order: row index == sheet row == index into the
+// UNIT_STATUS page's texpos vector. Reordering this array misnames every harvested texpos hit.
 const char* const kUnitStatusRowNames[] = {
     "MIGRANT", "NO_JOB", "NO_DESTINATION", "HUNGRY", "THIRSTY", "DROWSY", "STRESSED", "DISTRACTED",
     "SLEEPING", "FEY_MOOD", "POSSESSED", "SECRETIVE_MOOD", "FELL_MOOD", "MACABRE_MOOD", "TANTRUM",
@@ -75,7 +69,6 @@ std::string row_name(int row) {
     return kUnitStatusRowNames[row];
 }
 
-// Pack a map tile into one key so units can be found by position in O(1).
 inline int64_t tile_key(int x, int y, int z) {
     return (static_cast<int64_t>(z) << 42) ^ (static_cast<int64_t>(y) << 21) ^ static_cast<int64_t>(x);
 }
@@ -90,13 +83,12 @@ struct Hit {
     int dy_off;          // vertical offset unit-minus-bubble that matched: +1 (0,-1) or 0 (0,0)
 };
 
-// Scan one screentexpos_* array for values in the UNIT_STATUS texpos set. Column-major, bounds-safe.
 void scan_layer(const char* name, const int32_t* arr, int dim_x, int dim_y,
                 const std::unordered_map<long, int>& texpos_row, std::vector<Hit>& out) {
     if (!arr || dim_x <= 0 || dim_y <= 0) return;
     for (int x = 0; x < dim_x; ++x) {
         for (int y = 0; y < dim_y; ++y) {
-            long v = arr[x * dim_y + y];   // idx = x*dim_y + y  (spec §3.A, live-probe pinned)
+            long v = arr[x * dim_y + y];   // DF stores these grids column-major
             if (v <= 0) continue;
             auto it = texpos_row.find(v);
             if (it == texpos_row.end()) continue;
@@ -127,7 +119,7 @@ std::string build_status_harvest_json() {
     const int dim_x = vp->dim_x;
     const int dim_y = vp->dim_y;
 
-    // ---- 1) the live UNIT_STATUS texpos map (spec §2.2). Re-read EVERY call -- never baked. --------
+    // ---- 1) the live UNIT_STATUS texpos map -- re-read every call, never baked -------------------
     std::unordered_map<long, int> texpos_row;   // global texture id -> sheet row
     std::vector<long> page_texpos;
     bool page_loaded = false;
@@ -144,19 +136,15 @@ std::string build_status_harvest_json() {
     }
 
     // ---- 2) scan the pinned layers for painted UNIT_STATUS cells (passive read; no re-render) ------
-    // Spec §3.A step 1 pins the DESIGNATION layer as where the bubbles land; the creature layer is
-    // scanned too because on-tile markers (GROUNDED at offset (0,0)) can share the sheet and DF may
-    // route them differently. Both are the arrays DF already filled this frame.
     std::vector<Hit> hits;
     scan_layer("designation", vp->screentexpos_designation, dim_x, dim_y, texpos_row, hits);
     scan_layer("screentexpos", vp->screentexpos, dim_x, dim_y, texpos_row, hits);
 
     // ---- 3) index units at the current z, then attribute each hit ----------------------------------
-    // Bubbles render one tile ABOVE the unit (offset (0,-1)) OR on the unit's own tile (offset (0,0)
-    // for on-tile markers). So for a cell at map (mx,my) the unit is at (mx,my+1) first, else (mx,my).
+    // Bubbles paint one tile ABOVE the unit, or on the unit's own tile for on-tile markers.
     std::unordered_map<int64_t, df::unit*> units_at;
     for (df::unit* u : world->units.active) {
-        if (!u || !DFHack::Units::isAlive(u)) continue;
+        if (!unit_is_map_present(u) || !unit_is_animate(u)) continue;
         if (u->pos.z != win_z) continue;
         units_at[tile_key(u->pos.x, u->pos.y, u->pos.z)] = u;
     }

@@ -49,20 +49,25 @@ flowchart TD
 | `web/js/` | The client's plain-script modules. See [web/js/README.md](../web/js/README.md). |
 | `host/` | Zero-dependency Node installer and host-management UI. See [host/README.md](../host/README.md). |
 | `scripts/` | DFHack Lua entry points installed beside the plugin. See [scripts/README.md](../scripts/README.md). |
+| `lua/` | The plugin's own Lua module tree, bundled into `dwf.lua` by `tools/lua/`. |
 | `dwf.lua` | The plugin's Lua module, installed to `hack/lua/plugins/dwf.lua`; hosts the guarded native-write engine. |
-| `tools/` | Offline builders, the test harness and gates, release packaging, and investigation utilities. See [tools/README.md](../tools/README.md). |
-| `third_party/` | Vendored dependencies. Currently only `cpp-httplib` (the embedded HTTP/WebSocket library). |
-| `docs/` | Architecture, build, install, configuration, naming, and this map. |
+| `tools/` | Source checks, asset maintenance, and packaging. |
+| `third_party/` | Vendored dependencies: `cpp-httplib` (the embedded HTTP/WebSocket library) and `stb` (`stb_image_write.h`, the non-Windows PNG encoder). |
+| `docs/` | Player guides, developer reference, and release notes. See [the index](README.md). |
+| `media/` | Images the README and release notes embed. Product surface, not evidence. |
+| `build-logs/` | Retained build evidence, and the one place a `.log` is source. Driver: `build-logs/build.ps1`. |
+| `.github/` | Everything GitHub reads: CI workflows, issue and pull-request templates, and the community-health files. |
 | `CMakeLists.txt` | Declares the external plugin target `dfcapture_public` with output name `dwf` (so the built artefact is `dwf.plug.dll`). |
 | `AGENTS.md` | Mandatory safety contract for anyone changing the code. |
 
-## `src/` — the C++ plugin
+## `src/`: the C++ plugin
 
 Every file carries the AGPL-3.0 header; purposes below come from each file's banner comment or,
 where none exists, its leading code. `dwf.cpp` is the entry point: `DFHACK_PLUGIN("dwf")`,
 `plugin_init` (registers the `capture-*` console commands), and `plugin_shutdown`. The HTTP server
 starts separately in `http_server.cpp` and fans route registration out to the many
-`register_*_routes()` modules.
+`register_*_routes()` modules. [src/README.md](../src/README.md) groups the same files by domain
+with a one-line role each; the tables here carry the depth.
 
 ### Server, transport, and web serving
 
@@ -78,13 +83,16 @@ starts separately in `http_server.cpp` and fans route registration out to the ma
 | `oracle_routes.cpp/.h` | Harness-only test routes: `/host-state`, `/zoom-probe`, `/frame.jpg`, `/tiledump`. |
 | `sound_route.cpp/.h` | Serves the host's own DF soundtrack as ranged Ogg behind a remote-play licensing gate; wires `/music`. |
 | `music_sync.cpp/.h` | Server-authoritative synced music state (one canonical track and elapsed time for all clients). |
-| `json_util.cpp/.h`, `route_helpers.h` | JSON escaping and query-param helpers; small shared route helpers. |
+| `json_util.cpp/.h`, `json_mini.cpp/.h`, `route_helpers.h` | JSON escaping and query-param helpers; the minimal JSON reader (`Doc`/`Value`) for config and request bodies; small shared route helpers. |
+| `api_result.h`, `api_response.h` | `ApiResult<T>` (a value or a `{status, code, message}` error, no exceptions) and the helper that writes such a failure to the HTTP response. |
+| `request_origin.cpp/.h` | Classifies a request as loopback, forwarded, or remote. The single source of host authority; host-only routes ask it rather than re-testing the peer IP. |
+| `render_thread_wait.h` | Bounded wait for `runOnRenderThread` marshals: an unbounded `future.get()` deadlocks against `plugin_shutdown`, so every marshal a route can reach uses this. |
 
 ### World read, serialization, and render capture
 
 | File | Purpose |
 |---|---|
-| `sdl_capture.cpp/.h` | The live camera model, render-thread coordination, capture locking, and the retained JPEG parity oracle. Owns `capture_state_mutex`. Not merely a screenshot module — see NAMING.md. |
+| `sdl_capture.cpp/.h` | The live camera model, render-thread coordination, capture locking, and the retained JPEG parity oracle. Owns `capture_state_mutex`. Not merely a screenshot module: see NAMING.md. |
 | `tile_map_dump.cpp/.h` | Crash-safe tile streaming through stable map APIs to the older `wire:1` JSON `/mapdata` fallback. |
 | `tile_dump.cpp/.h` | Render-buffer/atlas oracle tooling: one frame's tile-layer arrays plus a ground-truth PNG. |
 | `image_encoder.cpp/.h` | Frame encoding to JPEG/PNG/BMP (GDI+ on Windows). |
@@ -93,13 +101,16 @@ starts separately in `http_server.cpp` and fans route registration out to the ma
 | `overlay_control.cpp/.h` | Disables and restores the DFHack `overlay` plugin while streaming. |
 | `hud.cpp/.h` | The fort name/site/rank/population/happiness/food HUD payload. |
 | `bake_sweep.cpp/.h`, `portrait_sweep.cpp/.h`, `unit_portrait.cpp/.h`, `unit_sprites.cpp/.h` | Paced, offscreen unit-portrait and per-unit-composite generation that never unpauses DF. |
-| `camera.h`, `frame.h`, `surface_z.h`, `unit_status.h`, `unit_status_words.h` | Small shared structs and helpers (viewport, captured frame, recenter-surface, overhead-status bitfields). |
+| `texpos_conformance.cpp/.h` | `GET /texpos-conformance`: every texture position the loaded world stamped onto its own raws, plus the tile-page table that turns a texpos back into a (sheet, col, row) cell: so client art choices can be graded against native instead of against our own maps. |
+| `sdl_dlsym.h` | Linux/macOS twin of the Windows SDL symbol lookups; resolves SDL2 render functions from the copy the game already loaded and never loads a second one. |
+| `camera.h`, `frame.h`, `surface_z.h`, `tile_material.h`, `unit_status.h`, `unit_status_words.h`, `unit_face.h` | Small shared structs and helpers (viewport, captured frame, recenter-surface, tile material with construction precedence, overhead-status bitfields, happiness face). |
 
 ### Per-family gameplay panels and routes
 
 | File | Purpose |
 |---|---|
 | `squads.cpp/.h` | Military squad routes. |
+| `squad_emblem.cpp/.h` | Host-side emblem roll: calls native's own random-emblem generator (exe-pinned) so a squad no browser client ever drew still has native's symbol and colours persisted. |
 | `stockpile_panel.cpp/.h` | Stockpile info/rename/remove/links/storage/category/repaint. |
 | `building_zone.cpp/.h` | Building and civic-zone inspect panel and zone routes. |
 | `burrows_panel.cpp/.h` | Burrows panel, routes, and change broadcast. |
@@ -114,9 +125,11 @@ starts separately in `http_server.cpp` and fans route registration out to the ma
 | `fort_admin.cpp/.h` | Nobles/administrators, justice, and petitions/agreements routes. |
 | `hauling.cpp/.h`, `lever_link.cpp/.h` | Hauling-route panel; lever-linkage routes. |
 | `placement.cpp/.h` | Designation and building-placement routes. |
-| `worldmap_panel.cpp/.h`, `missions.cpp/.h` | World-map overlay routes; missions/raids screen. |
+| `worldmap_panel.cpp/.h`, `missions.cpp/.h`, `world_site_readonly.h` | World-map overlay routes; missions/raids screen (`/mission-create` validates, then refuses behind a deliberate compile-time guard); the pinned site subtype. |
+| `machines.cpp/.h` | `GET /machines`: DF's own power networks, read-only. Power totals are running sums DF maintains incrementally, so this module never writes them. |
+| `siege_engines.cpp/.h` | One siege engine's state, its action mode, and the bolt thrower's resting facing. |
 | `interaction.cpp/.h`, `interaction_route.h` | The `/inspect` click resolver and surface-click routing precedence. |
-| `art_desc.cpp/.h`, `fort_stock.h` | Dwarven-art prose sourced only from DF fields; a shared include-aggregator header. |
+| `art_desc.cpp/.h`, `fort_stock.h` | Dwarven-art prose sourced only from DF fields; the shared item ownership-and-eligibility predicates, one named purpose per caller family. |
 
 ### Guards, auth, pause, and multiplayer coordination
 
@@ -125,7 +138,8 @@ starts separately in `http_server.cpp` and fans route registration out to the ma
 | `write_guards.cpp/.h` | C++ binding of the fail-closed `dfcapture-hostwrites.json` guards and the `/write-guards` and `/console-config` routes. |
 | `auth.cpp/.h` | Join security: shared-passphrase gate and the version-mismatch build stamp. |
 | `pause_arbiter.cpp/.h` | Debounces and merges pause requests, auto-pauses on player leave, and broadcasts saving/busy state. |
-| `vote.cpp/.h` | Fortress-elevation vote state and native land-holder-offer detection. |
+| `save_barrier.cpp/.h` | Holds plugin work off from DFHack's pre-save callback until DF has finished serializing world memory. |
+| `ui_cache_purge.cpp/.h` | Clears the raw `df::building*` values DF's v50 sub-interfaces cache, so a deconstruct issued from the browser cannot leave the renderer virtual-calling a freed object. |
 | `client_state.cpp/.h` | Per-player camera cache and follow-target state. |
 | `attribution.cpp/.h` | Records which player created each building/order/stockpile/zone; surfaced via `/attrib`. |
 
@@ -141,12 +155,11 @@ starts separately in `http_server.cpp` and fans route registration out to the ma
 | `chat.cpp/.h`, `notifications.cpp/.h`, `announcements.cpp/.h`, `announce_taxonomy.gen.h` | Chat relay and scrollback; announcement-alert feed; the reports/announcements log and its generated taxonomy. |
 | `native_popup.cpp/.h`, `diplo.cpp/.h` | Mirrors of DF's native modal popups (readable and dismissable in the browser); the petitions/diplomacy detector. |
 
-## `web/js/` — the browser client
+## `web/js/`: the browser client
 
 These are classic `<script>` files, not ES modules: each registers a global (an IIFE namespace
 object such as `DwfWS`, or plain functions dropped into global scope). Load order is fixed by the
-`<script>` tag order in `web/index.html`; there is no bundler and no `import`. `dwf-texture-lab.js`
-is a standalone dev tool that `index.html` does not load.
+`<script>` tag order in `web/index.html`; there is no bundler and no `import`.
 
 ### Core and bootstrap
 
@@ -162,7 +175,8 @@ is a standalone dev tool that `index.html` does not load.
 | `dwf-gl.js`, `dwf-gl-atlas.js` | The WebGL2 instanced-quad renderer and its texture-array atlas packer. | `DwfGL`, `DwfGLAtlas` |
 | `dwf-join.js` | Join security and version-mismatch gate; boots the app through the join screen. | `DwfJoin`, `DwfAuth` |
 | `dwf-interface-shell.js`, `dwf-control-shell.js` | Declarative markup for the persistent fortress chrome and the bottom toolbar/designation rows. | `DwfInterfaceShell`, `DwfControlShell` |
-| `dwf-controls-placement.js` | The live controller for the toolbar, designation tools, placement, burrow mode, and squad orders. | `DFPlacementArmed`, `DFClientPrefs` |
+| `dwf-map-chrome-controls.js`, `dwf-designation-controls.js`, `dwf-tool-mode-controller.js` | Persistent map chrome, designation/tool state, keyboard dispatch, and the one-level back-out controller. | `DFPlacementController`, `DFBackOut`, `DFClientPrefs` |
+| `dwf-stockpile-placement.js`, `dwf-zone-placement.js`, `dwf-burrow-panel.js`, `dwf-hauling-panel.js`, `dwf-map-target-modes.js`, `dwf-map-placement-input.js`, `dwf-map-hover.js` | Family placement/target modes, the central pointer dispatcher, and map hover. | `DFPlacementArmed`, `DFStockRepaint`, `DFZoneRepaint`, `DFBurrowSync` |
 | `dwf-chrome.js` | Interface-sprite blit helper reading `interface_map.json`. | `DFChrome` |
 
 ### Render and text primitives
@@ -172,34 +186,45 @@ is a standalone dev tool that `index.html` does not load.
 `dwf-df-markup.js` (DF colour-markup parser), `dwf-overlay-boxes.js` and `dwf-burrow-overlay.js`
 (building and burrow tile overlays), `dwf-weather.js` (rain/snow ambience).
 
+One module owns each rule that canvas2d and WebGL2 must answer identically, so the two renderers
+cannot drift: `dwf-grid.js` (cells to pixels), `dwf-edge-overgrowth.js` (floor-family overgrowth),
+`dwf-grass-selection.js` (grass body selection), `dwf-terrain-variant.js` (native terrain variant),
+`dwf-gem-variant.js` (runtime-composited cut gems). Input has the same shape:
+`dwf-mode-stack.js` (the close law and back-out ladder), `dwf-gesture.js` (rectangle gestures),
+`dwf-drag-preview.js` (drag preview), `dwf-paint-session.js` (paint/repaint session state),
+`dwf-safety.js` (the safety-and-honesty foundations). Boot and join add `dwf-boot-health.js` (the
+client's own load-failure honesty layer), `dwf-auth-gate.js` (holds protected fetches until
+`DwfJoin` validates), and `dwf-digest.js` (the join-time "since you left" digest).
+
 ### Family ownership
 
 Each gameplay family is owned by one module (some panels delegate to sub-panels):
 
 | Family | Owning module(s) |
 |---|---|
-| Squads / military | `dwf-squads.js` (orders issued from `dwf-controls-placement.js`) |
-| Buildings / build menu | `dwf-build-info-panels.js`, `dwf-building-zone-stockpile-panels.js`, `dwf-menu-tree.js` |
-| Zones / stockpiles | `dwf-building-zone-stockpile-panels.js` (boxes from `dwf-overlay-boxes.js`) |
+| Squads / military | `dwf-squad-panel.js` (overview/orders), `dwf-squad-positions.js`, `dwf-squad-equipment.js`, `dwf-squad-schedule.js`, `dwf-squad-emblem.js`, `dwf-squad-burrow-order.js`, and `dwf-squad-patrol-order.js` (map orders from `dwf-map-target-modes.js`) |
+| Buildings / build menu | `dwf-build-panel.js`, `dwf-building-panel.js`, `dwf-machine-panel.js`, `dwf-siege-engine-panel.js`, `dwf-farm-plot-panel.js`, `dwf-lever-link-panel.js`, `dwf-workshop-panel.js`, `dwf-menu-tree.js` |
+| Information panels | `dwf-info-panel.js`, `dwf-creatures-panel.js`, `dwf-vermin-panel.js`, `dwf-planned-engraving-panel.js`, `dwf-item-panel.js`, `dwf-stocks-panel.js`, `dwf-tasks-panel.js` |
+| Zones / stockpiles | `dwf-zone-panel.js`, `dwf-stockpile-panel.js`, `dwf-stockpile-settings.js` (boxes from `dwf-overlay-boxes.js`) |
 | Kitchen | `dwf-kitchen.js` |
 | Hospital | `dwf-hospital-panel.js` |
 | Trade | `dwf-tradedepot-panel.js` (depot), `dwf-tradescreen.js` (barter) |
-| Labor and work orders | `dwf-labor-work-orders.js` |
+| Labor and work orders | `dwf-labor-details.js` (work details), `dwf-standing-orders.js` (standing orders), `dwf-stone-use.js` (stone use), `dwf-work-orders.js` (manager work orders) |
 | Nobles / justice / petitions | `dwf-fort-admin.js`, `dwf-obligations.js`, `dwf-diplo.js` |
 | Locations | `dwf-location-panel.js` (camera bookmarks in `dwf-hotkeys.js`) |
-| Announcements / reports | `dwf-announcements.js`, `dwf-unit-hud-notifications.js`, `dwf-popup.js`, `dwf-combatlog-panel.js` |
-| World map / 3D view | `dwf-worldmap.js`; `dwf-world3d.js` with `dwf-world3d-model.js`, `dwf-voxelizer.js`, `dwf-voxel-mesh.js` |
+| Announcements / reports | `dwf-announcements.js`, `dwf-announcement-viewer.js`, `dwf-local-panel-router.js`, `dwf-popup.js` (formatting in `dwf-announcement-format.js`, generated token table in `dwf-announce-taxonomy.js`) |
+| World map / 3D view / missions | `dwf-worldmap.js`, `dwf-missions.js`; `dwf-world3d.js` with `dwf-world3d-model.js`, `dwf-voxelizer.js`, `dwf-voxel-mesh.js` |
 | Help | `dwf-help-panel.js` (data in `dwf-help-corpus.js`, `dwf-help-curated.js`); `dwf-keymap.js` |
-| Chat / lobby / vote / console / analytics | `dwf-chat.js`, `dwf-lobby.js`, `dwf-vote.js`, `dwf-console-panel.js`, `dwf-analytics-panel.js` |
+| Chat / lobby / console / analytics | `dwf-chat.js`, `dwf-lobby.js`, `dwf-console-panel.js`, `dwf-analytics-panel.js` |
 | Settings / host panel / pause / esc menu | `dwf-settings.js`, `dwf-hostpanel.js`, `dwf-pause.js`, `dwf-escmenu.js` |
-| Units / tooltips / audio / touch | `dwf-unit-hud-notifications.js`, `dwf-unitcycle.js`, `dwf-tooltip.js`, `dwf-audio.js`, `dwf-touch.js` |
+| Units / HUD / tooltips / audio / touch | `dwf-unit-portrait.js`, `dwf-unit-follow.js`, `dwf-unit-profile.js`, `dwf-fortress-hud.js`, `dwf-minimap.js`, `dwf-unitcycle.js`, `dwf-tooltip.js`, `dwf-audio.js`, `dwf-touch.js` |
 | Attribution / write guards | `dwf-attribution.js`, `dwf-write-guards.js` |
 | Panel framework | `dwf-panelframe.js`, `dwf-fort-panels.js` |
 
 ### DWFUI, the shared component system
 
 `web/js/dwf-ui-components.js` is DWFUI: a dependency-free, declarative markup layer (config in,
-escaped HTML out — no fetch, no DOM mutation, no listeners, no state). All product UI must go
+escaped HTML out: no fetch, no DOM mutation, no listeners, no state). All product UI must go
 through it; a missing primitive is added and tested in DWFUI, not hand-built inside a panel. It
 also owns the single interface-scale source of truth and the native sprite/art mounting helpers.
 Panels declare the builders they use via `require(surface, [names])`.
@@ -207,29 +232,11 @@ Panels declare the builders they use via `require(surface, [names])`.
 Its builders include rows and row groups, tabs, plaques, buttons, search and text inputs, dialogs
 and modals, switches, radio and segmented groups, scrollbars, grids, stat tiles, bitmap text, and
 `rawHtml(reason, html)` as the single audited escape hatch. The `.dwfui-*` classes and `--dwfui-*`
-tokens live in `web/css/dwf.css`.
+tokens live in `web/css/dwf-dwfui.css` and `web/css/dwf-tokens.css`.
 
-## `tools/` — offline builders, tests, and packaging
+## Source checks and packaging
 
-| Directory | Category | Purpose |
-|---|---|---|
-| `harness/` | Testing | The offline test harness and the objective build/deploy/load/verify gates. The largest tool tree; see [tools/harness/README.md](../tools/harness/README.md). |
-| `release/` | Packaging | Builds the dependency-free, byte-reproducible portable-Node Windows release zip (`build_zip.mjs`); `launch_preflight.mjs` is the launch go/no-go battery. |
-| `ws2/` | Builders | Generators that derive the committed sprite/token JSON maps from a resolved DF installation. |
-| `lib/` | Shared | DF-root resolution and HTTP helpers shared across Node, Python, and shell (`dfroot.*`). |
-| `demo/`, `repro/`, `rename/` | Misc | Demo recording rig; failure-reproduction scripts; the historical rename utility. |
-
-Loose files include `loadtest.mjs`, `stub-server.mjs` (an in-process protocol-fixture server),
-`texture-lab-server.mjs`, and the Windows launcher `OPEN-TEXTURE-LAB.cmd`.
-
-## `host/` — installer and host UI
-
-| File | Purpose |
-|---|---|
-| `install.mjs` | One-click, idempotent mod installer: resolve DF root, verify DFHack, copy the release layout, back up overwritten files, quarantine obsolete pre-rename artefacts, write a receipt. |
-| `setup.mjs`, `setup.js`, `setup.html` | The browser-driven setup/repair wizard backend and page; all mutations happen only after an explicit browser action. |
-| `hostlib.mjs` | The pure, fixture-tested core shared by the installer and panel: manifest and DF-root resolution, DFHack detection, receipts, config round-trip, atomic writes. |
-| `host_panel.mjs`, `panel.js`, `panel.html`, `panel.css` | The host-management panel backend and page (the hosting UI). |
-| `fetchers.mjs` | Downloads packaged externals (DFHack, cloudflared) and verifies them against the manifest SHA-256. |
-| `bake_sprites.mjs`, `pnglite.mjs`, `sprite_recipe.json` | Local sprite baking during setup and its recipe data. |
-| `download-manifest.json` | Packaged-file inventory, external download URLs, and baked checksums. |
+`tools/harness/wire_decode_test.mjs` checks the browser decoder against a known fixture.
+`tools/lua/build_dwf_lua.mjs` assembles and checks the Lua module.
+`tools/harness/stamp_busters.mjs` and `tools/architecture/browser_dependency_inventory.mjs` maintain browser asset hashes and load-order inventory.
+`tools/release/build_zip.mjs` creates the Windows and Linux archives.

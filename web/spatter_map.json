@@ -2,20 +2,20 @@
  "_v": 1,
  "amount_thresholds_default": [
   {
+   "max": 24,
+   "shape": "PARTIAL_A"
+  },
+  {
+   "max": 36,
+   "shape": "PARTIAL_B"
+  },
+  {
    "max": 49,
-   "shape": "PARTIAL_1"
+   "shape": "PARTIAL_C"
   },
   {
-   "max": 109,
-   "shape": "PARTIAL_2"
-  },
-  {
-   "max": 159,
-   "shape": "PARTIAL_3"
-  },
-  {
-   "max": 209,
-   "shape": "PARTIAL_4"
+   "max": 99,
+   "shape": "PARTIAL_D"
   },
   {
    "max": null,
@@ -2115,5 +2115,61 @@
   "2": "FRUIT",
   "3": "FRUIT_SMALL",
   "4": "FRUIT_LARGE"
- }
+ },
+ "oracle_family_levels": [
+  "BLOOD_GOO",
+  "BLOOD_RED",
+  "BLOOD_CYAN",
+  "BLOOD_MAGENTA",
+  "BLOOD_ICHOR",
+  "DUST",
+  "MAGMA_SPATTER",
+  "FRUIT",
+  "FRUIT_SMALL",
+  "FRUIT_LARGE",
+  "LEAVES",
+  "SLIME",
+  "MUD",
+  "VOMIT",
+  "SNOW",
+  "WATER_SPATTER"
+ ],
+ "oracle_kind_cells": [
+  "FULL_ISOLATED",
+  "FULL_NS",
+  "FULL_WE",
+  "FULL_N",
+  "FULL_S",
+  "FULL_W",
+  "FULL_E",
+  "FULL_NW",
+  "FULL_NE",
+  "FULL_SW",
+  "FULL_SE",
+  "FULL_NSW",
+  "FULL_NSE",
+  "FULL_NWE",
+  "FULL_SWE",
+  "FULL_NSWE_A",
+  "FULL_NSWE_B",
+  "FULL_NSWE_C",
+  "FULL_NSWE_D",
+  "FULL_NSWE_E",
+  "PARTIAL_4A",
+  "PARTIAL_4B",
+  "PARTIAL_4C",
+  "PARTIAL_4D",
+  "PARTIAL_3A",
+  "PARTIAL_3B",
+  "PARTIAL_3C",
+  "PARTIAL_3D",
+  "PARTIAL_2A",
+  "PARTIAL_2B",
+  "PARTIAL_2C",
+  "PARTIAL_2D",
+  "PARTIAL_1A",
+  "PARTIAL_1B",
+  "PARTIAL_1C",
+  "PARTIAL_1D"
+ ]
 }

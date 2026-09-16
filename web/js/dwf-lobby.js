@@ -1,44 +1,34 @@
-// dwf - WT03(a) multiplayer lobby panel (WP-A)
+// dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+// Copyright (C) 2026 Gabriel Rios
+// Copyright (C) 2026 Jake Taplin
 //
-// A toggleable topbar panel listing every CONNECTED player in their color, with ping and an
-// idle marker -- the "who's here" surface the owner asked for ("player count + names in their colors;
-// show player ping"). Data source is the SAME roster the elevation triangles + minimap
-// viewboxes read: window.DwfPresence (fed at the ~30 Hz AUX rate from dwf-tiles.js).
-// NO new polling loop -- /diag stays diagnostics-only. Colors come from the ONE canonical
-// helper (window.DwfTiles.playerColor) so a lobby row matches that player's presence
-// cursor / elevation triangle / minimap box exactly.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
 //
-// The pause line ("Running" / "Paused by guest") is populated opportunistically from hud.paused
-// here (WP-A); WP-B's {"type":"pause"} broadcast upgrades the text to include the actor via
-// window.DwfLobby.setPauseText(...).
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+// Full license: see LICENSE. Third-party credits: see NOTICE.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// ---- Multiplayer lobby: every CONNECTED player, in their cursor colour, from window.DwfPresence. ----
+// DEF-500 WIRE GAP: the roster's only RTT field is permanently -1, so no live column is drawn.
 (function () {
   "use strict";
 
-  // DWFUI contract -- see dwf-escmenu.js. Presence-guarded (this file's pure half is required
-  // by a Node harness with no DWFUI), but NOT throw-swallowing.
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
     DWFUI.require("lobby", ["headerHtml", "rowHtml", "plaqueBtnHtml", "scrollHtml", "esc"]);
 
-  // Was a private escapeHtml shim -> the shared DWFUI escaper.
-  function esc(s) {
-    return (typeof DWFUI !== "undefined" && DWFUI.esc)
-      ? DWFUI.esc(s)
-      : String(s == null ? "" : s).replace(/[&<>"]/g, c =>
-        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  }
-  function colorFor(name) {
-    try {
-      if (window.DwfTiles && typeof DwfTiles.playerColor === "function")
-        return DwfTiles.playerColor(name).fill;
-    } catch (_) {}
-    return "#8cf";
-  }
-  function finiteRosterNumber(v) { return (typeof v === "number" && Number.isFinite(v)) ? v : null; }
-  // A tab that hasn't cleared the join gate connects under dwf-core.js's session-key fallback --
-  // crypto.randomUUID() or `p-<time36>-<rand36>` -- and the server roster echoes that key as the
-  // name. Raw session keys must never render as a player name (they overflow AND identify nobody):
-  // they become "Guest <first-4>" with the full key kept on the title/dataset so follow/jump still
-  // address the real roster entry.
+  // A raw session key must never render as a player name: it becomes "Guest <first-4>", with the full
+  // key kept on the title and dataset so follow and jump still address the real roster entry.
   const ANON_NAME_RE = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|p-[0-9a-z]+-[0-9a-z]+)$/i;
   function lobbyDisplayName(name) {
     const raw = String(name == null ? "" : name);
@@ -46,9 +36,9 @@
     return { text: "Guest " + raw.replace(/^p-/, "").slice(0, 4), anon: true };
   }
   function lobbyConnectionLabel(p) {
-    const rtt = finiteRosterNumber(p && (p.rttMs ?? p.rtt));
+    const rtt = window.DwfCore.finiteRosterNumber(p && (p.rttMs ?? p.rtt));
     if (rtt !== null && rtt >= 0) return { text: `${Math.round(rtt)} ms`, title: "Measured websocket round trip" };
-    const age = finiteRosterNumber(p && p.lastInboundAgeMs);
+    const age = window.DwfCore.finiteRosterNumber(p && p.lastInboundAgeMs);
     if (age !== null && age >= 0) {
       const secs = Math.max(0, Math.round(age / 1000));
       return { text: secs <= 1 ? "live" : `${secs}s`, title: `Last inbound frame ${secs}s ago; RTT not sampled yet` };
@@ -59,22 +49,7 @@
     module.exports = { lobbyConnectionLabel, lobbyDisplayName, lobbyRowsHtml, lobbyPanelMarkup };
     return;
   }
-  function cameraFor(p) {
-    if (!p) return null;
-    const hasCamShape = p.camx !== undefined || p.camy !== undefined || p.camz !== undefined;
-    let x = finiteRosterNumber(p.camx), y = finiteRosterNumber(p.camy), z = finiteRosterNumber(p.camz);
-    if (hasCamShape) {
-      if (x === null || y === null || z === null) return null;
-    } else {
-      x = finiteRosterNumber(p.x); y = finiteRosterNumber(p.y); z = finiteRosterNumber(p.z);
-      if (x === null || y === null || z === null) return null;
-    }
-    return { x, y, z };
-  }
-
-  // Stable order: self first, then named players A-Z (case-insensitive on the DISPLAY name),
-  // then unnamed pre-join guests last -- they identify nobody yet, so they never displace a
-  // real name from the top of the list.
+  // Stable order: self first, then named players A-Z on the DISPLAY name, then unnamed guests last.
   function sortRoster(roster) {
     return roster.sort((a, b) => {
       const as = a && a.self ? 0 : 1, bs = b && b.self ? 0 : 1;
@@ -92,34 +67,26 @@
       if (!p) return "";
       const rawName = String(p.name == null ? "" : p.name);
       const dn = lobbyDisplayName(rawName);
-      const col = p.color || colorFor(rawName);
+      const col = p.color || window.DwfCore.playerColor(rawName);
       const idle = p.idle ? " lobby-idle" : "";
-      const ping = lobbyConnectionLabel(p);
-      const cam = cameraFor(p);
+      const cam = window.DwfCore.presenceCamera(p, { round: false });
       const canSpectate = !!cam && !p.self;
       const spectate = (typeof window !== "undefined" && window.DwfSpectate) || null;
       const st = options.followName !== undefined
         ? { following: !!options.followName, name: String(options.followName || "") }
         : (spectate && typeof spectate.getState === "function" ? spectate.getState() : null);
       const following = !!(st && st.following && st.name === rawName);
-      // Host marking: the server only tells each CLIENT whether it itself is the host
-      // (hello_ack.isHost -> DwfWS.isHost()); the roster carries no host field yet. So the tag is
-      // data-driven -- p.host/p.isHost when a future wire field lands, else self+isHost() -- and
-      // simply absent when the fact isn't known. Never guessed.
+      // The roster carries no host field, so the tag is data-driven and simply absent when the fact is
+      // not known. Never guessed.
       const selfIsHost = !!(p.self && typeof window !== "undefined" && window.DwfWS &&
         typeof window.DwfWS.isHost === "function" && window.DwfWS.isHost());
       const isHost = !!(p.host || p.isHost || selfIsHost);
       const nameTitle = dn.anon ? `${rawName} (hasn't picked a name yet)` : rawName;
       const baseTitle = canSpectate ? `Click to jump to ${dn.text || "player"}` : (p.self ? "This is you" : "Camera not available yet");
-      const rowTitle = `${baseTitle}. ${ping.title}`;
+      const rowTitle = `${baseTitle}. Full name: ${dn.text || rawName}`;
       const followTitle = following ? `Stop following ${dn.text || "player"}` : `Follow ${dn.text || "player"}'s camera`;
-      // The roster row is DWFUI's TABLE-chassis row and the Follow control is a NATIVE PLAQUE
-      // (grey -> green when engaged). Every hook the pointerdown delegation in boot() reads --
-      // [data-lobby-player] on the row, [data-lobby-follow] on the control, .lobby-jumpable for the
-      // jump test, and `disabled` when no camera is known -- is carried through unchanged.
-      // Datasets carry the RAW roster name (datasetAttrs escapes for HTML): pre-escaping it here
-      // made getAttribute() return the entity-encoded form, which can never match a roster name
-      // containing & or quotes, silently breaking follow/jump for those players.
+      // Datasets carry the RAW roster name -- datasetAttrs escapes for HTML, and pre-escaping here makes
+      // getAttribute() return the entity form, which never matches a name containing & or a quote.
       const follow = window.DWFUI.plaqueBtnHtml({
         label: following ? "Stop" : "Follow",
         tone: following ? "green" : "grey",
@@ -128,12 +95,8 @@
         disabled: !canSpectate,
         title: followTitle,
       });
-      // SELF ROW: you cannot follow yourself, so that fixed action column carries a RENAME
-      // control instead of a dead disabled "Follow" plaque. It is a DWFUI plaque (no hand-built
-      // control -- dwf-lobby stays handBuilt=0), and boot()'s pointerdown delegation routes
-      // [data-lobby-rename] to dwf-join's rename dialog (same input + validation as the join card).
-      // The actual rename RE-BROADCASTS via a WS control message so every other roster + your
-      // cursor label update -- a local relabel alone is the documented __dwfAdoptName trap.
+      // A rename RE-BROADCASTS over WS so every other roster and your cursor label update; a local relabel
+      // alone is the documented __dwfAdoptName trap.
       const rename = p.self ? window.DWFUI.plaqueBtnHtml({
         label: "Rename",
         tone: "grey",
@@ -141,9 +104,8 @@
         dataset: { lobbyRename: rawName },
         title: "Change your display name (others will see it)",
       }) : null;
-      // Column grammar (fixed; the NAME cell is the only flexible one and clips with an
-      // ellipsis, so no name length can ever push the ping/follow columns or overlap them):
-      //   [swatch = cursor color] [name (+you/HOST tags)] [connection] [follow]
+      // Column grammar: [swatch] [name (+you/HOST tags)] [follow/rename]. Only the name cell flexes, and it
+      // clips with an ellipsis, so no name length can push or overlap the action column.
       return window.DWFUI.rowHtml({
         chassis: "table",
         cls: `lobby-row${idle}${canSpectate ? " lobby-jumpable" : " lobby-no-camera"}`,
@@ -151,14 +113,13 @@
         title: rowTitle,
         copyCls: "lobby-copy",
         cells: [
-          { html: `<span class="lobby-swatch" style="background:${esc(col)}" title="Cursor color on the map"></span>`, cls: "lobby-swatch-cell" },
+          { html: `<span class="lobby-swatch" data-lobby-color="${DWFUI.esc(col)}" title="Cursor color on the map"></span>`, cls: "lobby-swatch-cell" },
           {
-            html: `<span class="lobby-name${dn.anon ? " lobby-anon" : ""}" style="color:${esc(col)}" title="${esc(nameTitle)}">${esc(dn.text)}</span>` +
+            html: `<span class="lobby-name${dn.anon ? " lobby-anon" : ""}" data-lobby-color="${DWFUI.esc(col)}" title="${DWFUI.esc(nameTitle)}">${DWFUI.esc(dn.text)}</span>` +
               (p.self ? '<span class="lobby-you" title="This is you">(you)</span>' : "") +
               (isHost ? '<span class="lobby-host" title="Host: runs the fort">HOST</span>' : ""),
             cls: "lobby-name-cell",
           },
-          { html: `<span class="lobby-ping" title="${esc(ping.title)}">${esc(ping.text)}</span>`, cls: "lobby-ping-cell" },
           { html: rename || follow, cls: "lobby-follow-cell" },
         ],
       });
@@ -169,15 +130,13 @@
     options = options || {};
     const roster = sortRoster(Array.isArray(options.roster) ? options.roster.slice() : []);
     const rows = lobbyRowsHtml(roster, options);
-    // `.lobby-rows` was a raw `overflow-y:auto` region -> the BROWSER-DEFAULT scrollbar (the F5
-    // complaint). scrollHtml puts it on the native bar; the `.lobby-rows` class is passed straight
-    // through, so render()'s `querySelector(".lobby-rows")` still resolves the same element.
+    // The `.lobby-rows` class passes straight through scrollHtml, so render()'s querySelector still resolves it.
     const paused = !/^running$/i.test(String(options.pauseText || "Running"));
     return window.DWFUI.headerHtml({ tag: "h3", titleTag: "span", titleCls: "lobby-count", title: `Players - ${roster.length}`, close: false }) +
       `<div class="lobby-status${paused ? " lobby-status-paused" : ""}">` +
       '<span class="lobby-status-dot" aria-hidden="true"></span>' +
-      `<span class="lobby-pause">${esc(options.pauseText || "Running")}</span></div>` +
-      window.DWFUI.scrollHtml({ cls: "lobby-rows", ariaLabel: "Connected players" },
+      `<span class="lobby-pause">${DWFUI.esc(options.pauseText || "Running")}</span></div>` +
+      window.DWFUI.scrollHtml({ cls: "lobby-rows", rows: ".lobby-row", ariaLabel: "Connected players" },
         rows || '<div class="lobby-empty">No players connected</div>');
   }
 
@@ -189,18 +148,14 @@
     return panel;
   }
 
-  // WT07 M5: build the persistent shell once. h3 (the framework drag handle) and the
-  // framework-appended X survive the ~30 Hz roster re-renders because only .lobby-count,
-  // .lobby-pause, and .lobby-rows are updated in place.
-  // R5: the empty raw-html title slot was a BYPASS of the bitmap-text channel (the drift guard's only
-  // R5 hit in this family). The header's title is the plain `title` field now; render() still
-  // overwrites .lobby-count imperatively at roster rate, a deliberate perf choice, not debt.
+  // Build the persistent shell once: only .lobby-count, .lobby-pause and .lobby-rows are updated in
+  // place, so the drag handle and the framework's X survive the ~30 Hz roster re-renders.
   function ensureShell(el) {
     if (el.querySelector(".lobby-rows")) return;
     el.innerHTML =
       window.DWFUI.headerHtml({ tag: "h3", titleTag: "span", titleCls: "lobby-count", title: "", close: false }) +
       '<div class="lobby-status"><span class="lobby-status-dot" aria-hidden="true"></span><span class="lobby-pause"></span></div>' +
-      window.DWFUI.scrollHtml({ cls: "lobby-rows", ariaLabel: "Connected players" }, "");
+      window.DWFUI.scrollHtml({ cls: "lobby-rows", rows: ".lobby-row", ariaLabel: "Connected players" }, "");
   }
 
   function render() {
@@ -224,11 +179,13 @@
     const el = ensurePanel();
     if (el) {
       el.classList.add("open"); render(); refreshBtn();
-      try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("lobby", true); } catch (_) {}
+      try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("lobby", true); }
+      catch (err) { DwfErr.report("lobby.panel-open", err); }
     }
   }
   function close() {
-    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("lobby", false); } catch (_) {}
+    try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("lobby", false); }
+    catch (err) { DwfErr.report("lobby.panel-close", err); }
     if (panel) panel.classList.remove("open");
     refreshBtn();
   }
@@ -246,14 +203,8 @@
       });
     }
     if (panel) {
-      // B60: engage on POINTERDOWN, not click. The roster feeds render() at ~30 Hz, and every
-      // render replaces this panel's innerHTML -- which detaches the Follow button the user just
-      // pressed. A native "click" only fires when pointerdown AND pointerup land on the same
-      // still-attached element, so a re-render between them SWALLOWS the click and the follow
-      // never engages ("click it a bunch to work"). pointerdown is dispatched synchronously at
-      // press, before any async re-render can detach the target, so ONE press engages reliably.
-      // The action is bound to pointerdown ONLY (never also click) -- binding both would toggle
-      // twice per physical click and net back to off.
+      // Engage on POINTERDOWN, not click: every render replaces this panel's innerHTML, and a re-render
+      // between press and release swallows the click. Bind pointerdown ONLY -- both would toggle twice.
       panel.addEventListener("pointerdown", event => {
         if (typeof event.button === "number" && event.button !== 0) return; // primary button only
         // Rename control (self row only). Delegated -- like follow -- so the ~30 Hz roster
@@ -266,7 +217,7 @@
           try {
             if (window.DwfJoin && typeof window.DwfJoin.showRenameScreen === "function")
               window.DwfJoin.showRenameScreen(cur);
-          } catch (_) {}
+          } catch (err) { DwfErr.report("lobby.rename", err); }
           return;
         }
         const followBtn = event.target.closest("[data-lobby-follow]");
@@ -293,23 +244,13 @@
       if (event.target.closest("#lobbyPanel, #lobbyBtn")) return;
       close();
     });
-    // WT07 M5: movable + X via the shared framework. This is the scaled-panel proof case --
-    // #lobbyPanel lives inside #hud, so its drag/clamp math must divide by the ancestor's
-    // --ui-scale zoom (framework effectiveZoom walk-up). Geometry persists, not open-state.
-    // The private Escape listener is deleted here: DFPanelFrame.escCloseTopmost() (via the
-    // controls-placement cascade) now owns close-topmost, so Esc backs out one layer at a time.
-    // Build the persistent shell BEFORE registering so the framework adopts this real <h3> as the
-    // drag handle. Registering first would make attach() find no h3, inject a throwaway .pf-head,
-    // and the first render()'s ensureShell would then wipe that head + its X + drag binding.
+    // Build the shell BEFORE registering, so the framework adopts this real <h3> as the drag handle;
+    // registering first makes attach() inject a throwaway head that the next ensureShell would wipe.
     if (panel) ensureShell(panel);
-    // Move-only + content-sized (B134): the framework never writes inline width/height here, so
-    // the panel's box comes from #lobbyPanel's CSS -- 288px wide (a truncated name keeps ~14
-    // readable characters beside the fixed connection + Follow columns) with a max-height that
-    // makes .lobby-rows scroll instead of the panel outgrowing the viewport.
     if (panel && window.DFPanelFrame) window.DFPanelFrame.register({
       key: "lobby", el: () => panel, title: "Players",
       headSel: "h3", closable: true, persistOpen: false,
-      defaultPos: (vw, vh) => ({ anchor: "tr", x: 212, y: 52, w: 288, h: 264 }),
+      defaultPos: (vw, vh) => ({ anchor: "tr", x: 212, y: 52, w: 360, h: 264 }),
       open, close, isOpen, escClosable: true,
     });
     // Live-update the open panel on roster change (cheap; only re-renders when visible).
@@ -321,19 +262,14 @@
     }
   }
 
-  // Public seam: WP-B's pause broadcast calls this to show "Paused by guest"; WP-A wires it from
-  // hud.paused (renderHud) as a plain Running/Paused until then.
+  // Public seam: the pause broadcast calls setPauseText to show "Paused by guest".
   window.DwfLobby = {
     open, close, toggle, isOpen,
     storyMarkup: lobbyPanelMarkup,
-    // The ONE canonical anonymizer for raw session-key roster names (see lobbyDisplayName /
-    // ANON_NAME_RE above). Every on-map presence surface (cursor labels, minimap viewbox chips,
-    // z-scrollbar tooltips, follow-cam banner) resolves display text through THIS so a guest reads
-    // "Guest 1665" identically everywhere; the raw key stays in the roster for follow/jump/color.
+    // The ONE canonical anonymizer: every presence surface resolves display text through this, so a guest
+    // reads the same name everywhere while the raw key stays in the roster for follow, jump and colour.
     displayName: lobbyDisplayName,
-    // All lobby styling lives in web/css/dwf.css (the ONE stylesheet Parity Studio also loads);
-    // the runtime <style> injection this seam used to perform kept a second, divergent copy of
-    // the row layout. The seam stays because stories.js calls it before rendering.
+    // All lobby styling lives in web/css; this seam stays only because stories.js calls it before rendering.
     preparePreview() {},
     setPauseText(text) { pauseText = String(text || "Running"); if (isOpen()) render(); },
   };

@@ -23,19 +23,27 @@
 
 #include "Core.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
+#include "world_site_readonly.h"
 
 #include "modules/Translation.h"
+#include "modules/Items.h"
+#include "modules/Units.h"
 
 #include "df/global_objects.h"
 #include "df/army_controller.h"
+#include "df/artifact_record.h"
 #include "df/diplomacy_statest.h"
 #include "df/entity_event.h"
 #include "df/historical_entity.h"
 #include "df/historical_entity_type.h"
+#include "df/item.h"
 #include "df/plotinfost.h"
 #include "df/mission_report.h"
 #include "df/region_map_entry.h"
+#include "df/spoils_report.h"
+#include "df/unit.h"
 #include "df/world.h"
 #include "df/world_data.h"
 #include "df/world_region.h"
@@ -46,6 +54,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 using namespace DFHack;
 
@@ -56,22 +65,7 @@ std::recursive_mutex g_worldmap_mutex;
 
 template <typename Fn>
 bool run_worldmap_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> worldmap_lock(g_worldmap_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
-}
-
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
+    return run_panel_locked(g_worldmap_mutex, std::forward<Fn>(fn));
 }
 
 std::string entity_name(df::historical_entity* entity) {
@@ -100,11 +94,7 @@ std::string diplomacy_relation_to(df::historical_entity* entity, int32_t group_i
     return entity->id == civ_id ? "Own civilization" : "Unknown";
 }
 
-// B88: classify one region tile into a single biome char the client colours (see
-// dwf-worldmap.js WORLD_TERRAIN_COLORS). Thresholds follow the df-structures field docs:
-// elevation 0-99 = ocean/water, 150+ = mountains, 100-149 = all other biomes; vegetation/
-// rainfall/salinity are 0-100. Kept deliberately coarse (land/water/mountain is high-confidence;
-// vegetation only tints the land) so the map reads as DF's world map without inventing detail.
+// elevation below 100 is water and 150+ is mountain; vegetation/rainfall/salinity are 0-100.
 char classify_region_char(const df::region_map_entry& e) {
     int elev = e.elevation;
     if (elev < 100)
@@ -118,10 +108,7 @@ char classify_region_char(const df::region_map_entry& e) {
     return 'n';                                 // barren / rock
 }
 
-// Emit the additive ",\"terrain\":{...}" field: a downsampled biome-char grid of the whole world
-// (rows are y, chars are x). Emits NOTHING when region_map is unpopulated (pocket/degenerate world
-// or pre-worldgen) so the client cleanly falls back. Runs inside the world lock/CoreSuspender
-// (passive memory reads only); the grid is capped so the read stays cheap even on a 257-wide world.
+// The additive "terrain" field: a downsampled biome-char grid of the world (rows are y, chars x).
 void append_terrain_json(std::ostringstream& body, df::world_data* wd) {
     if (!wd || !wd->region_map || wd->world_width <= 0 || wd->world_height <= 0)
         return;
@@ -161,34 +148,68 @@ std::string build_worldmap_json(const std::string& player, std::string* err) {
         int32_t own_civ = plotinfo ? plotinfo->civ_id : -1;
         auto* fort_entity = df::historical_entity::find(own_group);
 
-        // WD-27 follow-up (region name plate): resolve the DF world-region name for the
-        // fort's own site the same way embark-assistant/prospector/probe do -- region_map is
-        // indexed by world-tile coords (same space as world_site::pos), region_map_entry's
-        // region_id is a direct index into world_data->regions (verified against
-        // dfhack/plugins/embark-assistant/survey.cpp:1228 and probe.cpp:158). Bounds-checked;
-        // absent on a pocket/degenerate world or before region_map is populated -> "".
+        std::unordered_map<int32_t, std::string> region_name_cache;
+        auto region_name_at = [&](const df::coord2d& pos) -> std::string {
+            if (!wd->region_map || wd->world_width <= 0 || wd->world_height <= 0 ||
+                pos.x < 0 || pos.x >= wd->world_width || pos.y < 0 || pos.y >= wd->world_height)
+                return "";
+            int32_t region_id = wd->region_map[pos.x][pos.y].region_id;
+            if (region_id < 0 || static_cast<size_t>(region_id) >= wd->regions.size() ||
+                !wd->regions[region_id])
+                return "";
+            auto hit = region_name_cache.find(region_id);
+            if (hit != region_name_cache.end())
+                return hit->second;
+            std::string name = DFHack::Translation::translateName(&wd->regions[region_id]->name, true);
+            region_name_cache.emplace(region_id, name);
+            return name;
+        };
+
         std::string region_name;
         for (auto site : wd->sites) {
             if (!site || site->id != own_site)
                 continue;
-            if (wd->region_map && wd->world_width > 0 && wd->world_height > 0 &&
-                site->pos.x >= 0 && site->pos.x < wd->world_width &&
-                site->pos.y >= 0 && site->pos.y < wd->world_height) {
-                auto& entry = wd->region_map[site->pos.x][site->pos.y];
-                int32_t region_id = entry.region_id;
-                if (region_id >= 0 && static_cast<size_t>(region_id) < wd->regions.size() &&
-                    wd->regions[region_id]) {
-                    region_name = DFHack::Translation::translateName(&wd->regions[region_id]->name, true);
-                }
-            }
+            region_name = region_name_at(site->pos);
             break;
         }
+
+        int32_t missing_citizen_count = 0;
+        for (auto* unit : world->units.active) {
+            if (unit && Units::isOwnGroup(unit) &&
+                (!Units::isActive(unit) || Units::isDead(unit) || Units::isGhost(unit)))
+                ++missing_citizen_count;
+        }
+
+        int32_t artifact_count = 0;
+        {
+            int32_t fort_site = (plotinfo && plotinfo->main.fortress_site)
+                ? plotinfo->main.fortress_site->id : -1;
+            for (auto* artifact : world->artifacts.all) {
+                if (!artifact) continue;
+                bool on_map = false;
+                if (artifact->item && !artifact->item->flags.bits.removed &&
+                    !artifact->item->flags.bits.garbage_collect) {
+                    df::coord p = Items::getPosition(artifact->item);
+                    on_map = (p.x >= 0 && p.y >= 0 && p.z >= 0);
+                }
+                if (on_map || (fort_site >= 0 &&
+                               (artifact->site == fort_site || artifact->storage_site == fort_site)))
+                    ++artifact_count;
+            }
+        }
+
+        const auto& mission_reports = world->status.mission_reports;
+        const auto& tribute_reports = world->status.spoils_reports;
+        int32_t report_count = static_cast<int32_t>(mission_reports.size() + tribute_reports.size());
 
         body << "{\"player\":" << json_string(player)
              << ",\"width\":" << wd->world_width
              << ",\"height\":" << wd->world_height
              << ",\"ownSiteId\":" << own_site
              << ",\"regionName\":" << json_string(region_name)
+             << ",\"missingCitizenCount\":" << missing_citizen_count
+             << ",\"artifactCount\":" << artifact_count
+             << ",\"reportCount\":" << report_count
              << ",\"sites\":[";
         bool first = true;
         int count = 0;
@@ -198,14 +219,43 @@ std::string build_worldmap_json(const std::string& player, std::string* err) {
             if (!first) body << ",";
             first = false;
             std::string name = DFHack::Translation::translateName(&site->name, true);
+            auto* government = site_government(site);
+            auto* civilization = df::historical_entity::find(site->civ_id);
+            int32_t travel_cost = site_travel_cost(wd, site);
             body << "{\"id\":" << site->id
                  << ",\"name\":" << json_string(name)
                  << ",\"type\":" << json_string(DFHack::enum_item_key(site->type))
+                 << ",\"subtypeKey\":" << json_string(site_subtype_key(site))
+                 << ",\"regionName\":" << json_string(region_name_at(site->pos))
                  << ",\"x\":" << site->pos.x
                  << ",\"y\":" << site->pos.y
                  << ",\"civId\":" << site->civ_id
                  << ",\"own\":" << (site->id == own_site ? "true" : "false")
-                 << "}";
+                 << ",\"hasGovernment\":" << (government ? "true" : "false")
+                 << ",\"govName\":";
+            if (government) body << json_string(entity_name(government)); else body << "null";
+            body << ",\"civName\":";
+            if (civilization) body << json_string(entity_name(civilization)); else body << "null";
+            body << ",\"travelBand\":";
+            const char* travel_band = "unreachable";
+            int travel_days = -1;
+            if (travel_cost >= 18) { travel_band = "days"; travel_days = travel_cost / 9; }
+            else if (travel_cost >= 11) travel_band = "over-day";
+            else if (travel_cost >= 8) travel_band = "day";
+            else if (travel_cost >= 6) travel_band = "near-day";
+            else if (travel_cost >= 3) travel_band = "half-day";
+            else if (travel_cost >= 0) travel_band = "brief";
+            body << json_string(travel_band) << ",\"travelDays\":";
+            if (travel_days >= 0) body << travel_days; else body << "null";
+            body << ",\"populationBand\":";
+            if (government) {
+                SitePopulationBand band = site_population_band(site);
+                body << "{\"index\":" << band.index
+                     << ",\"advertised\":" << json_string(band.advertised) << "}";
+            } else {
+                body << "null";
+            }
+            body << "}";
             if (++count >= 2000)
                 break;
         }
@@ -287,7 +337,28 @@ std::string build_worldmap_json(const std::string& player, std::string* err) {
         append_news(fort_entity);
         if (own_civ != own_group) append_news(df::historical_entity::find(own_civ));
         body << "]";
-        // B88: additive terrain biome grid so the world map renders as a map, not confetti.
+
+        body << ",\"reports\":[";
+        first = true;
+        // Neither report record carries an id field, so the vector index IS the id: it must stay
+        // namespaced by `kind`, because the two vectors number independently and would collide.
+        auto append_reports = [&](const auto& vec, const char* kind) {
+            int emitted = 0;
+            for (size_t i = 0; i < vec.size() && emitted < 500; ++i) {
+                auto* report = vec[i];
+                if (!report) continue;
+                if (!first) body << ",";
+                first = false;
+                body << "{\"id\":" << static_cast<int32_t>(i)
+                     << ",\"kind\":" << json_string(kind)
+                     << ",\"title\":" << json_string(report->title)
+                     << ",\"year\":" << report->year << "}";
+                ++emitted;
+            }
+        };
+        append_reports(mission_reports, "mission");
+        append_reports(tribute_reports, "tribute");
+        body << "]";
         append_terrain_json(body, wd);
         body << "}\n";
         return true;
@@ -300,7 +371,7 @@ std::string build_worldmap_json(const std::string& player, std::string* err) {
 } // namespace
 
 void register_worldmap_routes(httplib::Server& server) {
-    // GET /world-map -> read-only world overview: sites, civilizations, fort marker.
+    // GET /world-map -> read-only world overview: sites, civs, missions, news, reports, terrain.
     server.Get("/world-map", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         std::string err;

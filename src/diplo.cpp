@@ -21,6 +21,7 @@
 
 #include "diplo.h"
 
+#include "common_util.h"
 #include "json_util.h"
 #include "sdl_capture.h"
 #include "websocket.h"
@@ -59,41 +60,8 @@
 namespace dwf {
 namespace {
 
-// B225 / DIPLO-PETITIONS -- STRUCTURE CITATIONS (all verified against the <DFHACK_ROOT>
-// checkout's df-structures for this DF build):
-//   * df.plotinfo.xml:856-873  plotinfost: `petitions` (original unapproved_agreement_id --
-//       the vector fort_admin.cpp's accept/deny already mutate), `dipscript_popups` (original
-//       `meetingmoment`, vector<dipscript_popup*>, "cause viewscreen_meetingst to pop up"),
-//       `meeting_requests` (original noblequeue).
-//   * df.d_interface.xml:807-850  diplomacy_interfacest ("main_interface.diplomacy"):
-//       {open, actor, target, text (markup_text_boxst), selecting_land_holder_position,
-//        taking_requests, land_holder_* vectors, taking_requests_tablist (entity_sell_category
-//        values), taking_requests_selected_tab, dipev -> meeting_diplomat_info}.
-//   * df.markup_text_box.xml  markup_text_boxst {word: vector<markup_text_wordst*>}; each word
-//       carries {str, red, green, blue, flags{NEW_LINE, BLANK_LINE, INDENT}} -- the NATIVE
-//       text layout + coloring of the meeting dialog (B225-2 oracle: white narration line +
-//       colored speech line), mirrored verbatim.
-//   * df.diplomacy.xml:14-47  meeting_diplomat_info {topic_list: vector<meeting_topic>,
-//       sell_requests -> entity_sell_requests, ...}.
-//   * df.civagreement.xml:25-29  entity_sell_requests {priority: vector<int8_t>[per
-//       entity_sell_category]} -- the export-agreement priorities. PROVEN data-only choice:
-//       DFHack scripts/internal/caravan/tradeagreement.lua writes priority[cat][i] = 0/4 on
-//       the live Requests screen (its "Select all/none" overlay); native's Done commits them.
-//   * DFHack library/modules/World.cpp ReadPauseState(): `game->main_interface.diplomacy.open`
-//       is in the sim-blocking list -- while the meeting is up, unpause cannot resume.
-//
-// WHAT IS DELIBERATELY NOT DONE: advancing the meeting ("Okay"), picking the land holder, or
-// committing/leaving the Requests screen. Those run through DF's dipscript VM
-// (plotinfo->dipscripts script_stepst vmethods + mm->flags close_screen/new_screen edges) and
-// their exact native transitions cannot be established from static evidence. Guessing risks
-// corrupting agreement state that persists in the save. The wire carries
-// "advanceHostNative":true until a live forced-diplomat struct-diff experiment on the host
-// establishes the real transition.
-
-long long steady_ms() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-}
+// Never drive the native meeting from here -- no "Okay", no land-holder pick, no Requests commit,
+// no ESC or camera writes: those go through DF's dipscript VM and corrupt agreements in the save.
 
 // Defensive caps: a meeting dialog is a small text surface, not a bulk transport.
 constexpr size_t kMaxWords = 600;        // dialogue words per frame
@@ -141,7 +109,7 @@ struct DiploSnapshot {
 std::mutex g_diplo_mutex;
 uint64_t g_seq = 0;
 std::string g_last_body;                   // serialized state MINUS seq/by (change detection)
-std::set<std::string> g_synced;            // late-join sync bookkeeping (vote.cpp pattern)
+std::set<std::string> g_synced;            // late-join sync bookkeeping
 std::atomic<bool> g_meeting_open{false};   // diplo_meeting_open() mirror for arbiter + /diag
 
 std::string histfig_display_name(int32_t hf_id) {
@@ -154,8 +122,6 @@ std::string histfig_display_name(int32_t hf_id) {
     return name.empty() ? ("Figure " + std::to_string(hf_id)) : name;
 }
 
-// The offered position lives on the fort's own group entity (child) -- fall back to the parent
-// civ so a structure surprise degrades to a missing name, never a crash (vote.cpp pattern).
 df::entity_position* find_entity_position(df::historical_entity* ent, int32_t pos_id) {
     if (!ent)
         return nullptr;
@@ -166,7 +132,6 @@ df::entity_position* find_entity_position(df::historical_entity* ent, int32_t po
 }
 
 // MUST be called under a (Conditional)CoreSuspender -- plotinfo/game are sim-owned heap.
-// Null-guards everything (vote.cpp / native_popup.cpp sampling discipline).
 DiploSnapshot sample_native_suspended() {
     DiploSnapshot s;
     auto plotinfo = df::global::plotinfo;
@@ -188,7 +153,6 @@ DiploSnapshot sample_native_suspended() {
     if (dip.target)
         s.target = DFHack::Units::getReadableName(dip.target);
 
-    // Dialogue text: the native word stream with per-word color + layout flags.
     for (auto word : dip.text.word) {
         if (!word)
             continue;
@@ -253,8 +217,7 @@ DiploSnapshot sample_native_suspended() {
     return s;
 }
 
-// ---- serialization -------------------------------------------------------------------------------
-// Body WITHOUT the seq/by envelope, so the same string doubles as the change detector.
+// ---- serialization: the body carries no seq/by envelope, so it doubles as the change detector ----
 std::string color_hex(uint8_t r, uint8_t g, uint8_t b) {
     char buf[8];
     std::snprintf(buf, sizeof(buf), "#%02x%02x%02x", r, g, b);
@@ -274,7 +237,6 @@ std::string state_body_json(const DiploSnapshot& s) {
     body << "{\"mode\":" << json_string(s.mode)
          << ",\"actor\":" << json_string(s.actor)
          << ",\"target\":" << json_string(s.target)
-         // v1: Okay / land-holder pick / Requests Done stay host-native (see module banner).
          << ",\"advanceHostNative\":true"
          << ",\"words\":[";
     for (size_t i = 0; i < s.words.size(); ++i) {
@@ -332,7 +294,6 @@ std::string state_body_json(const DiploSnapshot& s) {
     return body.str();
 }
 
-// {"type":"diplo",...} frame / GET /diplo body from a serialized state body.
 std::string frame_json(uint64_t seq, const std::string& body, bool as_ws_frame,
                        const std::string& by) {
     std::ostringstream out;
@@ -344,8 +305,6 @@ std::string frame_json(uint64_t seq, const std::string& body, bool as_ws_frame,
     return out.str();
 }
 
-// Push a frame to every connected player and mark them synced (native_popup.cpp
-// broadcast_state: frame built under the module mutex, sent OUTSIDE it).
 void broadcast_state(const std::string& frame) {
     auto connected = ws_connected_players();
     for (const auto& p : connected)
@@ -367,16 +326,14 @@ void diplo_json_error(httplib::Response& res, int status, const std::string& mes
 // ---- push-loop tick ------------------------------------------------------------------------------
 
 void diplo_push_tick() {
-    // <=1 Hz cadence for BOTH sampling and late-join sync (vote/popup posture).
+    // <=1 Hz cadence for both sampling and late-join sync.
     static long long last_pass = 0;
     const long long now = steady_ms();
     if (now - last_pass < 1000)
         return;
     last_pass = now;
 
-    // 1) Sample OUTSIDE g_diplo_mutex (never hold a plugin mutex across a suspender acquire).
-    //    ConditionalCoreSuspender skips instantly while the core is blocked on a save -- we
-    //    keep the previous mirrored state in that case.
+    // Sample OUTSIDE g_diplo_mutex: never hold a plugin mutex across a suspender acquire.
     bool sampled = false;
     DiploSnapshot snap;
     {
@@ -387,7 +344,6 @@ void diplo_push_tick() {
         }
     }
 
-    // 2) Detect change under the mutex; broadcast after releasing it.
     std::string frame;
     if (sampled) {
         std::string body = state_body_json(snap);
@@ -402,9 +358,6 @@ void diplo_push_tick() {
     if (!frame.empty())
         broadcast_state(frame);
 
-    // 3) Late-join sync: once anything has ever been mirrored (seq > 0), a player who has not
-    //    seen the CURRENT state gets it -- including the all-clear state, so a reconnecting tab
-    //    never keeps a stale plaque. Prune g_synced to the live roster so a reconnect resyncs.
     auto connected = ws_connected_players();
     std::vector<std::string> to_sync;
     std::string sync_frame;
@@ -431,14 +384,11 @@ bool diplo_meeting_open() {
 // ---- routes --------------------------------------------------------------------------------------
 
 void register_diplo_routes(httplib::Server& server) {
-    // GET /diplo -> current mirrored state. Mutex-only cache read (no CoreSuspender per
-    // request); the live probe and tests read this without a WS connection.
+    // GET /diplo -> the current mirrored state; a mutex-only cache read, no CoreSuspender.
     server.Get("/diplo", [](const httplib::Request&, httplib::Response& res) {
         std::string json;
         {
             std::lock_guard<std::mutex> lock(g_diplo_mutex);
-            // Before the first sample tick the body is empty -- serve the empty state so the
-            // route never emits invalid JSON.
             std::string body = g_last_body.empty()
                 ? "\"petitionsPending\":0,\"meetingsQueued\":0,\"open\":false,\"meeting\":null"
                 : g_last_body;
@@ -449,9 +399,7 @@ void register_diplo_routes(httplib::Server& server) {
     });
 
     // POST /diplo-request-priority?player=&cat=&index=&value=0..4 -> set one export-agreement
-    // priority on the OPEN Requests screen. This is the exact write DFHack's own
-    // tradeagreement.lua overlay performs (priority[cat][i]); native's Done button commits.
-    // Everything else about the meeting is read-only in v1 (see module banner).
+    // priority on the OPEN Requests screen. Everything else about the meeting is read-only.
     server.Post("/diplo-request-priority", [](const httplib::Request& req,
                                               httplib::Response& res) {
         int cat = -1, index = -1, value = -1;
@@ -467,9 +415,8 @@ void register_diplo_routes(httplib::Server& server) {
         std::string err;
         bool ok = false;
         {
-            // Same lock order as every other DF mutation (capture mutex -> CoreSuspender;
-            // fort_admin.cpp run_admin_locked posture). Re-verifies the native state under
-            // the suspender (TOCTOU: the meeting may have advanced since the client's frame).
+            // Lock order for every DF mutation: capture mutex, then CoreSuspender. The native
+            // state is re-verified inside it -- the meeting may have advanced since the request.
             std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
             DFHack::CoreSuspender suspend;
             auto game = df::global::game;
@@ -498,8 +445,7 @@ void register_diplo_routes(httplib::Server& server) {
             diplo_json_error(res, 409, err);
             return;
         }
-        // Make the next tick rebroadcast even to the writer (the priorities are part of the
-        // state body, so clearing the change detector forces the fresh frame out).
+        // Clearing the change detector forces the next tick to rebroadcast, writer included.
         {
             std::lock_guard<std::mutex> lock(g_diplo_mutex);
             g_last_body.clear();

@@ -20,16 +20,10 @@
 -- SPDX-License-Identifier: AGPL-3.0-only
 
 -- Companion Lua module for the dwf plugin.
---
--- The C++ side handles HTTP + premium frame capture; the more intricate game-state
--- mutations (creating stockpiles, placing buildings with materials) go through DFHack's
--- tested high-level APIs here, which is far less error-prone than replicating the
--- raws-dependent logic in C++. Called from C++ via Lua::CallLuaModuleFunction.
 
 local _ENV = mkmodule('plugins.dwf')
 
--- Maps the browser's preset names to DFHack's shipped stockpile library presets
--- (data/stockpiles/*.dfstock). "all" accepts everything; cat_* accept one category.
+-- Browser preset names -> DFHack's shipped stockpile library presets.
 local STOCKPILE_PRESETS = {
     all = 'all', everything = 'all',
     food = 'cat_food', stone = 'cat_stone', wood = 'cat_wood',
@@ -40,27 +34,67 @@ local STOCKPILE_PRESETS = {
     refuse = 'cat_refuse', coins = 'cat_coins', sheets = 'cat_sheets',
 }
 
+function short_reason(err, limit)
+    local text = tostring(err or ''):gsub('[\r\n].*$', '')
+    -- strip a leading "path:line: " prefix
+    text = text:gsub('^.-:%d+:%s*', '')
+    text = text:gsub('^%s+', ''):gsub('%s+$', '')
+    if text == '' then text = 'unknown error' end
+    limit = limit or 120
+    if #text > limit then text = text:sub(1, limit - 3) .. '...' end
+    return text
+end
+
+local ERR_COUNTS = {}
+local ERR_LAST_PRINT = {}
+local ERR_PRINT_INTERVAL_S = 10
+
+function dwf_err(key, err)
+    ERR_COUNTS[key] = (ERR_COUNTS[key] or 0) + 1
+    local now = os.time()
+    local last = ERR_LAST_PRINT[key]
+    if last and (now - last) < ERR_PRINT_INTERVAL_S then return end
+    ERR_LAST_PRINT[key] = now
+    dfhack.printerr(('dwf %s (#%d): %s'):format(key, ERR_COUNTS[key], short_reason(err)))
+end
+
+function dwf_pcall(key, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok then dwf_err(key, err) end
+    return ok, err
+end
+
+function dwf_err_stats()
+    local out = {}
+    for key, count in pairs(ERR_COUNTS) do out[key] = count end
+    return out
+end
+
+local PROBE_COUNTS = {}
+
+-- A field or vmethod that may not exist on this DF build: the failure IS the answer, so the caller
+-- keeps its default. Counted, never printed -- an always-failing probe shows in dwf_probe_stats().
+function dwf_probe(key, fn, ...)
+    local ok, value = pcall(fn, ...)
+    if ok then return value end
+    PROBE_COUNTS[key] = (PROBE_COUNTS[key] or 0) + 1
+    return nil
+end
+
+function dwf_probe_stats()
+    local out = {}
+    for key, count in pairs(PROBE_COUNTS) do out[key] = count end
+    return out
+end
+
 function get_stockpile(id)
     local b = df.building.find(id)
     if b and b:getType() == df.building_type.Stockpile then return b end
     return nil
 end
 
--- B231 (hauling depth) -----------------------------------------------------------------------
--- A HAULING STOP'S "DESIRED ITEMS" FILTER IS A STOCKPILE'S FILTER.
---
--- df::hauling_stop.settings is declared `<compound type-name='stockpile_settings' name='settings'/>`
--- (df.hauling.xml:42) -- the *identical* struct df::building_stockpilest carries. DFHack leans on
--- that identity directly: plugins/stockpiles/stockpiles.cpp:126 get_stop_settings() hands a route
--- stop's `settings` to the very same serializer it uses for stockpiles, so `stockpiles export/
--- import --route <id>,<stop>` and `--stockpile <id>` share one code path.
---
--- Every function in the SP_CATEGORIES machinery below touches its subject through exactly one
--- expression: `target.settings...` (see sp_stone_vec, sp_group_get/set, and the `.settings.flags`
--- reads). None of them calls a building method. So a hauling stop is a drop-in subject, and the
--- whole 17-category item filter -- every stone, every meat, every quality band -- works on a stop
--- with NO second implementation. That is the entire reason this resolver exists rather than a
--- parallel copy of the editor.
+-- A hauling stop's .settings is the same df::stockpile_settings a stockpile carries, so every
+-- sp_* function works on a stop only while it reaches its subject through target.settings.
 function get_hauling_stop(route_id, stop_id)
     local route = df.hauling_route.find(tonumber(route_id) or -1)
     if not route then return nil, 'route not found' end
@@ -70,8 +104,6 @@ function get_hauling_stop(route_id, stop_id)
     return nil, 'stop not found'
 end
 
--- Change what a stockpile accepts: 'none' clears it; otherwise apply a category preset.
--- mode can be 'set' (replace), 'enable', or 'disable'. Returns (ok, err).
 function stockpile_set_preset(id, preset, mode)
     local b = get_stockpile(id)
     if not b then return false, 'not a stockpile' end
@@ -93,12 +125,7 @@ function stockpile_set_preset(id, preset, mode)
     return true, ''
 end
 
--- ===== Custom stockpile item editor (DF-style: category -> sub-groups -> per-item toggles) =====
--- A category has a group flag + one or more sub-groups (DF's middle column). Each group maps to the
--- exact stockpile_settings field that native DF and DFHack's StockpileSerializer use. Some groups are
--- raw vectors (e.g. finished_goods.mats indexed by inorganic raws), while others are fixed arrays or
--- scalar bool fields (usable/unusable, dyed/undyed). Keep this table data-driven so adding another
--- native middle-column group is a local change.
+-- ===== Custom stockpile item editor: category -> sub-groups -> per-item toggles =====
 function sp_stone_allowed(inorg)
     local f = inorg.flags
     local soil = f.SOIL and not f.AQUIFER
@@ -106,13 +133,13 @@ function sp_stone_allowed(inorg)
     return soil or (mf.IS_STONE and not mf.NO_STONE_STOCKPILE)
 end
 function sp_is_ore(inorg)
-    local ok, n = pcall(function() return #inorg.metal_ore.mat_index end)
-    return ok and n and n > 0
+    local n = dwf_probe('lua.probe.metal-ore', function() return #inorg.metal_ore.mat_index end)
+    return n ~= nil and n > 0
 end
 function sp_is_soil(inorg) return inorg.flags.SOIL and not inorg.flags.AQUIFER end
 function sp_stone_name(m)
-    local ok, s = pcall(function() return m.material.state_name.Solid end)
-    if ok and s and #s > 0 then return s end
+    local s = dwf_probe('lua.probe.stone-state-name', function() return m.material.state_name.Solid end)
+    if s and #s > 0 then return s end
     return m.id
 end
 function sp_stone_vec(b) return b.settings.stone.mats end
@@ -121,15 +148,18 @@ function sp_any(v) return v ~= nil end
 function sp_bool(v) return v == true or v == 1 or tostring(v) == 'true' or tostring(v) == '1' end
 function sp_ensure_vec(vec, n) while #vec < n do vec:insert('#', 0) end end
 local SP_QUALITIES
+function pretty_enum_name(name, fallback)
+    name = tostring(name or fallback or '')
+    if #name == 0 then return tostring(fallback or '') end
+    return (name:gsub('_', ' '):gsub('(%l)(%u)', '%1 %2'))
+end
 function sp_title_token(s)
-    s = tostring(s or '')
-    s = s:gsub('_', ' '):gsub('(%l)(%u)', '%1 %2'):lower()
-    return (s:gsub('^%l', string.upper))
+    return (pretty_enum_name(s):lower():gsub('^%l', string.upper))
 end
 function sp_material_name(m)
     if not m then return '' end
-    local ok, s = pcall(function() return m.material.state_name.Solid end)
-    if ok and s and #s > 0 then return s end
+    local s = dwf_probe('lua.probe.material-state-name', function() return m.material.state_name.Solid end)
+    if s and #s > 0 then return s end
     return sp_title_token(m.id or '')
 end
 function sp_itemdef_name(d)
@@ -139,10 +169,10 @@ function sp_itemdef_name(d)
 end
 function sp_creature_name(c)
     if not c then return '' end
-    local ok, s = pcall(function() return c.name[1] end)
-    if ok and s and #s > 0 then return s end
-    ok, s = pcall(function() return c.name[0] end)
-    if ok and s and #s > 0 then return s end
+    local s = dwf_probe('lua.probe.creature-name', function() return c.name[1] end)
+    if s and #s > 0 then return s end
+    s = dwf_probe('lua.probe.creature-name', function() return c.name[0] end)
+    if s and #s > 0 then return s end
     return sp_title_token(c.creature_id or c.id or '')
 end
 function sp_color_name(c)
@@ -197,17 +227,6 @@ end
 function sp_color_group(vec)
     return sp_vec_group('color', 'Color', vec, function() return df.global.world.raws.descriptors.colors end, sp_any, sp_color_name)
 end
--- B141: species-qualified label for a PlantGrowth organic-table entry. The entry's
--- MATERIAL state name is the generic growth-class word shared by every species
--- ("leaf", "fruit", "bud"), which is why the custom food editor showed those repeated
--- 95 times. Native DF labels these rows with the growth's own raws name ("apple leaf",
--- "alder pollen catkin"): the growth on the host plant whose item material matches the
--- entry. Same growth-identity mechanism as interaction.cpp's B123 hover fix and
--- wire_v1.cpp classify_growth, done from the material side (matinfo.decode gives the
--- host plant; scan plant.growths for the one whose mat_type/mat_index equal the
--- entry's). df vectors are 0-based -- index loop, never ipairs. Returns nil when no
--- growth matches (caller falls back to the old state-name label, so odd non-growth
--- rows like "frozen egg yolk" keep their current text rather than breaking).
 function sp_plant_growth_name(mat_type, mat_index)
     local ok, name = pcall(function()
         local info = dfhack.matinfo.decode(mat_type, mat_index)
@@ -225,11 +244,6 @@ function sp_plant_growth_name(mat_type, mat_index)
     if ok then return name end
     return nil
 end
--- B141 (same mechanism, sibling cells): Seed and Plants entries also carry only the
--- generic template state name ("seed" x152, "plant" x221 in the live world) -- native
--- labels them from the plant raws: the plant's own seed name ([SEED:plump helmet
--- spawn:...] -> seed_singular) and the plant's name. Creature-material oddballs in
--- these tables have no info.plant and keep their current fallback label.
 function sp_plant_seed_or_plant_name(cat, mat_type, mat_index)
     local ok, name = pcall(function()
         local info = dfhack.matinfo.decode(mat_type, mat_index)
@@ -246,17 +260,7 @@ function sp_plant_seed_or_plant_name(cat, mat_type, mat_index)
     if ok then return name end
     return nil
 end
--- B149 (sibling of B141, creature side): Meat / Glob / Animal-liquid entries also carry
--- only the material template word ("muscle" x1127, "tallow" x1127 in the live world) --
--- native labels them creature-qualified: [meat-name prefix + " "] + creature prefix +
--- " " + (meat-name singular if set, else the material state name). "aardvark meat"
--- (MUSCLE), "aardvark fat" (FAT: no meat_name), "prepared koala brain" (BRAIN carries
--- the "prepared" prefix). Slot order live-probed 2026-07-10: meat_name[0]=singular,
--- [1]=plural, [2]=prefix (KOALA BRAIN: [0]="brain" [2]="prepared"; MUSCLE: [0]="meat"
--- [2]=""). NOTE dumpmats.cpp/raw-token order is prefix:singular:plural -- DF reorders
--- on parse; trust the probe, not the token. Emitted lowercase like the raws; the client
--- capitalizes the first letter (spDisplayName), same as the B141 plant labels. Returns
--- nil for non-creature rows (caller keeps the old fallback label, like the plant helpers).
+-- material.meat_name slots: [0] singular, [1] plural, [2] prefix.
 function sp_creature_material_name(mat_type, mat_index)
     local ok, name = pcall(function()
         local info = dfhack.matinfo.decode(mat_type, mat_index)
@@ -275,17 +279,8 @@ function sp_creature_material_name(mat_type, mat_index)
     if ok then return name end
     return nil
 end
--- B153 (drink/liquid state naming). DF stores a material's FROZEN name in
--- state_name.Solid ("frozen mead", "frozen bumblebee mead", "frozen milk") and
--- its stored-liquid name in state_name.Liquid ("mead", "bumblebee mead", "milk").
--- A drink/liquid stockpile row is labelled natively by the LIQUID name; the
--- generic sp_organic_material_name fallback reads .Solid (right for solids like
--- cheese/stone, wrong for drinks). `qualify` = creature-prefix the label like the
--- B149 meat formula (milk -> "aardvark milk"); drinks pass qualify=false because
--- their species is already inside the liquid name and their prefix is empty.
--- Falls back Liquid -> Solid -> nil so a material with no liquid name degrades to
--- the caller's existing fallback instead of dropping the row. Emitted lowercase;
--- the client capitalizes the first letter (spDisplayName), like the other labels.
+-- state_name.Solid is a drink/liquid material's FROZEN name ("frozen mead"); the stored form
+-- is state_name.Liquid. Reading .Solid here labels every drink and liquid as frozen.
 function sp_liquid_material_name(mat_type, mat_index, qualify)
     local ok, name = pcall(function()
         local info = dfhack.matinfo.decode(mat_type, mat_index)
@@ -312,14 +307,6 @@ function sp_organic_material_name(cat, mat_type, mat_index)
         local pn = sp_plant_seed_or_plant_name(cat, mat_type, mat_index)
         if pn and #pn > 0 then return pn end
     end
-    -- B153: drink & liquid tables display the LIQUID state name, not the frozen
-    -- SOLID name. A stored drink/liquid ("bumblebee mead", "dwarven wine",
-    -- "milk", "lye") is labelled natively by state_name.Liquid; the generic
-    -- fallback below reads state_name.Solid, which for these materials is the
-    -- frozen form ("frozen bumblebee mead"). Drinks embed the species in their
-    -- liquid name and carry an empty prefix (probed with B150) -> emit the bare
-    -- liquid name. CreatureLiquid milk carries a creature prefix, so it keeps the
-    -- B149 creature qualifier but on the LIQUID base ("aardvark milk").
     if cat == df.organic_mat_category.PlantDrink or
        cat == df.organic_mat_category.CreatureDrink or
        cat == df.organic_mat_category.PlantLiquid or
@@ -331,18 +318,6 @@ function sp_organic_material_name(cat, mat_type, mat_index)
         local ln = sp_liquid_material_name(mat_type, mat_index, true)
         if ln and #ln > 0 then return ln end
     end
-    -- B150 extends B149's formula to the remaining creature-material tables
-    -- (live-probed 2026-07-10): Leather 812/812 rows covered ("toad leather"),
-    -- Silk 31/41 (the 10 divine "flowing fabric" rows keep their fallback),
-    -- Yarn 8/8 ("sheep wool", "troll fur"), Parchment 811/812 (the one
-    -- PREFIX:NONE row keeps its already-distinct "vellum" fallback). Audited
-    -- and deliberately NOT in the prefix formula: CreatureDrink / CreatureCheese
-    -- / Pressed -- their creature rows carry empty prefixes so the formula is a
-    -- dead no-op. NOTE (B153 correction): a drink's SPECIES-qualified name
-    -- ("bumblebee mead") lives in state_name.LIQUID, not .Solid (= "frozen
-    -- bumblebee mead"); drinks and CreatureLiquid milk are handled above by the
-    -- B153 liquid branch, not here. CreaturePowder / Paste / Paper / Plant* /
-    -- MetalThread hold no creature rows at all.
     if cat == df.organic_mat_category.Meat or cat == df.organic_mat_category.Glob or
        cat == df.organic_mat_category.Leather or cat == df.organic_mat_category.Silk or
        cat == df.organic_mat_category.Yarn or cat == df.organic_mat_category.Parchment then
@@ -743,11 +718,8 @@ function sp_group_set(g, b, idx, on)
     vec[idx] = sp_bool(on) and 1 or 0
 end
 
--- DF's item-matching code assumes every vector in an enabled category has been initialized,
--- even when only one of the category's groups is selected. Enabling (for example) metal bars
--- while leaving the sibling "other blocks" vector empty produces a native null dereference as
--- soon as hauling considers a wooden block. Grow missing sibling entries as disabled before the
--- category flag becomes visible to DF. Existing choices are never overwritten.
+-- DF null-dereferences when an enabled stockpile category has an uninitialized sibling vector,
+-- so grow every group's vector before settings.flags[<category>] becomes true.
 function sp_ensure_category_vectors(b, spec)
     local changed = false
     for _, g in ipairs(spec.groups) do
@@ -771,7 +743,6 @@ function sp_normalize_enabled_categories(b)
     return changed
 end
 
--- Resolve (category, group key) -> spec, group. Defaults to the first group if blank/unknown.
 function sp_find_group(cat, group)
     local spec = SP_CATEGORIES[tostring(cat or '')]
     if not spec then return nil, nil end
@@ -781,11 +752,8 @@ function sp_find_group(cat, group)
     return spec, spec.groups[1]
 end
 
--- (stockpile_cat_groups + stockpile_item_list build JSON, so they're defined later after
---  json_string/json_bool are in scope.)
+-- stockpile_cat_groups and stockpile_item_list live later, after json_string/json_bool.
 
--- The editor primitives, expressed against ANY settings-holder `b` (a df::building_stockpilest or
--- a df::hauling_stop -- see get_hauling_stop's banner). They only ever touch `b.settings`.
 function sp_toggle_item_on(b, cat, group, idx, on)
     local spec, g = sp_find_group(cat, group)
     if not g then return false, 'category not editable' end
@@ -828,7 +796,7 @@ function stockpile_toggle_all(id, cat, group, on)
     return sp_toggle_all_on(b, cat, group, on)
 end
 
--- ---- B231: the same editor, pointed at a hauling stop's desired-items filter ----------------
+-- ---- the same editor, pointed at a hauling stop's desired-items filter ----------------------
 function hauling_stop_toggle_item(route_id, stop_id, cat, group, idx, on)
     local stop, err = get_hauling_stop(route_id, stop_id)
     if not stop then return false, err end
@@ -841,12 +809,6 @@ function hauling_stop_toggle_all(route_id, stop_id, cat, group, on)
     return sp_toggle_all_on(stop, cat, group, on)
 end
 
--- One-shot recovery for saves created before the sibling-vector guard above. This is deliberately
--- conservative: it only grows missing vectors in categories that are already enabled and fills
--- new entries with false. It covers all three places a save embeds df::stockpile_settings:
--- ordinary stockpiles, minecart hauling stops, and the fort-wide custom-stockpile buffer at
--- plotinfo.stockpile.custom_settings (that one IS a settings object, so it gets a thin
--- {settings = ...} adapter to look like a holder).
 function repair_incomplete_stockpile_settings()
     local holders, categories = 0, 0
     local function repair(holder)
@@ -874,11 +836,6 @@ function repair_incomplete_stockpile_settings()
     return holders, categories
 end
 
--- Preset ('stone', 'food', 'none', ...) on a stop. This one does NOT hand-write anything: DFHack's
--- stockpiles plugin already exposes a native route-stop importer, and its Lua front door takes the
--- route/stop pair directly -- plugins/lua/stockpiles.lua:124 import_settings(name, opts) dispatches
--- to stockpiles_route_import(fname, opts.route_id, opts.stop_id, mode, filters) whenever opts
--- carries a route_id. Preferring that over field-poking is the whole point of the DFHack-API rule.
 function hauling_stop_set_preset(route_id, stop_id, preset, mode)
     local stop, err = get_hauling_stop(route_id, stop_id)
     if not stop then return false, err end
@@ -899,8 +856,6 @@ function hauling_stop_set_preset(route_id, stop_id, preset, mode)
     return true, ''
 end
 
--- Create a stockpile over the inclusive world-tile rectangle (x1,y1)-(x2,y2) on z and
--- apply a category preset. Returns (id, ''). On failure returns (-1, errmsg).
 function create_stockpile(x1, y1, x2, y2, z, preset)
     local lx, hx = math.min(x1, x2), math.max(x1, x2)
     local ly, hy = math.min(y1, y2), math.max(y1, y2)
@@ -914,13 +869,8 @@ function create_stockpile(x1, y1, x2, y2, z, preset)
     if not ok then return -1, tostring(bld) end       -- bld is the error on pcall failure
     if not bld then return -1, tostring(err or 'could not place stockpile') end
 
-    -- Configure which items it accepts, using DFHack's tested preset import.
-    -- B137: preset 'none' = native new-pile semantics. Steam DF places a stockpile INERT
-    -- ("Click an icon to set stockpile type.") and dwarves haul nothing until the player
-    -- picks what it stores. A fresh abstract stockpile's settings are already all-off
-    -- (zero-initialized), so 'none' simply skips the preset import instead of falling
-    -- through to 'all' (the old fallback made new piles instantly accept EVERYTHING and
-    -- fill with hauled goods before the player finished configuring -- B137's report).
+    -- Preset 'none' must never fall through to 'all': a new pile would accept everything and fill
+    -- with hauled goods before the player has configured it.
     local want = tostring(preset or 'all'):lower()
     if want ~= 'none' then
         local libname = STOCKPILE_PRESETS[want] or 'all'
@@ -928,7 +878,12 @@ function create_stockpile(x1, y1, x2, y2, z, preset)
             require('plugins.stockpiles').import_settings(libname, {id = bld.id, mode = 'enable'})
         end)
         if not imported then
-            pcall(dfhack.buildings.deconstruct, bld)
+            local rolled_back = dwf_pcall('lua.stockpile.rollback-deconstruct',
+                                          dfhack.buildings.deconstruct, bld)
+            if not rolled_back then
+                return -1, tostring(import_err) ..
+                    ' (and the empty stockpile could not be removed -- delete it by hand)'
+            end
             return -1, tostring(import_err)
         end
         sp_normalize_enabled_categories(bld)

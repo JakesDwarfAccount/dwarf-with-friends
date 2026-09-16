@@ -31,7 +31,7 @@ namespace dwf {
 
 // WAVE-4 C++ WIRE BATCH build stamp. Emitted as an additive `"wireBatch"` field on every payload
 // this batch touched (/kitchen, /stock-item-action, /unit, /justice) so the DLL can be PROVEN to
-// contain the batch without trusting cmake's exit code (AGENTS.md "THIS MACHINE LIES WITH EXIT 0"):
+// contain the batch without trusting cmake's exit code:
 //   grep the built dwf.plug.dll for this exact literal.
 // It is a string constant, not a log line -- it costs nothing on any per-frame path.
 constexpr const char* kWireBatchMarker = "dwf-wire-batch-W4-20260712";
@@ -41,6 +41,9 @@ bool is_safe_player_id(const std::string& player);
 std::string query_player(const httplib::Request& req);
 
 std::string json_escape(const std::string& raw);
+// For callers holding raw DF bytes: escapes every byte >= 0x80 as \u00XX instead of running
+// DF2UTF. Passing raw CP437 name bytes through produces invalid UTF-8 and breaks the client parser.
+std::string json_escape_bytes(const std::string& raw);
 std::string json_string(const std::string& raw);
 void append_json_string_array(std::ostringstream& body, const std::vector<std::string>& values);
 

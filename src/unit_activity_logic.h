@@ -36,11 +36,13 @@ constexpr bool candidate_wins(CandidateRank candidate, CandidateRank current) {
            (candidate.depth == current.depth && candidate.order > current.order);
 }
 
-// This is the production precedence seam and the behavioral-fixture seam. Name callbacks retain
-// DF's ownership of every word while allowing the fixture to exercise the exact source choice.
+// The one precedence seam, shared with the behavioural fixture: `social_event` is resolved FIRST,
+// ahead of the job, matching DF's own current-task composer.
 template <typename Job, typename Event, typename JobName, typename EventName>
-std::string resolve_current_task(Job* job, Event* unit_event, Event* world_event,
+std::string resolve_current_task(Event* social_event, Job* job, Event* unit_event, Event* world_event,
                                  JobName job_name, EventName event_name) {
+    if (social_event)
+        return event_name(social_event);
     if (job)
         return job_name(job);
     if (unit_event)

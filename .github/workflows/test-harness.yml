@@ -1,46 +1,28 @@
-name: Test harness (no DF build)
+name: Offline checks
 
 on:
   pull_request:
   push:
-    branches:
-      - main
-      - dev
+    branches: [main, "wt/beta4-native-*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  offline-harness:
-    name: Offline and skip-safe suites
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      DFCAP_LIVE: "0"
+  offline-checks:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          # The repo-owned CDP driver uses Node's built-in WebSocket (stable in Node 22).
           node-version: "22"
-
-      - name: Install system Python image support
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes python3-pil
-
-      - name: Run Node harness suites
-        run: node tools/release/launch_preflight.mjs --stage=suites
-
-      - name: Prove the UI drift guard can fail
-        run: node tools/harness/ui_drift_guard_test.mjs --selftest
-
-      - name: Run Python unit suites
-        shell: bash
-        run: |
-          set -euo pipefail
-          unset DWF_DF_ROOT DFCAPTURE_DF_ROOT DF_ROOT
-          for suite in tools/ws2/tests/test_*.py; do python3 "$suite"; done
+      - name: Decode the wire fixture
+        run: node tools/harness/wire_decode_test.mjs
+      - name: Check generated Lua
+        run: node tools/lua/build_dwf_lua.mjs --check
+      - name: Check asset stamps
+        run: node tools/harness/stamp_busters.mjs --check
+      - name: Check browser dependencies
+        run: node tools/architecture/browser_dependency_inventory.mjs

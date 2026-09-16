@@ -44,8 +44,4 @@ void bake_sweep_submit_candidates(const std::vector<BakeSweepPoint>& points,
 
 void bake_sweep_tick(std::recursive_mutex& capture_mu);
 
-// True while camera steps are still queued or a plan is pending; the portrait sweep
-// defers its own offscreen renders until the map bake sweep has drained.
-bool bake_sweep_active();
-
 } // namespace dwf

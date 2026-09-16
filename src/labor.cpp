@@ -25,7 +25,9 @@
 #include "http_server.h"
 
 #include "Core.h"
+#include "assignable_citizen.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "modules/Units.h"
@@ -56,10 +58,7 @@ std::recursive_mutex g_labor_mutex;
 
 template <typename Fn>
 bool run_labor_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> labor_lock(g_labor_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_labor_mutex, std::forward<Fn>(fn));
 }
 
 std::string readable_enum_key(std::string key) {
@@ -268,9 +267,9 @@ df::work_detail_icon_type next_custom_work_detail_icon(const std::vector<df::wor
     return static_cast<df::work_detail_icon_type>(icon);
 }
 
-// Keep work-detail eligibility aligned with DFHack's living-unit predicates. isActive()
-// covers flags1.inactive; isDead/isGhost cover retained corpses and real ghosts.
-bool is_assignable_citizen(df::unit* unit) {
+// Deliberately WIDER than is_assignable_citizen: the insane, babies and children have professions
+// too, and narrowing this sweep would freeze theirs the moment any work detail changed.
+bool has_recomputable_profession(df::unit* unit) {
     return unit && Units::isCitizen(unit, true) && Units::isActive(unit) &&
            !Units::isDead(unit) && !Units::isGhost(unit);
 }
@@ -280,7 +279,7 @@ void recompute_all_citizen_professions() {
     if (!world)
         return;
     for (auto unit : world->units.active) {
-        if (is_assignable_citizen(unit))
+        if (has_recomputable_profession(unit))
             Units::setAutomaticProfessions(unit);
     }
 }
@@ -450,12 +449,8 @@ std::string labor_json(const LaborState& state) {
     return body.str();
 }
 
-// cpp-batch (Item 3): the full assignable unit_labor enum, for the Workers-tab checkboxes.
-// /workshop-info (lua) only carries currently-BLOCKED labors; this serves the complete pickable
-// set so the UI can render every checkbox. Mod-safe: iterates the LIVE enum_traits table (never a
-// hardcoded list), same selection/ordering as /labor's tasks[] (labor.cpp visible-picker filter +
-// category sort), minus the per-work-detail `allowed` flag. Enum_traits are static, so no
-// suspender/world access is needed -- this route is lock-free.
+// Iterate the LIVE enum_traits table, never a hardcoded list, so modded labors appear. Enum_traits
+// are static, so this route needs no suspender or world access -- keep it lock-free.
 std::string labor_list_json() {
     struct Item { int id; std::string key, name, cat_key, cat; int cat_order; };
     std::vector<Item> items;
@@ -684,11 +679,7 @@ ApiResult<bool> set_labor_task(int detail, int labor, bool on) {
     return ApiResult<bool>::success(true);
 }
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// ---------------------------------------------------------------- HTTP routes ----------------
 void register_labor_routes(httplib::Server& server) {
     server.Get("/labor", [](const httplib::Request& req, httplib::Response& res) {
         int detail = -1;
@@ -810,7 +801,7 @@ void register_labor_routes(httplib::Server& server) {
     server.Post("/labor-task-toggle", labor_task_handler);
 
     // GET /labor-list -> full assignable unit_labor enum for the Workers-tab checkboxes
-    // (cpp-batch Item 3). Additive; /workshop-info's blockedLabors[] only lists blocked ones.
+    // Additive; /workshop-info's blockedLabors[] only lists blocked ones.
     server.Get("/labor-list", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(labor_list_json(), "application/json; charset=utf-8");

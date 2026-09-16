@@ -27,7 +27,7 @@
 
 namespace dwf {
 
-// WT28 / B218: mirror DF's native BOX announcement popups in the browser so any web player can
+// Mirror DF's native BOX announcement popups in the browser so any web player can
 // read AND dismiss them -- an unattended host PC no longer wedges the fortress when a siege /
 // megabeast / first-caravan BOX popup opens and hard-pauses the game.
 //
@@ -58,7 +58,7 @@ namespace dwf {
 // pipelines, which this module does not touch.
 //
 // popup_push_tick() samples the BOX queue at <=1 Hz under a ConditionalCoreSuspender (the
-// vote_push_tick posture: skips instantly while the core is save-blocked, keeping the previous
+// pause_push_tick autosave-sample posture: skips instantly while the core is save-blocked, keeping the previous
 // snapshot), diffs against the mirrored set, and on change broadcasts to every live socket:
 //
 //   {"type":"popup","seq":N,"blocked":<bool>[,"by":"<player>"],
@@ -67,7 +67,7 @@ namespace dwf {
 //
 // ("kind"/"typeKey" are retained on the wire for client/schema stability; only "mega" is emitted.)
 // Empty `popups` = all clear. Sticky for late joiners: once seq > 0, players who have not seen
-// the current state get it pushed on join/reconnect (vote.cpp g_synced pattern). Ids are
+// the current state get it pushed on join/reconnect (the g_synced late-join pattern). Ids are
 // plugin-assigned monotonic ints -- a re-fired siege is a NEW entry and gets a FRESH id, never a
 // resurrected one.
 //
@@ -75,7 +75,9 @@ namespace dwf {
 // dismissal performs (pop the front of world.status.popups, re-parse mega_text) -- never a blanket
 // ESC injection, never a camera move, and never a write to announcement_alert. Idempotent per id:
 // a second concurrent click is a no-op {"ok":true,"already":true}. Scope: acknowledge-only BOX
-// popups; the diplomacy CHOICE dialog stays owned by vote.cpp (WT14) and is not touched here.
+// popups; the diplomacy CHOICE dialog (the barony/county/duchy elevation offer) is NOT mirrored at
+// all, and nothing in the browser advises on it -- the native accept/decline stays with whoever is
+// at the host keyboard.
 //
 // The forced pause is KEPT (a siege pausing the game is good signal); while any BOX popup is
 // mirrored, popup_blocked() is true, /diag reports "popupBlocked":true, and the pause arbiter
@@ -85,19 +87,11 @@ namespace dwf {
 // Routes: GET /popup (current mirrored state; mutex-only cache read) and POST /popup/dismiss.
 void register_popup_routes(httplib::Server& server);
 
-// Called once per ws_push_loop iteration (after vote_push_tick): sample, diff, broadcast,
-// late-join sync.
 void popup_push_tick();
 
-// True while any native popup is mirrored (set by the sample tick / dismissal; atomic read --
-// safe from any thread). The pause arbiter consults this to refuse unpause while blocked, and
-// /diag exposes it as "popupBlocked".
+// True while any native BOX popup is mirrored (atomic; safe from any thread).
 bool popup_blocked();
 
-// B288/B289 round 4: turn DF's markup text grammar into display text without discarding the raw
-// source. Art prose banking keeps the original string (including [C:f:b:br] colour tokens) and
-// uses this shared parser for its plain-text companion. This is the same grammar the native popup
-// mirror consumes; keeping one parser prevents the two DF-authored text paths from drifting.
 std::string native_markup_plain_text(const std::string& raw);
 
 } // namespace dwf

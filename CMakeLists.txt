@@ -78,6 +78,7 @@ dfhack_plugin(dfcapture_public
     src/labor.cpp
     src/lever_link.cpp
     src/lua_bridge.cpp
+    src/machines.cpp
     src/menu_oracle.cpp
     src/native_popup.cpp
     src/notifications.cpp
@@ -91,9 +92,11 @@ dfhack_plugin(dfcapture_public
     src/save_barrier.cpp
     src/sdl_capture.cpp
     src/session_routes.cpp
+    src/siege_engines.cpp
     src/sound_route.cpp
     src/missions.cpp
     src/sprite_map.cpp
+    src/squad_emblem.cpp
     src/squads.cpp
     src/standing_orders.cpp
     src/status_truth.cpp
@@ -101,6 +104,7 @@ dfhack_plugin(dfcapture_public
     src/stockpile_panel.cpp
     src/stone_use.cpp
     src/worldmap_panel.cpp
+    src/texpos_conformance.cpp
     src/tile_dump.cpp
     src/tile_map_dump.cpp
     src/trade_depot.cpp
@@ -109,7 +113,6 @@ dfhack_plugin(dfcapture_public
     src/unit_portrait.cpp
     src/unit_sheet.cpp
     src/unit_sprites.cpp
-    src/vote.cpp
     src/web_assets.cpp
     src/websocket.cpp
     src/wire_v1.cpp
@@ -123,8 +126,28 @@ target_include_directories(dfcapture_public PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb"
     ${SDL2_INCLUDE_DIRS})
 
+# COLD-LOAD PERF: turn on cpp-httplib's gzip path. Every set_content() body whose Content-Type is
+# text/*, application/json or application/javascript is deflated when the client sent
+# `Accept-Encoding: gzip` -- which is every browser, always. That covers the whole client bundle
+# (the JS/CSS/HTML of a cold load) and the JSON polls, at roughly 4-6x on this kind of text.
+# It costs no new dependency: ZLIB::ZLIB is already linked and src/flight_recorder.cpp and
+# src/websocket.cpp already `#include <zlib.h>`, so the header is already on this target's include
+# path. Brotli is deliberately NOT enabled -- the vendored httplib predates its brotli support and
+# nothing under third_party/ provides brotli, so it would mean a new third-party dependency
+# (AGENTS.md "No new third-party dependencies").
+#
+# Safe against the two paths that could have broken: the /stream MJPEG push uses
+# set_chunked_content_provider, and httplib only ever compresses `res.body`, never a content
+# provider, so the video path is untouched; the WebSocket upgrade is intercepted by
+# WsHttpServer::process_and_close_socket before httplib's HTTP response path runs at all.
 target_compile_definitions(dfcapture_public PRIVATE
-    DFCAPTURE_GIT_HASH="${DFCAP_GIT}")
+    DFCAPTURE_GIT_HASH="${DFCAP_GIT}"
+    CPPHTTPLIB_ZLIB_SUPPORT)
+
+if(NOT WIN32)
+    # GCC 15/16 raise false-positive maybe-uninitialized and misleading-indentation under DFHack's -Werror
+    target_compile_options(dfcapture_public PRIVATE -Wno-error)
+endif()
 
 set_target_properties(dfcapture_public PROPERTIES OUTPUT_NAME dwf)
 

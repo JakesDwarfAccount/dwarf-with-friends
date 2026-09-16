@@ -19,10 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// WD-18 ENDPOINT-ADD: GET/POST /stone-use -- df.global.plotinfo.economic_stone (one flag byte
-// per inorganic material index; nonzero = the player has selected this normally-restricted
-// "economic" stone for use in ordinary/non-economic jobs too), the dfhack gui/stone-use
-// equivalent (16d-labor-stone-use.png: Economic stone / Other stone tabs).
+// /stone-use -- the economic-stone selection flags in df.global.plotinfo.economic_stone.
 
 #pragma once
 

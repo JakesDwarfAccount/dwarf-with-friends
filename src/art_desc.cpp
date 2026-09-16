@@ -19,12 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// B246/B288/B289 -- see art_desc.h for the full df-structures citation trail. The short version:
-//   statue prose           = composed at view time from item_statuest + its resolved art_image
-//   figurine prose         = DF's own `art_string`, reached by DF's own getItemShapeDesc() vmethod
-//   slab prose             = DF's own `memorial` field on item_slabst
-//   engraving prose        = resident vmethods/templates first; per-world bank then DF's native
-//                            offscreen view sheet on a lazy-chunk miss. Any final failure stays empty.
+// Statue, figurine, slab and engraving prose, and the statue's own sprite.
 
 #include "art_desc.h"
 #include "render_thread_wait.h"
@@ -32,15 +27,12 @@
 #include "camera.h"
 #include "json_util.h"
 #include "native_popup.h"  // native_markup_plain_text -- shared DF MTB token grammar
-#include "sdl_capture.h"   // capture_state_mutex() -- the proven lock order is capture mutex first,
-                           // THEN CoreSuspender (interaction.cpp:1509-1513 says so explicitly).
+#include "sdl_capture.h"   // capture_state_mutex() -- the lock order is capture_state_mutex()
+                           // FIRST, THEN CoreSuspender, as run_suspended() takes them.
 #include "unit_portrait.h" // established isolated native view-sheet logic/render rail
 
 #include "Core.h"
-// DFHack::runOnRenderThread lives here -- unit_portrait.cpp includes it for the same rail; the
-// round-4 wave was authored without access to the shared DFHack build, so the missing
-// include only surfaced at the integration build. Same class of
-// merge-fix as status_truth.cpp's sdl_capture.h.
+// DFHack::runOnRenderThread lives here.
 #include "modules/DFSDL.h"
 #include "DataDefs.h"
 #include "MiscUtils.h"
@@ -114,17 +106,8 @@ std::string quality_name(int32_t quality) {
 
 } // namespace   <-- close the ANONYMOUS namespace here.
 
-// The art_image behind an (art_id, art_subid) pair. Chunks are lazily paged in from art_image_*.dat,
-// so a chunk that DF has not loaded is simply ABSENT -- we return nullptr and the caller can take
-// the bank/native-sheet miss path. We never guess a replacement image.
-// Path matches DFHack's own remotefortressreader.cpp:1516-1526.
-//
-// MERGE FIX (2026-07-14): B253 EXPORTED this in art_desc.h so world_stream.cpp could share the chunk
-// walk instead of growing a second copy -- but its definition was left inside the anonymous
-// namespace above. That produced TWO functions with identical signatures (one internal-linkage, one
-// declared at dwf scope) and every call site became ambiguous. Each wave compiled in
-// isolation; only the merge exposed it. The definition therefore lives at namespace scope, matching
-// the header.
+// An art_image chunk DF has not paged in is simply absent: return nullptr so the caller takes the
+// bank / native-sheet miss path. Never substitute a different image.
 df::art_image* find_art_image(int32_t art_id, int16_t art_subid) {
     auto world = df::global::world;
     if (!world || art_id < 0 || art_subid < 0)
@@ -142,8 +125,7 @@ df::art_image* find_art_image(int32_t art_id, int16_t art_subid) {
 
 namespace {   // <-- reopen the anonymous namespace for the remaining file-private helpers.
 
-// DF's OWN name generator for the artwork ("The Bronze Vault of Mining"), via DFHack's
-// Translation::translateName over the art_image's df::language_name. Never composed here.
+// DF's own name for the artwork; never composed here.
 std::string art_image_name(df::art_image* image) {
     if (!image)
         return "";
@@ -167,14 +149,7 @@ std::string trim_copy(std::string value) {
     return first < last ? std::string(first, last) : std::string();
 }
 
-// Persistent, per-world art prose bank. The path follows dfcapture.json's established convention:
-// relative to the DF working directory, inside dfhack-config. It is append-only because artwork is
-// immutable after creation; a later duplicate key supersedes an earlier record when loaded.
-//
-// Format (one tab-separated record per line; all free-form UTF-8 is hex encoded):
-//   DWF_ART_PROSE_V1 <world_hex> <I|E> <art_id> <subid> <x> <y> <z> <raw_hex> <plain_hex>
-// Item keys use x/y/z=-1. Engravings additionally include their tile so identical art used on two
-// surfaces remains independently addressable. raw_hex preserves DF's [C:f:b:br] tokens verbatim.
+// Append-only bank: artwork is immutable, so a later duplicate key supersedes the earlier record.
 constexpr const char* kArtBankPath = "dfhack-config/dfcapture-art-prose.bank";
 constexpr const char* kArtBankVersion = "DWF_ART_PROSE_V1";
 
@@ -374,8 +349,7 @@ std::string english_join(const std::vector<std::string>& parts) {
     return out;
 }
 
-// DF itself supplies every element phrase, including counts, historical-figure names, creature
-// castes, item names, and plant names. df.art_image.xml:22-27, vmethod original-name `get_string`.
+// Every element phrase comes from DF's own get_string vmethod; nothing is composed here.
 std::string art_elements_description(df::art_image* image) {
     if (!image)
         return "";
@@ -392,9 +366,7 @@ std::string art_elements_description(df::art_image* image) {
     return english_join(parts);
 }
 
-// These are byte-for-byte DF's quality phrases. B288-1 proves `masterfully designed`; the other
-// four live beside it in Dwarf Fortress.exe and are the same vocabulary used by the native art
-// formatter. Unknown/Artifact is deliberately unsupported: returning empty is safer than guessing.
+// DF's own phrases, byte-for-byte. Unknown and Artifact stay empty rather than guessed.
 std::string designed_image_phrase(int32_t quality) {
     switch (quality) {
     case 0: return "an image of ";
@@ -407,10 +379,8 @@ std::string designed_image_phrase(int32_t quality) {
     }
 }
 
-// Native item-quality words are not the image-quality words above. In particular, quality 1 is
-// "well-crafted" on the item sentence but "well-designed" on the art-image sentence. Ordinary
-// items have no adjective; Artifact is deliberately unsupported until an oracle establishes the
-// outer item sentence used for artifact statues.
+// Item-quality words are not the image words: quality 1 is "well-crafted" here and
+// "well-designed" in designed_image_phrase. Do not merge the two tables.
 std::string item_quality_phrase(int32_t quality) {
     switch (quality) {
     case 0: return "";
@@ -435,9 +405,6 @@ void append_sentence(std::string& body, std::string sentence) {
         body += ".";
 }
 
-// df.reference.xml:217-220 exposes general_ref::getDescription, DF's own `descriptive_string`
-// vmethod. For an ENTITY_ART_IMAGE reference it returns the referenced entity/name/type phrase;
-// B288-1 supplies the native outer sentence that identifies that phrase as the image's symbol.
 std::string art_reference_sentence(df::art_image* image) {
     if (!image || !image->ref ||
         image->ref->getType() != df::general_ref_type::ENTITY_ART_IMAGE)
@@ -449,13 +416,8 @@ std::string art_reference_sentence(df::art_image* image) {
         return "";
     if (reference.rfind("The image ", 0) == 0)
         return reference;
-    // Only DF's own complete sentence (the rfind branch above) is trusted. The former
-    // "The image is the symbol of " + reference reconstruction was a hard-coded wrapper NOT emitted
-    // by any DF vmethod -- reverse-engineered from oracle B288-1. Until a live-DF check confirms what
-    // general_ref_entity_art_image::getDescription actually returns for this ref type, DROP the clause
-    // rather than risk shipping invented prose (the B255/B265/B274 hazard). The main rendition sentence
-    // is unaffected; only this trailing "symbol of ..." clause is withheld. Re-enable once the live
-    // oracle confirms getDescription yields the full phrase.
+    // Only DF's own complete "The image ..." sentence is shipped. Never reconstruct a "symbol of"
+    // clause: no DF vmethod emits one, so it would be invented prose.
     return "";
 }
 
@@ -467,18 +429,15 @@ std::string art_properties_description(df::art_image* image) {
         if (!property)
             continue;
         std::string sentence;
-        // df.art_image.xml:94-99, vmethod original-name `get_string`. `full_desc=true` is the same
-        // long-form channel used by the native sheet; markup stays off for JSON/plain text.
+        // The third argument selects DF's long-form channel; markup stays off for JSON.
         property->getName(&sentence, image, true, false);
         append_sentence(out, std::move(sentence));
     }
     return out;
 }
 
-// DF 53.15 does not persist the statue paragraph in item_statuest.description. Live item 4141
-// proved that field is only the subject name ("Avafi Blazebears"). DF composes the paragraph when
-// it opens the sheet. Reproduce only the oracle-attested grammar while sourcing every variable part
-// from DF: item quality/material/subject plus art-image quality/elements/artist/properties.
+// item_statuest.description holds only the subject name -- DF composes the paragraph when it opens
+// the sheet, so every variable part here must be sourced from DF, never invented.
 std::string statue_description(df::item_statuest* statue, df::art_image* image) {
     if (!statue || !image)
         return "";
@@ -526,9 +485,8 @@ std::string engraving_description(df::engraving* engraving, df::art_image* image
                              ", " + image_phrase + elements);
         append_sentence(out, art_reference_sentence(image));
     } else {
-        // Rule ledger 0004: the native engraving view sheet uses "wall" in this simple
-        // sentence even when the engraving's physical-surface flag says floor. Keep the
-        // physical truth in EngravingArt::floor and the serialized surface field.
+        // The native engraving sheet says "wall" even when the engraving's surface flag says floor;
+        // the physical truth stays in EngravingArt::floor and the serialized surface field.
         append_sentence(out, "Engraved on the wall is " + image_phrase + elements +
                              " by " + artist);
     }
@@ -540,12 +498,8 @@ std::string engraving_description(df::engraving* engraving, df::art_image* image
     return out;
 }
 
-// DF does not expose a dedicated item-description builder widget. df.d_interface.xml:1685-1881
-// identifies the actual native builder state: main_interface.view_sheets, with ITEM/ENGRAVING
-// targets and raw_description/description outputs. markup_text_box_widget only renders a box that
-// somebody else already populated and has no item/engraving target. This therefore maps 1:1 onto
-// generate_unit_portrait_with_view_sheet: identity-only snapshot, native logic, isolated offscreen
-// render, exact identity restoration. The host's visible sheet is never opened or painted.
+// The native builder is main_interface.view_sheets, not markup_text_box_widget -- that widget only
+// paints a box someone else filled. The host's visible sheet is never opened or painted.
 struct NativeSheetIdentitySnapshot {
     df::view_sheets_interfacest& sheets;
     bool open;
@@ -676,17 +630,15 @@ bool compose_native_art_sheet(const ArtBankKey& key, int32_t item_id,
     sheets.scroll_position_description = 0;
     sheets.scrolling_description = false;
 
-    // Clearing only this ownership-free string prevents a stale closed sheet from looking like a
-    // successful build. Never copy/restore the whole view_sheets_interfacest: its pointer vectors
-    // own DF allocations, and the portrait postmortem proves whole-struct restoration double-frees.
+    // Never copy or restore the whole view_sheets_interfacest: its pointer vectors own DF
+    // allocations and whole-struct restoration double-frees. Clear only raw_description.
     for (int attempt = 0; attempt < 3; ++attempt) {
         sheets.last_tick_update = 0;
         sheets.raw_description.clear();
         if (!native_viewscreen_logic_render_isolated(&err))
             return false;
-        // Do not bank a generic item fallback forever. Success means DF's sheet actually paged the
-        // requested immutable art record AND produced its description, not merely that some text
-        // happened to appear in the shared closed-sheet buffer.
+        // Do not bank a generic item fallback: success means DF's sheet paged the requested art
+        // record, not merely that some text appeared in the shared closed-sheet buffer.
         if (!find_art_image(key.art_id, key.art_subid))
             continue;
         entry.raw_markup = sheets.raw_description;
@@ -724,8 +676,6 @@ bool bank_or_compose(const ArtBankKey& key, int32_t item_id, ArtBankEntry& entry
     auto future = request->done.get_future();
     bool composed = false;
     {
-        // Same lock posture as unit_portrait_on_render_thread: the HTTP thread owns the capture
-        // mutex while DF's render-thread callback performs native logic + isolated render.
         std::lock_guard<std::recursive_mutex> render_lock(capture_state_mutex());
         try {
             DFHack::runOnRenderThread([request]() {
@@ -788,20 +738,14 @@ ItemArt item_art(df::item* item) {
         out.base_description = out.title;
     out.quality = item->getOverallQuality();
 
-    // (1) DF'S OWN ART SUBJECT/STRING, via DF'S OWN VMETHOD.
-    // df/item.h:145 -- `virtual std::string* getItemShapeDesc()`, df-structures
-    // df.item.xml:602 `original-name='get_art_string_ptr'`, comment: 'a statue/figurine of "string
-    // goes here"'. DF returns &this->description for item_statuest / item_figurinest (both have
-    // <stl-string name='description' original-name='art_string'/>), and nullptr for every item class
-    // that carries no art string. Dispatching through DF's vtable rather than switching on item type
-    // is deliberate: the vtable IS DF's authoritative enumeration of which items have art prose.
+    // Dispatch through DF's own getItemShapeDesc vtable rather than switching on item type: the
+    // vtable is DF's authoritative enumeration of which items carry art prose.
     if (std::string* art_string = item->getItemShapeDesc()) {
         if (!art_string->empty())
             out.description = *art_string;
     }
 
-    // (2) SLABS. A slab's engraved text is DF's `memorial` field (df.item.xml:1546), which is NOT an
-    // art_string and so is NOT routed through get_art_string_ptr. Still DF's stored string.
+    // A slab's text is DF's own memorial field, not an art_string, so it bypasses the vmethod above.
     if (out.description.empty()) {
         if (auto slab = virtual_cast<df::item_slabst>(item)) {
             if (!slab->description.empty())
@@ -809,11 +753,6 @@ ItemArt item_art(df::item* item) {
         }
     }
 
-    // (3) Resolve the artwork. item_statuest owns the exact pair directly:
-    // df.item.xml:1533-1540 item_statuest.image.id (`art_image_chunk_id`) + .subid
-    // (`art_image_chunk_member`), generated as df/item_statuest.h::T_image. That pair enters the
-    // same find_art_image chunk walk used by engravings. The base item vmethod remains the correct
-    // generic accessor for figurines and other art-bearing item classes.
     df::art_image* image = nullptr;
     auto statue = virtual_cast<df::item_statuest>(item);
     if (statue) {
@@ -834,22 +773,20 @@ ItemArt item_art(df::item* item) {
     if (image)
         out.art_name = art_image_name(image);
 
-    // A statue's stored string is only its subject name, not prose. A resolved image lets us compose
-    // the native paragraph; an unresolved image deliberately clears the subject-only body so the
-    // client falls back to the already-shipped title + item-quality + base-name rows.
+    // No resolved image means no composed paragraph: clearing it makes the client fall back to the
+    // already-shipped title, item quality and base name.
     if (statue)
         out.description = image ? statue_description(statue, image) : "";
 
-    // Residency-aware second path. Never load the file here: callers hold CoreSuspender, and a
-    // first-use disk read would stall the fortress. Detailed click routes call complete_* outside
-    // the suspend; once loaded, every other art read can take this in-memory bank hit for free.
+    // Never load the bank file here: callers hold CoreSuspender and a first-use disk read would
+    // stall the fortress. complete_* does the loading outside the suspend.
     if (statue && out.description.empty() && out.art_id >= 0 && out.art_subid >= 0) {
         ArtBankEntry banked;
         if (bank_lookup(item_bank_key(out.world_key, out.art_id, out.art_subid), banked, false))
             out.description = banked.plain_text;
     }
 
-    // (4) The SPRITE -- the SAME item art channel the item sheet and the occupant rail already use.
+    // The sprite -- the same item art channel the item sheet and the occupant rail use.
     out.sprite.item_type = DFHack::enum_item_key(item->getType());
     out.sprite.item_subtype = item->getSubtype();
     out.sprite.material_type = item->getMaterial();
@@ -861,11 +798,8 @@ ItemArt building_art(df::building* building) {
     ItemArt out;
     if (!building)
         return out;
-    // A statue is a BUILDING (df::building_statuest) that DF constructed OUT OF an ITEM
-    // (df::item_statuest). building_statuest itself holds no art at all -- it has exactly one field,
-    // an unused `statue_flag` (df/building_statuest.h). ALL of the art -- the description AND the
-    // material/type that make the sprite -- lives on the contained item. That is the whole reason the
-    // B246 panel showed neither: /building-info only ever looked at the building.
+    // A statue building holds no art at all: the description, material and type all live on the
+    // item it was built out of.
     auto actual = virtual_cast<df::building_actual>(building);
     if (!actual)
         return out;
@@ -885,10 +819,7 @@ bool engraving_art_at(const df::coord& pos, EngravingArt& out) {
     auto world = df::global::world;
     if (!world)
         return false;
-    // B24 established the vector: world->event.engravings (there is no world->engravings in this
-    // structures version). interaction.cpp:669-680 already walks it for the hover's "Engraved "
-    // prefix -- which is exactly the proof that the DATA was reachable all along and only the
-    // SELECTION path was missing.
+    // The engraving vector is world->event.engravings; there is no world->engravings here.
     for (auto e : world->event.engravings) {
         if (!e || e->pos.x != pos.x || e->pos.y != pos.y || e->pos.z != pos.z)
             continue;
@@ -932,9 +863,8 @@ bool engraving_art_at(const df::coord& pos, EngravingArt& out) {
 void append_item_art_json(std::ostringstream& body, const ItemArt& art) {
     if (!art.present)
         return;
-    // `artDescription` remains DF'S OWN SENTENCE or absent. `artBaseDescription` is separately
-    // labelled DF item-name fallback data; keeping the keys distinct prevents the B236 defect where
-    // a title was misrepresented as generated prose.
+    // artDescription stays DF's own sentence or absent; artBaseDescription is item-name fallback
+    // data. Keeping the keys distinct stops a title being served as generated prose.
     body << ",\"artTitle\":" << json_string(art.title)
          << ",\"artDescription\":" << json_string(art.description)
          << ",\"artBaseDescription\":" << json_string(art.base_description)
@@ -969,8 +899,8 @@ std::string engraving_art_json(const EngravingArt& art) {
          << ",\"artistName\":" << json_string(art.artist_name)
          << ",\"surface\":" << json_string(art.floor ? "floor" : "wall")
          << ",\"obscured\":" << (art.hidden ? "true" : "false")
-         // Empty means one of DF's required formatter inputs was unavailable. The client renders
-         // no substitute sentence and no explanatory prose in that case.
+         // Empty means a required DF formatter input was unavailable; the client renders no
+         // substitute sentence.
          << ",\"descriptionAvailable\":" << (!art.description.empty() ? "true" : "false")
          << ",\"description\":" << json_string(art.description)
          << "}\n";
@@ -978,8 +908,8 @@ std::string engraving_art_json(const EngravingArt& art) {
 }
 
 void register_art_desc_routes(httplib::Server& server) {
-    // /engraving-info?x=&y=&z=  -- read-only. Never moves the camera (B216): it takes an explicit
-    // tile, not a pixel, so opening the panel cannot re-derive or nudge a viewport.
+    // /engraving-info: read-only, and takes an explicit tile rather than a pixel, so opening the
+    // panel can never nudge a viewport.
     server.Get("/engraving-info", [](const httplib::Request& req, httplib::Response& res) {
         int x = 0, y = 0, z = 0;
         if (!query_int(req, "x", x) || !query_int(req, "y", y) || !query_int(req, "z", z)) {
@@ -999,8 +929,7 @@ void register_art_desc_routes(httplib::Server& server) {
             }
             engraving_art_at(df::coord(x, y, z), art);
         }
-        // The suspended read above takes the free resident-chunk path and any already-loaded bank
-        // hit. Only a true miss reaches DF's native offscreen sheet, outside CoreSuspender.
+        // Only a true miss reaches DF's native offscreen sheet, and that runs outside CoreSuspender.
         if (art.present && art.description.empty())
             complete_engraving_art_prose(art);
         res.set_header("Cache-Control", "no-store");

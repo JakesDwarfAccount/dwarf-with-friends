@@ -19,25 +19,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// WT26 -- the browser DFHack command console (a gui/launcher equivalent for every player).
-//
-// READ src/console_policy.h FIRST. It carries the security model and the deny table; this file is
-// just the two HTTP handlers that consume it.
-//
-// W23 (supersedes the WT26 always-on decision): THE WHOLE CONSOLE IS GATED BY A HOST SETTING,
-// DEFAULT OFF -- flag `dfhack_console` in dfcapture-hostwrites.json ("just put it in the host
-// settings to allow people to use dfhack commands or not and have it default off"). The gate is
-// on the ROUTES, not the button: hiding the UI while leaving POST /console/run live would be
-// security theatre, since any player who knows the URL can still POST. Both handlers refuse 403
-// with a guarded reason when the flag is off or the file is absent (fail closed). The host flips
-// it from the host panel (POST /console-config, host-tab-only) or by editing the file.
-//
-// WHEN THE SETTING IS ON, the WT26 model is unchanged, and THE ONE THING NOT TO BREAK still
-// holds: `POST /console/run` calls console::command_denied() BEFORE it calls the bridge, and
-// there is STILL no peer_ip_is_loopback host-identity gate in this file -- the console is for any
-// authed player once the host opted in, and the blocklist is the containment. If you ever remove
-// the deny check, you have handed every friend `capture-join-password`.
-
 #include "console_routes.h"
 
 #include "console_policy.h"
@@ -53,14 +34,10 @@ namespace dwf {
 
 namespace {
 
-// Longest command line we will even look at. A console line is a command + args, not a payload;
-// anything past this is a client bug or an attack, and it is refused before the gate runs.
+// longest command line accepted: a console line is a command + args, never a payload
 constexpr size_t kMaxCommandLen = 512;
 
-// Serialize the LIVE deny table so the client can grey out blocked commands in the palette.
-// DISPLAY ONLY -- the server re-checks every run against the same table, so a client that ignores
-// this (or is patched to) gains nothing. Shipping the rules (rather than a hardcoded client copy)
-// is what keeps the two ends from drifting: there is one table, and it is this one.
+// DISPLAY ONLY -- the palette greys these out; enforcement is command_denied() on every run.
 std::string deny_rules_json() {
     std::ostringstream out;
     out << "[";
@@ -77,8 +54,6 @@ std::string deny_rules_json() {
     return out.str();
 }
 
-// W23: the host setting, checked live per request (2 s file cache -- the host panel toggle takes
-// effect without restart). One helper so both routes refuse identically, with one reason string.
 bool console_enabled() {
     return guards::hostwrite_enabled(guards::kConsoleFlag);
 }
@@ -96,19 +71,8 @@ void refuse_console_off(httplib::Response& res) {
 
 void register_console_routes(httplib::Server& server) {
     // ---- GET /console/commands -----------------------------------------------------------------
-    // The autocomplete corpus: helpdb.get_commands() + get_entry_short_help() per command, plus the
-    // deny table. Read-only and static for a play session, so the client fetches it once at panel
-    // open and does search-as-you-type entirely offline -- no per-keystroke round trip and no
-    // per-keystroke CoreSuspender.
-    //
-    // AUTH-GATED, NOT HOST-GATED: no static-asset extension and not in join_public_path, so the
-    // pre-routing auth handler (http_server.cpp) already refused any unauthed caller. Every AUTHED
-    // player -- host or friend -- gets the catalog. That is deliberate: the palette must not be
-    // blank for friends.
     server.Get("/console/commands", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
-        // W23 GATE FIRST: a command palette listing every host command IS the console. When the
-        // host setting is off, the catalog refuses like the run route -- no live-looking surface.
         if (!console_enabled()) { refuse_console_off(res); return; }
         std::string err;
         std::string catalog = console_catalog_json_via_lua(&err);
@@ -118,8 +82,6 @@ void register_console_routes(httplib::Server& server) {
                             "}\n", "application/json; charset=utf-8");
             return;
         }
-        // The lua fn returns {"ok":true,"commands":[...]}\n -- splice the deny table in beside it
-        // rather than re-parsing (same "lua owns the JSON" convention as every other bridge route).
         const size_t close = catalog.find_last_of('}');
         if (close == std::string::npos) {
             res.status = 500;
@@ -132,25 +94,9 @@ void register_console_routes(httplib::Server& server) {
     });
 
     // ---- POST /console/run?cmd=<command line> --------------------------------------------------
-    // Runs ONE DFHack command and returns {ok, status, output}.
-    //
-    // GATE ORDER IS THE FEATURE (spec section 5: the security gate lands WITH the execution path,
-    // never an ungated exec endpoint first):
-    //   1. auth        -- already enforced upstream by the pre-routing handler. NOT loopback: any
-    //                     authed player may be here. There is no host-identity check here.
-    //   2. HOST SETTING (W23) -- dfhack_console must be explicitly true, or 403 for everyone and
-    //                     NOTHING below even parses. Fail closed: absent file/key = off.
-    //   3. length      -- 400 on a missing/oversized cmd.
-    //   4. BLOCKLIST   -- console::command_denied(cmd). 403 + the reason, and NOTHING executes.
-    //                     Applies to every caller INCLUDING THE HOST: the function takes no caller
-    //                     identity, so there is no "host" branch to escape through.
-    //   5. execute     -- console_run_via_lua, which re-checks the SAME table as a backstop.
-    //
-    // A denied command is logged with the reason (diagnostics.log) so the owner can see what friends tried.
     auto run_handler = [](const httplib::Request& req, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
 
-        // *** W23: THE HOST SETTING. Route-side, before anything about the command is looked at. ***
         if (!console_enabled()) {
             diagnostics_log("console: REFUSED (dfhack_console is off) from " + req.remote_addr);
             refuse_console_off(res);
@@ -171,7 +117,6 @@ void register_console_routes(httplib::Server& server) {
             return;
         }
 
-        // *** THE BLOCKLIST. The sole containment, applied before anything runs. ***
         console::Denial gate = console::command_denied(cmd);
         if (gate.denied) {
             diagnostics_log("console: DENIED '" + cmd + "': " + gate.reason);

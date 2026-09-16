@@ -10914,7 +10914,7 @@
   "WORM_KNUCKLE": {
    "sheet": "creatures_small.png",
    "col": 0,
-   "row": 111,
+   "row": 57,
    "corpse": {
     "sheet": "creatures_small.png",
     "col": 3,

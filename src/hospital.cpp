@@ -24,6 +24,7 @@
 #include "Core.h"
 #include "http_server.h"
 #include "json_util.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 #include "unit_activity.h"
 
@@ -35,6 +36,7 @@
 #include "df/abstract_building.h"
 #include "df/abstract_building_contents.h"
 #include "df/abstract_building_hospitalst.h"
+#include "df/abstract_building_flags.h"
 #include "df/abstract_building_type.h"
 #include "df/building.h"
 #include "df/building_civzonest.h"
@@ -51,11 +53,15 @@
 #include "df/job.h"
 #include "df/job_list_link.h"
 #include "df/job_type.h"
+#include "df/occupation.h"
+#include "df/occupation_type.h"
 #include "df/plotinfost.h"
 #include "df/unit.h"
 #include "df/unit_health_flags.h"
 #include "df/unit_health_info.h"
+#include "df/unit_flags1.h"
 #include "df/unit_labor.h"
+#include "df/unit_soul.h"
 #include "df/unit_wound.h"
 #include "df/world.h"
 #include "df/world_data.h"
@@ -75,53 +81,41 @@ namespace {
 
 std::recursive_mutex g_hospital_mutex;
 
-// Same lock discipline as trade_depot.cpp / fort_admin.cpp: panel mutex -> capture-state mutex ->
-// CoreSuspender. Reads and mutations share the guard so walking sites / units / jobs never races
-// the sim.
 template <typename Fn>
 bool run_hospital_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> hospital_lock(g_hospital_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
-}
-
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
+    return run_panel_locked(g_hospital_mutex, std::forward<Fn>(fn));
 }
 
 // ---------------------------------------------------------------------------
-// Supply table: the 7 hospital supplies. `scale` is DF's internal ×multiplier (thread ×15000,
-// cloth ×10000, plaster/soap ×150, others ×1) -- confirmed from abstract_building_contents.h field
-// comments AND quickfort defaults (5 splints -> desired_splints=5; 5 thread -> desired_thread=75000
-// = 5*15000; 5 cloth -> 50000 = 5*10000; 5 plaster -> desired_powder=750 = 5*150; 5 soap -> 750;
-// 2 buckets -> 2). "Level" (what the player sets, what DF's Locations screen shows) = raw/scale.
-// ---------------------------------------------------------------------------
+// Supply table: the 7 hospital supplies, in the order the rows are emitted.
 struct SupplyDef {
     const char* key;
     const char* label;
-    int scale;
+    int scale;                          // DF stores level * scale
     int32_t df::abstract_building_contents::* desired;
     int32_t df::abstract_building_contents::* count;
 };
 
 const SupplyDef kSupplies[] = {
-    {"splints",  "Splints",  1,     &df::abstract_building_contents::desired_splints,  &df::abstract_building_contents::count_splints},
-    {"thread",   "Thread",   15000, &df::abstract_building_contents::desired_thread,   &df::abstract_building_contents::count_thread},
-    {"cloth",    "Cloth",    10000, &df::abstract_building_contents::desired_cloth,    &df::abstract_building_contents::count_cloth},
-    {"crutches", "Crutches", 1,     &df::abstract_building_contents::desired_crutches, &df::abstract_building_contents::count_crutches},
-    {"plaster",  "Plaster",  150,   &df::abstract_building_contents::desired_powder,   &df::abstract_building_contents::count_powder},
-    {"buckets",  "Buckets",  1,     &df::abstract_building_contents::desired_buckets,  &df::abstract_building_contents::count_buckets},
-    {"soap",     "Soap",     150,   &df::abstract_building_contents::desired_soap,     &df::abstract_building_contents::count_soap},
+    {"thread",   "Thread",      15000, &df::abstract_building_contents::desired_thread,   &df::abstract_building_contents::count_thread},
+    {"cloth",    "Cloth",       10000, &df::abstract_building_contents::desired_cloth,    &df::abstract_building_contents::count_cloth},
+    {"splints",  "Splints",     1,     &df::abstract_building_contents::desired_splints,  &df::abstract_building_contents::count_splints},
+    {"crutches", "Crutches",    1,     &df::abstract_building_contents::desired_crutches, &df::abstract_building_contents::count_crutches},
+    {"plaster",  "Cast powder", 150,   &df::abstract_building_contents::desired_powder,   &df::abstract_building_contents::count_powder},
+    {"buckets",  "Buckets",     1,     &df::abstract_building_contents::desired_buckets,  &df::abstract_building_contents::count_buckets},
+    {"soap",     "Soap",        150,   &df::abstract_building_contents::desired_soap,     &df::abstract_building_contents::count_soap},
 };
+
+// The ceil/floor split is the rule, not a rounding preference: stock rounds UP so a partial reel
+// reads as 1, target rounds DOWN, and harmonising them makes a stocked hospital look one short.
+int supply_stock_display(int32_t raw, int scale) {
+    if (scale <= 1) return raw;
+    return (raw + scale - 1) / scale;   // ceil
+}
+int supply_target_display(int32_t raw, int scale) {
+    if (scale <= 1) return raw;
+    return raw / scale;                 // floor
+}
 
 const SupplyDef* find_supply(const std::string& key) {
     for (const auto& s : kSupplies)
@@ -130,7 +124,6 @@ const SupplyDef* find_supply(const std::string& key) {
     return nullptr;
 }
 
-// need_more is a bitfield union (location_info_flag) -- no pointer-to-member of a bit, so switch.
 void set_need_more(df::abstract_building_contents* c, const std::string& key, bool on) {
     auto& f = c->need_more.bits;
     if (key == "splints")       f.splints = on;
@@ -155,10 +148,7 @@ bool get_need_more(df::abstract_building_contents* c, const std::string& key) {
 }
 
 // ---------------------------------------------------------------------------
-// Resolution: a hospital is a location; the panel is entered via a zone click, so the primary key
-// is a zone id (zone.location_id -> the abstract_building_hospitalst). `?location=` resolves the
-// site from the current fort (plotinfo->site_id) and scans its buildings.
-// ---------------------------------------------------------------------------
+// Resolution: zone id -> location id -> the abstract_building_hospitalst.
 df::world_site* find_site(int32_t site_id) {
     auto wd = df::global::world ? df::global::world->world_data : nullptr;
     if (!wd)
@@ -186,7 +176,6 @@ struct HospitalRef {
     int32_t location_id = -1;
 };
 
-// Resolve by zone id (preferred) or, if zone_id<0, by location id within the current fort site.
 bool resolve_hospital(int32_t zone_id, int32_t location_id, HospitalRef& out, std::string* err) {
     if (zone_id >= 0) {
         auto zone = virtual_cast<df::building_civzonest>(df::building::find(zone_id));
@@ -223,9 +212,7 @@ std::string hospital_name(df::abstract_building_hospitalst* hosp) {
 }
 
 // ---------------------------------------------------------------------------
-// Chief medical dwarf: the fort noble position carrying HEALTH_MANAGEMENT responsibility. Same
-// positions/assignments walk as trade_depot.cpp find_broker (the broker == TRADE responsibility).
-// ---------------------------------------------------------------------------
+// Chief medical dwarf: the fort noble position carrying HEALTH_MANAGEMENT.
 struct ChiefMedical {
     bool found = false;         // a HEALTH_MANAGEMENT position exists in this fort
     int32_t position_id = -1;
@@ -234,6 +221,7 @@ struct ChiefMedical {
     int32_t unit_id = -1;
     std::string name;
     int8_t profession_color = -1;
+    bool staffed = false;               // stricter than `filled`: the appointee is alive and on-map
 };
 
 ChiefMedical find_chief_medical() {
@@ -267,6 +255,7 @@ ChiefMedical find_chief_medical() {
                     out.unit_id = u->id;
                     out.name = DFHack::Units::getReadableName(u);
                     out.profession_color = DFHack::Units::getProfessionColor(u);
+                    out.staffed = u->status.current_soul != nullptr && !u->flags1.bits.inactive;
                     break;
                 }
             }
@@ -277,7 +266,7 @@ ChiefMedical find_chief_medical() {
                 }
             }
         }
-        break; // one HEALTH_MANAGEMENT position (the Chief Medical Dwarf)
+        break;
     }
     return out;
 }
@@ -290,14 +279,45 @@ std::string chief_medical_json(const ChiefMedical& c) {
        << ",\"filled\":" << (c.filled ? "true" : "false")
        << ",\"unitId\":" << c.unit_id
        << ",\"name\":" << json_string(c.name)
+       << ",\"staffed\":" << (c.staffed ? "true" : "false")
        << ",\"professionColor\":" << static_cast<int>(c.profession_color) << "}";
     return js.str();
 }
 
+const char* location_access_level(df::abstract_building* loc) {
+    if (!loc) return "CITIZENS";
+    if (loc->flags.is_set(df::abstract_building_flags::MEMBERS_ONLY))         return "MEMBERS";
+    if (loc->flags.is_set(df::abstract_building_flags::VISITORS_ALLOWED))     return "ALL_VISITORS";
+    if (loc->flags.is_set(df::abstract_building_flags::NON_CITIZENS_ALLOWED)) return "CITIZENS_AND_RESIDENTS";
+    return "CITIZENS";
+}
+
+// HONEST OMISSION: DFHack's `occupation` struct does not expose a vacant slot's requested position
+// name, so a vacant slot reports `holderName: null`. DEF-002: registered deferral.
+const char* hospital_occupation_key(df::occupation_type type) {
+    switch (type) {
+    case df::occupation_type::DOCTOR:         return "DOCTOR";
+    case df::occupation_type::DIAGNOSTICIAN:  return "DIAGNOSTICIAN";
+    case df::occupation_type::SURGEON:        return "SURGEON";
+    case df::occupation_type::BONE_DOCTOR:    return "BONE_DOCTOR";
+    default:                                  return nullptr;
+    }
+}
+
+std::string occupation_holder_name(df::occupation* occ) {
+    if (occ->unit_id != -1) {
+        if (auto u = df::unit::find(occ->unit_id))
+            return DFHack::Units::getReadableName(u);
+    }
+    if (occ->histfig_id != -1) {
+        if (auto hf = df::historical_figure::find(occ->histfig_id))
+            return DFHack::Translation::translateName(&hf->name, true);
+    }
+    return "";
+}
+
 // ---------------------------------------------------------------------------
-// Doctors: citizens with >=1 medical labor enabled. The medical labor set is exactly what
-// labor.cpp maps to work_detail_icon_type::ORDERLIES.
-// ---------------------------------------------------------------------------
+// Doctors: citizens with >=1 medical labor enabled.
 struct MedLabor { df::unit_labor labor; const char* key; };
 const MedLabor kMedLabors[] = {
     {df::unit_labor::DIAGNOSE,             "diagnose"},
@@ -310,8 +330,7 @@ const MedLabor kMedLabors[] = {
 };
 
 // ---------------------------------------------------------------------------
-// Medical job types (the treatment queue). Read-only visibility -- DF schedules healthcare itself.
-// ---------------------------------------------------------------------------
+// Medical job types (the treatment queue).
 const df::job_type kMedJobs[] = {
     df::job_type::RecoverWounded,
     df::job_type::DiagnosePatient,
@@ -345,8 +364,6 @@ df::unit* job_patient(df::job* job) {
     return nullptr;
 }
 
-// True iff `unit_id` is the patient of a live PlaceInTraction job (traction is scheduled, not a
-// standing flag once benched -- rq_traction clears when the job is created).
 bool has_traction_job(int32_t unit_id) {
     auto world = df::global::world;
     if (!world)
@@ -364,7 +381,6 @@ bool has_traction_job(int32_t unit_id) {
 
 // ---------------------------------------------------------------------------
 // JSON builders
-// ---------------------------------------------------------------------------
 std::string build_hospital_info_json(int32_t zone_id, int32_t location_id, std::string* err) {
     std::ostringstream js;
     bool ok = run_hospital_locked([&]() -> bool {
@@ -373,7 +389,11 @@ std::string build_hospital_info_json(int32_t zone_id, int32_t location_id, std::
             return false;
         auto* c = ref.contents;
 
-        // Hospital furniture: count building types across every zone attached to this location.
+        const ChiefMedical chief = find_chief_medical();
+        js << "{\"ok\":true,\"staffed\":" << (chief.staffed ? "true" : "false")
+           << ",\"requiredPosition\":"
+           << json_string(chief.staffed ? std::string() : chief.position);
+
         int beds = 0, tables = 0, traction = 0, containers = 0;
         std::vector<int32_t> zone_ids;
         for (auto zid : c->building_ids) {
@@ -395,11 +415,11 @@ std::string build_hospital_info_json(int32_t zone_id, int32_t location_id, std::
             }
         }
 
-        js << "{\"ok\":true,\"locationId\":" << ref.location_id
+        js << ",\"locationId\":" << ref.location_id
            << ",\"zoneId\":" << (ref.zone ? ref.zone->id : -1)
            << ",\"name\":" << json_string(hospital_name(ref.hosp))
            << ",\"value\":" << c->location_value
-           << ",\"tier\":" << c->location_tier
+           << ",\"accessLevel\":" << json_string(location_access_level(ref.hosp))
            << ",\"zoneIds\":[";
         for (size_t i = 0; i < zone_ids.size(); ++i) {
             if (i) js << ",";
@@ -408,7 +428,6 @@ std::string build_hospital_info_json(int32_t zone_id, int32_t location_id, std::
         js << "],\"furniture\":{\"beds\":" << beds << ",\"tables\":" << tables
            << ",\"tractionBenches\":" << traction << ",\"containers\":" << containers << "}";
 
-        // Supplies.
         js << ",\"supplies\":[";
         for (size_t i = 0; i < (sizeof(kSupplies) / sizeof(kSupplies[0])); ++i) {
             const auto& s = kSupplies[i];
@@ -420,17 +439,37 @@ std::string build_hospital_info_json(int32_t zone_id, int32_t location_id, std::
                << ",\"scale\":" << s.scale
                << ",\"desiredRaw\":" << desired_raw
                << ",\"countRaw\":" << count_raw
-               << ",\"desiredLevel\":" << (desired_raw / s.scale)
+               << ",\"targetDisplay\":" << supply_target_display(desired_raw, s.scale)
+               << ",\"stockDisplay\":" << supply_stock_display(count_raw, s.scale)
+               // legacy aliases the client still reads as a fallback
+               << ",\"desiredLevel\":" << supply_target_display(desired_raw, s.scale)
                << ",\"countLevel\":" << (count_raw / s.scale)
+               // `short` is DF's own need_more bit, never a derived stock < target
+               << ",\"short\":" << (get_need_more(c, s.key) ? "true" : "false")
                << ",\"needMore\":" << (get_need_more(c, s.key) ? "true" : "false")
                << "}";
         }
         js << "]";
 
-        // Chief medical dwarf (noble).
-        js << ",\"chiefMedical\":" << chief_medical_json(find_chief_medical());
+        js << ",\"chiefMedical\":" << chief_medical_json(chief);
 
-        // Doctors: citizens with >=1 medical labor.
+        js << ",\"occupations\":[";
+        bool first_occ = true;
+        for (auto occ : ref.hosp->occupations) {
+            if (!occ)
+                continue;
+            const char* key = hospital_occupation_key(occ->type);
+            if (!key)
+                continue;
+            const std::string holder = occupation_holder_name(occ);
+            if (!first_occ) js << ",";
+            first_occ = false;
+            js << "{\"typeKey\":" << json_string(key)
+               << ",\"holderName\":" << (holder.empty() ? "null" : json_string(holder))
+               << "}";
+        }
+        js << "]";
+
         js << ",\"doctors\":[";
         auto world = df::global::world;
         bool first = true;
@@ -473,7 +512,6 @@ std::string build_hospital_patients_json(int32_t zone_id, int32_t location_id, s
         auto world = df::global::world;
         if (!world) { if (err) *err = "world unavailable"; return false; }
 
-        // Patients: active fort units whose health carries a request OR who have active wounds.
         js << "{\"ok\":true,\"locationId\":" << ref.location_id << ",\"patients\":[";
         bool first = true;
         for (auto u : world->units.active) {
@@ -512,7 +550,6 @@ std::string build_hospital_patients_json(int32_t zone_id, int32_t location_id, s
         }
         js << "]";
 
-        // Treatment queue: active medical jobs in the fort.
         js << ",\"queue\":[";
         first = true;
         for (df::job_list_link* link = world->jobs.list.next; link; link = link->next) {
@@ -541,8 +578,6 @@ std::string build_hospital_patients_json(int32_t zone_id, int32_t location_id, s
     return js.str();
 }
 
-// Mutation: set one supply's desired maximum. Mirrors DF's Locations-screen +/- and quickfort:
-// desired_<field> = level * scale, and need_more.<bit> = (level > 0). Level clamped 0..99.
 bool do_hospital_supply(int32_t zone_id, int32_t location_id, const std::string& key, int level,
                         std::string* err) {
     return run_hospital_locked([&]() -> bool {
@@ -574,8 +609,7 @@ void register_hospital_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // GET /hospital-patients?zone=<id> -> patient rows + active medical-job queue (auto-empty when
-    // the fort has no wounded -- precondition-gated, never an error).
+    // GET /hospital-patients?zone=<id> -> patient rows + active medical-job queue.
     server.Get("/hospital-patients", [](const httplib::Request& req, httplib::Response& res) {
         int zone = -1, location = -1;
         query_int(req, "zone", zone);

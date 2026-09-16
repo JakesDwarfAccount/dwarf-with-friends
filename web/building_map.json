@@ -20958,6 +20958,11 @@
    }
   },
   "Door": {
+   "forbidden": {
+    "col": 14,
+    "row": 0,
+    "sheet": "item_door.png"
+   },
    "matvariants": {
     "GLASS": {
      "col": 1,
@@ -21028,6 +21033,173 @@
    }
   },
   "Floodgate": {
+   "closed_quality": {
+    "GLASS": [
+     {
+      "col": 1,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 2,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 3,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 4,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 5,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 6,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 7,
+      "row": 3,
+      "sheet": "item_floodgate.png"
+     }
+    ],
+    "METAL": [
+     {
+      "col": 1,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 2,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 3,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 4,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 5,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 6,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 7,
+      "row": 2,
+      "sheet": "item_floodgate.png"
+     }
+    ],
+    "STONE": [
+     {
+      "col": 1,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 2,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 3,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 4,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 5,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 6,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 7,
+      "row": 1,
+      "sheet": "item_floodgate.png"
+     }
+    ],
+    "WOOD": [
+     {
+      "col": 1,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 2,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 3,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 4,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 5,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 6,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     },
+     {
+      "col": 7,
+      "row": 0,
+      "sheet": "item_floodgate.png"
+     }
+    ]
+   },
+   "damage": [
+    {
+     "col": 10,
+     "row": 2,
+     "sheet": "item_floodgate.png"
+    },
+    {
+     "col": 10,
+     "row": 1,
+     "sheet": "item_floodgate.png"
+    },
+    {
+     "col": 10,
+     "row": 0,
+     "sheet": "item_floodgate.png"
+    }
+   ],
    "matvariants": {
     "GLASS": {
      "col": 1,
@@ -21194,6 +21366,11 @@
    }
   },
   "Hatch": {
+   "forbidden": {
+    "col": 12,
+    "row": 0,
+    "sheet": "item_hatch.png"
+   },
    "matvariants": {
     "GLASS": {
      "col": 1,
@@ -21586,6 +21763,567 @@
      "col": 0,
      "row": 3,
      "sheet": "item_display.png"
+    }
+   }
+  }
+ },
+ "machine_variants": {
+  "bars_vertical": {
+   "FLOOR": [
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "floor_bars.png"
+    }
+   ],
+   "NE": [
+    {
+     "col": 0,
+     "row": 2,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "NS": [
+    {
+     "col": 0,
+     "row": 2,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "NSE": [
+    {
+     "col": 0,
+     "row": 2,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "NSW": [
+    {
+     "col": 0,
+     "row": 2,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "NW": [
+    {
+     "col": 0,
+     "row": 2,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "NWE": [
+    {
+     "col": 0,
+     "row": 2,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "N_SIGNPOST": [
+    {
+     "col": 0,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "SE": [
+    {
+     "col": 1,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "SW": [
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "SWE": [
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 1,
+     "sheet": "vert_bars_base.png"
+    }
+   ],
+   "WE": [
+    {
+     "col": 0,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    },
+    {
+     "col": 1,
+     "row": 0,
+     "sheet": "vert_bars_base.png"
+    }
+   ]
+  },
+  "companions": {
+   "AXLE_HORIZONTAL_NS": "AXLE_HORIZONTAL_NS_FITTINGS",
+   "AXLE_HORIZONTAL_WE": "AXLE_HORIZONTAL_WE_FITTINGS",
+   "AXLE_VERTICAL": "AXLE_VERTICAL_FITTINGS",
+   "GEAR_ASSEMBLY": "GEAR_ASSEMBLY_SOUTH_AXLE",
+   "SCREWPUMP": "SCREWPUMP_AXLE"
+  },
+  "rollers": {
+   "STONE": {
+    "E": {
+     "frames": [
+      {
+       "col": 13,
+       "row": 0
+      },
+      {
+       "col": 13,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "N": {
+     "frames": [
+      {
+       "col": 12,
+       "row": 0
+      },
+      {
+       "col": 12,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NE": {
+     "frames": [
+      {
+       "col": 4,
+       "row": 0
+      },
+      {
+       "col": 4,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NS": {
+     "frames": [
+      {
+       "col": 0,
+       "row": 0
+      },
+      {
+       "col": 0,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NSE": {
+     "frames": [
+      {
+       "col": 7,
+       "row": 0
+      },
+      {
+       "col": 7,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NSW": {
+     "frames": [
+      {
+       "col": 6,
+       "row": 0
+      },
+      {
+       "col": 6,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NSWE": {
+     "frames": [
+      {
+       "col": 10,
+       "row": 0
+      },
+      {
+       "col": 10,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NW": {
+     "frames": [
+      {
+       "col": 5,
+       "row": 0
+      },
+      {
+       "col": 5,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NWE": {
+     "frames": [
+      {
+       "col": 9,
+       "row": 0
+      },
+      {
+       "col": 9,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "S": {
+     "frames": [
+      {
+       "col": 11,
+       "row": 0
+      },
+      {
+       "col": 11,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "SE": {
+     "frames": [
+      {
+       "col": 2,
+       "row": 0
+      },
+      {
+       "col": 2,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "SW": {
+     "frames": [
+      {
+       "col": 3,
+       "row": 0
+      },
+      {
+       "col": 3,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "SWE": {
+     "frames": [
+      {
+       "col": 8,
+       "row": 0
+      },
+      {
+       "col": 8,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "W": {
+     "frames": [
+      {
+       "col": 14,
+       "row": 0
+      },
+      {
+       "col": 14,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "WE": {
+     "frames": [
+      {
+       "col": 1,
+       "row": 0
+      },
+      {
+       "col": 1,
+       "row": 1
+      }
+     ],
+     "sheet": "rollers.png"
+    }
+   },
+   "WOOD": {
+    "E": {
+     "frames": [
+      {
+       "col": 13,
+       "row": 2
+      },
+      {
+       "col": 13,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "N": {
+     "frames": [
+      {
+       "col": 12,
+       "row": 2
+      },
+      {
+       "col": 12,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NE": {
+     "frames": [
+      {
+       "col": 4,
+       "row": 2
+      },
+      {
+       "col": 4,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NS": {
+     "frames": [
+      {
+       "col": 0,
+       "row": 2
+      },
+      {
+       "col": 0,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NSE": {
+     "frames": [
+      {
+       "col": 7,
+       "row": 2
+      },
+      {
+       "col": 7,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NSW": {
+     "frames": [
+      {
+       "col": 6,
+       "row": 2
+      },
+      {
+       "col": 6,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NSWE": {
+     "frames": [
+      {
+       "col": 10,
+       "row": 2
+      },
+      {
+       "col": 10,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NW": {
+     "frames": [
+      {
+       "col": 5,
+       "row": 2
+      },
+      {
+       "col": 5,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "NWE": {
+     "frames": [
+      {
+       "col": 9,
+       "row": 2
+      },
+      {
+       "col": 9,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "S": {
+     "frames": [
+      {
+       "col": 11,
+       "row": 2
+      },
+      {
+       "col": 11,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "SE": {
+     "frames": [
+      {
+       "col": 2,
+       "row": 2
+      },
+      {
+       "col": 2,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "SW": {
+     "frames": [
+      {
+       "col": 3,
+       "row": 2
+      },
+      {
+       "col": 3,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "SWE": {
+     "frames": [
+      {
+       "col": 8,
+       "row": 2
+      },
+      {
+       "col": 8,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "W": {
+     "frames": [
+      {
+       "col": 14,
+       "row": 2
+      },
+      {
+       "col": 14,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
+    },
+    "WE": {
+     "frames": [
+      {
+       "col": 1,
+       "row": 2
+      },
+      {
+       "col": 1,
+       "row": 3
+      }
+     ],
+     "sheet": "rollers.png"
     }
    }
   }
@@ -34264,6 +35002,2136 @@
      "row": 3
     }
    }
+  }
+ },
+ "wagons": {
+  "BLD": {
+   "body": "WAGON_BLD",
+   "goods": [
+    null,
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 0
+       },
+       {
+        "col": 8,
+        "row": 0
+       },
+       {
+        "col": 12,
+        "row": 0
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 0
+       },
+       {
+        "col": 9,
+        "row": 0
+       },
+       {
+        "col": 13,
+        "row": 0
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 0
+       },
+       {
+        "col": 10,
+        "row": 0
+       },
+       {
+        "col": 14,
+        "row": 0
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 0
+      },
+      {
+       "col": 7,
+       "row": 0
+      },
+      {
+       "col": 11,
+       "row": 0
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 1
+       },
+       {
+        "col": 8,
+        "row": 1
+       },
+       {
+        "col": 12,
+        "row": 1
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 1
+       },
+       {
+        "col": 9,
+        "row": 1
+       },
+       {
+        "col": 13,
+        "row": 1
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 1
+       },
+       {
+        "col": 10,
+        "row": 1
+       },
+       {
+        "col": 14,
+        "row": 1
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 1
+      },
+      {
+       "col": 7,
+       "row": 1
+      },
+      {
+       "col": 11,
+       "row": 1
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 2
+       },
+       {
+        "col": 8,
+        "row": 2
+       },
+       {
+        "col": 12,
+        "row": 2
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 2
+       },
+       {
+        "col": 9,
+        "row": 2
+       },
+       {
+        "col": 13,
+        "row": 2
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 2
+       },
+       {
+        "col": 10,
+        "row": 2
+       },
+       {
+        "col": 14,
+        "row": 2
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 2
+      },
+      {
+       "col": 7,
+       "row": 2
+      },
+      {
+       "col": 11,
+       "row": 2
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 3
+       },
+       {
+        "col": 8,
+        "row": 3
+       },
+       {
+        "col": 12,
+        "row": 3
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 3
+       },
+       {
+        "col": 9,
+        "row": 3
+       },
+       {
+        "col": 13,
+        "row": 3
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 3
+       },
+       {
+        "col": 10,
+        "row": 3
+       },
+       {
+        "col": 14,
+        "row": 3
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 3
+      },
+      {
+       "col": 7,
+       "row": 3
+      },
+      {
+       "col": 11,
+       "row": 3
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 0
+       },
+       {
+        "col": 9,
+        "row": 0
+       },
+       {
+        "col": 13,
+        "row": 0
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 0
+       },
+       {
+        "col": 10,
+        "row": 0
+       },
+       {
+        "col": 14,
+        "row": 0
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 0
+       },
+       {
+        "col": 11,
+        "row": 0
+       },
+       {
+        "col": 3,
+        "row": 14
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 0
+      },
+      {
+       "col": 8,
+       "row": 0
+      },
+      {
+       "col": 12,
+       "row": 0
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 1
+       },
+       {
+        "col": 9,
+        "row": 1
+       },
+       {
+        "col": 13,
+        "row": 1
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 1
+       },
+       {
+        "col": 10,
+        "row": 1
+       },
+       {
+        "col": 14,
+        "row": 1
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 1
+       },
+       {
+        "col": 11,
+        "row": 1
+       },
+       {
+        "col": 3,
+        "row": 15
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 1
+      },
+      {
+       "col": 8,
+       "row": 1
+      },
+      {
+       "col": 12,
+       "row": 1
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 2
+       },
+       {
+        "col": 9,
+        "row": 2
+       },
+       {
+        "col": 13,
+        "row": 2
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 2
+       },
+       {
+        "col": 10,
+        "row": 2
+       },
+       {
+        "col": 14,
+        "row": 2
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 2
+       },
+       {
+        "col": 11,
+        "row": 2
+       },
+       {
+        "col": 3,
+        "row": 16
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 2
+      },
+      {
+       "col": 8,
+       "row": 2
+      },
+      {
+       "col": 12,
+       "row": 2
+      }
+     ],
+     "sheet": "wagons.png"
+    }
+   ]
+  },
+  "E": {
+   "body": "WAGON_E",
+   "goods": [
+    null,
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 5
+       },
+       {
+        "col": 9,
+        "row": 5
+       },
+       {
+        "col": 13,
+        "row": 5
+       },
+       {
+        "col": 17,
+        "row": 5
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 6
+       },
+       {
+        "col": 10,
+        "row": 6
+       },
+       {
+        "col": 14,
+        "row": 6
+       },
+       {
+        "col": 18,
+        "row": 6
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 4
+      },
+      {
+       "col": 8,
+       "row": 4
+      },
+      {
+       "col": 12,
+       "row": 4
+      },
+      {
+       "col": 16,
+       "row": 4
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 6
+       },
+       {
+        "col": 9,
+        "row": 6
+       },
+       {
+        "col": 13,
+        "row": 6
+       },
+       {
+        "col": 17,
+        "row": 6
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 4
+       },
+       {
+        "col": 11,
+        "row": 4
+       },
+       {
+        "col": 15,
+        "row": 4
+       },
+       {
+        "col": 19,
+        "row": 4
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 5
+      },
+      {
+       "col": 8,
+       "row": 5
+      },
+      {
+       "col": 12,
+       "row": 5
+      },
+      {
+       "col": 16,
+       "row": 5
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 6,
+        "row": 4
+       },
+       {
+        "col": 10,
+        "row": 4
+       },
+       {
+        "col": 14,
+        "row": 4
+       },
+       {
+        "col": 18,
+        "row": 4
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 5
+       },
+       {
+        "col": 11,
+        "row": 5
+       },
+       {
+        "col": 15,
+        "row": 5
+       },
+       {
+        "col": 19,
+        "row": 5
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 6
+      },
+      {
+       "col": 8,
+       "row": 6
+      },
+      {
+       "col": 12,
+       "row": 6
+      },
+      {
+       "col": 16,
+       "row": 6
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 6,
+        "row": 5
+       },
+       {
+        "col": 10,
+        "row": 5
+       },
+       {
+        "col": 14,
+        "row": 5
+       },
+       {
+        "col": 18,
+        "row": 5
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 6
+       },
+       {
+        "col": 11,
+        "row": 6
+       },
+       {
+        "col": 15,
+        "row": 6
+       },
+       {
+        "col": 19,
+        "row": 6
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 5,
+       "row": 4
+      },
+      {
+       "col": 9,
+       "row": 4
+      },
+      {
+       "col": 13,
+       "row": 4
+      },
+      {
+       "col": 17,
+       "row": 4
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 6,
+        "row": 6
+       },
+       {
+        "col": 10,
+        "row": 6
+       },
+       {
+        "col": 14,
+        "row": 6
+       },
+       {
+        "col": 18,
+        "row": 6
+       }
+      ],
+      [
+       {
+        "col": 8,
+        "row": 4
+       },
+       {
+        "col": 12,
+        "row": 4
+       },
+       {
+        "col": 16,
+        "row": 4
+       },
+       null
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 5,
+       "row": 5
+      },
+      {
+       "col": 9,
+       "row": 5
+      },
+      {
+       "col": 13,
+       "row": 5
+      },
+      {
+       "col": 17,
+       "row": 5
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 7,
+        "row": 4
+       },
+       {
+        "col": 11,
+        "row": 4
+       },
+       {
+        "col": 15,
+        "row": 4
+       },
+       {
+        "col": 19,
+        "row": 4
+       }
+      ],
+      [
+       {
+        "col": 8,
+        "row": 5
+       },
+       {
+        "col": 12,
+        "row": 5
+       },
+       {
+        "col": 16,
+        "row": 5
+       },
+       null
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 5,
+       "row": 6
+      },
+      {
+       "col": 9,
+       "row": 6
+      },
+      {
+       "col": 13,
+       "row": 6
+      },
+      {
+       "col": 17,
+       "row": 6
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 7,
+        "row": 5
+       },
+       {
+        "col": 11,
+        "row": 5
+       },
+       {
+        "col": 15,
+        "row": 5
+       },
+       {
+        "col": 19,
+        "row": 5
+       }
+      ],
+      [
+       {
+        "col": 8,
+        "row": 6
+       },
+       {
+        "col": 12,
+        "row": 6
+       },
+       {
+        "col": 16,
+        "row": 6
+       },
+       null
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 6,
+       "row": 4
+      },
+      {
+       "col": 10,
+       "row": 4
+      },
+      {
+       "col": 14,
+       "row": 4
+      },
+      {
+       "col": 18,
+       "row": 4
+      }
+     ],
+     "sheet": "wagons.png"
+    }
+   ]
+  },
+  "N": {
+   "body": "WAGON_N",
+   "goods": [
+    null,
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 14
+       },
+       {
+        "col": 8,
+        "row": 14
+       },
+       {
+        "col": 12,
+        "row": 14
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 14
+       },
+       {
+        "col": 9,
+        "row": 14
+       },
+       {
+        "col": 13,
+        "row": 14
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 14
+       },
+       {
+        "col": 10,
+        "row": 14
+       },
+       {
+        "col": 14,
+        "row": 14
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 14
+      },
+      {
+       "col": 7,
+       "row": 14
+      },
+      {
+       "col": 11,
+       "row": 14
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 15
+       },
+       {
+        "col": 8,
+        "row": 15
+       },
+       {
+        "col": 12,
+        "row": 15
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 15
+       },
+       {
+        "col": 9,
+        "row": 15
+       },
+       {
+        "col": 13,
+        "row": 15
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 15
+       },
+       {
+        "col": 10,
+        "row": 15
+       },
+       {
+        "col": 14,
+        "row": 15
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 15
+      },
+      {
+       "col": 7,
+       "row": 15
+      },
+      {
+       "col": 11,
+       "row": 15
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 16
+       },
+       {
+        "col": 8,
+        "row": 16
+       },
+       {
+        "col": 12,
+        "row": 16
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 16
+       },
+       {
+        "col": 9,
+        "row": 16
+       },
+       {
+        "col": 13,
+        "row": 16
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 16
+       },
+       {
+        "col": 10,
+        "row": 16
+       },
+       {
+        "col": 14,
+        "row": 16
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 16
+      },
+      {
+       "col": 7,
+       "row": 16
+      },
+      {
+       "col": 11,
+       "row": 16
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 17
+       },
+       {
+        "col": 8,
+        "row": 17
+       },
+       {
+        "col": 12,
+        "row": 17
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 17
+       },
+       {
+        "col": 9,
+        "row": 17
+       },
+       {
+        "col": 13,
+        "row": 17
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 17
+       },
+       {
+        "col": 10,
+        "row": 17
+       },
+       {
+        "col": 14,
+        "row": 17
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 17
+      },
+      {
+       "col": 7,
+       "row": 17
+      },
+      {
+       "col": 11,
+       "row": 17
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 14
+       },
+       {
+        "col": 9,
+        "row": 14
+       },
+       {
+        "col": 13,
+        "row": 14
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 14
+       },
+       {
+        "col": 10,
+        "row": 14
+       },
+       {
+        "col": 14,
+        "row": 14
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 14
+       },
+       {
+        "col": 11,
+        "row": 14
+       },
+       {
+        "col": 3,
+        "row": 10
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 14
+      },
+      {
+       "col": 8,
+       "row": 14
+      },
+      {
+       "col": 12,
+       "row": 14
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 15
+       },
+       {
+        "col": 9,
+        "row": 15
+       },
+       {
+        "col": 13,
+        "row": 15
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 15
+       },
+       {
+        "col": 10,
+        "row": 15
+       },
+       {
+        "col": 14,
+        "row": 15
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 15
+       },
+       {
+        "col": 11,
+        "row": 15
+       },
+       {
+        "col": 3,
+        "row": 11
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 15
+      },
+      {
+       "col": 8,
+       "row": 15
+      },
+      {
+       "col": 12,
+       "row": 15
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 16
+       },
+       {
+        "col": 9,
+        "row": 16
+       },
+       {
+        "col": 13,
+        "row": 16
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 16
+       },
+       {
+        "col": 10,
+        "row": 16
+       },
+       {
+        "col": 14,
+        "row": 16
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 16
+       },
+       {
+        "col": 11,
+        "row": 16
+       },
+       {
+        "col": 3,
+        "row": 12
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 16
+      },
+      {
+       "col": 8,
+       "row": 16
+      },
+      {
+       "col": 12,
+       "row": 16
+      }
+     ],
+     "sheet": "wagons.png"
+    }
+   ]
+  },
+  "S": {
+   "body": "WAGON_S",
+   "goods": [
+    null,
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 10
+       },
+       {
+        "col": 8,
+        "row": 10
+       },
+       {
+        "col": 12,
+        "row": 10
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 10
+       },
+       {
+        "col": 9,
+        "row": 10
+       },
+       {
+        "col": 13,
+        "row": 10
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 10
+       },
+       {
+        "col": 10,
+        "row": 10
+       },
+       {
+        "col": 14,
+        "row": 10
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 10
+      },
+      {
+       "col": 7,
+       "row": 10
+      },
+      {
+       "col": 11,
+       "row": 10
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 11
+       },
+       {
+        "col": 8,
+        "row": 11
+       },
+       {
+        "col": 12,
+        "row": 11
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 11
+       },
+       {
+        "col": 9,
+        "row": 11
+       },
+       {
+        "col": 13,
+        "row": 11
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 11
+       },
+       {
+        "col": 10,
+        "row": 11
+       },
+       {
+        "col": 14,
+        "row": 11
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 11
+      },
+      {
+       "col": 7,
+       "row": 11
+      },
+      {
+       "col": 11,
+       "row": 11
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 12
+       },
+       {
+        "col": 8,
+        "row": 12
+       },
+       {
+        "col": 12,
+        "row": 12
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 12
+       },
+       {
+        "col": 9,
+        "row": 12
+       },
+       {
+        "col": 13,
+        "row": 12
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 12
+       },
+       {
+        "col": 10,
+        "row": 12
+       },
+       {
+        "col": 14,
+        "row": 12
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 12
+      },
+      {
+       "col": 7,
+       "row": 12
+      },
+      {
+       "col": 11,
+       "row": 12
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 4,
+        "row": 13
+       },
+       {
+        "col": 8,
+        "row": 13
+       },
+       {
+        "col": 12,
+        "row": 13
+       }
+      ],
+      [
+       {
+        "col": 5,
+        "row": 13
+       },
+       {
+        "col": 9,
+        "row": 13
+       },
+       {
+        "col": 13,
+        "row": 13
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 13
+       },
+       {
+        "col": 10,
+        "row": 13
+       },
+       {
+        "col": 14,
+        "row": 13
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 3,
+       "row": 13
+      },
+      {
+       "col": 7,
+       "row": 13
+      },
+      {
+       "col": 11,
+       "row": 13
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 10
+       },
+       {
+        "col": 9,
+        "row": 10
+       },
+       {
+        "col": 13,
+        "row": 10
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 10
+       },
+       {
+        "col": 10,
+        "row": 10
+       },
+       {
+        "col": 14,
+        "row": 10
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 10
+       },
+       {
+        "col": 11,
+        "row": 10
+       },
+       {
+        "col": 4,
+        "row": 7
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 10
+      },
+      {
+       "col": 8,
+       "row": 10
+      },
+      {
+       "col": 12,
+       "row": 10
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 11
+       },
+       {
+        "col": 9,
+        "row": 11
+       },
+       {
+        "col": 13,
+        "row": 11
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 11
+       },
+       {
+        "col": 10,
+        "row": 11
+       },
+       {
+        "col": 14,
+        "row": 11
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 11
+       },
+       {
+        "col": 11,
+        "row": 11
+       },
+       {
+        "col": 4,
+        "row": 8
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 11
+      },
+      {
+       "col": 8,
+       "row": 11
+      },
+      {
+       "col": 12,
+       "row": 11
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 12
+       },
+       {
+        "col": 9,
+        "row": 12
+       },
+       {
+        "col": 13,
+        "row": 12
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 12
+       },
+       {
+        "col": 10,
+        "row": 12
+       },
+       {
+        "col": 14,
+        "row": 12
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 12
+       },
+       {
+        "col": 11,
+        "row": 12
+       },
+       {
+        "col": 4,
+        "row": 9
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 12
+      },
+      {
+       "col": 8,
+       "row": 12
+      },
+      {
+       "col": 12,
+       "row": 12
+      }
+     ],
+     "sheet": "wagons.png"
+    }
+   ]
+  },
+  "W": {
+   "body": "WAGON_W",
+   "goods": [
+    null,
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 8
+       },
+       {
+        "col": 9,
+        "row": 8
+       },
+       {
+        "col": 13,
+        "row": 8
+       },
+       {
+        "col": 17,
+        "row": 8
+       }
+      ],
+      [
+       {
+        "col": 6,
+        "row": 9
+       },
+       {
+        "col": 10,
+        "row": 9
+       },
+       {
+        "col": 14,
+        "row": 9
+       },
+       {
+        "col": 18,
+        "row": 9
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 7
+      },
+      {
+       "col": 8,
+       "row": 7
+      },
+      {
+       "col": 12,
+       "row": 7
+      },
+      {
+       "col": 16,
+       "row": 7
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 5,
+        "row": 9
+       },
+       {
+        "col": 9,
+        "row": 9
+       },
+       {
+        "col": 13,
+        "row": 9
+       },
+       {
+        "col": 17,
+        "row": 9
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 7
+       },
+       {
+        "col": 11,
+        "row": 7
+       },
+       {
+        "col": 15,
+        "row": 7
+       },
+       {
+        "col": 19,
+        "row": 7
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 8
+      },
+      {
+       "col": 8,
+       "row": 8
+      },
+      {
+       "col": 12,
+       "row": 8
+      },
+      {
+       "col": 16,
+       "row": 8
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 6,
+        "row": 7
+       },
+       {
+        "col": 10,
+        "row": 7
+       },
+       {
+        "col": 14,
+        "row": 7
+       },
+       {
+        "col": 18,
+        "row": 7
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 8
+       },
+       {
+        "col": 11,
+        "row": 8
+       },
+       {
+        "col": 15,
+        "row": 8
+       },
+       {
+        "col": 19,
+        "row": 8
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 4,
+       "row": 9
+      },
+      {
+       "col": 8,
+       "row": 9
+      },
+      {
+       "col": 12,
+       "row": 9
+      },
+      {
+       "col": 16,
+       "row": 9
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 6,
+        "row": 8
+       },
+       {
+        "col": 10,
+        "row": 8
+       },
+       {
+        "col": 14,
+        "row": 8
+       },
+       {
+        "col": 18,
+        "row": 8
+       }
+      ],
+      [
+       {
+        "col": 7,
+        "row": 9
+       },
+       {
+        "col": 11,
+        "row": 9
+       },
+       {
+        "col": 15,
+        "row": 9
+       },
+       {
+        "col": 19,
+        "row": 9
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 5,
+       "row": 7
+      },
+      {
+       "col": 9,
+       "row": 7
+      },
+      {
+       "col": 13,
+       "row": 7
+      },
+      {
+       "col": 17,
+       "row": 7
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 6,
+        "row": 9
+       },
+       {
+        "col": 10,
+        "row": 9
+       },
+       {
+        "col": 14,
+        "row": 9
+       },
+       {
+        "col": 18,
+        "row": 9
+       }
+      ],
+      [
+       {
+        "col": 8,
+        "row": 7
+       },
+       {
+        "col": 12,
+        "row": 7
+       },
+       {
+        "col": 16,
+        "row": 7
+       },
+       {
+        "col": 4,
+        "row": 4
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 5,
+       "row": 8
+      },
+      {
+       "col": 9,
+       "row": 8
+      },
+      {
+       "col": 13,
+       "row": 8
+      },
+      {
+       "col": 17,
+       "row": 8
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 7,
+        "row": 7
+       },
+       {
+        "col": 11,
+        "row": 7
+       },
+       {
+        "col": 15,
+        "row": 7
+       },
+       {
+        "col": 19,
+        "row": 7
+       }
+      ],
+      [
+       {
+        "col": 8,
+        "row": 8
+       },
+       {
+        "col": 12,
+        "row": 8
+       },
+       {
+        "col": 16,
+        "row": 8
+       },
+       {
+        "col": 4,
+        "row": 5
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 5,
+       "row": 9
+      },
+      {
+       "col": 9,
+       "row": 9
+      },
+      {
+       "col": 13,
+       "row": 9
+      },
+      {
+       "col": 17,
+       "row": 9
+      }
+     ],
+     "sheet": "wagons.png"
+    },
+    {
+     "overlay": [
+      [
+       {
+        "col": 7,
+        "row": 8
+       },
+       {
+        "col": 11,
+        "row": 8
+       },
+       {
+        "col": 15,
+        "row": 8
+       },
+       {
+        "col": 19,
+        "row": 8
+       }
+      ],
+      [
+       {
+        "col": 8,
+        "row": 9
+       },
+       {
+        "col": 12,
+        "row": 9
+       },
+       {
+        "col": 16,
+        "row": 9
+       },
+       {
+        "col": 4,
+        "row": 6
+       }
+      ]
+     ],
+     "overlayOverhang": [
+      {
+       "col": 6,
+       "row": 7
+      },
+      {
+       "col": 10,
+       "row": 7
+      },
+      {
+       "col": 14,
+       "row": 7
+      },
+      {
+       "col": 18,
+       "row": 7
+      }
+     ],
+     "sheet": "wagons.png"
+    }
+   ]
   }
  },
  "wells": {

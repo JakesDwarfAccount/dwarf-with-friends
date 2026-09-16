@@ -1,0 +1,2859 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+/* Permanent game shell: map, rails, bars, docks, overlays, and world framing. */
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer chrome {
+  .dwf-filter-defs {
+    position: absolute;
+  }
+  .dwf-remote-cursor-canvas {
+    position: fixed;
+    pointer-events: none;
+    z-index: 40;
+    left: var(--dwf-cursor-left);
+    top: var(--dwf-cursor-top);
+    width: var(--dwf-cursor-width);
+    height: var(--dwf-cursor-height);
+  }
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--dwfui-surface);
+    overflow: hidden;
+    outline: none;
+    font:
+      14px/1.15 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  body {
+    --zone-palette-left: 42px;
+    --zone-palette-top: 64px;
+    --zone-palette-width: 326px;
+    --zone-panel-gap: 8px;
+    touch-action: none;
+    color: var(--dwfui-text-body);
+  }
+  #view {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    background: var(--dwfui-surface);
+    user-select: none;
+    -webkit-user-drag: none;
+    cursor: grab;
+  }
+  #view[data-dwf-map-panning] {
+    transform: translate3d(var(--dwf-map-pan-x), var(--dwf-map-pan-y), 0);
+  }
+  #view[data-dwf-cursor="crosshair"] {
+    cursor: crosshair;
+  }
+  #view.dragging {
+    cursor: grabbing;
+  }
+  #dwf-gl.dwf-gl-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1;
+    visibility: hidden;
+  }
+  #dwf-gl.dwf-gl-canvas.is-visible {
+    visibility: visible;
+  }
+  #zoneOverlay {
+    position: fixed;
+    inset: 0;
+    width: var(--zone-overlay-width, 100vw);
+    height: var(--zone-overlay-height, 100vh);
+    pointer-events: none;
+    z-index: 10;
+    image-rendering: pixelated;
+  }
+  #digSelect {
+    position: fixed;
+    border: 2px solid var(--dwfui-gold-bright);
+    background: rgba(108, 255, 108, 0.18);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    display: none;
+    z-index: 55;
+  }
+  #digSelect:not([hidden]) {
+    display: block;
+  }
+  #tileFlash {
+    position: fixed;
+    left: var(--tile-flash-left);
+    top: var(--tile-flash-top);
+    width: var(--tile-flash-width);
+    height: var(--tile-flash-height);
+    border: 3px solid var(--dwfui-gold-bright);
+    background: rgba(255, 212, 92, 0.22);
+    box-shadow:
+      0 0 0 2px rgba(0, 0, 0, 0.85),
+      0 0 16px rgba(255, 212, 92, 0.9);
+    pointer-events: none;
+    display: none;
+    z-index: 60;
+  }
+  #tileFlash:not([hidden]) {
+    display: block;
+  }
+  #hoverInfo {
+    position: fixed;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(560px, calc(100vw - 40px));
+    padding: 4px 14px;
+    border: 2px solid var(--dwfui-gold);
+    background: rgba(14, 14, 13, 0.96);
+    font:
+      13px/1.4 ui-monospace,
+      Consolas,
+      monospace;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: break-word;
+    pointer-events: none;
+    display: none;
+    /* The map readout describes the tile under the pointer, so it belongs to the map layer: above
+     `#hud` and BELOW the lowest panel band. Do not raise it above a panel to fix a truncated plaque. */
+    z-index: 29;
+  }
+  #hoverInfo:not([hidden]) {
+    display: block;
+  }
+  #hoverInfo .hv-line {
+    color: var(--dwfui-text-body);
+  } /* units/items: white */
+  #hoverInfo .hv-building {
+    color: var(--dwfui-text-good);
+  } /* buildings: green */
+  #hoverInfo .hv-plant,
+  #hoverInfo .hv-terrain {
+    color: var(--df-c9);
+  } /* terrain/plants: purple */
+  #hoverInfo .hv-liquid {
+    color: var(--df-c1);
+  } /* water: blue */
+  #hoverInfo .hv-growth {
+    color: var(--df-c10);
+  } /* fallen growths: light green */
+  #hoverInfo .hv-spatter {
+    color: var(--dwfui-text-warning);
+  } /* spatter sentences: red-brown */
+  #hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+  #hud,
+  #clientPanel,
+  #selection,
+  #alertStack,
+  #hoverInfo,
+  #dfPlayerFollowIndicator {
+    zoom: var(--ui-scale, 1);
+  }
+  .df-panel {
+    box-sizing: border-box;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
+  }
+  #topbar {
+    position: absolute;
+    top: 0;
+    left: 38px;
+    right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
+    /* content-box, deliberately: the four declared rows are the native BAND and this element's own
+     2px ring is ours, outside them. Under border-box the ring eats a row and row 4 overflows. */
+    box-sizing: content-box;
+    height: var(--dwf-status-height);
+    min-height: var(--dwf-status-height);
+    display: grid;
+    grid-template-columns:
+      max-content max-content max-content minmax(0, 1fr)
+      calc(4 * var(--dwfui-cell-drawn-w)) max-content;
+    grid-template-rows: repeat(4, var(--dwfui-cell-drawn-h));
+    align-items: start;
+    column-gap: var(--dwfui-cell-drawn-w);
+    padding: 0 var(--dwfui-cell-drawn-w);
+    overflow: visible;
+    pointer-events: auto;
+  }
+  #leftBadges {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+  }
+  .badge {
+    width: 28px;
+    height: 32px;
+    pointer-events: auto;
+    display: grid;
+    place-items: center;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-silver);
+    border: 2px solid var(--dwfui-gold);
+    font-weight: 900;
+    line-height: 0.9;
+  }
+  .badge.alert-badge {
+    width: 34px;
+    padding: 0;
+    background: var(--dwfui-destructive);
+  }
+  .alert-badge-text {
+    display: block;
+    font:
+      900 8px/1 ui-monospace,
+      Consolas,
+      monospace;
+    letter-spacing: 0.5px;
+    color: var(--dwfui-text-numeric);
+    text-shadow: 1px 1px 0 #000;
+  }
+  .fort-lines {
+    min-width: 0;
+    font-weight: 700;
+    color: var(--dwfui-text-body);
+  }
+  .fort-lines div {
+    height: var(--dwfui-cell-drawn-h);
+    white-space: nowrap;
+  }
+  .top-status-identity,
+  .top-status-date {
+    display: grid;
+    grid-template-rows: repeat(3, var(--dwfui-cell-drawn-h));
+    align-self: start;
+  }
+  .top-status-identity {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    min-width: calc(16 * var(--dwfui-cell-drawn-w));
+  }
+  .top-status-population {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: start;
+  }
+  /* Every rule below is CONTAINER-SCOPED so it beats `.status-group`, declared lower in this file at
+     equal specificity, by weight rather than by source order. Unscope it and the bar silently breaks. */
+  .stock-counts {
+    grid-column: 4;
+    grid-row: 1 / span 3;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(min-content, calc(7 * var(--dwfui-cell-drawn-w))));
+    justify-content: start;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .stock-counts .top-stock-cell {
+    display: grid;
+    grid-template-rows: repeat(3, var(--dwfui-cell-drawn-h));
+    width: auto;
+    min-width: 0;
+    gap: 0;
+    align-items: start;
+    justify-items: start;
+  }
+  .stock-counts .top-stock-cell > [data-dwf-row="0"] {
+    grid-row: 1;
+  }
+  .stock-counts .top-stock-cell > [data-dwf-row="2"] {
+    grid-row: 3;
+  }
+  .top-status-weather {
+    grid-column: 5;
+    grid-row: 1 / span 3;
+    align-self: start;
+  }
+  .top-status-date {
+    grid-column: 6;
+    grid-row: 1 / span 3;
+  }
+  .status-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .label {
+    color: var(--dwfui-text-row);
+    font-weight: 700;
+  }
+  /* The ID selector is LOAD-BEARING: `.status-group` is declared just above at the same specificity,
+     so a `.top-status-population` rule would lose on source order. */
+  #popGroup.top-status-population {
+    align-items: flex-end;
+  }
+  .pop-cell {
+    min-width: 20px;
+  }
+  .moods {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+  }
+  .mood-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .mood-cell.is-empty {
+    opacity: 0.3;
+  }
+  .mood-n {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--dwfui-text-numeric);
+    margin-top: 1px;
+  }
+  .stock-food {
+    color: #fff;
+  }
+  .stock-drink {
+    color: var(--dwfui-text-numeric);
+  }
+  .stock-seeds {
+    color: var(--df-c6);
+  }
+  .stock-meat {
+    color: var(--df-c12);
+  }
+  .stock-fish {
+    color: var(--df-c11);
+  }
+  .stock-plant {
+    color: var(--df-c10);
+  }
+  .stock-other {
+    color: var(--df-c7);
+  }
+  .stock-val {
+    color: var(--dwfui-text-numeric);
+  }
+  .stock-val.has-value {
+    color: var(--dwfui-text-body);
+  }
+  .moon {
+    width: calc(4 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    line-height: 0;
+  }
+  /* Browser-only controls are preserved as a separate rail below the four-row native status frame. */
+  .topbar-controls {
+    display: flex;
+    gap: 2px;
+    position: absolute;
+    top: calc(var(--dwf-status-height) + 4px);
+    right: 0;
+    pointer-events: auto;
+  }
+  #rightHud {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--dwf-right-chrome-width);
+    height: var(--dwf-right-chrome-height);
+    display: block;
+    overflow: visible;
+    pointer-events: auto;
+  }
+  .right-chrome-frame-art {
+    position: absolute;
+    left: calc(4 * var(--dwfui-cell-drawn-w));
+    top: 0;
+    width: calc(25 * var(--dwfui-cell-drawn-w));
+    height: var(--dwf-right-chrome-height);
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+  }
+  .square-button {
+    width: 26px;
+    height: 26px;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+    font:
+      700 14px/1 ui-monospace,
+      Consolas,
+      monospace;
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    overflow: hidden;
+  }
+  #consoleBtn {
+    display: none;
+  }
+  #consoleBtn.console-allowed {
+    display: inline-grid;
+  }
+  .tool-button.square-button {
+    width: 26px;
+    height: 26px;
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+  }
+  /* Active game-speed state (pause vs play): shade the one that's currently in effect. */
+  .square-button.sb-active {
+    color: var(--dwfui-text-selected);
+    background: var(--dwfui-gold);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bright) inset;
+  }
+  /* Settings cog popover (instant-vs-aesthetic designation toggle). */
+  #settingsMenu {
+    position: absolute;
+    top: 52px;
+    right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
+    width: 236px;
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+    padding: 8px;
+    display: none;
+    z-index: 85;
+    pointer-events: auto;
+    font:
+      12px/1.35 ui-monospace,
+      Consolas,
+      monospace;
+    color: var(--dwfui-text-body);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  #settingsMenu.open {
+    display: block;
+  }
+  #lobbyPanel {
+    position: absolute;
+    top: 52px;
+    right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(60vh, 520px);
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+    padding: 8px;
+    display: none;
+    flex-direction: column;
+    z-index: 86;
+    pointer-events: auto;
+    font:
+      12px/1.35 ui-monospace,
+      Consolas,
+      monospace;
+    color: var(--dwfui-text-body);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  #lobbyPanel.open {
+    display: flex;
+  }
+  #lobbyPanel h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+    border-bottom: 1px solid var(--dwfui-gold-bevel-mid);
+    padding-bottom: 4px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+  #lobbyPanel h3.pf-handle {
+    cursor: move;
+  }
+  .lobby-count {
+    flex: 1 1 auto;
+  }
+  .lobby-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin: 0 0 6px;
+    font-size: 11px;
+    color: var(--dwfui-text-secondary);
+  }
+  .lobby-status-dot {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--dwfui-text-good);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  }
+  .lobby-status-paused .lobby-status-dot {
+    background: var(--dwfui-text-warning);
+  }
+  .lobby-status-paused .lobby-pause {
+    color: var(--dwfui-text-warning);
+  }
+  .lobby-pause {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lobby-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-x: hidden;
+  }
+  .lobby-row.lobby-idle {
+    opacity: 0.55;
+  }
+  .lobby-row.lobby-jumpable {
+    cursor: pointer;
+  }
+  .lobby-row.lobby-jumpable:hover {
+    background-color: var(--dwfui-hatch);
+  }
+  .lobby-row.lobby-no-camera {
+    cursor: default;
+  }
+  .lobby-row .lobby-copy {
+    display: none;
+  }
+  .lobby-row .lobby-swatch-cell {
+    flex: 0 0 auto;
+    display: flex;
+  }
+  .lobby-row .lobby-name-cell {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    overflow: hidden;
+  }
+  .lobby-swatch {
+    background: attr(data-lobby-color type(<color>), transparent);
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  .lobby-name {
+    color: attr(data-lobby-color type(<color>), var(--dwfui-text-body));
+    flex: 0 1 auto;
+    min-width: 0;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lobby-anon {
+    font-style: italic;
+    opacity: 0.8;
+  }
+  /* Tags never shrink: a long name gives way (ellipsis) before "(you)" or HOST does. */
+  .lobby-you {
+    flex: 0 0 auto;
+    color: var(--dwfui-text-secondary);
+    font-weight: 400;
+    font-size: 11px;
+  }
+  .lobby-host {
+    flex: 0 0 auto;
+    color: var(--dwfui-text-numeric);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    padding: 0 3px;
+    border-radius: 2px;
+  }
+  .lobby-empty {
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+    padding: 4px 2px;
+  }
+  #settingsMenu h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+    border-bottom: 1px solid var(--dwfui-gold-bevel-mid);
+    padding-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .set-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+    padding: 5px 3px;
+  }
+  .set-row:hover {
+    background: var(--dwfui-surface);
+  }
+  .set-toggle {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 18px;
+    border: 1px solid var(--dwfui-gold);
+    background: var(--dwfui-hatch);
+    border-radius: 9px;
+    position: relative;
+    margin-top: 1px;
+  }
+  .set-toggle::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+    background: var(--dwfui-slab);
+    border-radius: 50%;
+    transition:
+      left 0.12s ease,
+      background 0.12s ease;
+  }
+  .set-row.on .set-toggle {
+    background: var(--dwfui-gold-bevel-mid);
+  }
+  .set-row.on .set-toggle::after {
+    left: 17px;
+    background: var(--dwfui-gold-bright);
+  }
+  .set-label b {
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+  }
+  .set-label span {
+    display: block;
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+    margin-top: 3px;
+  }
+  .set-row-zoom {
+    cursor: default;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .zoom-controls button {
+    flex: 0 0 auto;
+    min-width: 26px;
+    height: 22px;
+    padding: 0 7px;
+    cursor: pointer;
+    border: 1px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-numeric);
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 700;
+  }
+  .zoom-controls button:hover {
+    background: var(--dwfui-slab);
+  }
+  .zoom-controls button:active {
+    background: var(--dwfui-slab);
+  }
+  #zoomReadout {
+    flex: 1 1 auto;
+    text-align: center;
+    color: var(--dwfui-text-numeric);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    min-width: 44px;
+  }
+  #minimap {
+    position: absolute;
+    left: calc(5 * var(--dwfui-cell-drawn-w));
+    top: 0;
+    width: calc(24 * var(--dwfui-cell-drawn-w));
+    height: calc(18 * var(--dwfui-cell-drawn-h));
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    z-index: 1;
+  }
+  /* ledger 0077 R12: the field is 24 x 16 cells and it FILLS them, on both axes. `renderMinimap`
+     measures this box for its backing store, so the canvas must carry no width/height of its own. */
+  #minimapGrid {
+    display: block;
+    width: calc(24 * var(--dwfui-cell-drawn-w));
+    height: calc(16 * var(--dwfui-cell-drawn-h));
+    background: var(--dwfui-surface);
+    cursor: crosshair;
+    image-rendering: pixelated;
+    border: 0;
+  }
+  #minimapToolCol {
+    position: absolute;
+    left: 0;
+    top: calc(2 * var(--dwfui-cell-drawn-h));
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: calc(4 * var(--dwfui-cell-drawn-w));
+  }
+  #minimapToolCol .square-button {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    display: block;
+    line-height: 0;
+  }
+  /* `[hidden]` must actually hide: this button carries an author `display` above, and an author rule
+   beats the UA's `[hidden]{display:none}` -- without this the dead control stays on screen. */
+  #minimapToolCol .square-button[hidden] {
+    display: none;
+  }
+  .right-chrome-supersets {
+    width: calc(4 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  .tool-col-pair {
+    display: flex;
+    gap: 0;
+  }
+  #minimapToolCol .tool-col-pair .square-button {
+    width: calc(2 * var(--dwfui-cell-drawn-w));
+    height: calc(2 * var(--dwfui-cell-drawn-h));
+  }
+  #minimap[data-dwf-hover-replaced] #minimapGrid {
+    visibility: hidden;
+  }
+  #minimapToolHover {
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 2;
+    box-sizing: border-box;
+    width: calc(24 * var(--dwfui-cell-drawn-w));
+    height: calc(16 * var(--dwfui-cell-drawn-h));
+    padding: calc(2 * var(--dwfui-cell-drawn-h)) calc(2 * var(--dwfui-cell-drawn-w));
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface, #1c1c1c);
+    font: var(--dwfui-font);
+    white-space: pre-wrap;
+    pointer-events: none;
+  }
+  #minimapToolHover[hidden] {
+    display: none;
+  }
+  #zScrollbar {
+    position: absolute;
+    top: calc(18 * var(--dwfui-cell-drawn-h));
+    right: 0;
+    bottom: calc(4 * var(--dwfui-cell-drawn-h));
+    width: calc(2 * var(--dwfui-cell-drawn-w));
+    pointer-events: auto;
+    cursor: ns-resize;
+  }
+  #zScrollTrack {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  .z-strip-art {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+  }
+  .z-tick {
+    position: absolute;
+    top: var(--z-marker-frac);
+    left: -3px;
+    right: -3px;
+    height: 2px;
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+  .z-marker {
+    position: absolute;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    top: var(--z-marker-frac);
+    border-top: 9px solid var(--z-marker-color, var(--dwfui-destructive));
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 1px #000);
+  }
+  .z-other-marker {
+    position: absolute;
+    left: calc(var(--z-peer-collision, 0) * 0.125 * var(--dwfui-cell-drawn-w));
+    top: var(--z-peer-frac);
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--z-peer-color, var(--dwfui-silver));
+    transform: translateY(-50%);
+    opacity: 0.95;
+    pointer-events: auto;
+    z-index: 2;
+  }
+  #bottomBar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    pointer-events: none;
+  }
+  .tool-group {
+    display: flex;
+    gap: 0;
+    pointer-events: auto;
+  }
+  #bottomBar .tool-group {
+    position: absolute;
+    bottom: 0;
+  }
+  #leftTools {
+    left: 0;
+  }
+  #centerTools {
+    left: max(calc(40 * var(--dwfui-cell-drawn-w)), calc(50% - 24 * var(--dwfui-cell-drawn-w)));
+    transform: none;
+    gap: var(--dwfui-cell-drawn-w);
+  }
+  .tool-subgroup {
+    display: flex;
+    gap: 0;
+    border: 0;
+    background: #1c1c1c;
+    /* The cluster frame is paint, not layout: it must not move any decoded button start. */
+    box-shadow: 0 0 0 1px #ffbf01;
+  }
+  #rightTools {
+    right: 0;
+  }
+  /* ledger 0085: every control in a designation palette is absolutely positioned on `--dwf-col`, the
+     decoded column cursor, and the host is a fixed 3-row box -- nothing inside may wrap or scroll. */
+  #digSubmenu,
+  #plantSubmenu,
+  #smoothSubmenu,
+  #itemDesigSubmenu,
+  #eraseSubmenu,
+  #trafficSubmenu {
+    position: absolute;
+    left: 0;
+    bottom: calc(3 * var(--dwfui-cell-drawn-h)); /* R3: Y = toolbar_row - 3, directly on top of it */
+    transform: translateX(var(--dwf-pal-left, 0px));
+    width: calc(var(--dwf-pal-cols, 48) * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    display: none;
+    overflow: visible;
+    pointer-events: auto;
+  }
+  #digSubmenu.visible,
+  #plantSubmenu.visible,
+  #smoothSubmenu.visible,
+  #itemDesigSubmenu.visible,
+  #eraseSubmenu.visible,
+  #trafficSubmenu.visible {
+    display: block;
+  }
+  /* The two paint-chrome hosts 0085 does not govern, restored verbatim. */
+  #stockSubmenu,
+  #zoneSubmenu {
+    position: absolute;
+    left: 50%;
+    bottom: calc(3 * var(--dwfui-cell-drawn-h));
+    transform: translateX(calc(-50% + var(--dwfui-submenu-shift, 0px)));
+    display: none;
+    gap: 3px;
+    align-items: center;
+    pointer-events: auto;
+  }
+  #stockSubmenu.visible,
+  #zoneSubmenu.visible {
+    display: flex;
+  }
+  /* `--dwf-col` is the running-cursor offset in CELLS from the palette's own left edge; every
+     control is R2's universal 4 columns by 3 rows. */
+  #digSubmenu [data-dwf-col],
+  #plantSubmenu [data-dwf-col],
+  #smoothSubmenu [data-dwf-col],
+  #itemDesigSubmenu [data-dwf-col],
+  #eraseSubmenu [data-dwf-col],
+  #trafficSubmenu [data-dwf-col] {
+    position: absolute;
+    top: 0;
+    left: calc(var(--dwf-col) * var(--dwfui-cell-drawn-w));
+    width: calc(4 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    margin: 0;
+  }
+  /* `display:contents` on the bookkeeping wrappers, so their children position against the palette
+     host rather than against a wrapper -- ledger 0085 knows nothing of the nesting index.html has. */
+  .dig-adv,
+  .dig-prio {
+    display: none;
+  }
+  .dig-adv.open,
+  .dig-adv.open .dig-prio {
+    display: contents;
+  }
+  .traffic-band {
+    position: absolute;
+    left: calc(var(--dwf-col) * var(--dwfui-cell-drawn-w));
+    top: calc(var(--dwf-band-row) * var(--dwfui-cell-drawn-h));
+    width: calc(36 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    display: grid;
+    /* 4-column level icon, 26-column track, 6-column entry box -- R8's exact spans. */
+    grid-template-columns:
+      calc(4 * var(--dwfui-cell-drawn-w))
+      calc(26 * var(--dwfui-cell-drawn-w))
+      calc(6 * var(--dwfui-cell-drawn-w));
+    align-items: center;
+    margin: 0;
+  }
+  .traffic-band > .tool-button {
+    position: static;
+    width: 100%;
+    height: 100%;
+  }
+  .traffic-band input[type="range"] {
+    width: 100%;
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    margin: 0;
+    accent-color: var(--dwfui-text-numeric);
+    background: #1c1c1c;
+    box-shadow: 0 0 0 1px #ffbf01;
+    box-sizing: border-box;
+  }
+
+  .traffic-cost-note {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .mode-label-plate {
+    position: fixed;
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    left: calc(var(--dwfui-alert-rail-w) + 2px * var(--dwfui-interface-scale));
+    display: none;
+    padding: calc(4px * var(--dwfui-interface-scale)) calc(10px * var(--dwfui-interface-scale));
+    box-sizing: border-box;
+    border: calc(2px * var(--dwfui-interface-scale)) solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 calc(1px * var(--dwfui-interface-scale)) var(--dwfui-gold-bevel-mid) inset;
+    color: var(--dwfui-text-body);
+    font: var(--dwfui-font);
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 40;
+  }
+  .mode-label-plate.visible {
+    display: block;
+  }
+
+  #stockPalette {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    z-index: 60;
+    max-width: min(420px, 92vw);
+    padding: 8px 10px;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
+    pointer-events: auto;
+  }
+  #stockPalette[hidden],
+  #zonePalette[hidden],
+  #zonePaintFloat[hidden] {
+    display: none;
+  }
+  .stock-paint-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stock-paint-text {
+    color: var(--dwfui-text-body);
+    font:
+      700 12px/1.3 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  #zonePalette {
+    position: fixed;
+    left: var(--zone-palette-left);
+    top: var(--zone-palette-top);
+    z-index: 60;
+    width: min(var(--zone-palette-width), calc(100vw - 84px));
+    min-width: min(var(--zone-palette-width), calc(100vw - 84px));
+    pointer-events: auto;
+  }
+  #zonePalette:has(> .pf-head) {
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
+    box-sizing: border-box;
+    overflow: auto;
+  }
+  #zonePalette > .pf-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+  #zonePalette:has(> .pf-head) .zone-plate,
+  #zonePalette:has(> .pf-head) .zone-type-panel {
+    border: 0;
+    box-shadow: none;
+  }
+  #zonePalette:has(> .pf-head) .zone-plate {
+    min-height: 0;
+    margin-bottom: 0;
+    padding: 10px 12px 6px;
+  }
+  .zone-plate {
+    min-height: 104px;
+    margin-bottom: 10px;
+    padding: 14px 12px;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
+    color: var(--dwfui-text-body);
+    font:
+      700 13px/1.35 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .zone-type-panel {
+    padding: 10px 8px 8px;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
+  }
+  .zone-type-title {
+    margin: 0 0 8px;
+    color: var(--dwfui-text-body);
+    font:
+      700 13px/1.35 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .zone-type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+  }
+  .zone-type-btn {
+    min-height: 40px;
+    padding: 0;
+    color: var(--dwfui-text-body);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+  .zone-type-btn:hover,
+  .zone-type-btn.active {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+    background: rgba(74, 58, 24, 0.62);
+  }
+  .zone-icon {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    background-image: url(/asset/activity_zones.png);
+    background-size: 224px 512px;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+  }
+  #zonePaintFloat {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    z-index: 60;
+    max-width: min(420px, 92vw);
+    padding: 8px 10px;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
+    pointer-events: auto;
+  }
+  .zone-repaint-summary,
+  .stock-repaint-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 7px 0 5px;
+    color: var(--dwfui-text-heading);
+    font:
+      700 14px/1.3 ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .zone-repaint-summary-icon {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+  }
+  .zone-paint-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    margin-left: auto;
+  }
+  .zone-repaint-tools,
+  .stock-repaint-tools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 3px;
+  }
+  .zone-repaint-tools[hidden],
+  .zone-repaint-summary[hidden],
+  .stock-repaint-tools[hidden],
+  .stock-repaint-summary[hidden] {
+    display: none;
+  }
+  .burrow-tool {
+    width: 34px;
+    height: 38px; /* fits paintSprite's 32x36 sprite canvas */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    cursor: pointer;
+    font:
+      700 13px ui-monospace,
+      Consolas,
+      monospace;
+    padding: 0;
+  }
+  .burrow-tool:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+  .burrow-tool.on {
+    background: var(--dwfui-slate);
+    border-color: var(--dwfui-text-good);
+    color: var(--dwfui-text-good);
+  }
+  .burrow-tool.danger:hover {
+    border-color: var(--dwfui-destructive);
+    color: var(--dwfui-text-danger);
+  }
+  .tool-button {
+    width: calc(4 * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    box-sizing: border-box;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    color: var(--dwfui-text-body);
+    background: transparent;
+    border: 0;
+    font:
+      700 16px/1 ui-monospace,
+      Consolas,
+      monospace;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+  }
+  /* KEYED ON THE CANVAS, NOT ITS HOST: paintSprite appends `canvas.df-chrome-icon` to two different
+     shapes, so a host-scoped rule reaches one producer and silently smooths the other. */
+  .df-chrome-icon {
+    width: var(--df-chrome-icon-w);
+    height: var(--df-chrome-icon-h);
+    image-rendering: pixelated;
+  }
+  .tool-button > .df-chrome-icon {
+    display: block;
+    margin: 0;
+  }
+  /* NO HOVER ART -- ledger 0085 R9 is a negative finding: native has no hover sprite at all, and a
+     third hover state is UI native does not have. Keyboard focus is a browser affordance and stays. */
+  .tool-button:focus-visible {
+    outline: 1px solid var(--dwfui-gold-bright);
+    outline-offset: -1px;
+  }
+  /* Native carries the selected tile's green outline IN THE SPRITE, as the token's _ACTIVE variant.
+     `data-df-active-art` marks the tiles that own it; this draws the outline for the ones that do not. */
+  .tool-button.active:not([data-df-active-art]):not(.confirm-armed)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--dwfui-gold-bright);
+    pointer-events: none;
+  }
+  .square-button:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+
+  #clientPanel,
+  #selection {
+    position: fixed;
+    left: 16px;
+    bottom: 52px;
+    width: min(360px, calc(100vw - 32px));
+    max-height: 45vh;
+    overflow: auto;
+    box-sizing: border-box;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-body);
+    font:
+      14px/1.35 ui-monospace,
+      Consolas,
+      monospace;
+    padding: 10px 12px;
+    display: none;
+    pointer-events: auto;
+  }
+  #clientPanel {
+    left: auto;
+    right: 16px;
+    bottom: 52px;
+    z-index: 30;
+  }
+  #selection {
+    z-index: 45;
+  } /* unit sheet / tile selection sits above the big info panel */
+  #selection.zone-panel {
+    z-index: 75;
+  } /* placed-zone editor sits above the open zone palette */
+  #selection.tile-list-panel {
+    bottom: 90px;
+    z-index: 8990;
+  }
+  #selection.visible {
+    display: block;
+  }
+  #clientPanel.visible {
+    display: block;
+  }
+  #clientPanel > .pf-content,
+  #selection > .pf-content {
+    display: contents;
+  }
+  #clientPanel > .pf-head,
+  #selection > .pf-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    flex: 0 0 auto;
+  }
+  #clientPanel .pf-content .pf-handle,
+  #selection .pf-content .pf-handle {
+    cursor: move;
+  }
+  #clientPanel.info-panel {
+    left: max(34px, var(--panel-dock-left));
+    right: 34px;
+    top: 72px;
+    bottom: 52px;
+    width: auto;
+    max-height: none;
+    overflow: hidden;
+    padding: 6px;
+    border-width: 3px;
+    background: var(--dwfui-surface);
+  }
+  #selection h1,
+  #clientPanel h1 {
+    font-size: 15px;
+    line-height: 1.25;
+    margin: 0 0 8px;
+    color: var(--dwfui-text-heading);
+  }
+  #selection .kind,
+  #clientPanel .kind {
+    color: var(--dwfui-text-secondary);
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  #selection .line,
+  #clientPanel .line {
+    margin-top: 3px;
+  }
+  #selection.unit-sheet-panel {
+    left: auto;
+    right: calc(36 * var(--dwfui-cell-drawn-w));
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    bottom: calc(4 * var(--dwfui-cell-drawn-h));
+    width: calc(61 * var(--dwfui-cell-drawn-w));
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  #selection.stockpile-panel {
+    left: max(var(--dwfui-cell-drawn-w), var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    bottom: auto;
+    width: min(calc(41 * var(--dwfui-cell-drawn-w)), calc(100vw - 2 * var(--dwfui-cell-drawn-w)));
+    height: min(calc(38 * var(--dwfui-cell-drawn-h)), calc(100vh - 8 * var(--dwfui-cell-drawn-h)));
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  #selection.building-panel {
+    left: max(12px, var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
+    top: 58px;
+    bottom: auto;
+    width: min(340px, calc(100vw - 24px));
+    max-height: calc(100vh - 120px);
+    overflow: auto;
+    padding: 0;
+    border: 16px solid transparent;
+    border-image: var(--spa-winframe) 16 fill stretch;
+    background: none;
+  }
+  #selection.building-panel.farm-panel {
+    top: 6px;
+    bottom: 6px;
+    width: min(600px, calc(100vw - 12px));
+    max-height: none;
+    padding: 4px;
+    overflow: hidden;
+    border-width: 3px;
+    border-color: var(--dwfui-gold-bevel-mid);
+    background: var(--dwfui-surface);
+    box-shadow:
+      0 0 0 1px var(--dwfui-gold-bevel-mid) inset,
+      0 0 0 2px var(--dwfui-hatch);
+  }
+  #selection.building-panel.zone-panel {
+    left: max(
+      calc(var(--zone-palette-left) + var(--zone-palette-width) + var(--zone-panel-gap)),
+      var(--panel-dock-left)
+    );
+    top: var(--zone-palette-top);
+    bottom: auto;
+    width: min(
+      420px,
+      calc(100vw - var(--zone-palette-left) - var(--zone-palette-width) - var(--zone-panel-gap) - 12px)
+    );
+    max-height: calc(100vh - var(--zone-palette-top) - 12px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #selection.building-panel.zone-panel .building-head {
+    flex: 0 0 auto;
+  }
+  #selection.building-panel.zone-panel .zone-info-body {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #selection.building-panel.zone-panel.zone-wide {
+    width: min(
+      620px,
+      calc(100vw - var(--zone-palette-left) - var(--zone-palette-width) - var(--zone-panel-gap) - 12px)
+    );
+  }
+  #selection.building-panel.workshop-panel {
+    left: max(18px, var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
+    top: 58px;
+    bottom: 50px;
+    width: min(650px, calc(100vw - 36px));
+    max-height: none;
+    overflow: hidden;
+  }
+  /* Trade-depot panel */
+  #selection.building-panel.trade-depot-depot-panel {
+    width: min(380px, calc(100vw - 36px));
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+  }
+  /* Hospital panel -- mirrors the trade-depot panel styling. */
+  #selection.building-panel.hospital-panel {
+    width: min(380px, calc(100vw - 36px));
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+  }
+  @media (max-width: 720px) {
+    #selection.building-panel.workshop-panel {
+      left: 8px;
+      right: 8px;
+      width: auto;
+    }
+  }
+  /* ---- SIEGE ENGINES: THE MEASURED SHEET ---- */
+  #selection.building-panel.zone-panel.zone-wide.siege-panel,
+  .building-panel.zone-panel.zone-wide.siege-panel,
+  .building-panel.siege-panel {
+    --siege-cell: 12px; /* DF's glyph advance in the captures */
+    --siege-interior: 718px; /* panel width inside the frame */
+    --siege-ink: var(--dwfui-silver); /* the sheet's plain text */
+    --siege-ground: #1c1c1c; /* sampled: rgb(28,28,28), the whole interior */
+    --siege-active: var(--dwfui-gold-bright); /* sampled: rgb(95,172,20), DF's selected cell face */
+    --siege-gold: var(--dwfui-gold-bright); /* sampled: rgb(255,196,4), the section rule */
+    width: 732px;
+    max-width: 732px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    padding: 7px;
+    background-color: var(--siege-ground);
+    box-shadow:
+      inset 0 0 0 1px var(--dwfui-gold-bevel-mid),
+      inset 0 0 0 2px var(--dwfui-gold-bevel-mid),
+      inset 0 0 0 4px var(--dwfui-gold-bright),
+      inset 0 0 0 5px var(--dwfui-gold-bevel-mid),
+      inset 0 0 0 7px var(--dwfui-gold-bevel-mid);
+  }
+  #selection.building-panel.zone-animal-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #clientPanel.build-panel {
+    /* THE DOCK IS DECLARED, because JS cannot detect it: getComputedStyle resolves top/bottom/height
+     to USED values, so `bottom + height:auto` and `top + height` read identically. */
+    --pf-vdock-bottom: 1;
+    /* alert-rail floor -- see --panel-dock-left. */
+    left: max(6px, var(--panel-dock-left, 6px));
+    right: auto;
+    top: auto;
+    bottom: calc(4 * 12px * var(--dwfui-interface-scale, 1));
+    width: calc(100vw - max(6px, var(--panel-dock-left, 6px)) - 6px);
+    max-width: calc(100vw - max(6px, var(--panel-dock-left, 6px)) - 6px);
+    max-height: calc(100vh - 96px);
+    overflow: hidden;
+    padding: 0;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+  }
+  #clientPanel.build-panel.build-panel-mode-1 {
+    --pf-vdock-bottom: 0;
+    top: calc(4 * 12px * var(--dwfui-interface-scale, 1));
+    bottom: auto;
+    width: calc(56 * 8px * var(--dwfui-interface-scale, 1));
+    max-width: calc(100vw - max(6px, var(--panel-dock-left, 6px)) - 6px);
+    height: auto;
+    max-height: calc(100vh - 96px);
+  }
+  #clientPanel.build-panel.build-panel-mode-2 {
+    --pf-vdock-bottom: 0;
+    left: calc(var(--build-picker-left-cells, 4) * 8px * var(--dwfui-interface-scale, 1));
+    right: auto;
+    top: calc(var(--build-picker-top-cells, 4) * 12px * var(--dwfui-interface-scale, 1));
+    bottom: auto;
+    width: calc(var(--build-picker-cells, 56) * 8px * var(--dwfui-interface-scale, 1));
+    max-width: calc(100vw - 6px);
+    /* "full-height column" is the ROW COUNT, not 100vh: [4, grid_y-4] is grid_y-8 rows tall. */
+    height: calc(var(--build-picker-rows, 30) * 12px * var(--dwfui-interface-scale, 1));
+    max-height: calc(100vh - 96px);
+  }
+  @media (max-width: 740px) {
+    #clientPanel.build-panel {
+      /* The narrow layout still has the rail; the floor is not a desktop-only courtesy. */
+      left: max(8px, var(--panel-dock-left));
+      right: 8px;
+      width: auto;
+      max-width: none;
+    }
+  }
+  #selection.stock-item-panel {
+    left: max(12px, var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
+    top: 58px;
+    bottom: 52px;
+    width: min(500px, calc(100vw - 24px));
+    max-height: none;
+    overflow: hidden;
+    padding: 5px;
+    border-width: 3px;
+    background: var(--dwfui-surface);
+  }
+  #alertStack {
+    position: fixed;
+    left: 0;
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    display: flex;
+    flex-direction: column;
+    gap: calc(3px * var(--dwfui-interface-scale));
+    z-index: 45;
+    pointer-events: auto;
+  }
+  #alertStack.alert-stack-empty {
+    display: none;
+  }
+  /* THE LEFT-DOCK FLOOR. Every left-docked panel owes the alert rail the same clearance, expressed
+     as `max(<the dock's own intent>, var(--panel-dock-left))` so a real cell arithmetic is only lifted. */
+  body:has(#clientPanel.info-panel.visible) #alertStack {
+    z-index: 29;
+  }
+  #alertPopup {
+    position: fixed;
+    display: none;
+    z-index: 90;
+    box-sizing: border-box;
+    min-width: min(520px, calc(100vw - 72px));
+    max-width: min(760px, calc(100vw - 48px));
+    max-height: calc(100vh - 66px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    pointer-events: auto;
+  }
+  #alertPopup:not(.pinned) {
+    overflow-y: hidden;
+  }
+  #clientPanel.alertbox-panel {
+    left: max(calc(4 * var(--dwfui-cell-drawn-w)), var(--panel-dock-left));
+    right: auto;
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    bottom: auto;
+    width: min(calc(94 * var(--dwfui-cell-drawn-w)), calc(100vw - 8 * var(--dwfui-cell-drawn-w)));
+    height: min(calc(35 * var(--dwfui-cell-drawn-h)), calc(100vh - 5 * var(--dwfui-cell-drawn-h)));
+    max-height: none;
+    overflow: hidden;
+  }
+  #clientPanel.alertbox-panel,
+  .lab-info-shell.alertbox-panel {
+    box-sizing: border-box;
+    padding: 0;
+    font: var(--dwfui-font);
+  }
+  /* A click on a HUD alert button uses #alertPopup as the fixed native viewer. */
+  #alertPopup.native-alert-viewer {
+    display: block;
+    visibility: visible;
+    box-sizing: border-box;
+    left: calc(4 * var(--dwfui-cell-drawn-w));
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    width: min(calc(94 * var(--dwfui-cell-drawn-w)), calc(100vw - 8 * var(--dwfui-cell-drawn-w)));
+    height: min(calc(35 * var(--dwfui-cell-drawn-h)), calc(100vh - 5 * var(--dwfui-cell-drawn-h)));
+    min-width: 0;
+    max-width: none;
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+    font: var(--dwfui-font);
+  }
+  @media (max-width: 1280px) {
+    #topbar {
+      font-size: 12px;
+      z-index: 2;
+    }
+    #rightHud {
+      z-index: 1;
+    }
+    .topbar-controls {
+      max-width: calc(100vw - var(--dwf-right-chrome-width) - 48px);
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  }
+  @media (max-width: 900px) {
+    #selection.unit-sheet-panel {
+      top: 50px;
+      right: auto;
+      left: max(9px, var(--panel-dock-left));
+      width: calc(100vw - max(9px, var(--panel-dock-left)) - 9px);
+    }
+    #selection.unit-sheet-panel.has-occupant-rail {
+      width: calc(100vw - 18px - 4 * var(--dwfui-cell-drawn-w));
+      right: auto;
+    }
+  }
+  @media (max-width: 900px) {
+    #clientPanel.info-panel {
+      left: max(8px, var(--panel-dock-left));
+      right: 8px;
+      top: 52px;
+    }
+  }
+  @media (max-width: 760px) {
+    #selection.building-panel.zone-panel {
+      left: 12px;
+      top: 58px;
+      width: min(340px, calc(100vw - 24px));
+      max-height: calc(100vh - 120px);
+    }
+  }
+  #clientPanel.squads-sidebar {
+    left: auto;
+    right: 0;
+    top: 236px;
+    bottom: 52px;
+    width: 300px;
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+    border-width: 2px;
+    display: flex;
+    flex-direction: column;
+  }
+  #clientPanel.squads-sidebar.squads-wide {
+    width: min(880px, 72vw);
+  }
+  @media (max-width: 900px) {
+    #clientPanel.squads-sidebar.squads-wide {
+      width: min(880px, 90vw);
+    }
+  }
+  #clientPanel.squads-sidebar.squads-wide.squads-equipment {
+    width: min(1806px, 92vw);
+  }
+  #clientPanel.squads-sidebar.squads-wide.squads-contextual {
+    width: min(2048px, 96vw);
+  }
+  @media (max-width: 900px) {
+    #clientPanel.squads-sidebar {
+      width: 162px;
+    }
+  }
+  #clientPanel.reports-window,
+  .lab-info-shell.reports-window {
+    padding: 0;
+    border: 0;
+    border-image: none;
+    box-shadow: none;
+    background: #000;
+  }
+  #clientPanel.reports-window {
+    left: max(calc(4 * var(--dwfui-cell-drawn-w)), var(--panel-dock-left));
+    right: calc(28 * var(--dwfui-cell-drawn-w));
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    bottom: calc(3 * var(--dwfui-cell-drawn-h));
+  }
+  #hotkeyOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  #hotkeyOverlay.open {
+    display: flex;
+  }
+  #helpReference {
+    position: fixed;
+    inset: 0;
+    z-index: 96;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  #helpReference.open {
+    display: flex;
+  }
+  #dfTooltip {
+    position: fixed;
+    display: none;
+    z-index: 200;
+    max-width: min(360px, calc(100vw - 16px));
+    padding: 6px 12px;
+    border: 2px solid var(--dwfui-gold);
+    background: rgba(14, 14, 13, 0.97);
+    box-shadow:
+      0 0 0 1px var(--dwfui-gold-bevel-mid) inset,
+      0 4px 14px rgba(0, 0, 0, 0.5);
+    color: var(--dwfui-text-body);
+    font:
+      12px/1.4 ui-monospace,
+      Consolas,
+      monospace;
+    pointer-events: none;
+    left: var(--df-tooltip-left, 0);
+    top: var(--df-tooltip-top, 0);
+  }
+  #dfTooltip.is-measuring,
+  #dfTooltip.is-visible {
+    display: block;
+  }
+  #dfTooltip.is-measuring {
+    visibility: hidden;
+  }
+  #dfTooltip.is-visible {
+    visibility: visible;
+  }
+  .df-tt-line {
+    white-space: pre-wrap;
+  }
+  .df-tt-hotkey {
+    color: var(--df-c10);
+    font-weight: 700;
+    margin-top: 3px;
+    white-space: pre-wrap;
+  }
+
+  #helpPopup {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  #helpPopup.open {
+    display: flex;
+  }
+  .df-help-panel {
+    position: relative;
+    width: min(560px, 90vw);
+    max-height: 82vh;
+    overflow: visible;
+    margin-left: 56px; /* room for the icon box that overlaps the left edge */
+    box-sizing: border-box;
+    background: var(--dwfui-surface);
+    border: 3px solid var(--dwfui-silver);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    color: var(--dwfui-text-body);
+    font:
+      13px/1.5 ui-monospace,
+      Consolas,
+      monospace;
+    text-align: center;
+  }
+  .df-help-scroll {
+    max-height: 82vh;
+    overflow: auto;
+    padding: 20px 26px 18px;
+    box-sizing: border-box;
+  }
+  .df-help-icon {
+    position: absolute;
+    left: -56px;
+    top: -4px;
+    width: 60px;
+    height: 60px;
+    display: grid;
+    place-items: center;
+    font:
+      800 26px ui-monospace,
+      Consolas,
+      monospace;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-hatch);
+    border: 3px solid var(--dwfui-gold);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  }
+  .df-help-controls {
+    position: absolute;
+    top: -14px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+  }
+  .df-help-controls button {
+    width: 24px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-silver);
+    color: var(--dwfui-text-body);
+    cursor: pointer;
+    font:
+      700 11px ui-monospace,
+      Consolas,
+      monospace;
+    line-height: 1;
+  }
+  .df-help-x {
+    border-color: var(--dwfui-destructive) !important;
+    color: var(--dwfui-text-danger) !important;
+  }
+  .df-help-controls button:hover {
+    filter: brightness(1.3);
+  }
+  .df-help-title {
+    margin: 4px 0 14px;
+    font-size: 16px;
+    color: var(--dwfui-text-title);
+  }
+  .df-help-body {
+    text-align: left;
+  }
+  .df-help-body p {
+    margin: 0 0 12px;
+    color: var(--dwfui-text-prose);
+  }
+  .df-help-kw {
+    color: var(--dwfui-text-active);
+    font-weight: 700;
+  }
+  .df-help-kw-inline {
+    color: inherit;
+  }
+  .df-help-dontshow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0 16px;
+    color: var(--dwfui-text-body);
+    cursor: pointer;
+  }
+  .df-help-dontshow input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--dwfui-slate);
+    cursor: pointer;
+  }
+  .df-help-okay {
+    display: block;
+    margin: 0 auto;
+    padding: 6px 26px;
+    background: var(--dwfui-slate);
+    border: 2px solid var(--dwfui-text-good);
+    color: var(--dwfui-text-good);
+    font:
+      800 12px ui-monospace,
+      Consolas,
+      monospace;
+    cursor: pointer;
+  }
+  .df-help-okay:hover {
+    background: var(--dwfui-slate);
+  }
+
+  #worldScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: none;
+    background: var(--dwfui-surface);
+  }
+  #worldScreen.open {
+    display: block;
+  }
+  #worldScreenCanvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: var(--dwf-world-canvas-w, 100%);
+    height: var(--dwf-world-canvas-h, 100%);
+    cursor: grab;
+    touch-action: none;
+  }
+  #dwf-weather-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .world-hover-card {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(464px, 46vw); /* 58 cells x 8px */
+    max-height: 372px; /* 31 rows x 12px */
+    overflow: hidden;
+    padding: 6px 12px;
+    border: 2px solid var(--dwfui-gold);
+    background: rgba(14, 14, 13, 0.94);
+    color: var(--dwfui-text-body);
+    font:
+      13px ui-monospace,
+      Consolas,
+      monospace;
+    pointer-events: none; /* the card is a readout; it must never eat a map click */
+  }
+  .world-hover-region-name {
+    color: var(--dwfui-text-body);
+  }
+  .world-hover-site-kind {
+    color: var(--dwfui-text-secondary);
+  }
+  .world-hover-travel-time,
+  .world-hover-diplomacy {
+    color: var(--dwfui-text-secondary);
+  }
+  .world-reports-panel {
+    width: min(472px, 48vw);
+  }
+  .world-btn-stack {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 190px;
+  }
+  .world-btn {
+    padding: 6px 10px;
+    border: 2px solid var(--dwfui-slate);
+    background: var(--dwfui-slate);
+    color: var(--dwfui-text-good);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+    cursor: pointer;
+    text-align: center;
+  }
+  #world3dScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 122;
+    display: none;
+    background: var(--dwfui-surface);
+  }
+  #world3dScreen.open {
+    display: block;
+  }
+  #world3dCanvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: grab;
+  }
+  #world3dCanvas:active {
+    cursor: grabbing;
+  }
+  .world3d-chrome {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    border: 2px solid var(--dwfui-gold);
+    background: rgba(14, 14, 13, 0.92);
+    pointer-events: none; /* the canvas keeps every drag that is not on a real control */
+  }
+  #world3dScreen .world3d-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap; /* narrow windows stack the tools onto a second row instead of overflowing */
+    gap: 6px 8px;
+    height: auto;
+    padding: 5px 46px 5px 8px;
+    pointer-events: auto; /* ...but the header row IS clickable */
+  }
+  #world3dScreen .world3d-head > .building-x {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+  }
+
+  .world3d-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .world3d-refresh,
+  .world3d-fit {
+    flex: 0 0 auto;
+  }
+  .world3d-slab {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-left: 1px solid var(--dwfui-gold-bevel-mid);
+    border-right: 1px solid var(--dwfui-gold-bevel-mid);
+  }
+  .world3d-slab-lbl {
+    color: var(--dwfui-text-row);
+    font:
+      700 11px "Josefin Sans",
+      ui-monospace,
+      Consolas,
+      monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .world3d-slab-n {
+    min-width: 2ch;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--dwfui-text-body);
+    font:
+      700 12px ui-monospace,
+      Consolas,
+      monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .world3d-step {
+    flex: 0 0 auto;
+    min-width: 24px;
+  }
+  .world3d-step:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .world3d-zpresets {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-left: 1px solid var(--dwfui-gold-bevel-mid);
+    border-right: 1px solid var(--dwfui-gold-bevel-mid);
+  }
+  .world3d-chip {
+    flex: 0 0 auto;
+  }
+  .world3d-chip:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* DECLARED NON-NATIVE CONTROL: DF has no continuous-value affordance. Two inputs share one track,
+     so both are click-through EXCEPT at their thumbs -- which is why the thumbs need an explicit box. */
+  .world3d-zslider {
+    position: relative;
+    flex: 0 0 auto;
+    width: 190px;
+    height: 20px;
+  }
+  .world3d-zslider .world3d-zhandle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 20px;
+    margin: 0;
+    background: transparent;
+    accent-color: var(--dwfui-gold, #ffbf01);
+    pointer-events: none; /* the track is shared; only the thumbs are grabbable */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  /* the one shared track, drawn by the box rather than by either input */
+  .world3d-zslider::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 9px;
+    height: 2px;
+    background: var(--dwfui-gold-bevel-mid);
+  }
+  .world3d-zslider .world3d-zhandle::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    width: 12px;
+    height: 16px;
+    background: var(--dwfui-gold, #ffbf01);
+    border: 1px solid var(--dwfui-hatch);
+    cursor: ew-resize;
+  }
+  .world3d-zslider .world3d-zhandle::-moz-range-thumb {
+    pointer-events: auto;
+    width: 12px;
+    height: 16px;
+    background: var(--dwfui-gold, #ffbf01);
+    border: 1px solid var(--dwfui-hatch);
+    border-radius: 0;
+    cursor: ew-resize;
+  }
+  .world3d-zslider .world3d-zhandle::-moz-range-track {
+    background: transparent;
+  }
+  .world3d-zslider.aim-bot .world3d-zhandle[data-world3d-ztop]::-webkit-slider-thumb,
+  .world3d-zslider.aim-top .world3d-zhandle[data-world3d-zbot]::-webkit-slider-thumb {
+    pointer-events: none;
+  }
+  .world3d-zslider.aim-bot .world3d-zhandle[data-world3d-ztop]::-moz-range-thumb,
+  .world3d-zslider.aim-top .world3d-zhandle[data-world3d-zbot]::-moz-range-thumb {
+    pointer-events: none;
+  }
+  .world3d-zslider .world3d-zhandle:focus-visible {
+    outline-color: var(--dwfui-text-numeric);
+  }
+  .world3d-readout-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .world3d-slab-note {
+    flex: 0 0 auto;
+    color: var(--dwfui-text-secondary);
+    font:
+      700 11px "Josefin Sans",
+      ui-monospace,
+      Consolas,
+      monospace;
+    white-space: nowrap;
+  }
+  .world3d-slab-note[hidden] {
+    display: none;
+  }
+  .world3d-bg {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-left: 1px solid var(--dwfui-gold-bevel-mid);
+    border-right: 1px solid var(--dwfui-gold-bevel-mid);
+  }
+  .world3d-readouts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding: 5px 8px 7px;
+    border-top: 1px solid var(--dwfui-gold-bevel-mid);
+  }
+  .world3d-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    text-align: center;
+    color: var(--dwfui-text-danger);
+    font:
+      13px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  /* `[hidden]` must actually hide: the rule above sets an author `display`, which beats the UA's
+   `[hidden]{display:none}` -- otherwise this is an invisible pane over the canvas eating every click. */
+  .world3d-fallback[hidden] {
+    display: none;
+  }
+
+  .world-btn:hover:not(:disabled) {
+    background: var(--dwfui-slate);
+  }
+  .world-btn-disabled,
+  .world-btn:disabled {
+    background: var(--dwfui-hatch);
+    border-color: var(--dwfui-slate);
+    color: var(--dwfui-text-disabled);
+    cursor: not-allowed;
+  }
+  .world-civs-panel {
+    position: absolute;
+    right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
+    bottom: 12px;
+    width: min(340px, 40vw);
+    max-height: 60vh;
+    overflow: auto;
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-body);
+    font:
+      13px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .world-civs-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--dwfui-gold-bevel-mid);
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+  }
+  .world-civs-close {
+    background: none;
+    border: none;
+    color: var(--dwfui-text-body);
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .world-civ-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 10px;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .world-civ-row:hover {
+    background: rgba(216, 155, 39, 0.13);
+  }
+  .world-civ-row > span:last-child {
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+  }
+  .world-civ-fact,
+  .world-mission-row,
+  .world-news-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .world-missions-panel > .info-message {
+    margin: 8px;
+    color: var(--dwfui-text-prose);
+  }
+
+  .world-civ-block {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  }
+  .world-civ-block:last-child {
+    border-bottom: 0;
+  }
+  /* `pending` is native's own per-row byte on the agreements vector, never inferred from a date. */
+  .world-civ-agreement-pending {
+    background: rgba(216, 155, 39, 0.12);
+  }
+  /* ---- LEDGER 0084 R8/R9: uncomposed news, and a report that MOVES --------------------------- */
+  .world-news-uncomposed > :last-child {
+    color: var(--dwfui-text-danger);
+    font-size: 10px;
+  }
+  .world-report-line {
+    padding: 2px 8px;
+    color: var(--dwfui-text-prose);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .world-report-line-fading {
+    opacity: 0.55;
+  }
+  .world-btn-active {
+    outline: 1px solid rgba(255, 213, 79, 0.85);
+    outline-offset: -3px;
+    filter: brightness(1.18);
+  }
+
+  #worldScreenCanvas:active {
+    cursor: grabbing;
+  }
+
+  .world-missions-panel {
+    width: min(420px, 46vw);
+    max-height: 72vh;
+  }
+  .world-mission-group {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .world-missions-panel.stale {
+    opacity: 0.72;
+  }
+  .world-mission-row.disabled,
+  .world-mission-eligibility.disabled {
+    opacity: 0.58;
+  }
+  .world-mission-targets {
+    max-height: 34vh;
+    overflow: auto;
+  }
+  .world-mission-site {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .world-mission-roster.this-mission {
+    color: var(--dwfui-text-numeric);
+  }
+  .world-mission-roster.other-mission {
+    color: var(--dwfui-text-disabled);
+  }
+  .world-mission-readonly {
+    margin: 7px 8px;
+  }
+  .world-mission-skeleton {
+    opacity: 0.45;
+  }
+  .world-site-tooltip-card {
+    padding: 6px;
+    border: 2px solid var(--dwfui-border-gold, var(--dwfui-gold-bevel-mid));
+    background: var(--dwfui-panel-bg, var(--dwfui-surface));
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
+  }
+  #escMenu {
+    position: fixed;
+    inset: 0;
+    z-index: 130;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  #escMenu.open {
+    display: flex;
+  }
+  .esc-panel {
+    width: min(420px, 90vw);
+    box-sizing: border-box;
+  }
+  .esc-panel h2 {
+    margin: 0 0 12px;
+    text-align: center;
+    color: var(--dwfui-text-body);
+    font:
+      700 15px ui-monospace,
+      Consolas,
+      monospace;
+  }
+  .esc-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #clientPanel.visible.pf-fill-host,
+  #selection.visible.pf-fill-host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #clientPanel.pf-fill-host > .pf-content,
+  #selection.pf-fill-host > .pf-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  * {
+    /* NO scrollbar-color / scrollbar-width HERE, EVER. They silently disable everything below. */
+    scrollbar-gutter: auto;
+  }
+  *::-webkit-scrollbar {
+    width: var(--dwfui-sb-w);
+    height: var(--dwfui-sb-w);
+  }
+  *::-webkit-scrollbar-track {
+    background-color: var(--dwfui-surface);
+    background-image: var(--dwfui-sb-track, none);
+    background-repeat: repeat-y;
+    background-position: center top;
+    border-left: 2px solid var(--dwfui-silver);
+    border-right: 2px solid var(--dwfui-silver);
+  }
+  *::-webkit-scrollbar-thumb {
+    min-height: var(--dwfui-sb-min-thumb);
+    background-color: var(--dwfui-plum);
+    background-image:
+      var(--dwfui-sb-thumb-top, none), var(--dwfui-sb-thumb-bottom, none), var(--dwfui-sb-thumb-center, none),
+      var(--dwfui-sb-thumb-blank, none);
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat-y;
+    background-position:
+      center top,
+      center bottom,
+      center center,
+      center top;
+    border-left: 2px solid var(--dwfui-gold-bright);
+    border-right: 2px solid var(--dwfui-gold);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-image:
+      var(--dwfui-sb-thumb-top-hover, var(--dwfui-sb-thumb-top, none)),
+      var(--dwfui-sb-thumb-bottom-hover, var(--dwfui-sb-thumb-bottom, none)),
+      var(--dwfui-sb-thumb-center-hover, var(--dwfui-sb-thumb-center, none)),
+      var(--dwfui-sb-thumb-blank-hover, var(--dwfui-sb-thumb-blank, none));
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat-y;
+    background-position:
+      center top,
+      center bottom,
+      center center,
+      center top;
+  }
+  *::-webkit-scrollbar-button:single-button {
+    display: block;
+    width: var(--dwfui-sb-w);
+    height: var(--dwfui-cell-drawn-h);
+    background-color: var(--dwfui-surface);
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  *::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background-image: var(--dwfui-sb-arrow-up, none);
+  }
+  *::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+    background-image: var(--dwfui-sb-arrow-up-hover, var(--dwfui-sb-arrow-up, none));
+  }
+  *::-webkit-scrollbar-button:single-button:vertical:decrement:active {
+    background-image: var(--dwfui-sb-arrow-up-pressed, var(--dwfui-sb-arrow-up, none));
+  }
+  *::-webkit-scrollbar-button:single-button:vertical:increment {
+    background-image: var(--dwfui-sb-arrow-down, none);
+  }
+  *::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+    background-image: var(--dwfui-sb-arrow-down-hover, var(--dwfui-sb-arrow-down, none));
+  }
+  *::-webkit-scrollbar-button:single-button:vertical:increment:active {
+    background-image: var(--dwfui-sb-arrow-down-pressed, var(--dwfui-sb-arrow-down, none));
+  }
+  *::-webkit-scrollbar-button:single-button:horizontal {
+    display: none;
+  }
+  #selection.occupant-list-panel {
+    width: min(calc(60 * var(--dwfui-cell-drawn-w)), calc(100vw - 24px));
+    height: min(calc(54 * var(--dwfui-cell-drawn-h)), calc(100vh - 24px));
+    min-height: calc(13 * var(--dwfui-cell-drawn-h));
+    overflow: hidden;
+  }
+  /* ledger 0086 R17: the rail is 4 columns wide with a 3-row cell and pitch, hanging off the panel's
+     OUTSIDE right edge. Its one-column offset is a HIT-BOX rule; the draw offset is measured zero. */
+  .occupant-tabs-wrap {
+    position: absolute;
+    top: 0;
+    right: calc(-4 * var(--dwfui-cell-drawn-w));
+    z-index: 20;
+  }
+  #selection#selection > .occupant-tabs-wrap {
+    position: absolute;
+    z-index: 20;
+  }
+  #selection#selection.has-occupant-rail {
+    overflow: visible;
+    max-width: calc(100vw - 24px - 4 * var(--dwfui-cell-drawn-w) - 2px);
+  }
+  /* The rail's four columns are a TRANSPARENT RIGHT BORDER, so every PanelFrame clamp sees them via
+   getBoundingClientRect(). `overflow:visible` is required: overflow clips to the padding box. */
+  #selection#selection.view-sheet-panel.has-occupant-rail {
+    overflow: visible;
+    width: calc(65 * var(--dwfui-cell-drawn-w)); /* 61 sheet + 4 rail */
+    right: calc(32 * var(--dwfui-cell-drawn-w)); /* so the FRAME still ends at 36 */
+    border-right: calc(4 * var(--dwfui-cell-drawn-w)) solid transparent;
+  }
+  #selection.unit-sheet-panel.has-occupant-rail {
+    right: calc(12px + 4 * var(--dwfui-cell-drawn-w));
+  }
+  /* Coarse-pointer usability floor: ONE shared layer, gated on (pointer: coarse) so a desktop never
+     matches. Sizing only -- every colour still comes from the component layer and the tokens. */
+  @media (pointer: coarse) {
+    #view,
+    #zoneOverlay {
+      touch-action: none;
+    }
+  }
+  @media (pointer: coarse) {
+    /* Shared toolbar primitives stay with the shared designation/panel rules they must not outrank. */
+    .tool-button,
+    .square-button {
+      min-width: 40px;
+      min-height: 40px;
+    }
+  }
+  @media (pointer: coarse) {
+    #clientPanel,
+    #selection {
+      max-height: min(72vh, calc(100dvh - 108px));
+    }
+  }
+  @media (pointer: coarse) {
+    input[type="text"],
+    input[type="search"],
+    input[type="number"],
+    input[type="password"],
+    input:not([type]),
+    textarea,
+    select {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  #selection.building-panel.zone-owner-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* The doubled id is intentional specificity: it beats the older family placement selectors while
+     still letting PanelFrame's inline move/resize geometry win. */
+  #selection#selection.view-sheet-panel {
+    --pf-vstretch: 1;
+    left: auto;
+    right: calc(36 * var(--dwfui-cell-drawn-w));
+    top: calc(4 * var(--dwfui-cell-drawn-h));
+    bottom: calc(4 * var(--dwfui-cell-drawn-h));
+    width: calc(61 * var(--dwfui-cell-drawn-w));
+    height: auto;
+    max-width: none;
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  #selection.view-sheet-panel .stockpile-native {
+    border: 0;
+    border-image: none;
+    box-shadow: none;
+  }
+  @media (max-width: 900px) {
+    #selection#selection.view-sheet-panel {
+      left: max(9px, var(--panel-dock-left));
+      right: auto;
+      top: 50px;
+      bottom: 4px;
+      width: calc(100vw - max(9px, var(--panel-dock-left)) - 9px);
+    }
+    #selection#selection.view-sheet-panel.has-occupant-rail {
+      right: auto;
+      width: calc(100vw - max(9px, var(--panel-dock-left)) - 9px - 4 * var(--dwfui-cell-drawn-w));
+    }
+  }
+  #stockPalette [data-stock-cancel] {
+    display: inline-flex !important;
+  }
+  #dwfConnectionBanner {
+    position: fixed;
+    top: calc(8px + var(--dwfui-cell-drawn-h));
+    left: 50%;
+    z-index: 12000;
+    max-width: min(520px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    border: 1px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.62);
+    color: var(--dwfui-text-warning);
+    pointer-events: none;
+  }
+  #dwfConnectionBanner[data-connection-state="connected"] {
+    color: var(--dwfui-text-good);
+  }
+  #dwfConnectionBanner .dwf-connection-copy {
+    display: block;
+    text-align: center;
+  }
+  /* The RTT wire is DEF-500, so spend that dead column's budget on distinguishable player names. */
+  #zScrollCamMarker.z-marker {
+    border-left-width: calc(0.5 * var(--dwfui-cell-drawn-w));
+    border-right-width: calc(0.5 * var(--dwfui-cell-drawn-w));
+    border-top-width: var(--dwfui-cell-drawn-h);
+  }
+  /* Runtime-mounted shell surfaces */
+  /* Audio popover */
+  #audioBtn.df-muted {
+    opacity: 0.55;
+  }
+  #audioBtn.audio-btn-fallback {
+    position: fixed;
+    top: var(--dwfui-cell-drawn-h);
+    right: var(--dwfui-cell-drawn-w);
+    z-index: 9101;
+  }
+
+  /* Diplomacy plaques and meeting mirror */
+  #dfDiploPlaques {
+    position: fixed;
+    left: 0;
+    top: 58px;
+    z-index: 46;
+    display: none;
+    flex-direction: column;
+    gap: 3px;
+    pointer-events: auto;
+  }
+  #dfDiploPlaques.show {
+    display: flex;
+  }
+  body.df-plaques-visible #alertStack {
+    transform: translateY(var(--df-plaque-stack-h, 0px));
+  }
+
+  /* Player-follow indicator */
+  #dfPlayerFollowIndicator {
+    position: fixed;
+    top: var(--follow-indicator-top, 96px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 57;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    max-width: min(420px, calc(100vw - 48px));
+    padding: 5px 9px;
+    border: 1px solid var(--dwfui-gold);
+    background: rgba(14, 14, 13, 0.94);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    color: var(--dwfui-text-body);
+    font:
+      12px/1.35 ui-monospace,
+      Consolas,
+      monospace;
+    pointer-events: auto;
+    white-space: nowrap;
+  }
+  #dfPlayerFollowIndicator:not([hidden]) {
+    display: flex;
+  }
+  #dfPlayerFollowIndicator span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #dfPlayerFollowIndicator button {
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-numeric);
+    font:
+      11px ui-monospace,
+      Consolas,
+      monospace;
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+  #dfPlayerFollowIndicator button:hover {
+    border-color: var(--dwfui-text-numeric);
+    background: var(--dwfui-surface);
+  }
+
+  /* Pause toast and busy banner */
+  #dfPauseToasts {
+    position: fixed;
+    top: calc(3.5 * var(--dwfui-cell-drawn-h));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.4 * var(--dwfui-cell-drawn-h));
+    align-items: center;
+    pointer-events: none;
+    font-family: inherit;
+  }
+  .df-pause-toast {
+    background: rgba(20, 23, 28, 0.94);
+    color: var(--dwfui-text-body);
+    border: 1px solid var(--dwfui-slab);
+    border-radius: 6px;
+    padding: calc(0.4 * var(--dwfui-cell-drawn-h)) calc(1.4 * var(--dwfui-cell-drawn-w));
+    font-size: calc(0.875 * var(--dwfui-cell-drawn-h));
+    letter-spacing: 0.02em;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+  }
+  .df-pause-toast.show {
+    opacity: 1;
+  }
+  #dfBusyBanner {
+    position: fixed;
+    top: 96px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8990;
+    display: none;
+    background: rgba(40, 30, 16, 0.95);
+    color: var(--dwfui-text-warning);
+    border: 1px solid var(--dwfui-gold-bevel-mid);
+    border-radius: 7px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.55);
+    font-family: inherit;
+    animation: dfBusyPulse 1.4s ease-in-out infinite;
+  }
+  #dfBusyBanner.show {
+    display: block;
+  }
+
+  .host-busy-banner {
+    position: fixed;
+    top: calc(1.1667 * var(--dwfui-cell-drawn-h));
+    left: 50%;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    gap: calc(1.125 * var(--dwfui-cell-drawn-w));
+    padding: calc(0.75 * var(--dwfui-cell-drawn-h)) calc(2.25 * var(--dwfui-cell-drawn-w));
+    transform: translateX(-50%);
+    --hbb-text: #ffe9b0;
+    color: var(--hbb-text);
+    background: rgba(21, 21, 21, 0.94);
+    box-shadow: 0 0 0 2px #d89b27 inset, 0 4px 18px rgba(0, 0, 0, 0.5);
+    font: 700 calc(1.1667 * var(--dwfui-cell-drawn-h)) ui-monospace, Consolas, monospace;
+    letter-spacing: 0.2px;
+    pointer-events: none;
+  }
+  .host-busy-banner.is-visible {
+    display: flex;
+  }
+  .host-busy-indicator {
+    width: calc(1.125 * var(--dwfui-cell-drawn-w));
+    height: calc(0.75 * var(--dwfui-cell-drawn-h));
+    border-radius: 50%;
+    background: #ffb12e;
+    box-shadow: 0 0 7px #ffb12e;
+    animation: hbbPulse 1s ease-in-out infinite;
+  }
+
+  .df-tile-diag {
+    display: none;
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 60;
+    font: 11px/1.45 monospace;
+    background: rgba(0, 0, 0, 0.72);
+    color: var(--dwfui-text-good);
+    padding: 6px 9px;
+    white-space: pre;
+    pointer-events: none;
+    border: 1px solid rgba(60, 255, 120, 0.3);
+    border-radius: 4px;
+  }
+
+  .df-tile-diag.df-tile-diag-active {
+    display: block;
+  }
+
+  @keyframes hbbPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  @keyframes dfBusyPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  /* Chat toggle and panel */
+  #dfChatToggle {
+    position: fixed;
+    left: 8px;
+    bottom: calc(52px + var(--dfvv-kb-inset, 0px));
+    z-index: 8980;
+    font-family: inherit;
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-body);
+    border: 1px solid var(--dwfui-gold);
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    user-select: none;
+  }
+  #dfChatToggle:hover {
+    border-color: var(--dwfui-text-numeric);
+  }
+  #dfChatToggle.chat-toggle-hidden {
+    display: none;
+  }
+  #dfChatToggle .chat-badge {
+    background: var(--dwfui-destructive);
+    color: var(--dwfui-text-title);
+    border-radius: 9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    display: none;
+  }
+  #dfChatToggle .chat-badge.show {
+    display: inline-block;
+  }
+
+  @media (pointer: coarse) {
+    /* Coarse-pointer floors move with the base family so named-layer precedence cannot defeat them. */
+    html body #dfChatToggle {
+      min-height: 40px;
+    }
+  }
+}

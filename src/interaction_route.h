@@ -23,9 +23,7 @@
 
 namespace dwf {
 
-// Native B288-1/B288-2 show an engraving as its own tile click-info sheet, with no zone title or
-// controls, so tile art precedes the passive civzone overlay. The production /inspect resolver uses
-// this function after unit/building/item occupants have had their normal precedence.
+// Applied only after unit, building and item occupants have taken their normal precedence.
 enum class SurfaceClickRoute { Engraving, Civzone, Tile };
 
 constexpr SurfaceClickRoute surface_click_route(bool has_engraving, bool has_civzone) {
@@ -39,7 +37,7 @@ static_assert(surface_click_route(true, true) == SurfaceClickRoute::Engraving,
 static_assert(surface_click_route(false, true) == SurfaceClickRoute::Civzone,
               "an ordinary zone floor must retain zone routing");
 
-// B253 draws the statue subject TOP at (building.x, building.y - 1, building.z). A click on that
+// Draws the statue subject TOP at (building.x, building.y - 1, building.z). A click on that
 // authored cell maps back to the one-tile footprint at y + 1.
 constexpr int STATUE_OVERHANG_FOOTPRINT_DX = 0;
 constexpr int STATUE_OVERHANG_FOOTPRINT_DY = 1;

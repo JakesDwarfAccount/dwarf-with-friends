@@ -1,0 +1,178 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.settings {
+  /* Settings modal */
+  #dfSettingsBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: none;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  #dfSettingsBackdrop.open {
+    display: flex;
+  }
+  #dfSettingsPanel {
+    width: min(720px, 94vw);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+    color: var(--dwfui-text-body);
+    font:
+      12px/1.4 ui-monospace,
+      Consolas,
+      monospace;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+  #dfSettingsPanel .settings-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--dwfui-gold);
+  }
+  #dfSettingsPanel .settings-head h2 {
+    margin: 0;
+    font-size: 14px;
+    color: var(--dwfui-text-numeric);
+    letter-spacing: 0.5px;
+  }
+  #dfSettingsPanel .settings-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+  }
+  #dfSettingsPanel .settings-nav {
+    flex: 0 0 130px;
+    border-right: 1px solid var(--dwfui-gold);
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+  }
+  #dfSettingsPanel .settings-tab {
+    background: none;
+    border: none;
+    color: var(--dwfui-text-secondary);
+    text-align: left;
+    padding: 8px 14px;
+    cursor: pointer;
+    font: inherit;
+  }
+  #dfSettingsPanel .settings-tab:hover {
+    background: var(--dwfui-hatch);
+    color: var(--dwfui-text-numeric);
+  }
+  #dfSettingsPanel .settings-tab.on {
+    background: var(--dwfui-slab);
+    color: var(--dwfui-text-numeric);
+    border-left: 3px solid var(--dwfui-gold);
+    padding-left: 11px;
+  }
+  #dfSettingsPanel h3 {
+    margin: 14px 0 6px;
+    font-size: 12px;
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+    border-bottom: 1px solid var(--dwfui-gold);
+    padding-bottom: 3px;
+  }
+  #dfSettingsPanel h3:first-child {
+    margin-top: 0;
+  }
+  #dfSettingsPanel .settings-note {
+    color: var(--dwfui-text-secondary);
+    font-size: 11px;
+    margin: 4px 0 8px;
+  }
+  #dfSettingsPanel .keyboard-binding-row.conflict {
+    background: var(--dwfui-destructive);
+  }
+  #dfSettingsPanel .keyboard-binding-row.readonly {
+    opacity: 0.6;
+  }
+  #dfSettingsPanel .keyboard-binding-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  #dfSettingsPanel .keyboard-binding-bind {
+    width: 100%;
+    min-width: 0;
+  }
+  #dfSettingsPanel .keyboard-binding-bind.listening {
+    animation: dfsPulse 1s infinite;
+  }
+  #dfSettingsPanel .settings-banner {
+    background: var(--dwfui-destructive);
+    border: 1px solid var(--dwfui-text-warning);
+    color: var(--dwfui-text-title);
+    padding: 6px 8px;
+    margin: 0 0 8px;
+    font-size: 11px;
+  }
+  #dfSettingsPanel .settings-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  #dfSettingsPanel .interface-option-row:hover {
+    background: var(--dwfui-hatch);
+  }
+  #dfSettingsPanel .interface-option-scale {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 2px;
+  }
+  #dfSettingsPanel .interface-option-scale input[type="range"] {
+    flex: 1;
+    accent-color: var(--dwfui-text-numeric);
+  }
+  #dfSettingsPanel .interface-option-scale .val {
+    min-width: 44px;
+    text-align: right;
+    color: var(--dwfui-text-numeric);
+    font-variant-numeric: tabular-nums;
+  }
+  #dfSettingsPanel .info-row .k {
+    color: var(--dwfui-text-secondary);
+  }
+  #dfSettingsPanel .info-row .v {
+    color: var(--dwfui-text-body);
+    text-align: right;
+  }
+
+  @keyframes dfsPulse {
+    50% {
+      opacity: 0.55;
+    }
+  }
+}

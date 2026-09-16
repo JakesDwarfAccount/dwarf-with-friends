@@ -19,7 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// TX4 shared planted-crop policy. Both renderers consume this exact table and resolver.
+// Shared planted-crop policy. Both renderers consume this exact table and resolver.
 (function (root) {
   "use strict";
 
@@ -73,9 +73,6 @@
     return out;
   }
 
-  // TX4 reopen: this is the shared painter contract, not a timing convention. A renderer may
-  // rebuild either callback's backing data first, but the final composite always executes the
-  // farm bed/building layer before the planted-crop layer.
   function paintAboveBuildings(paintBuildings, paintCrops) {
     try {
       if (typeof paintBuildings === "function") paintBuildings();

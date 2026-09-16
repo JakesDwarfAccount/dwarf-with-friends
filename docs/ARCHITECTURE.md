@@ -4,7 +4,7 @@ Dwarf With Friends runs one real Dwarf Fortress simulation and gives each browse
 controls. The host loads a C++ DFHack plugin, the plugin reads and changes the running fortress, and
 an HTTP/WebSocket server inside that plugin serves a zero-dependency browser client.
 
-The short name `dwf` — Dwarf With Friends — is used throughout the source, URLs, files, globals,
+The short name `dwf`: Dwarf With Friends: is used throughout the source, URLs, files, globals,
 and configuration. A handful of runtime identifiers instead keep the `dfcapture` stem inherited
 from the project's ancestor, deliberately, for compatibility with existing installs. See
 [NAMING.md](NAMING.md) before renaming something that merely looks stale.
@@ -151,8 +151,7 @@ the host's own installation:
 
 Committed JSON maps in `web/` describe how DF identities and raw tokens resolve into those cells:
 terrain, materials, items, plants, trees, buildings, creatures, interface chrome, portraits,
-shadows, and overlays. The generators under `tools/ws2/` derive those lookup structures from a
-resolved local DF installation. They contain mappings and composition metadata, not a substitute
+shadows, and overlays. Those lookup structures are derived from a local DF installation. They contain mappings and composition metadata, not a substitute
 copy of the source PNG sheets. Dynamic unit composites are content-addressed and served from the
 host when available, with progressively simpler host-art fallbacks.
 
@@ -166,12 +165,11 @@ sprite pixels still come from the host installation.
 Its builders are deliberately declarative: configuration in, escaped HTML out. Panel modules own
 fetching, state, and delegated `data-*` event handlers; DWFUI owns native-style rows, tabs, plaques,
 buttons, searches, dialogs, switches, radio groups, scrollbars, sprite bindings, and bitmap text.
-The `.dwfui-*` classes and `--dwfui-*` tokens live in `web/css/dwf.css`.
+The `.dwfui-*` classes and `--dwfui-*` tokens live in `web/css/dwf-dwfui.css` and `web/css/dwf-tokens.css`.
 
 All new or changed UI must go through DWFUI. A missing primitive is added to DWFUI and tested there,
 not hand-built inside one panel. `DWFUI.rawHtml(reason, html)` is the explicit, audited escape hatch
-for genuinely composed markup. This is a hard architectural boundary enforced by the UI drift and
-component tests, not just a visual convention.
+for genuinely composed markup. Keep shared controls in this layer.
 
 Panels are split by game domain rather than by a central application store. Examples include labor
 and work orders, squads, buildings/zones/stockpiles, trade, hospital, nobles/justice/administration,
@@ -193,10 +191,9 @@ Some high-risk actions cannot safely be reconstructed as direct structure writes
 opening/selecting in the native trade screen, conviction, and interrogation. The `HOST-WRITES`
 engine in `dwf.lua` drives DF's own viewscreen input path so Dwarf Fortress itself creates all
 of the coupled records. Each step is gated by a host-controlled boolean in
-`dfcapture-hostwrites.json` beside the DF executable. The file cannot be changed over HTTP.
+`dfcapture-hostwrites.json` beside the DF executable. These action flags cannot be changed over HTTP. The separate `dfhack_console` flag can be toggled by the host through `/console-config`.
 
-The guard fails closed at every layer. A missing file, malformed JSON, missing key, or value other
-than literal `true` produces an empty/false flag set. Lua returns a structured
+The guard fails closed at every layer. A missing or unreadable flag file, missing key, or disabled value leaves the corresponding action unavailable. Lua returns a structured
 `{"guarded":true}` refusal before sending native input; C++ maps that to HTTP 501; panel controls
 render disabled with the required flag and reason. Flags are read on each state poll, so a host can
 enable a verified action without rebuilding, but a network client cannot enable one. This guard is
@@ -243,6 +240,4 @@ Start with the guide nearest the code you plan to change:
 - [browser JavaScript](../web/js/README.md)
 - [host installer and panel](../host/README.md)
 - [DFHack scripts](../scripts/README.md)
-- [developer tools](../tools/README.md)
-- [test harness and gates](../tools/harness/README.md)
 

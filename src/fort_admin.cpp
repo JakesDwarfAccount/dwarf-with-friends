@@ -22,9 +22,12 @@
 #include "fort_admin.h"
 
 #include "Core.h"
+#include "assignable_citizen.h"
 #include "http_server.h"
 #include "json_util.h"
 #include "lua_bridge.h"
+#include "noble_appointment.h"
+#include "panel_http.h"
 #include "sdl_capture.h"
 
 #include "modules/Items.h"
@@ -39,6 +42,7 @@
 #include "df/agreement_details_type.h"
 #include "df/agreement_flag.h"
 #include "df/agreement_party.h"
+#include "df/announcement_handlerst.h"
 #include "df/building.h"
 #include "df/building_civzonest.h"
 #include "df/building_type.h"
@@ -49,18 +53,26 @@
 #include "df/crime_type.h"
 #include "df/entity_position.h"
 #include "df/entity_position_assignment.h"
+#include "df/actor_entryst.h"
+#include "df/counterintelligence_mode_type.h"
+#include "df/gamest.h"
+#include "df/info_interface_mode_type.h"
+#include "df/info_interfacest.h"
+#include "df/justice_interface_mode_type.h"
+#include "df/justice_interfacest.h"
+#include "df/main_interface.h"
 #include "df/global_objects.h"
 #include "df/histfig_entity_link_positionst.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
 #include "df/history_event_reason.h"
+#include "df/incident_hfid.h"
+#include "df/interrogation_report.h"
+#include "df/interrogation_resultst.h"
 #include "df/mandate.h"
 #include "df/mandate_handlerst.h"
 #include "df/plotinfost.h"
-// BUILD FIX (srvbatch2): do_justice_pardon iterates plotinfo->punishments, a
-// vector<df::punishment*> -- that type lives in df/punishment.h. The originally-included
-// df/punishmentst.h defines the UNRELATED df::punishmentst and left df::punishment an
-// undefined forward decl (C2027 at every member access), breaking the Release build at HEAD.
+// df::punishment lives here; df/punishmentst.h declares the unrelated df::punishmentst.
 #include "df/punishment.h"
 #include "df/record_precision_level_type.h"
 #include "df/squad.h"
@@ -68,6 +80,7 @@
 #include "df/unit.h"
 #include "df/world.h"
 #include "df/world_site.h"
+#include "df/witness_reportst.h"
 
 #include <algorithm>
 #include <mutex>
@@ -82,31 +95,11 @@ namespace {
 
 std::recursive_mutex g_admin_mutex;
 
-// Same lock discipline as squads.cpp: panel mutex -> capture-state mutex ->
-// CoreSuspender. Reads run under the same guard as mutations so iterating the
-// crime/agreement/entity vectors never races the sim.
 template <typename Fn>
 bool run_admin_locked(Fn&& fn) {
-    std::lock_guard<std::recursive_mutex> admin_lock(g_admin_mutex);
-    std::lock_guard<std::recursive_mutex> capture_lock(capture_state_mutex());
-    DFHack::CoreSuspender suspend;
-    return fn();
+    return run_panel_locked(g_admin_mutex, std::forward<Fn>(fn));
 }
 
-void set_no_store_json(httplib::Response& res, const std::string& json) {
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(json, "application/json; charset=utf-8");
-}
-
-void json_error(httplib::Response& res, int status, const std::string& message) {
-    res.status = status;
-    res.set_header("Cache-Control", "no-store");
-    res.set_content("{\"ok\":false,\"error\":" + json_string(message) + "}\n",
-                    "application/json; charset=utf-8");
-}
-
-// Resolve a fort unit from a historical-figure id (nobles hold positions as
-// histfigs; we want the live unit for a deep link).
 df::unit* unit_for_histfig(int32_t hf_id) {
     if (hf_id < 0)
         return nullptr;
@@ -130,9 +123,7 @@ std::string histfig_name(int32_t hf_id) {
     return name.empty() ? ("Figure " + std::to_string(hf_id)) : name;
 }
 
-// ---------------------------------------------------------------------------
-// Nobles / administrators
-// ---------------------------------------------------------------------------
+// ---------------------------------------------- Nobles / administrators
 
 std::string position_display_name(df::entity_position* position) {
     if (!position)
@@ -158,8 +149,6 @@ std::string position_requirements(df::entity_position* position) {
     return out;
 }
 
-// R4 (CIM-Nobles.jpg): squad name on the militia rows ("The Pinkertons"/"Delta Squad"). Squad
-// carries a nickname (alias) that overrides its language_name when set.
 std::string squad_name_for(int32_t squad_id) {
     if (squad_id < 0)
         return "";
@@ -171,33 +160,15 @@ std::string squad_name_for(int32_t squad_id) {
     return DFHack::Translation::translateName(&squad->name, true);
 }
 
-// R4: the five room-requirement icons. Levels come straight off the entity_position (a >0 level
-// means the position requires that room). df.entity.xml:530-538.
+// A level > 0 means the position requires that room.
 struct RoomReqs { int32_t office, bedroom, dining, tomb, box; };
 RoomReqs position_room_reqs(df::entity_position* p) {
     return { p->required_office, p->required_bedroom, p->required_dining, p->required_tomb,
              p->required_boxes };
 }
 
-// R4: which room kinds the holder actually owns (green-check vs red-! on the required icons).
-//
-// B283 FIX -- READ DF'S OWN ROOM MODEL, NOT A WRONG FIELD. In v50 a noble's assigned rooms are
-// CIVZONES, not furniture buildings: df::unit::owned_buildings is a vector<building_civzonest*>
-// (df.unit.xml `owned_buildings` / original `zone_assigned`), and the room KIND is the civzone's
-// own `type` (df::civzone_type), NOT the underlying furniture's building_type. DFHack's own
-// noble-room plugin classifies this exact same list the same way -- `owned_zone->type ==
-// civzone_type::{Bedroom,Office,DiningHall,Tomb}` (dfhack plugins/preserve-rooms.cpp:520-523,562).
-//
-// The previous code switched `bld->getType()` -- which is `building_type::Civzone` for EVERY entry
-// in owned_buildings -- against Chair/Bed/Table/Coffin, so no case could ever match and every
-// required room reported "not satisfied" no matter what the noble owned. That is the bug the owner saw:
-// office/bedroom/dining/tomb always showed unsatisfied even when native DF showed them met.
-//
-// Presence-only: a too-cheap room DF would still flag red reads as satisfied here. DF's real
-// GOOD-vs-red split is a room-VALUE threshold (entity_position.required_office is a value, and
-// DFHack's getRoomValue()/getRoomDescription() are disabled-for-v50 TODOs -- Buildings.cpp:1557),
-// so the value threshold is deliberately NOT modeled; owning the right kind of room is what we can
-// read from DF's state directly. See notes NOT-VERIFIED and the wire-gap note in the client.
+// A noble's rooms are CIVZONES: the kind is the civzone's own `type`, never the underlying
+// furniture's building_type, which is building_type::Civzone for every owned_buildings entry.
 struct RoomOwned { bool office = false, bedroom = false, dining = false, tomb = false; };
 RoomOwned holder_owned_rooms(df::unit* holder) {
     RoomOwned owned;
@@ -216,30 +187,6 @@ RoomOwned holder_owned_rooms(df::unit* holder) {
     }
     return owned;
 }
-
-// B233-3: CREATE A POSITION (the census's "create-position chooser absent").
-//
-// What "create a position" means in DF: you cannot invent a new entity_position -- those come from
-// the entity raws (df.entity.xml:938 entity_position, loaded from ENTITY_POSITION tokens). What
-// DF's own create-squad flow does is create a new ASSIGNMENT (a new SEAT) for an existing position
-// whose raw allows more holders:
-//   entity_position.number  (df.entity.xml:977, init 1) -- the raws' [NUMBER:n]; DF stores
-//   [NUMBER:AS_NEEDED] as -1 = unlimited. MILITIA_CAPTAIN is exactly that
-//   (vanilla_entities/objects/entity_default.txt:543-547: NUMBER:AS_NEEDED, SQUAD:10), which is why
-//   native lets you keep making militia captains (and therefore squads) forever, while our
-//   /squad-create could only ever reuse an assignment that already existed.
-// So: a "created position" is one new df::entity_position_assignment on the fort entity. That is
-// the SAME object do_noble_assign already creates on demand (the make-monarch.lua recipe), so the
-// write shape is landed and proven -- this route just adds the raws' NUMBER bound and the explicit
-// -1 initialisation (see below) so a new seat is genuinely vacant.
-//
-// FIELD-INIT NOTE (this is the half-write trap): df-structures' generated ctor zero-inits the
-// int32 fields that have no init-value -- including `histfig` and `squad_id` (df.entity.xml:1025,
-// :1032). A raw `new df::entity_position_assignment()` therefore claims histfig 0 and squad 0.
-// Every seat we create sets histfig/histfig2/squad_id to -1 explicitly. (do_noble_assign's own
-// create path set histfig=-1 but left squad_id at 0 -- a real latent bug: a freshly appointed
-// noble's seat looked like it already led squad 0, which is also why it could never be offered as
-// a free squad seat. Fixed in the same pass; see create_assignment below, now shared.)
 
 int32_t next_assignment_id(df::historical_entity* fort) {
     int32_t next_id = 0;
@@ -260,7 +207,7 @@ df::entity_position_assignment* create_assignment(df::historical_entity* fort, i
     return assignment;
 }
 
-// How many seats this position already has, and how many the raws allow (-1 = unlimited).
+// The raws' cap is entity_position.number, where -1 = AS_NEEDED = unlimited.
 int count_assignments(df::historical_entity* fort, int32_t position_id) {
     int n = 0;
     for (auto a : fort->positions.assignments)
@@ -269,45 +216,6 @@ int count_assignments(df::historical_entity* fort, int32_t position_id) {
     return n;
 }
 
-// DF maintains the exact set of seats the fortress may currently appoint in
-// historical_entity.positions.possible_appointable. This is downstream of the raws' population,
-// market, replacement, and appointer rules. Do not duplicate those rules here: in particular,
-// CAPTAIN_OF_THE_GUARD has both REQUIRES_POPULATION:50 and REQUIRES_MARKET in the vanilla raws.
-bool position_is_possible_appointable(df::historical_entity* fort, int32_t position_id) {
-    if (!fort)
-        return false;
-    for (auto assignment : fort->positions.possible_appointable)
-        if (assignment && assignment->position_id == position_id)
-            return true;
-    return false;
-}
-
-// Native's squad creator can synthesize another AS_NEEDED squad office (vanilla
-// MILITIA_CAPTAIN) after its appointing office is held. Such a not-yet-created assignment is not
-// necessarily present in possible_appointable, which remains the correct gate for ordinary noble
-// appointments. Keep this exception squad-only and preserve the raw population/market/appointer
-// requirements.
-bool position_is_as_needed_squad_appointable(df::historical_entity* fort,
-                                             df::entity_position* position) {
-    if (!fort || !position || position->squad_size <= 0 || position->number >= 0 ||
-        position->flags.is_set(df::entity_position_flags::HAS_BEEN_REPLACED) ||
-        (position->requires_population > 0 &&
-         !position->flags.is_set(df::entity_position_flags::HAS_MET_POP_REQ)) ||
-        (position->flags.is_set(df::entity_position_flags::REQUIRES_MARKET) &&
-         !position->flags.is_set(df::entity_position_flags::HAS_MET_MARKET_REQ)))
-        return false;
-    if (position->appointed_by.empty())
-        return false;
-    for (auto appointer_id : position->appointed_by)
-        for (auto assignment : fort->positions.assignments)
-            if (assignment && assignment->position_id == appointer_id && assignment->histfig >= 0)
-                return true;
-    return false;
-}
-
-// A held position remains on the native nobles screen even though its occupied seat is no longer
-// an appointment offer. A squad-linked seat is likewise already active DF state. Vacant positions
-// appear only when DF itself puts them in possible_appointable.
 bool position_is_noble_screen_visible(df::historical_entity* fort, int32_t position_id) {
     if (!fort)
         return false;
@@ -335,10 +243,8 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
         auto plotinfo = df::global::plotinfo;
         auto world = df::global::world;
         if (!plotinfo || !world) { if (err) *err = "world unavailable"; return false; }
-        // FIX: fort positions/assignments live on the fort GROUP entity
-        // (plotinfo->group_id), not the civilization (plotinfo->civ_id). The
-        // legacy info_panel read resolved civ_id and surfaced monarch-level
-        // civ positions instead of the fort's own nobles/administrators.
+        // Fort positions live on the fort GROUP entity (group_id); civ_id surfaces civ-level
+        // positions such as the monarch instead.
         auto fort = df::historical_entity::find(plotinfo->group_id);
         if (!fort) { if (err) *err = "fort entity unavailable"; return false; }
 
@@ -346,8 +252,6 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
         for (auto position : fort->positions.own)
             if (position && position_is_noble_screen_visible(fort, position->id))
                 visible_positions.push_back(position);
-        // Native orders the nobles screen by entity_position.precedence (the early-fort oracle is
-        // expedition leader 110, militia commander 120, sheriff 130, ... messenger 250).
         std::stable_sort(visible_positions.begin(), visible_positions.end(),
                          [](df::entity_position* a, df::entity_position* b) {
                              return a->precedence < b->precedence;
@@ -356,7 +260,6 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
         body << "{\"player\":" << json_string(player) << ",\"positions\":[";
         bool first = true;
         for (auto position : visible_positions) {
-            // Find the assignment (holder) for this position.
             int32_t holder_hf = -1;
             int32_t assignment_id = -1;
             int32_t squad_id = -1;
@@ -388,7 +291,7 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
                  << ",\"squadName\":" << json_string(squad_name_for(squad_id))
                  << ",\"precedence\":" << position->precedence
                  << ",\"requirements\":" << json_string(position_requirements(position))
-                 // R4: per-icon room requirement levels (0 == not required) + holder satisfaction.
+                 // per-icon room requirement levels; 0 = not required.
                  << ",\"rooms\":{\"office\":" << reqs.office << ",\"bedroom\":" << reqs.bedroom
                  << ",\"dining\":" << reqs.dining << ",\"tomb\":" << reqs.tomb
                  << ",\"box\":" << reqs.box << "}"
@@ -401,18 +304,15 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
                  << ",\"unitId\":" << (holder ? holder->id : -1)
                  << ",\"profession\":" << json_string(holder ? DFHack::Units::getProfessionName(holder) : "")
                  << ",\"professionColor\":" << (holder ? static_cast<int>(DFHack::Units::getProfessionColor(holder)) : -1)
-                 // B233-3: how many seats this position has now vs how many the RAWS allow
-                 // (entity_position.number, -1 == AS_NEEDED == unlimited). `canCreate` is what the
-                 // create-position chooser keys off -- and it is honest: it is the same bound
+                 // maxSeats is entity_position.number, -1 = AS_NEEDED. canCreate uses the same bound
                  // /position-create enforces, so a chooser row can never 400.
                  << ",\"seats\":" << count_assignments(fort, position->id)
                  << ",\"maxSeats\":" << static_cast<int>(position->number)
                  << ",\"canCreate\":" << (can_create ? "true" : "false")
                  << "}";
         }
-        // R4: bookkeeper precision goal (1-5 selector on the Bookkeeper row). plotinfo.nobles
-        // .bookkeeper_settings is the record_precision_level_type goal (NONE=-1, nearest_10=0 ..
-        // all_accurate=4); the native selector button N maps to enum N-1.
+        // record_precision_level_type: NONE=-1, nearest_10=0 .. all_accurate=4; the native
+        // selector's button N is enum N-1.
         body << "],\"bookkeeperPrecision\":" << static_cast<int>(plotinfo->nobles.bookkeeper_settings)
              << ",\"mandates\":[";
         first = true;
@@ -420,16 +320,14 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
             if (!mandate)
                 continue;
             df::unit* unit = mandate->unit;
-            // Item + material the mandate is about (Make X of material Y / ban on exporting
-            // material Y). ItemTypeInfo/MaterialInfo both decode invalid ids gracefully to an
-            // empty/"any" label, so no extra nil-guard is needed beyond the >=0 material check.
+            // ItemTypeInfo/MaterialInfo decode an invalid id to an empty label, so no nil-guard
+            // beyond the mat_type >= 0 check is needed.
             DFHack::ItemTypeInfo iti(mandate->item_type, mandate->item_subtype);
             std::string item_label = iti.isValid() ? iti.toString() : "";
             std::string mat_label = mandate->mat_type >= 0
                 ? DFHack::MaterialInfo(mandate->mat_type, mandate->mat_index).toString() : "";
-            // Countdown: timeout_counter ticks once per 10 frames toward timeout_limit; DF runs
-            // 1200 frames/day. A non-positive limit means "no deadline" (ongoing prohibition) ->
-            // daysRemaining = -1 so the client renders "Ongoing" rather than a false "0 days".
+            // timeout_counter ticks once per 10 frames; DF runs 1200 frames/day. A non-positive
+            // limit means no deadline -> daysRemaining = -1 ("Ongoing", never a false "0 days").
             int days_remaining = -1;
             if (mandate->timeout_limit > 0) {
                 long ticks_left = (long)mandate->timeout_limit - (long)mandate->timeout_counter;
@@ -463,19 +361,8 @@ std::string build_nobles_json(const std::string& player, std::string* err) {
     return body.str();
 }
 
-// ---------------------------------------------------------------------------
-// Noble assignment (WD-20 ENDPOINT-ADD /noble-assign + /noble-candidates)
-// ---------------------------------------------------------------------------
-// Recipe: direct histfig assignment on the fort entity's position-assignment slot, the same
-// shape dfhack's make-monarch.lua script uses to reassign the civ-level Monarch position
-// (scripts/make-monarch.lua): find/create the df::entity_position_assignment for the position,
-// set its histfig, and add/remove a histfig_entity_link_positionst on the historical figure so
-// the link is discoverable from either side (same as DF's own assignment path). Deliberately
-// does NOT touch entity_vector_idx (make-monarch.lua doesn't either -- unused for a live,
-// already-loaded world; only matters for save/load reconstruction) and does NOT create the
-// squad object DF auto-creates for squad-bearing positions (militia commander/captain,
-// squadSize>0 in /nobles) -- that's squad-management territory (WD-23), out of scope here;
-// the position assignment itself (who HOLDS the title) still works correctly for those rows.
+// ------------------------------- Noble assignment: /noble-assign + /noble-candidates
+// Assigning a squad-bearing position does not create the squad DF would auto-create.
 
 df::entity_position* find_position(df::historical_entity* fort, int32_t position_id) {
     for (auto p : fort->positions.own)
@@ -498,8 +385,6 @@ int32_t assignment_index(df::historical_entity* fort, df::entity_position_assign
     return -1;
 }
 
-// Drop the histfig_entity_link_positionst matching this fort+assignment from a historical
-// figure's own link list (mirrors make-monarch.lua's unlink-before-relink step).
 void unlink_position_holder(int32_t old_hf_id, int32_t fort_id, int32_t assignment_id) {
     auto hf = df::historical_figure::find(old_hf_id);
     if (!hf)
@@ -512,23 +397,6 @@ void unlink_position_holder(int32_t old_hf_id, int32_t fort_id, int32_t assignme
             return;
         }
     }
-}
-
-// B214: the noble-assignment candidate list must not inherit world->units.active's retained
-// corpses and real ghosts (isCitizen alone passes both). Mirrors labor.cpp's is_assignable_citizen
-// and hud.cpp's is_counted_citizen: isActive() covers flags1.inactive, isDead() covers killed +
-// ghostly (flags3.ghostly), and the explicit isGhost() keeps the intent legible. Positions are
-// citizen-only in native DF, so long-term residents are intentionally NOT candidates here. B290:
-// DFHack 53.15-r1's Units::{isBaby,isChild} classify the two juvenile professions native excludes.
-// AUDIT-FIX 07-15: this passed isCitizen(unit, true) -- include_insane=true -- so insane citizens
-// were noble candidates while the squad side (squads.cpp, isCitizen default) excluded them: an
-// asymmetry with no native citation either way. Aligned to EXCLUDE insane on both sides (an insane
-// dwarf cannot perform duties); if a native capture ever shows insane citizens offered for
-// positions, flip both sides together.
-bool is_assignable_citizen(df::unit* unit) {
-    return unit && DFHack::Units::isCitizen(unit) && DFHack::Units::isActive(unit) &&
-           !DFHack::Units::isDead(unit) && !DFHack::Units::isGhost(unit) &&
-           !DFHack::Units::isBaby(unit) && !DFHack::Units::isChild(unit);
 }
 
 std::string build_noble_candidates_json(int32_t position_id, const std::string& player, std::string* err) {
@@ -552,6 +420,7 @@ std::string build_noble_candidates_json(int32_t position_id, const std::string& 
              << ",\"positionName\":" << json_string(position ? position_display_name(position) : "")
              << ",\"candidates\":[";
         bool first = true;
+        // Positions are citizen-only in native DF, so long-term residents are not candidates.
         for (auto unit : world->units.active) {
             if (!is_assignable_citizen(unit))
                 continue;
@@ -573,9 +442,8 @@ std::string build_noble_candidates_json(int32_t position_id, const std::string& 
     return body.str();
 }
 
-// unit_id < 0 unassigns (clears the holder); otherwise assigns that unit's historical figure to
-// the position, creating the assignment slot if this position never had one yet (DF's "NEW"
-// state, e.g. Messenger in 18-info-nobles.png).
+// unit_id < 0 unassigns; otherwise the unit's histfig takes the seat, creating one if the
+// position has none yet.
 bool do_noble_assign(int32_t position_id, int32_t unit_id, std::string* err) {
     return run_admin_locked([&]() -> bool {
         auto plotinfo = df::global::plotinfo;
@@ -589,8 +457,8 @@ bool do_noble_assign(int32_t position_id, int32_t unit_id, std::string* err) {
             return false;
         }
 
-        // Validate a named unit before creating or changing any position assignment. The unit can
-        // disappear between the candidate snapshot and this click; find it again while suspended.
+        // Re-find the unit under the lock: it can vanish between the candidate snapshot and this
+        // click.
         df::unit* unit = nullptr;
         if (unit_id >= 0) {
             unit = df::unit::find(unit_id);
@@ -605,8 +473,6 @@ bool do_noble_assign(int32_t position_id, int32_t unit_id, std::string* err) {
 
         auto assignment = find_assignment(fort, position_id);
         if (!assignment) {
-            // B233-3: was inline here and left squad_id at the ctor's 0 (== "leads squad 0").
-            // create_assignment() is the shared, fully -1-initialised seat constructor.
             assignment = create_assignment(fort, position_id);
         }
         int32_t idx = assignment_index(fort, assignment);
@@ -646,7 +512,6 @@ bool do_noble_assign(int32_t position_id, int32_t unit_id, std::string* err) {
     });
 }
 
-// Creates one new vacant seat for `position_id`. Returns the new assignment id via out_id.
 bool do_position_create(int32_t position_id, int32_t& out_id, std::string* err) {
     return run_admin_locked([&]() -> bool {
         auto plotinfo = df::global::plotinfo;
@@ -673,9 +538,7 @@ bool do_position_create(int32_t position_id, int32_t& out_id, std::string* err) 
     });
 }
 
-// R4: set the bookkeeper's precision goal (1-5 selector). level is the enum value 0..4
-// (nearest_10 .. all_accurate); the client sends button_index-1. Rejects out-of-range so a
-// bad request never writes a garbage enum.
+// level is the enum value 0..4 (nearest_10 .. all_accurate); the client sends button_index - 1.
 bool do_noble_precision(int level, std::string* err) {
     if (level < 0 || level > 4) { if (err) *err = "level out of range (0-4)"; return false; }
     return run_admin_locked([&]() -> bool {
@@ -686,9 +549,7 @@ bool do_noble_precision(int level, std::string* err) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// Justice (read-only)
-// ---------------------------------------------------------------------------
+// ---------------------------------------------- Justice (read-only)
 
 std::string unit_name_or_blank(int32_t unit_id) {
     if (unit_id < 0)
@@ -697,11 +558,7 @@ std::string unit_name_or_blank(int32_t unit_id) {
     return unit ? DFHack::Units::getReadableName(unit) : "";
 }
 
-// True classification bits DF's own crime record exposes (sentenced/discovered/needs_trial --
-// see df::crime_flag, only 3 bits). DF's own Open/Closed/Cold split is UI-side categorization
-// over those bits (not a stored 4th flag) -- this is the same best-effort derivation: Cold =
-// never discovered (no witnesses/evidence surfaced yet), Closed = sentenced (a verdict already
-// landed), Open = discovered and not yet sentenced (whether or not it needs_trial).
+// DF stores no open/closed/cold flag; this split is derived from the three df::crime_flag bits.
 std::string crime_case_state(df::crime* crime) {
     if (!crime) return "";
     if (!crime->flags.bits.discovered) return "cold";
@@ -709,10 +566,78 @@ std::string crime_case_state(df::crime* crime) {
     return "open";
 }
 
+bool incident_person_matches(const df::incident_hfid* queued, const df::incident_hfid* party,
+                             const df::unit* unit) {
+    if (!queued)
+        return false;
+    std::vector<int32_t> party_hfids;
+    if (party) {
+        party_hfids = {party->hfid, party->visual_hfid, party->historical_hfid};
+        for (int32_t identity : queued->all_witnessed_ident)
+            if (std::find(party->all_witnessed_ident.begin(), party->all_witnessed_ident.end(),
+                          identity) != party->all_witnessed_ident.end())
+                return true;
+    }
+    if (unit)
+        party_hfids.push_back(unit->hist_figure_id);
+    for (int32_t hfid : party_hfids) {
+        if (hfid >= 0 && (queued->hfid == hfid || queued->visual_hfid == hfid ||
+                          queued->historical_hfid == hfid))
+            return true;
+    }
+    return false;
+}
+
+bool crime_person_listed(const std::vector<df::incident_hfid*>& entries,
+                         const df::incident_hfid* party, const df::unit* unit) {
+    return std::any_of(entries.begin(), entries.end(), [&](df::incident_hfid* entry) {
+        return incident_person_matches(entry, party, unit);
+    });
+}
+
+std::string incident_person_name(const df::incident_hfid& ihf, int32_t unit_id,
+                                 const char* fallback) {
+    std::string name = unit_name_or_blank(unit_id);
+    if (name.empty()) name = histfig_name(ihf.historical_hfid);
+    if (name.empty()) name = histfig_name(ihf.visual_hfid);
+    if (name.empty()) name = histfig_name(ihf.hfid);
+    return name.empty() ? fallback : name;
+}
+
+void append_witnesses_json(std::ostringstream& body, df::crime* crime) {
+    body << ",\"witnesses\":[";
+    bool first = true;
+    for (auto report : crime->witnesses) {
+        if (!report) continue;
+        if (!first) body << ",";
+        first = false;
+        body << "{\"type\":" << json_string(DFHack::enum_item_key(report->type))
+             << ",\"year\":" << report->year
+             << ",\"tick\":" << report->year_tick
+             << ",\"reportedYear\":" << report->reported_year
+             << ",\"reportedTick\":" << report->reported_year_tick
+             << ",\"witnessId\":" << report->witness_id
+             << ",\"witness\":" << json_string(incident_person_name(
+                    report->witness_ihf, report->witness_id, "Identity unresolved"))
+             << ",\"accusedId\":" << report->accused_id
+             << ",\"accused\":" << json_string(report->accused_id >= 0
+                    ? incident_person_name(report->accused_ihf, report->accused_id, "Person unresolved")
+                    : "")
+             << "}";
+    }
+    body << "]";
+}
+
 void append_crime_json(std::ostringstream& body, df::crime* crime) {
     df::unit* accused = df::unit::find(crime->accused);
     df::unit* criminal = df::unit::find(crime->criminal);
     df::unit* victim = df::unit::find(crime->victim);
+    const bool accused_scheduled = crime_person_listed(crime->reports, &crime->accused_hf, accused);
+    const bool accused_interviewed = crime_person_listed(
+        crime->counterintelligence, &crime->accused_hf, accused);
+    const bool criminal_scheduled = crime_person_listed(crime->reports, &crime->criminal_hf, criminal);
+    const bool criminal_interviewed = crime_person_listed(
+        crime->counterintelligence, &crime->criminal_hf, criminal);
     body << "{\"id\":" << crime->id
          << ",\"mode\":" << json_string(DFHack::enum_item_key(crime->mode))
          << ",\"sentenced\":" << (crime->flags.bits.sentenced ? "true" : "false")
@@ -726,20 +651,146 @@ void append_crime_json(std::ostringstream& body, df::crime* crime) {
          << ",\"accused\":" << json_string(accused ? DFHack::Units::getReadableName(accused)
                                                    : unit_name_or_blank(crime->accused))
          << ",\"accusedProfessionColor\":" << (accused ? static_cast<int>(DFHack::Units::getProfessionColor(accused)) : -1)
+         << ",\"accusedScheduled\":" << (accused_scheduled ? "true" : "false")
+         << ",\"accusedInterviewed\":" << (accused_interviewed ? "true" : "false")
          << ",\"criminalId\":" << (criminal ? criminal->id : -1)
          << ",\"criminal\":" << json_string(criminal ? DFHack::Units::getReadableName(criminal) : "")
          << ",\"criminalProfessionColor\":" << (criminal ? static_cast<int>(DFHack::Units::getProfessionColor(criminal)) : -1)
+         << ",\"criminalScheduled\":" << (criminal_scheduled ? "true" : "false")
+         << ",\"criminalInterviewed\":" << (criminal_interviewed ? "true" : "false")
          << ",\"victimId\":" << (victim ? victim->id : -1)
          << ",\"victim\":" << json_string(victim ? DFHack::Units::getReadableName(victim) : "")
-         << ",\"victimProfessionColor\":" << (victim ? static_cast<int>(DFHack::Units::getProfessionColor(victim)) : -1)
-         << "}";
+         << ",\"victimProfessionColor\":" << (victim ? static_cast<int>(DFHack::Units::getProfessionColor(victim)) : -1);
+    append_witnesses_json(body, crime);
+    body << "}";
 }
 
-// Fortress guard sub-tab: DF's justice screen's guard roster is the squad attached to the
-// Captain of the Guard (or Sheriff, before a Captain exists) position -- the same squad-bearing
-// position rows /nobles already exposes (squadSize>0). Reads that position's assignment ->
-// squad_id -> squad_position.occupant list; empty + unsupported when no guard squad has been
-// formed yet (honest empty state, no fabricated roster).
+// The preparer is position_enid + position_eppid -- the office the interrogation was conducted
+// under, NOT the officer's identity (officer_hf). "" when it cannot be resolved, never a guess.
+std::string report_preparer_position(const df::interrogation_resultst& result) {
+    auto entity = df::historical_entity::find(result.position_enid);
+    if (!entity)
+        return "";
+    for (auto assignment : entity->positions.assignments) {
+        if (!assignment || assignment->id != result.position_eppid)
+            continue;
+        for (auto position : entity->positions.own) {
+            if (position && position->id == assignment->position_id)
+                return position_display_name(position);
+        }
+        break;
+    }
+    return "";
+}
+
+// justice_interfacest's actor/organization/plot lists are SCREEN state, not world state: they stay
+// empty unless the player has the tab open, so these keys ship only while that surface is live.
+void append_counterintel_state_json(std::ostringstream& body) {
+    auto game = df::global::game;
+    if (!game)
+        return;
+    const auto& info = game->main_interface.info;
+    if (!info.open || info.current_mode != df::info_interface_mode_type::JUSTICE)
+        return;
+    const auto& justice = info.justice;
+    if (justice.current_mode != df::justice_interface_mode_type::COUNTERINTELLIGENCE)
+        return;
+    const bool any_intel = !justice.base_actor_entry.empty() ||
+                           !justice.base_organization_entry.empty() ||
+                           !justice.base_plot_entry.empty();
+    body << ",\"hasIntelligence\":" << (any_intel ? "true" : "false");
+    if (justice.counterintelligence_mode != df::counterintelligence_mode_type::ACTORS)
+        return;
+    const int32_t selected = justice.counterintelligence_selected;
+    if (selected < 0 || selected >= static_cast<int32_t>(justice.base_actor_entry.size()))
+        return;
+    auto actor = justice.base_actor_entry[selected];
+    if (!actor)
+        return;
+    body << ",\"selectedActor\":{\"index\":" << selected
+         << ",\"name\":" << json_string(actor->list_name)
+         << ",\"hfid\":" << actor->historical_hfid
+         << ",\"identityId\":" << actor->identity_id << "}";
+}
+
+void append_interrogation_reports_json(std::ostringstream& body, df::world* world) {
+    body << "\"reports\":[";
+    bool first = true;
+    for (size_t i = 0; i < world->status.interrogation_reports.size(); ++i) {
+        auto report = world->status.interrogation_reports[i];
+        if (!report) continue;
+        if (!first) body << ",";
+        first = false;
+        const auto& result = report->intcr;
+        const int method = static_cast<int>(result.method);
+        const bool method_set = method >= 0 && result.method_modifier != -1000000;
+        auto relevant_entity = method_set && result.relevant_id >= 0
+            ? df::historical_entity::find(result.relevant_id) : nullptr;
+        body << "{\"index\":" << i
+             << ",\"title\":" << json_string(report->title)
+             << ",\"officerHf\":" << report->officer_hf
+             << ",\"officer\":" << json_string(report->officer_name.empty()
+                    ? histfig_name(report->officer_hf) : report->officer_name)
+             << ",\"subjectHf\":" << report->subject_hf
+             << ",\"subject\":" << json_string(histfig_name(report->subject_hf))
+             << ",\"preparer\":" << json_string(report_preparer_position(report->intcr))
+             << ",\"preparerEntityId\":" << report->intcr.position_enid
+             << ",\"preparerAssignmentId\":" << report->intcr.position_eppid
+             << ",\"viewed\":" << (report->flags.bits.viewed ? "true" : "false")
+             << ",\"year\":" << report->year
+             << ",\"tick\":" << report->tick
+             << ",\"details\":[";
+        bool first_detail = true;
+        for (auto detail : report->details) {
+            if (!detail) continue;
+            if (!first_detail) body << ",";
+            first_detail = false;
+            body << json_string(*detail);
+        }
+        body << "],\"result\":{\"methodSet\":" << (method_set ? "true" : "false")
+             << ",\"method\":" << (method_set ? json_string(DFHack::enum_item_key(result.method)) : "null")
+             << ",\"successful\":" << (result.flags.bits.successful ? "true" : "false")
+             << ",\"misjudged\":" << (result.flags.bits.failed_judgment_test ? "true" : "false")
+             << ",\"methodModifier\":" << (method_set ? result.method_modifier : 0)
+             << ",\"methodPerceivedModifier\":" << (method_set ? result.method_perceived_modifier : 0)
+             << ",\"facet\":" << json_string(DFHack::enum_item_key(result.facet))
+             << ",\"facetRating\":" << result.facet_rating
+             << ",\"facetModifier\":" << result.facet_modifier
+             << ",\"value\":" << json_string(DFHack::enum_item_key(result.value))
+             << ",\"valueRating\":" << result.value_rating
+             << ",\"valueModifier\":" << result.value_modifier
+             << ",\"relationshipFactor\":" << json_string(
+                    DFHack::enum_item_key(result.relationship_factor))
+             << ",\"relationshipRating\":" << result.relationship_rating
+             << ",\"relationshipModifier\":" << result.relationship_modifier
+             << ",\"relevantId\":" << result.relevant_id
+             << ",\"relevantName\":" << json_string(relevant_entity
+                    ? DFHack::Translation::translateName(&relevant_entity->name, true) : "")
+             << "},\"confessedCrimeIds\":[";
+        for (size_t n = 0; n < report->confessed_target_crime_id.size(); ++n) {
+            if (n) body << ",";
+            body << report->confessed_target_crime_id[n];
+        }
+        body << "],\"confessedIdentityIds\":[";
+        for (size_t n = 0; n < report->confessed_identity_id.size(); ++n) {
+            if (n) body << ",";
+            body << report->confessed_identity_id[n];
+        }
+        body << "],\"revealedAgreementIds\":[";
+        for (size_t n = 0; n < report->revealed_agreement_id.size(); ++n) {
+            if (n) body << ",";
+            body << report->revealed_agreement_id[n];
+        }
+        body << "],\"revealedEventIds\":[";
+        for (size_t n = 0; n < report->revealed_event_id.size(); ++n) {
+            if (n) body << ",";
+            body << report->revealed_event_id[n];
+        }
+        body << "]}";
+    }
+    body << "]";
+}
+
 void append_guard_json(std::ostringstream& body, df::historical_entity* fort) {
     int32_t squad_id = -1;
     if (fort) {
@@ -756,10 +807,8 @@ void append_guard_json(std::ostringstream& body, df::historical_entity* fort) {
         }
     }
     auto squad = squad_id >= 0 ? df::squad::find(squad_id) : nullptr;
-    // R3: "Desired metal cages and chains in dungeons: N of M" header. This is a derived UI metric
-    // (available dungeon-zone restraints vs prisoners) with no clean backing field in df.plotinfo.xml
-    // (only total_death_cage_number / cage_spring_* -- unrelated). Ship null so the web renders
-    // nothing rather than faking "0 of 38" (spec R3: do not fabricate the number).
+    // desiredCagesChains has no backing DF field; null so the client renders nothing rather than
+    // a fabricated count.
     body << "\"guard\":{\"squadId\":" << (squad ? squad->id : -1)
          << ",\"desiredCagesChains\":null"
          << ",\"unsupported\":" << (squad ? "false" : "true") << ",\"members\":[";
@@ -786,8 +835,6 @@ void append_guard_json(std::ostringstream& body, df::historical_entity* fort) {
     body << "]}";
 }
 
-// Convicts sub-tab: units carrying an active sentence (crime.flags.bits.sentenced, keyed off
-// the accused/criminal unit -- real DF data, one row per sentenced crime).
 void append_convicts_json(std::ostringstream& body, df::world* world) {
     body << "\"convicts\":[";
     bool first = true;
@@ -797,20 +844,9 @@ void append_convicts_json(std::ostringstream& body, df::world* world) {
             continue;
         int32_t unit_id = crime->accused >= 0 ? crime->accused : crime->criminal;
         df::unit* unit = df::unit::find(unit_id);
-        // R3: injured-party join (convict detail pane "Injured party: <name>."). Same crime->victim
-        // read as append_crime_json; web omits the line when victimId<0.
         df::unit* victim = df::unit::find(crime->victim);
         if (!first) body << ",";
         first = false;
-        // W5 (wave-4 wire batch): native's convict row is a UNIT row -- portrait tile, then a
-        // semantically-coloured `name, profession` second line (CIM-justice-convicts.jpg). The wire
-        // carried neither, so the profession line was omitted and the portrait fell back. All three
-        // are plain reads on the unit we ALREADY resolved above: no extra lookup, no extra scan.
-        //   * `portraitTexpos` -- df::unit::portrait_texpos, the same field labor.cpp:369 and
-        //     info_panel.cpp:299 already ship, so it flows through the client's existing portrait
-        //     chain unchanged.
-        //   * `profession` / `professionColor` -- DFHack Units::getProfessionName /
-        //     Units::getProfessionColor (modules/Units.h:329,334), DF's own name + 4-bit colour.
         body << "{\"crimeId\":" << crime->id
              << ",\"unitId\":" << (unit ? unit->id : -1)
              << ",\"name\":" << json_string(unit ? DFHack::Units::getReadableName(unit) : unit_name_or_blank(unit_id))
@@ -840,7 +876,7 @@ std::string build_justice_json(const std::string& player, const std::string& mod
              << ",\"justiceActive\":" << (plotinfo && plotinfo->justice_active ? "true" : "false");
 
         if (mode.empty()) {
-            // Legacy shape: unchanged (regression guard) -- full crime list, no mode filter.
+            // No mode = the legacy full-crime-list shape; keep it unchanged.
             body << ",\"crimes\":[";
             bool first = true;
             int count = 0;
@@ -879,10 +915,10 @@ std::string build_justice_json(const std::string& player, const std::string& mod
             append_convicts_json(body, world);
             body << ",\"wireBatch\":" << json_string(kWireBatchMarker) << "}\n";
         } else if (mode == "counterintel") {
-            // Interrogation/scheme reports aren't trivially readable through dfhack's exposed
-            // structures (they're derived from history-event report strings, not a plain list)
-            // -- honest empty state per the spec's own allowance, not a fabricated roster.
-            body << ",\"counterintel\":[],\"unsupported\":true}\n";
+            body << ",";
+            append_interrogation_reports_json(body, world);
+            append_counterintel_state_json(body);
+            body << ",\"unsupported\":false}\n";
         } else {
             if (err) *err = "unknown justice mode";
             return false;
@@ -894,9 +930,7 @@ std::string build_justice_json(const std::string& player, const std::string& mod
     return body.str();
 }
 
-// ---------------------------------------------------------------------------
-// Petitions / agreements
-// ---------------------------------------------------------------------------
+// ---------------------------------------------- Petitions / agreements
 
 std::string agreement_detail_summary(df::agreement* agreement) {
     if (!agreement || agreement->details.empty())
@@ -999,11 +1033,8 @@ std::string build_petitions_json(const std::string& player, std::string* err) {
         auto plotinfo = df::global::plotinfo;
         if (!plotinfo) { if (err) *err = "world unavailable"; return false; }
 
-        // B191 WIRELABEL_B191_PENDING_CONTINUING_V1: plotinfo->petitions is explicitly only
-        // unapproved_agreement_id. Native keeps accepted/READY fort obligations in the sibling
-        // continuing_agreement_id vector. Union those two fort-owned lists (not world.agreements,
-        // which also contains unrelated intrigue/parley agreements) and retain invalid ids as
-        // valid:false diagnostics. The vectors contain ids, so this adds no pointer walk.
+        // plotinfo->petitions holds only unapproved ids; accepted obligations live in
+        // continuing_agreement_id. Not world.agreements -- that also holds intrigue/parley ones.
         struct FortAgreementRef {
             int32_t id;
             bool pending_list;
@@ -1065,32 +1096,6 @@ bool do_petition_policy(int32_t agreement_id, int value, std::string* err) {
     });
 }
 
-// PER-PETITION ACCEPT / DENY -- FAIL-CLOSED, native-only. (B225 bugfix 2026-07-17.)
-//
-// The plugin does NOT resolve individual petitions. It once did, and that write was a lie: accept
-// only cleared `flags.petition_not_accepted` and dropped the id from plotinfo->petitions, and deny
-// only dropped the id. Neither reproduces what native DF does when the player decides a petition.
-// LIVE-VERIFIED on the loaded fort (127.0.0.1:8765):
-//   * ACCEPT via the old route on agreement 386 cleared the flag and removed the row, but its
-//     petitioner unit 1885 (Mestthos Tourmagics) stayed flags2.visitor=true / resident=false through
-//     ~1 game-day of unpaused sim -- i.e. the "accepted" performer never actually gained residency.
-//   * DENY on agreement 389 removed the row (and it stayed removed across ~5 game-days), but the
-//     petitioner (Dodok Wheelcrowd) simply re-petitioned as a fresh agreement 395 -- the drop
-//     resolved nothing.
-// So the buttons produced the exact "dismiss for a minute then they all come back / doesn't actually
-// deny or approve them" symptom the owner reported (compounded by this fort's high petition inflow).
-//
-// The FULL native write -- granting residency/citizenship or a location obligation on accept, and
-// whatever native records on deny -- cannot be confidently reconstructed from df-structures + the
-// decomp corpus without risking the persistent agreement-state corruption diplo.cpp warns about
-// (only two agreement_flag bits exist: petition_not_accepted / convicted_accepted; DFHack's own
-// list-agreements.lua treats convicted_accepted as "satisfied", but the live accepted continuing
-// agreement 368 carries neither flag -- the model is not pinned down). Per the project's release
-// rule, an honest "the host must decide this in the Steam client" beats a fake dismiss. The route
-// therefore VALIDATES the target and then REFUSES with 501 native-only (mirrors missions.cpp), and
-// never mutates. The honest, working lever for the player is /petition-policy below, which sets the
-// standing-orders auto-response so DF ITSELF accepts/denies future petitions (residency grant and
-// all) natively.
 constexpr const char* kPetitionNativeOnlyReason =
     "Approving or denying a petition is a native-only action. The plugin cannot grant the "
     "petitioner residency (on accept) or record the decision the way DF does, so a plugin write "
@@ -1098,8 +1103,7 @@ constexpr const char* kPetitionNativeOnlyReason =
     "client (the petition notification / Agreements screen). To auto-handle future petitions of "
     "this kind from the browser, set the standing-orders response below.";
 
-// Validate that the id names a real pending petition, so a genuinely bad request still 400s and only
-// a well-formed one earns the 501 native-only refusal (the missions.cpp 400-vs-501 contract).
+// A bad id still 400s; only a well-formed pending petition earns the 501 native-only refusal.
 bool validate_pending_petition(int32_t agreement_id, std::string* err) {
     return run_admin_locked([&]() -> bool {
         auto agreement = df::agreement::find(agreement_id);
@@ -1112,16 +1116,22 @@ bool validate_pending_petition(int32_t agreement_id, std::string* err) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// Justice write-actions (WD-21 follow-up)
-// ---------------------------------------------------------------------------
-// PARDON is the one justice mutation that is safe to reconstruct from the plugin: it mirrors
-// DFHack's own scripts/justice.lua `pardon` exactly -- commute a serving sentence by zeroing
-// the punishment entry for that criminal. It touches ONLY plotinfo->punishments counters
-// (prison_counter + the still-pending beating/hammer counters), writes no history events, and
-// leaves the crime record intact (justice.lua only zeros prison_counter; we also clear the
-// pending physical-punishment counters so a full pardon stops an unserved hammering too).
-// Returns the number of punishment rows commuted, or -1 on a hard failure.
+// ---------------------------------------------- Justice write-actions
+bool validate_justice_trial_action(int32_t crime_id, int32_t unit_id, std::string* err) {
+    return run_admin_locked([&]() -> bool {
+        auto crime = df::crime::find(crime_id);
+        if (!crime) { if (err) *err = "crime not found"; return false; }
+        if (!df::unit::find(unit_id)) { if (err) *err = "unit not found"; return false; }
+        if (!crime->flags.bits.needs_trial || crime->flags.bits.sentenced) {
+            if (err) *err = "the trial action panel is not available for this case";
+            return false;
+        }
+        return true;
+    });
+}
+
+// Commutes by zeroing plotinfo->punishments counters only: no history events, crime record intact.
+// Returns how many rows were commuted, or -1 on a hard failure.
 int do_justice_pardon(int32_t unit_id, std::string* err) {
     int commuted = 0;
     bool ok = run_admin_locked([&]() -> bool {
@@ -1144,12 +1154,8 @@ int do_justice_pardon(int32_t unit_id, std::string* err) {
     return commuted;
 }
 
-// ---- B15: recenter hotkey locations (plotinfo->main.hotkeys[16]) -----------------------
-// DF's F1-F8-style saved map locations. Each df::ui_hotkey has {name, cmd, x, y, z}; a slot is a
-// live LOCATION when cmd == Zoom and x >= 0 (DF uses -30000 as the empty sentinel). We expose the
-// 16 slots read-only, and set/clear/rename them. "Set to current camera" takes the x/y/z from the
-// client (its live viewport centre) rather than reading a per-player camera here, so no camera
-// coupling. Global fort state (one shared list, exactly like the native game).
+// ---- Recenter hotkey locations (plotinfo->main.hotkeys[16]) -----------------------
+// A slot is a live location when cmd == Zoom and x >= 0; DF's empty sentinel is -30000.
 constexpr int kHotkeyEmpty = -30000;
 
 std::string build_hotkeys_json() {
@@ -1222,9 +1228,7 @@ void register_fort_admin_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // GET /noble-candidates?position= -> eligible fort citizens for that position (best-effort:
-    // all resident citizens, NOT DF's own suitability-scored appointment_candidatest list --
-    // no dfhack module exposes that computation, see the recipe note above build_noble_candidates_json).
+    // GET /noble-candidates?position= -> assignable citizens, not DF's scored candidate list.
     server.Get("/noble-candidates", [](const httplib::Request& req, httplib::Response& res) {
         int position = -1;
         if (!query_int(req, "position", position)) { json_error(res, 400, "missing position"); return; }
@@ -1249,11 +1253,8 @@ void register_fort_admin_routes(httplib::Server& server) {
     server.Get("/noble-assign", noble_assign_handler);
     server.Post("/noble-assign", noble_assign_handler);
 
-    // B233-3: POST /position-create?position=<entity_position id> -> create one NEW VACANT SEAT
-    // (df::entity_position_assignment) for a position the raws allow more of
-    // (entity_position.number, -1 = AS_NEEDED). This is what native's create-squad chooser does
-    // when it offers "a new militia captain": DF makes the captain seat, then the squad under it.
-    // Returns the new assignment id so the caller can hand it straight to /squad-create?position=.
+    // POST /position-create?position= -> one new vacant seat, bounded by entity_position.number.
+    // Returns the new assignment id, which /squad-create?position= takes directly.
     auto position_create_handler = [](const httplib::Request& req, httplib::Response& res) {
         int position = -1;
         if (!query_int(req, "position", position)) { json_error(res, 400, "missing position"); return; }
@@ -1266,8 +1267,7 @@ void register_fort_admin_routes(httplib::Server& server) {
     server.Get("/position-create", position_create_handler);
     server.Post("/position-create", position_create_handler);
 
-    // POST /noble-precision?level=0..4 -> set the bookkeeper's record-precision goal (R4, the 1-5
-    // selector on the Bookkeeper row; button N sends level=N-1).
+    // POST /noble-precision?level=0..4 -> the bookkeeper's record-precision goal.
     auto noble_precision_handler = [](const httplib::Request& req, httplib::Response& res) {
         int level = -1;
         if (!query_int(req, "level", level)) { json_error(res, 400, "missing level"); return; }
@@ -1279,9 +1279,7 @@ void register_fort_admin_routes(httplib::Server& server) {
     server.Get("/noble-precision", noble_precision_handler);
     server.Post("/noble-precision", noble_precision_handler);
 
-    // GET /justice[?mode=] -> open/closed crimes, convictions, witness counts. WD-21
-    // ENDPOINT-EXTEND: mode selects one of DF's 6 real Justice sub-tabs; no mode = legacy shape
-    // (crimes list only, unchanged) for backward compatibility.
+    // GET /justice[?mode=] -> one of DF's 6 Justice sub-tabs; no mode = the legacy crimes list.
     server.Get("/justice", [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         std::string mode = req.has_param("mode") ? req.get_param_value("mode") : "";
@@ -1291,8 +1289,7 @@ void register_fort_admin_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // POST /justice-pardon?unit= -> commute that unit's active sentence (DFHack justice.lua
-    // parity). 400 when the unit isn't serving one, 503 when the world is unavailable.
+    // POST /justice-pardon?unit= -> commute that unit's active sentence.
     auto pardon_handler = [](const httplib::Request& req, httplib::Response& res) {
         int unit = -1;
         if (!query_int(req, "unit", unit) || unit < 0) { json_error(res, 400, "missing unit"); return; }
@@ -1306,24 +1303,8 @@ void register_fort_admin_routes(httplib::Server& server) {
     server.Get("/justice-pardon", pardon_handler);
     server.Post("/justice-pardon", pardon_handler);
 
-    // B227: /justice-convict + /justice-interrogate -- driven through DF's NATIVE justice UI.
-    //
-    // Native conviction writes crime.punishment + crime.flags.sentenced + a plotinfo.punishments
-    // lawactionst + history_event_hf_convictedst records; interrogation writes the crime's
-    // interrogation queue. The plugin never hand-writes any of that: the hw_justice_action Lua
-    // engine walks the DFHack-documented widget path (Tabs / 'Open cases' / 'Right panel' /
-    // 'Convict' -- the same path confirm/specs.lua and sort/info.lua ship against 53.15), aims
-    // the native cursor, and delivers JUSTICE_CONVICT / SELECT through the native viewscreen
-    // feed(). The final SELECT only fires after the native convict_crime vector is verified to
-    // contain the requested crime -- a wrong case aborts clean with zero writes. Locked behind
-    // the justice_convict / justice_interrogate probe flags (dfcapture-hostwrites.json) until
-    // the orchestrator's live probes P-J1..P-J3 verify the drive; guarded calls return the old
-    // 501 shape (plus {"guarded":true}) so existing clients keep working.
-    //
-    // GET  /justice-convict            -> drive-state JSON (guards, native UI state).
-    // GET  /justice-convict?widgets=justice -> widget-tree dump (probe P-J1's instrument).
-    // POST /justice-convict?crime=&unit=     -> run the native conviction drive.
-    // POST /justice-interrogate?crime=&unit= -> toggle the unit on the case's interrogation list.
+    // /justice-convict + /justice-interrogate are driven through DF's NATIVE justice UI via Lua;
+    // the plugin never hand-writes crime.punishment, plotinfo.punishments or the history events.
     server.Get("/justice-convict", [](const httplib::Request& req, httplib::Response& res) {
         std::string err;
         std::string json = req.has_param("widgets")
@@ -1339,6 +1320,9 @@ void register_fort_admin_routes(httplib::Server& server) {
                 json_error(res, 400, "missing crime/unit"); return;
             }
             std::string err;
+            if (!validate_justice_trial_action(crime, unit, &err)) {
+                json_error(res, 400, err); return;
+            }
             std::string json = justice_action_json_via_lua(action, crime, unit, &err);
             if (json.empty()) { json_error(res, 503, err.empty() ? "justice drive unavailable" : err); return; }
             res.status = hostwrites_status_for(json);
@@ -1350,7 +1334,6 @@ void register_fort_admin_routes(httplib::Server& server) {
     };
     server.Post("/justice-convict", justice_drive_handler("convict"));
     server.Post("/justice-interrogate", justice_drive_handler("interrogate"));
-    // GET /justice-interrogate mirrors the convict GET (same state payload).
     server.Get("/justice-interrogate", [](const httplib::Request& req, httplib::Response& res) {
         (void)req;
         std::string err;
@@ -1368,12 +1351,7 @@ void register_fort_admin_routes(httplib::Server& server) {
         set_no_store_json(res, json);
     });
 
-    // POST /petition-accept?id= and /petition-deny?id= -> FAIL-CLOSED, native-only (2026-07-17).
-    // Both once faked the decision (see validate_pending_petition + kPetitionNativeOnlyReason above):
-    // they mutated agreement flags / plotinfo->petitions without performing native's real side
-    // effects, so the petition "vanished" from the web UI without being resolved. They now validate
-    // the target and REFUSE with 501 native-only, never writing. The client shows a host-assisted
-    // state instead of Approve/Deny; the honest lever is /petition-policy below.
+    // POST /petition-accept?id= and /petition-deny?id= -> validate, then refuse 501 native-only.
     auto native_only_handler = [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) { json_error(res, 400, "missing id"); return; }
@@ -1401,10 +1379,8 @@ void register_fort_admin_routes(httplib::Server& server) {
         set_no_store_json(res, "{\"ok\":true}\n");
     });
 
-    // B15: recenter hotkey locations (plotinfo->main.hotkeys). GET lists the 16 slots; POST
-    // /hotkey-action?slot=N&action=set|clear|rename[&x=&y=&z=&name=] mutates one slot. "Set" takes
-    // the client's current viewport centre as x/y/z; the client recenters to a slot via the
-    // existing /camera route (no server "zoom-to" needed).
+    // GET /hotkeys lists the 16 slots; POST /hotkey-action?slot=&action=set|clear|rename mutates
+    // one. "set" takes the client's viewport centre as x/y/z; recentering goes through /camera.
     server.Get("/hotkeys", [](const httplib::Request& req, httplib::Response& res) {
         (void)req;
         std::string json = build_hotkeys_json();

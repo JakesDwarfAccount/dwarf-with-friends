@@ -57,21 +57,11 @@ std::string camera_json(const std::string& player, const Camera& camera) {
            "}\n";
 }
 
-// VERSION-MISMATCH GATE (soft tier): a stable fingerprint of the served index.html's asset busters
-// (the ?v= tokens on its <script>/<link> tags). Sorted + unique + FNV-1a, computed identically on
-// the client (dwf-join.js clientAssetsHash). When the build stamp matches but this differs,
-// the client shows a soft "assets updated" warning instead of the hard stale-tab banner. Computed
-// once (index.html is fixed per server run) and cached.
+// A stable fingerprint of the served index.html's ?v= busters, computed identically by
+// dwf-join.js's clientAssetsHash(); a mismatch is the soft "assets updated" warning.
 std::string assets_fingerprint() {
-    // ★ B239 (2026-07-14): the cache MUST invalidate when index.html changes on disk.
-    //   It used to be `static bool done` -- computed once per server run, cached forever. A HOT WEB
-    //   DEPLOY (copying web/ to <DF>/hack/dfcapture-web while DF keeps running -- which is the normal
-    //   way we ship client-only fixes) then left the server quoting a fingerprint from startup while
-    //   a freshly-loaded page correctly computed the NEW one. They could never agree, so every player
-    //   got "Some assets were updated - a refresh is recommended" on EVERY refresh, forever, and no
-    //   amount of refreshing could clear it (07-14).
-    //   Worse than noise: this gate is what legitimately warns about a genuinely stale tab (B210).
-    //   A gate that cries wolf is a gate nobody reads. Key the cache on (mtime, size) of the file.
+    // Keyed on index.html's (mtime, size), not on the process lifetime: a hot web deploy while DF
+    // keeps running would otherwise leave every player warned on every refresh, forever.
     static std::string cached;
     static long long cached_mtime = -1;
     static long long cached_size = -1;
@@ -92,7 +82,6 @@ std::string assets_fingerprint() {
     cached_mtime = mtime;
     cached_size = size;
     const std::string html = index_html();
-    // Collect ?v= / &v= token values.
     std::vector<std::string> toks;
     for (size_t i = 0; i + 2 < html.size(); ++i) {
         if ((html[i] == '?' || html[i] == '&') && html[i + 1] == 'v' && html[i + 2] == '=') {
@@ -125,31 +114,24 @@ std::string assets_fingerprint() {
 
 } // namespace
 
-// ---------------------------------------------------------------------------------------------
-// HTTP routes, extracted from http_server.cpp's register_routes():
-// that function had grown to ~2,750 lines / ~150 inline registrations and was the repo's #1
-// merge-conflict site (49 of the last 200 commits). This finishes the register_*_routes() split
-// the other 18 modules already used. Handler bodies are unchanged; route behavior is identical.
+// ---- session HTTP routes ------------------------------------------------------------------------
 void register_session_routes(httplib::Server& server) {
-    // GET /version -- build/version stamp + whether a join password is required. PUBLIC (the join
-    // screen fetches it before it has a credential). Also the client's stale-tab probe.
+    // GET /version -- build stamp plus whether a join password is required. PUBLIC: the join screen
+    // fetches it before it has a credential.
     server.Get("/version", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
-        // Text-color spec §3.2: ship DF's live 16-color curses palette (gps->uccolor) on the
-        // public handshake the client already fetches once at load, so every native color index
-        // the client renders resolves to the exact RGB DF paints. Empty ("[]") when gps is
-        // unavailable (headless) -> the client keeps its default palette. Same bytes /burrows ships.
+        // DF's live 16-colour curses palette rides the public handshake. Empty when gps is
+        // unavailable (headless), and the client then keeps its own default palette.
         std::string extra = ",\"palette\":" + dwf::curses::palette_json();
+        // What this build actually implements, so a page newer than the DLL disables the control
+        // instead of posting into a 400. Names are additive and never recycled.
+        extra += ",\"serverFeatures\":[\"stockpile-link-exchange\",\"hauling-stop-rename\"]";
         res.set_content(auth::version_json(assets_fingerprint(), extra) + "\n",
                         "application/json; charset=utf-8");
     });
 
-    // POST/GET /join -- validate a candidate passphrase so the join screen can give immediate
-    // right/wrong feedback before the client sets its cookie + connects. PUBLIC. Constant-time
-    // compare in auth::check(). When auth is disabled every attempt is accepted (ok:true) so the
-    // dev-default flow (no password) never blocks. The password arrives as a `password=` field --
-    // either a query param or an application/x-www-form-urlencoded POST body (httplib folds both
-    // into req.params), so it never has to be JSON-parsed here.
+        // PUBLIC, and every attempt is accepted while auth is disabled so the no-password default
+        // never blocks. httplib folds query and form bodies into req.params, so no JSON parse here.
     auto join_handler = [](const httplib::Request& req, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         std::string pass = req.has_param("password") ? req.get_param_value("password")
@@ -168,19 +150,9 @@ void register_session_routes(httplib::Server& server) {
     });
 
     server.Get("/view", [](const httplib::Request&, httplib::Response& res) {
-        // Never let the browser cache the page itself. Otherwise a stale index.html keeps
-        // loading old (cached) JS even after an update -- which is how an already-removed
-        // feature can appear to "persist" across reloads and even across browsers. The
-        // versioned <script>/<link> URLs in index.html handle freshness of the assets.
+        // Never let the browser cache the page itself: a stale index.html keeps loading old JS.
+        // The versioned <script>/<link> URLs are what keep the assets fresh.
         res.set_header("Cache-Control", "no-store, must-revalidate");
-        // VERSION-MISMATCH GATE: stamp this build's id into the page so a freshly loaded tab always
-        // agrees with /version + hello_ack, while a stale tab keeps its old stamp (-> refresh banner
-        // once the server is redeployed). EVERY occurrence, not just the first (B210: since win31,
-        // index.html's explanatory comment spelled the placeholder token out literally, so the old
-        // first-occurrence replace stamped the COMMENT and left the real script-tag assignment as
-        // the raw placeholder -> the client's compareBuild() saw "unknown" and the stale-tab banner
-        // silently died). A no-op if the placeholder is absent.
-        // tools/harness/view_stamp_test.mjs guards this loop AND the real web/index.html shape.
         std::string html = index_html();
         const std::string ph = "__DFCAPTURE_BUILD__";
         const std::string stamp = auth::build_stamp();
@@ -282,9 +254,8 @@ void register_session_routes(httplib::Server& server) {
             return;
         }
 
-        // W2: a player-initiated pan BREAKS a follow -- DF's own rule. The follow tick's own
-        // recentres pass `follow=1` so they do not cancel the lock they are servicing. Older
-        // clients never send it, so their behaviour is unchanged (they hold no follow target).
+        // A player-initiated pan BREAKS a follow -- DF's own rule. The follow tick's own recentres
+        // pass follow=1 so they do not cancel the lock they are servicing.
         const bool is_follow_recentre = req.has_param("follow") &&
             (req.get_param_value("follow") == "1" || req.get_param_value("follow") == "true");
         if (!is_follow_recentre)
@@ -296,11 +267,8 @@ void register_session_routes(httplib::Server& server) {
         res.set_content(camera_json(player, camera), "application/json; charset=utf-8");
     });
 
-    // W2: declare / release this player's camera-follow target. `kind=unit|item` + `id=N` sets it;
-    // `id=-1` (or any other kind) clears it. Pure state -- it never touches DF, so it costs nothing
-    // and cannot starve the simulation (AGENTS.md hard rule 5). The recentring itself stays in the
-    // client's existing follow tick; this route is only what makes the state VISIBLE on the wire, so
-    // /unit and /stock-item-action can honestly answer "are you following this?"
+    // Declares or releases this player's follow target. Pure plugin state: it never touches DF, so
+    // it cannot starve the sim. The recentring itself stays in the client's follow tick.
     auto follow_handler = [](const httplib::Request& req, httplib::Response& res) {
         std::string player = query_player(req);
         std::string kind = req.has_param("kind") ? req.get_param_value("kind") : std::string();
@@ -341,19 +309,14 @@ void register_session_routes(httplib::Server& server) {
     server.Get("/zoom", zoom_handler);
     server.Post("/zoom", zoom_handler);
 
-    // WP-C (§1.3): GET /attrib -> the AttributionRegistry as {world, buildings, orders,
-    // stockpiles, zones}. Pure plugin memory, no core access; the client merges these by id into
-    // inspect panels + the work-orders list. Additive JSON only -- zero binary-wire surface.
+    // GET /attrib -> the AttributionRegistry. Pure plugin memory, no core access.
     server.Get("/attrib", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(attrib_json(), "application/json; charset=utf-8");
     });
 
-    // WP-B: every server-side /action is a pause-family action (pause/play/resume/unpause/
-    // toggle-pause). Route through the pause arbiter so concurrent toggles debounce/merge (WT01)
-    // and each applied transition is attributed + broadcast to all players. The arbiter owns the
-    // SetPauseState apply (via the same action_on_core_thread path). Response gains additive
-    // "paused"/"merged"/"by" fields; old clients ignore them and still see {"ok":true}.
+    // Every /action is a pause-family action. Routing through the arbiter is what merges concurrent
+    // toggles and attributes each applied transition; the arbiter owns the SetPauseState apply.
     auto action_handler = [](const httplib::Request& req, httplib::Response& res) {
         if (!req.has_param("action")) {
             res.status = 400;
@@ -361,8 +324,7 @@ void register_session_routes(httplib::Server& server) {
             return;
         }
 
-        // isHostClient() signal for the host-only-unpause gate: the SAME loopback-peer test the
-        // WS uses, applied to this HTTP request's real peer address (nothing the client can spoof).
+        // The same loopback-peer test the WS uses, on this request's real peer address.
         const bool is_host = request_has_host_authority(req);
         PauseDecision d = pause_request(query_player(req), req.get_param_value("action"), is_host);
         res.set_header("Cache-Control", "no-store");
@@ -380,19 +342,13 @@ void register_session_routes(httplib::Server& server) {
     server.Get("/action", action_handler);
     server.Post("/action", action_handler);
 
-    // FRIEND-GROUP SAVE (SAVE-ONLY). POST /save triggers a DF quicksave WITHOUT
-    // exiting (interaction.cpp's save_world_on_core_thread, the quicksave.lua autosave-request
-    // pathway). Any authenticated player may request it. Auth is already enforced upstream by the
-    // pre-routing gate, so an unauthenticated request never reaches here. There is deliberately NO
-    // load counterpart. The saving banner is driven entirely
-    // by the WP-B busy watchdog broadcast once DF's world write stalls the push loop -- not by this
-    // route -- so success here only means "save requested", not "save finished".
+    // POST /save requests a DF quicksave without exiting; there is deliberately no load counterpart.
+    // Success means "save requested" -- the saving banner comes from the busy watchdog, not here.
     auto save_handler = [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         std::string err;
         if (!save_world_on_core_thread(&err)) {
-            // 409 Conflict: a valid authenticated request refused by world state (no world /
-            // wrong mode / save already running).
+            // 409: a valid authenticated request refused by world state.
             res.status = 409;
             res.set_content("{\"ok\":false,\"err\":" + json_string(err) + "}\n",
                             "application/json; charset=utf-8");
@@ -402,19 +358,8 @@ void register_session_routes(httplib::Server& server) {
     };
     server.Post("/save", save_handler);
 
-    // HOST JOIN-PASSWORD (host-only; staged, window #12). POST /join-password sets / changes /
-    // clears the shared join passphrase from the host UI -- the point-and-click twin of the
-    // `capture-join-password` console command. HOST-ONLY via the SAME loopback-peer test the
-    // pause host-unpause gate uses (peer_ip_is_loopback on the request's real TCP peer --
-    // nothing a client can spoof); the pre-routing auth gate already rejected any unauthenticated
-    // request upstream. The new value is applied immediately (auth::set_password) AND persisted to
-    // auth::kPasswordFile (auth::persist_password) so it survives a DF restart, matching the file
-    // the console command's `reload` reads. Params: `password=<p>` sets it; `off=1` (or an omitted/
-    // empty password) clears it. Response {"ok":true,"authRequired":bool}. A non-loopback peer gets
-    // 403 -> the web client falls back to showing the console-command instructions inline. NOTE:
-    // when a password is CHANGED while auth was already on, the host's own cookie becomes stale on
-    // the next request (same as the console `capture-join-password newpass` path) -> the join
-    // screen re-prompts for the new passphrase; expected, not a bug.
+    // Host-only via the same loopback-peer test, and the value is persisted to auth::kPasswordFile
+    // so it survives a restart. Changing a live password makes every existing cookie stale.
     auto join_password_handler = [](const httplib::Request& req, httplib::Response& res) {
         res.set_header("Cache-Control", "no-store");
         if (!request_has_host_authority(req)) {
@@ -431,8 +376,7 @@ void register_session_routes(httplib::Server& server) {
         auth::set_password(pass);   // apply now (trims; ""=disabled)
         std::string err;
         if (!auth::persist_password(pass, &err)) {
-            // Applied in memory but NOT persisted (disk/permission issue). Report it so the UI can
-            // warn, but the live authRequired state is still correct for this session.
+            // Applied in memory but not persisted; the live authRequired state is still correct.
             res.status = 500;
             res.set_content("{\"ok\":false,\"err\":" + json_string(err) +
                                 ",\"authRequired\":" + (auth::enabled() ? "true" : "false") + "}\n",
@@ -445,9 +389,8 @@ void register_session_routes(httplib::Server& server) {
     };
     server.Post("/join-password", join_password_handler);
 
-    // WP-B tunables / test-the-test surface. GET /pause-config[?window=&grace=&busy=&autopause=on|off]
-    // sets any provided knob and returns the current config. Drives the oracle's known-bad runs
-    // (merge-window=0, grace=0, busy-threshold perturbed) without a rebuild.
+    // Sets any provided knob and returns the current config -- how the oracle drives its known-bad
+    // runs without a rebuild.
     server.Get("/pause-config", [](const httplib::Request& req, httplib::Response& res) {
         const bool changes_config = req.has_param("window") || req.has_param("grace") ||
             req.has_param("busy") || req.has_param("autopause") || req.has_param("hostunpause");
@@ -473,9 +416,7 @@ void register_session_routes(httplib::Server& server) {
             pause_set_host_unpause_only(a == "on" || a == "1" || a == "true");
             host_flag_changed = true;
         }
-        // Persist hostUnpauseOnly/autopause so a host's choice survives a DF restart (item 5).
-        // Guarded on an actual host-flag change so the oracle's window/grace/busy test-the-test
-        // knobs never touch disk.
+        // Persist only on an actual host-flag change, so the test-the-test knobs never touch disk.
         if (host_flag_changed) pause_persist_flags();
         res.set_header("Cache-Control", "no-store");
         res.set_content(pause_config_json(), "application/json; charset=utf-8");

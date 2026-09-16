@@ -19,13 +19,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// dwf-digest.js -- join-time "Since you left" digest.
-//
-// The digest is intentionally client-only: /reports already supports a monotonic since cursor
-// (`nextReportId` -> next request's `since`) and report typeKeys. Each browser stores a per-player
-// cursor in localStorage. First visit seeds the cursor without replaying the fort's whole history;
-// later joins fetch the delta, aggregate the useful categories, advance the cursor, and show one
-// dismissible, non-blocking panel if anything changed.
+// ---- Join-time "Since you left" digest: client-only, riding /reports' monotonic `since` cursor. ----
+// The first visit seeds the cursor without replaying the fort's whole history.
 
 (function (root) {
   "use strict";
@@ -34,6 +29,10 @@
   var MAX_FETCH = 300;
   var MAX_HEADLINES = 3;
 
+  function reportDigest(key, err) {
+    if (root.DwfErr && typeof root.DwfErr.report === "function") root.DwfErr.report(key, err);
+  }
+
   var CATEGORY_DEFS = [
     { id: "citizens", label: "New citizens" },
     { id: "deaths", label: "Deaths" },
@@ -41,7 +40,7 @@
     { id: "events", label: "Sieges & events" },
   ];
 
-  // announcement_alert_type names mirrored from dwf-unit-hud-notifications.js so this file
+  // announcement_alert_type names mirrored from dwf-announcement-viewer.js so this file
   // can classify /reports without depending on that module's private constants.
   var ALERT_NAMES = [
     "General", "Era Change", "Underground", "Migrants", "Monster", "Ambush",
@@ -98,6 +97,10 @@
     var text = normalizedText(report).toLowerCase();
     var alert = alertName(report).toLowerCase();
 
+    // Job cancellations are operational spam, and filtering them first also stops a profession such as
+    // "Siege Operator" tripping the event substring matcher.
+    if (includesAny(key, ["JOB_CANCEL"]) || /\bcancels?\b/.test(text)) return null;
+
     if (alert === "death" || includesAny(key, ["DEATH", "DIED", "SLAIN", "MURDER"]) ||
         includesAny(text, [" has died", " has been found dead", " has been slain", " has bled to death", " starved to death", " drowned"])) {
       return "deaths";
@@ -148,26 +151,37 @@
 
   function storageKey(player) {
     var name = String(player || "player").trim() || "player";
-    try { name = encodeURIComponent(name); } catch (_) {}
+    try { name = encodeURIComponent(name); }
+    catch (err) { reportDigest("digest.watermark-key", err); }
     return LS_PREFIX + name;
   }
 
   function readWatermark(store, player) {
     try {
-      var raw = store && store.getItem ? store.getItem(storageKey(player)) : null;
+      var key = storageKey(player);
+      var raw = store && store.getItem ? store.getItem(key) :
+        (root.DwfUtil ? root.DwfUtil.lsGet(key, function (err) { reportDigest("digest.watermark-read", err); }) : null);
       if (raw == null || raw === "") return null;
       var n = Number(raw);
       return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
-    } catch (_) { return null; }
+    } catch (err) {
+      reportDigest("digest.watermark-read", err);
+      return null;
+    }
   }
 
   function writeWatermark(store, player, value) {
     var n = Number(value);
     if (!Number.isFinite(n) || n < 0) return false;
     try {
-      if (store && store.setItem) store.setItem(storageKey(player), String(Math.floor(n)));
-      return true;
-    } catch (_) { return false; }
+      var key = storageKey(player), encoded = String(Math.floor(n));
+      if (store && store.setItem) { store.setItem(key, encoded); return true; }
+      return root.DwfUtil ? root.DwfUtil.lsSet(key, encoded,
+        function (err) { reportDigest("digest.watermark-write", err); }) : false;
+    } catch (err) {
+      reportDigest("digest.watermark-write", err);
+      return false;
+    }
   }
 
   function reportsUrl(player, since, max) {
@@ -183,48 +197,14 @@
     return !!(root.document && root.document.createElement && root.document.body);
   }
 
-  // ---- WAVE-5 / R1: THE PRIVATE 8-HEX PALETTE IS GONE. ------------------------------------------
-  // This block hard-coded its own colour table, and every colour in it was a SUPERSEDED one:
-  //   #d89b27  the LEGACY gold. The MEASURED native frame gold is #ffbf01 (--dwfui-gold).
-  //   #f2e6cf  "parchment" -- a MISNOMER that appears in ZERO DF menus (it is the outer game-frame
-  //            art only). Native menu body text is white.
-  //   #ffd45c / #e7dcc8 / #c8b790 / #a99b78 / #5a4316 / #6b5a2a / #29231a / #1c160c -- eight more
-  //            one-off approximations of tones the shared tokens already declare exactly.
-  // Every one is now a `var(--dwfui-*)` reference into dwf.css :root, so this panel and the rest
-  // of the interface cannot drift apart, and R1 has nothing left to count.
-  //
-  // The block is NOT deleted, and the reason is load-bearing: it is not only a palette. It carries
-  // the digest's whole EXISTENCE as an overlay -- `#dfDigestHost{position:fixed;inset:0}` plus the
-  // panel's sizing/scroll box. There is no --dwfui-* rule that positions a fixed centred overlay, and
-  // this lane may not edit CSS, so deleting the block would leave the digest an unpositioned div at
-  // the bottom of <body>. The COLOURS were the drift; the LAYOUT is this file's own and stays here
-  // until a CSS wave can rehome it (reported as CSS-GAP-W5C-DIGEST).
-  function ensureStyle(doc) {
-    if (!doc || doc.getElementById("dfDigestStyle")) return;
-    var st = doc.createElement("style");
-    st.id = "dfDigestStyle";
-    st.textContent = [
-      "#dfDigestHost{position:fixed;inset:0;z-index:9100;display:flex;align-items:center;justify-content:center;pointer-events:none;font-family:var(--dwfui-font-face)}",
-      "#dfDigestPanel{width:min(520px,calc(100vw - 28px));max-height:min(70vh,520px);overflow:auto;pointer-events:auto;background:var(--dwfui-surface);border:1px solid var(--dwfui-gold);border-radius:6px;color:var(--dwfui-text-body);box-shadow:0 12px 32px rgba(0,0,0,.58)}",
-      "#dfDigestPanel .dfd-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 12px;border-bottom:1px solid var(--dwfui-gold-bevel-dark)}",
-      "#dfDigestPanel .dfd-title{font-size:14px;font-weight:700;color:var(--dwfui-text-title)}",
-      "#dfDigestPanel .dfd-close{border:1px solid var(--dwfui-gold-bevel-dark);background:var(--dwfui-surface);color:var(--dwfui-text-secondary);border-radius:4px;padding:2px 7px;cursor:pointer;font:inherit}",
-      "#dfDigestPanel .dfd-body{padding:10px 12px 12px;display:grid;gap:10px}",
-      "#dfDigestPanel .dfd-cat{display:grid;gap:4px;border-bottom:1px solid var(--dwfui-gold-bevel-dark);padding-bottom:8px}",
-      "#dfDigestPanel .dfd-cat:last-child{border-bottom:0;padding-bottom:0}",
-      "#dfDigestPanel .dfd-cat-title{font-size:12px;color:var(--dwfui-text-heading)}",
-      "#dfDigestPanel .dfd-line{font-size:12px;line-height:1.35;color:var(--dwfui-text-body)}",
-      "#dfDigestPanel .dfd-more{font-size:11px;color:var(--dwfui-text-secondary)}",
-    ].join("");
-    (doc.head || doc.documentElement).appendChild(st);
-  }
-
   function closePanel() {
     var doc = root.document;
     var host = doc && doc.getElementById ? doc.getElementById("dfDigestHost") : null;
     if (host && host.parentNode) host.parentNode.removeChild(host);
-    try { doc.removeEventListener("keydown", onKeyDown, true); } catch (_) {}
-    try { doc.removeEventListener("pointerdown", onPointerDown, true); } catch (_) {}
+    try { doc.removeEventListener("keydown", onKeyDown, true); }
+    catch (err) { reportDigest("digest.detach-keydown", err); }
+    try { doc.removeEventListener("pointerdown", onPointerDown, true); }
+    catch (err) { reportDigest("digest.detach-pointer", err); }
   }
 
   function onPointerDown() {
@@ -242,26 +222,25 @@
   function digestPanelMarkup(summary) {
     if (!summary || !summary.total) return "";
     var head = root.DWFUI.headerHtml({
-      cls: "dfd-head", title: "Since you left", titleCls: "dfd-title",
-      close: { cls: "dfd-close", dataset: { digestClose: "" }, title: "Dismiss digest", glyph: "Dismiss" },
+      cls: "digest-head", title: "Since you left", titleCls: "digest-title",
+      close: { cls: "digest-close", dataset: { digestClose: "" }, title: "Dismiss digest", glyph: "Dismiss" },
     });
     var body = (summary.categories || []).map(function (cat) {
       var categoryTitle = cat.label + " (" + cat.count + ")";
       var lines = (cat.headlines || []).map(function (line) {
-        return '<div class="dfd-line">' + root.DWFUI.esc(line) + "</div>";
+        return '<div class="digest-line">' + root.DWFUI.esc(line) + "</div>";
       }).join("");
       var more = cat.count > (cat.headlines || []).length
-        ? '<div class="dfd-more">+' + (cat.count - cat.headlines.length) + " more</div>" : "";
-      return '<section class="dfd-cat"><div class="dfd-cat-title" aria-label="' + root.DWFUI.esc(categoryTitle) + '">' +
-        root.DWFUI.statusHtml({ tag: "span", cls: "dfd-cat-title-copy", text: categoryTitle }) + "</div>" + lines + more + "</section>";
+        ? '<div class="digest-more">+' + (cat.count - cat.headlines.length) + " more</div>" : "";
+      return '<section class="digest-cat"><div class="digest-cat-title" aria-label="' + root.DWFUI.esc(categoryTitle) + '">' +
+        root.DWFUI.statusHtml({ tag: "span", cls: "digest-cat-title-copy", text: categoryTitle }) + "</div>" + lines + more + "</section>";
     }).join("");
-    return head + '<div class="dfd-body">' + body + "</div>";
+    return head + '<div class="digest-body">' + body + "</div>";
   }
 
   function renderDigest(summary, doc) {
     doc = doc || root.document;
     if (!doc || !summary || !summary.total) return null;
-    ensureStyle(doc);
     closePanel();
 
     var host = doc.createElement("div");
@@ -287,21 +266,21 @@
     if (inFlight) return null;
     inFlight = true;
     var player = String(opts.player || opts.playerName || "");
-    var store = root.localStorage;
-    var lastSeen = readWatermark(store, player);
+    var lastSeen = readWatermark(null, player);
     var firstSeen = lastSeen == null;
     var since = firstSeen ? -1 : lastSeen;
     try {
       var response = await root.fetch(reportsUrl(player, since, firstSeen ? 1 : MAX_FETCH), { cache: "no-store" });
       if (!response || !response.ok) return null;
       var page = await response.json();
-      if (page && page.nextReportId != null) writeWatermark(store, player, page.nextReportId);
+      if (page && page.nextReportId != null) writeWatermark(null, player, page.nextReportId);
       if (firstSeen) return null;
       var summary = aggregateReports(page && page.reports);
       if (!summary.total) return null;
       if (canRender()) renderDigest(summary, root.document);
       return summary;
-    } catch (_) {
+    } catch (err) {
+      reportDigest("digest.fetch", err);
       return null;
     } finally {
       inFlight = false;
@@ -326,7 +305,7 @@
     onJoinComplete: onJoinComplete,
     close: closePanel,
     storyMarkup: digestPanelMarkup,
-    preparePreview: function () { ensureStyle(root.document); },
+    preparePreview: function () {},
     _pure: pure,
   };
 

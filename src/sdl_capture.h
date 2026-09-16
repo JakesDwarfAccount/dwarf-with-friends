@@ -42,10 +42,8 @@ bool capture_camera_jpeg(const Camera& camera, std::vector<uint8_t>& jpeg, std::
 // hold capture_state_mutex(); this function always restores window_x/y/z before returning.
 bool bake_sweep_render_step(const Camera& target, std::string* err = nullptr);
 
-// WS2 T0 gate: one frame's 26 current-frame viewport tile-layer arrays, copied at the
-// validated post-render moment inside the capture path. `bytes` holds the 26 blocks in the
-// WIRE_VERSION 1 canonical order, each block = [u8 elem_size][dim_x*dim_y raw little-endian
-// elements]; a layer whose source pointer is null or faults is written as all-zero elements.
+// One frame's 26 viewport tile-layer arrays. `bytes` holds them in WIRE_VERSION 1 canonical order,
+// each [u8 elem_size][dim_x*dim_y little-endian elements]; a null or faulting layer is all zeros.
 struct TileLayerDump {
     int dim_x = 0;
     int dim_y = 0;
@@ -56,16 +54,10 @@ struct TileLayerDump {
     bool ok = false;
 };
 
-// Runs the capture on the render thread with all viewport guards (window coords,
-// ViewportZoomGuard, render_map_for_current_window, live-fort gate). At the validated
-// post-render moment it copies the 26 layer arrays into `layers` (SEH-guarded, null-checked)
-// and returns the same-tick rendered frame in `frame` for a ground-truth image. Windows-only.
+// Windows-only. `frame` and `layers` come from the same tick, so they describe the same viewport.
 bool capture_frame_with_tile_layers(const Camera& camera, CapturedFrame& frame,
                                     TileLayerDump& layers, std::string* err = nullptr);
-// Cached variant: serves the player's previous JPEG when the camera is unchanged and the
-// simulation hasn't ticked (or within the adaptive render throttle window), and falls back
-// to the last good frame when a capture is skipped (host interaction, load/save gates).
-// `seq` increments only when a newly rendered frame is returned, so it can back an ETag.
+// Cached variant. `seq` increments only when a newly rendered frame is returned, so it backs an ETag.
 bool capture_camera_jpeg_cached(const std::string& player, const Camera& camera,
                                 std::vector<uint8_t>& jpeg, uint64_t& seq,
                                 std::string* err = nullptr);

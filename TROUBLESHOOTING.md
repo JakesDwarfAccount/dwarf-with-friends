@@ -8,9 +8,9 @@ page.
 
 **The very first time you open the fort, give it ~30 seconds.** The art streams in as it loads,
 so the map can look sparse or partly blank for a moment before everything pops in. If it seems
-stuck, refresh the tab once or twice — the first load is the slow one.
+stuck, refresh the tab once or twice: the first load is the slow one.
 
-After that, if something looks wrong **while playing**, refresh the tab — and if a normal refresh
+After that, if something looks wrong **while playing**, refresh the tab: and if a normal refresh
 doesn't do it, hard-refresh with **Ctrl+Shift+R**. This fixes most transient issues:
 
 - units drawn as **yellow circles** or tiles as **blue boxes** (sprite art didn't finish loading);
@@ -20,8 +20,8 @@ doesn't do it, hard-refresh with **Ctrl+Shift+R**. This fixes most transient iss
 Nothing is lost by refreshing: you rejoin automatically with your name and the fort streams right
 back in.
 
-**If some sprites stay yellow dots no matter how many times you refresh** — usually rarer things
-like a visiting bard or a specific creature — it's because that art hasn't been generated yet.
+**If some sprites stay yellow dots no matter how many times you refresh**: usually rarer things
+like a visiting bard or a specific creature: it's because that art hasn't been generated yet.
 The fix is on the **host's** side: the host tabs into their Steam client and simply *looks at*
 those tiles on their screen for a moment. That makes the game render the missing sprites, which
 then propagate to every browser immediately. (A friend refreshing won't fix it; the host viewing
@@ -34,43 +34,43 @@ If a problem *survives* a hard refresh and isn't the host-view case above, it's 
 Press **F3** in the browser to open the diagnostics overlay. It shows how your session is
 actually running, which points straight at the cause.
 
-**Transport** — how map data is arriving:
+**Transport**: how map data is arriving:
 
 - **`WS delta`** is what you want: a live WebSocket sending only what changed. Smooth.
 - If it says it fell back to **HTTP polling**, the WebSocket didn't connect, and you'll get
   periodic hitching. Fixes, in order: **hard-refresh** (Ctrl+Shift+R); try a **different browser**
-  (some browsers' privacy/ad-block extensions or aggressive shields interfere — Chrome with
+  (some browsers' privacy/ad-block extensions or aggressive shields interfere: Chrome with
   extensions paused is the safe baseline); disable browser extensions for the game's page. If
   you're the host and *everyone* is on HTTP, a firewall or proxy is blocking the socket.
 
-**Renderer** — how the map is drawn:
+**Renderer**: how the map is drawn:
 
 - **`gl`** (WebGL) is the fast default and runs at your monitor's refresh rate.
 - **`canvas2d`** is the automatic fallback if your browser can't do WebGL (old GPU, disabled
   hardware acceleration, a lost graphics context). It works but is slower on big, busy views.
 - If you're on `canvas2d` and want to force WebGL back: make sure **hardware acceleration** is ON
-  in your browser settings, then reload. You can also force a renderer with a URL switch —
-  add `?renderer=gl` (or `?renderer=canvas2d`) to the `/view` address — handy for testing which
+  in your browser settings, then reload. You can also force a renderer with a URL switch ,
+  add `?renderer=gl` (or `?renderer=canvas2d`) to the `/view` address: handy for testing which
   one behaves better on your machine.
 
 **Other lag causes worth checking:**
 
 - **A slow or distant tunnel.** If you're joining over a `trycloudflare.com` link, all traffic
-  detours through Cloudflare — usually fine, but a bad route adds latency for everyone. For a
+  detours through Cloudflare: usually fine, but a bad route adds latency for everyone. For a
   regular friend group, a Tailscale connection is often snappier (see the manual-install guide).
 - **A huge, busy fort.** Hundreds of active units or a full-screen zoomed-out view is more work to
   stream and draw. Zooming in a little, or a smaller window, lightens both the network and the
   renderer.
 - **Too many browser tabs / low memory.** The client keeps a map cache; a machine already tight on
   RAM will stutter. Close heavy tabs and other apps.
-- **The host machine is the bottleneck.** If the host's own game is chugging, everyone feels it —
+- **The host machine is the bottleneck.** If the host's own game is chugging, everyone feels it ,
   the fort only streams as fast as it simulates.
 
 If none of that helps and it *survives a hard refresh*, capture what F3 shows (transport,
-renderer, and the FPS/latency numbers) and include it when asking for help — it tells us exactly
+renderer, and the FPS/latency numbers) and include it when asking for help: it tells us exactly
 which layer is slow.
 
-## Windows asks whether to run `DWF Setup.cmd`
+## Windows asks whether to run `DWF Setup.cmd` (Windows only)
 
 A freshly downloaded `.cmd` file is expected to show a Mark-of-the-Web warning with **Run** and
 **Cancel** choices. Choose **Run** to open setup. The exact Windows wording has not yet been
@@ -82,17 +82,19 @@ and get a fresh copy from Releases.
 ## Antivirus removed the plugin DLL
 
 Some antivirus tools may quarantine `dwf.plug.dll` as a false positive. Only restore it if it came
-from the official GitHub Release.
+from the official GitHub Release. (On Linux the plugin is `dwf.plug.so` and antivirus interference
+is rare, but the same rule holds: restore only a file that came from the official Release.)
 
 For Windows Security:
 
 1. Open **Windows Security** → **Virus & threat protection** → **Protection history**.
 2. Open the entry for `dwf.plug.dll`, then choose **Actions** → **Restore** or **Allow on device**.
 3. Under **Virus & threat protection settings**, open **Manage settings** → **Exclusions** →
-   **Add or remove exclusions**. Add both copies of `dwf.plug.dll`—the one under the extracted
-   `DwarfWithFriends\release` folder and the one under your Dwarf Fortress `hack\plugins` folder—as
+   **Add or remove exclusions**. Add both copies of `dwf.plug.dll`, the one under the extracted
+   `DwarfWithFriends\release` folder and the one under your Dwarf Fortress `hack\plugins` folder, as
    file exclusions.
-4. Run `DWF Setup.cmd` again so setup can replace the missing file.
+4. Run `DWF Setup.cmd` (Windows) / `./dwf-setup.sh` (Linux) again so setup can replace the missing
+   file.
 
 For another antivirus product, restore `dwf.plug.dll` from its quarantine and allowlist both the
 release copy and the copy in Dwarf Fortress's `hack\plugins` folder before running setup again.
@@ -101,19 +103,38 @@ release copy and the copy in Dwarf Fortress's `hack\plugins` folder before runni
 
 This error while hosting means DFHack never loaded the Dwarf With Friends plugin. In practice it
 has one cause: **your DFHack version does not exactly match the one this build was made for**
-(DFHack **53.15-r2** for this release). DFHack refuses to load plugins built for any other
-version — even one bugfix release apart — so the plugin's commands simply don't exist.
+(DFHack **53.16-r1** for this release). DFHack refuses to load plugins built for any other
+version: even one bugfix release apart: so the plugin's commands simply don't exist.
 
 1. Check your DFHack version: it's on the DFHack title screen, or at the top of `hack\news.rst`
    in your Dwarf Fortress folder.
-2. If it isn't exactly **53.15-r2**, install that version from the
-   [DFHack releases page](https://github.com/DFHack/dfhack/releases/tag/53.15-r2): close
-   Dwarf Fortress, delete the old `hack` folder, extract the 53.15-r2 zip into your Dwarf
-   Fortress folder, then run **DWF Setup.cmd** again to re-install the mod.
+2. If it isn't exactly **53.16-r1**, install that version from the
+   [DFHack releases page](https://github.com/DFHack/dfhack/releases/tag/53.16-r1): close
+   Dwarf Fortress, back up your existing DFHack configuration and scripts, extract the 53.16-r1 archive into your Dwarf
+   Fortress folder, then run **DWF Setup.cmd** (Windows) / **`./dwf-setup.sh`** (Linux) again to
+   re-install the mod.
 3. If your DFHack came from Steam, note Steam may auto-update it past the supported version;
    the manual install above avoids that.
-4. Confirmation lives in `stderr.log` in your Dwarf Fortress folder — a line saying the `dwf`
+4. Confirmation lives in `stderr.log` in your Dwarf Fortress folder: a line saying the `dwf`
    plugin was built for a different version of DFHack.
+
+## Dwarf Fortress starts without DFHack (Linux only)
+
+If the game opens but DFHack never appears: no DFHack terminal, and none of the plugin's commands
+exist: the game's Steam launch options are almost always the reason. The host panel starts Dwarf
+Fortress through Steam so it gets Steam's own per-game environment, and Steam applies the game's
+launch options when it does. Right-click **Dwarf Fortress** in Steam → **Properties** →
+**Launch Options**, set them to exactly:
+
+```text
+sh -c 'exec "./dfhack"' %command%
+```
+
+Close the game and start hosting again.
+
+If you are driving DFHack by hand, note that `dfhack-run` on Linux needs a real terminal and
+crashes when its output is piped. The host panel already runs it under a pseudo-terminal, so this
+only matters for commands you type yourself.
 
 ## Diagnostic log retention
 
@@ -138,17 +159,17 @@ or another program may already be using it.
 The friend link comes from cloudflared, the tunnel that lets friends reach you over the internet.
 Leave Dwarf Fortress and the Dwarf With Friends engine window open while it starts.
 
-The host panel shows the tunnel's status and a live log tail — check it for the reason the link
+The host panel shows the tunnel's status and a live log tail: check it for the reason the link
 didn't appear (no network connection, a blocked cloudflared process, and so on). If it stays stuck
 waiting for a link, use the panel's **Restart the tunnel** button. The same log is written to
 `host/cloudflared.log` inside the extracted `DwarfWithFriends` folder; keep those last lines when
 asking for help.
 
-If the log says cloudflared is missing, run `DWF Setup.cmd` again and repair the **Get cloudflared**
-step. If it reports a network error, check the connection and try again. If you'd rather not use
-cloudflared at all, [docs/MANUAL-INSTALL.md](docs/MANUAL-INSTALL.md) has a Tailscale option.
+If the log says cloudflared is missing, run `DWF Setup.cmd` (Windows) / `./dwf-setup.sh` (Linux)
+again and repair the **Get cloudflared** step. If it reports a network error, check the connection
+and try again. If you'd rather not use cloudflared at all, [MANUAL-INSTALL.md](docs/MANUAL-INSTALL.md) has a Tailscale option.
 
-## Windows Firewall asks about Dwarf Fortress
+## Windows Firewall asks about Dwarf Fortress (Windows only)
 
 On the first Dwarf Fortress launch, Windows may ask whether to allow network access. Allow Dwarf
 Fortress/DFHack on **Private networks** so the local browser stream can run. You do not need to
@@ -166,3 +187,7 @@ the old `dfcapture` plugin and the new `dwf` plugin, causing port conflicts and 
 5. Start Dwarf Fortress again.
 
 Do not delete `dwf.plug.dll` or `hack/lua/plugins/dwf.lua`; those are the current files.
+
+## Beta 4 interface issues and fallback
+
+Beta 4 has known interface rough edges, including Labor layout and selection styling and occasional long announcement text overflow. No new full live gameplay test pass was performed for this release. If these issues get in your way, [beta 3](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3) remains the more stable fallback. Its Windows and Linux packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2; beta 4 requires Dwarf Fortress 0.53.16 with DFHack 53.16-r1. Follow beta 3’s own setup instructions in a compatible installation. Do not assume a save opened in a newer Dwarf Fortress version can be downgraded.

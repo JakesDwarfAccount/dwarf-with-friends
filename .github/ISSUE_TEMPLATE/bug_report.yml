@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thanks for helping test the beta! Before filing, please try a **hard refresh**
-        (**Ctrl+Shift+R**) in the game tab — it fixes most transient issues — and skim
+        (**Ctrl+Shift+R**) in the game tab: it fixes most transient issues: and skim
         [TROUBLESHOOTING.md](https://github.com/JakesDwarfAccount/dwarf-with-friends/blob/main/TROUBLESHOOTING.md).
         If the problem survives a hard refresh, it's worth reporting. Only the first two
         questions are required; everything else helps but don't let it stop you.
@@ -74,7 +74,7 @@ body:
   - type: textarea
     id: dfhack-log
     attributes:
-      label: DFHack log tail — stderr.log (host only)
+      label: DFHack log tail (stderr.log, host only)
       description: >-
         Host only: paste the last ~30 lines of **stderr.log** (that exact file, not
         stdout.log) from your Dwarf Fortress folder. If the mod would not load or

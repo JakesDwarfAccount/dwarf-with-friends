@@ -27,11 +27,7 @@ namespace dwf {
 
 void register_burrows_routes(httplib::Server& server);
 
-// B238: burrow change push. Called once per ws_push_loop iteration (after popup_push_tick): if any
-// burrow write route has bumped the revision since the last pass, broadcast
-// {"type":"burrows","seq":N} to every connected player, plus a sticky late-join sync. A POKE, not
-// state -- each player's rects are camera-z-specific, so the client refetches its own /burrows.
-// Rate-limited to <=1 Hz internally. Reads no DF memory and takes no CoreSuspender.
+// Call once per ws_push_loop iteration; rate-limits itself to <=1 Hz.
 void burrow_push_tick();
 
 } // namespace dwf

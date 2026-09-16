@@ -19,33 +19,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// console_policy.h -- WT26 DFHack command-console CONTAINMENT (the whole security surface).
-//
-// SECURITY MODEL (decision 2026-07-13, SUPERSEDES the spec's Option A "host-only"):
-//   The browser command console is available to ANY player holding a valid join-auth cookie --
-//   NOT host-only. The existing auth pre-routing gate (http_server.cpp) already refuses
-//   anonymous/unauthed callers; the console routes add NO peer_ip_is_loopback host gate on TOP of
-//   that. The owner owns the machine, the mod and the friend group and made this call explicitly, WITH the
-//   mitigation below as a hard requirement.
-//
-//   Because "any authed friend" now includes people who are NOT sitting at the DF console, a
-//   server-side BLOCKLIST is the SOLE containment, and it applies to EVERY caller INCLUDING THE
-//   HOST -- there is deliberately no host/loopback parameter in command_denied() below, so a rule
-//   cannot be written that a non-host bypasses or that the host escapes. The deny table is the one
-//   thing standing between a friend and re-opening the host-only /join-password gate, bypassing
-//   the save route's collision checks (via capture-* console commands), stopping DF, or freezing
-//   the fort.
-//
-// WHY A PURE HEADER: identical to sound_route.h -- the DECISION logic is header-only and
-// DF/httplib-free so tools/harness/console_policy_fixture.cpp exercises the REAL command_denied()
-// (not a mirror) across every denied namespace + allowed commands + seeded-bad cases, offline.
-//
-// ENFORCED IN TWO PLACES, ONE TABLE: the POST /console/run handler (console_routes.cpp) calls
-// command_denied() FIRST and returns 403 + reason on a hit (clean HTTP semantics); the bridge fn
-// console_run_via_lua (lua_bridge.cpp) calls it AGAIN as a backstop before it ever reaches
-// dfhack.run_command_silent, so no future C++ caller of the bridge can skip the gate. Both call
-// THIS function, so the deny table can never diverge.
-
 #pragma once
 
 #include <cstddef>
@@ -55,40 +28,25 @@
 namespace dwf {
 namespace console {
 
-// A single deny rule. `Prefix` matches when the command head starts with `token` (namespace deny,
-// e.g. "gui/"); `Exact` matches when the head equals `token`. Matching is case-insensitive so
-// `DIE`/`Gui/foo` cannot slip past. `reason` is returned verbatim to the client.
 struct DenyRule {
     enum Kind { Prefix, Exact } kind;
     const char* token;
     const char* reason;
 };
 
-// Result of a policy check.
 struct Denial {
     bool denied = false;
-    std::string reason;   // human-readable, safe to show the client (valid only when denied)
+    std::string reason;   // shown to the client; valid only when denied
 };
 
-// ---- THE BLOCKLIST (named, edit here) --------------------------------------------------------
-// Grouped by intent. To loosen or tighten containment, edit THIS table -- it is the single source
-// of truth for both enforcement sites. Default posture is deny-what-is-listed; keep it
-// conservative (the mandate: deny at minimum the categories below).
+// ---- THE BLOCKLIST (edit here) ---------------------------------------------------------------
 inline const std::vector<DenyRule>& deny_table() {
     static const std::vector<DenyRule> kRules = {
-        // 1. THE PLUGIN'S OWN CONTROL COMMANDS -- deny the ENTIRE capture-* namespace. This is the
-        //    non-negotiable rule: capture-join-password / capture-stream-stop / the quicksave-class
-        //    capture-* commands would let a friend re-open the host-only /join-password gate,
-        //    bypass the guarded /save route, or stop the stream straight from the console. This
-        //    closes the console back-door to those powers.
-        //    NOTE the SECOND rule: the plugin also registers a BARE `capture` command (dwf.cpp
-        //    plugin_init), which the "capture-" prefix does NOT match. The offline fixture caught
-        //    that hole; do not delete this line thinking it is redundant.
+        // 1. the plugin's own control commands
         { DenyRule::Prefix, "capture-", "capture-* commands control the server itself and are host-console only" },
         { DenyRule::Exact,  "capture",  "capture commands control the server itself and are host-console only" },
 
-        // 2. STOP-THE-WORLD / STOP-THE-SERVER -- anything that halts DF, the plugin, or writes/ends
-        //    the save. Killing DF or unloading dwf is a single word.
+        // 2. stop-the-world / stop-the-server
         { DenyRule::Exact, "die",         "would kill the Dwarf Fortress process" },
         { DenyRule::Exact, "kill-lua",    "would tear down the running Lua state (can crash DF/the plugin)" },
         { DenyRule::Exact, "quicksave",   "save/shutdown commands are disabled in the browser console" },
@@ -96,9 +54,7 @@ inline const std::vector<DenyRule>& deny_table() {
         { DenyRule::Exact, "quit",        "would exit Dwarf Fortress" },
         { DenyRule::Exact, "quit!",       "would exit Dwarf Fortress" },
         { DenyRule::Exact, "forcequit",   "would force-exit Dwarf Fortress" },
-        //    Plugin lifecycle verbs -- `disable dwf` / `unload dwf` kill the very plugin
-        //    serving the page; `enable`/`load`/`plug`/`reload`/`restart`/`script` can load or run
-        //    arbitrary side-effecting code. Deny the verbs outright (deny-at-minimum > selective).
+        //    plugin lifecycle verbs
         { DenyRule::Exact, "disable",     "plugin/feature lifecycle commands are disabled in the browser console" },
         { DenyRule::Exact, "enable",      "plugin/feature lifecycle commands are disabled in the browser console" },
         { DenyRule::Exact, "load",        "plugin-load commands are disabled in the browser console" },
@@ -109,34 +65,26 @@ inline const std::vector<DenyRule>& deny_table() {
         { DenyRule::Exact, "script",      "running arbitrary script files is disabled in the browser console" },
         { DenyRule::Exact, "sc-script",   "running arbitrary script files is disabled in the browser console" },
 
-        // 3. ARBITRARY CODE -- a raw lua/eval one-liner is unbounded RCE and can be arbitrarily slow
-        //    under the core lock. (`:lua` is the colon-prefixed form.)
+        // 3. arbitrary code
         { DenyRule::Exact, "lua",         "arbitrary Lua execution is disabled in the browser console" },
         { DenyRule::Prefix, ":lua",       "arbitrary Lua execution is disabled in the browser console" },
         { DenyRule::Exact, "eval",        "arbitrary evaluation is disabled in the browser console" },
 
-        // 4. INTERACTIVE / SCREEN-PUSHING -- gui/* scripts (incl. gui/launcher itself) expect a
-        //    native keyboard/viewscreen the headless capture server does not have; they hang holding
-        //    the core lock or shove a modal into every player's frame. Deny the whole namespace.
+        // 4. interactive / screen-pushing
         { DenyRule::Prefix, "gui/",       "interactive gui/ scripts need a native screen the server does not have" },
         { DenyRule::Exact, "command-prompt", "interactive prompt commands are not usable headless" },
 
-        // 5. DEVELOPER TOOLS -- devel/* are unsupported internals; many are heavy whole-state walks.
+        // 5. developer tools
         { DenyRule::Prefix, "devel/",     "devel/ internals are disabled in the browser console" },
 
-        // 6. WHOLE-WORLD SCANS / MASS EFFECTS -- reliably breach the 1.5s busy threshold under the
-        //    core lock (freezing every player, and a CoreSuspender command CANNOT be interrupted),
-        //    or mass-mutate the fort. `prospect all` is handled specially below (bare `prospect` on
-        //    the current tile is cheap and stays allowed).
+        // 6. whole-world scans / mass effects
         { DenyRule::Exact, "reveal",      "map-wide reveal freezes the fort and is disabled" },
         { DenyRule::Exact, "unreveal",    "map-wide unreveal freezes the fort and is disabled" },
         { DenyRule::Exact, "exterminate", "mass-kill commands are disabled in the browser console" },
         { DenyRule::Exact, "extinguish",  "mass-effect commands are disabled in the browser console" },
 
-        // 7. INDIRECTION -- DFHack expands these BEFORE dispatch, so each is a way to invoke a denied
-        //    command under a name this table never sees (a host-defined alias pointing at capture-*,
-        //    a keybinding, a repeat/multicmd wrapper). Denying the wrappers is what makes rule 1
-        //    (capture-*) actually hold. Found by the WT26 fixture's own gap analysis; closed 07-14.
+        // 7. indirection -- DFHack expands these BEFORE dispatch, so each can invoke a denied
+        //    command under a name this table never sees.
         { DenyRule::Exact, "alias",       "alias can invoke a denied command under another name" },
         { DenyRule::Exact, "keybinding",  "keybinding can bind a denied command" },
         { DenyRule::Exact, "repeat",      "repeat can schedule a denied command" },
@@ -158,9 +106,8 @@ inline std::string lower_ascii(const std::string& s) {
     return out;
 }
 
-// Split a raw command line into whitespace-delimited tokens (space/tab). No quoting semantics --
-// the deny check only needs the head and a coarse arg scan (e.g. "all" for prospect), and treating
-// a quoted arg as one-or-more tokens can only ADD matches, never hide one.
+// Deliberately no quoting semantics: splitting a quoted argument into several tokens can only ADD
+// deny matches, never hide one. Teaching this to respect quotes would open a bypass.
 inline std::vector<std::string> tokenize(const std::string& line) {
     std::vector<std::string> out;
     std::string cur;
@@ -175,14 +122,13 @@ inline std::vector<std::string> tokenize(const std::string& line) {
     return out;
 }
 
-// The leading command token (first word), or "" for a blank line.
 inline std::string command_head(const std::string& line) {
     auto toks = tokenize(line);
     return toks.empty() ? std::string() : toks.front();
 }
 
-// THE GATE. Returns {denied,reason}; applies to EVERY caller (no host parameter by construction).
-// A blank command is denied (nothing to run). Matching is case-insensitive on the head.
+// THE GATE. Never give this a host/loopback parameter: caller identity is not an input, which is
+// the only reason a friend cannot bypass a rule and the host cannot escape one.
 inline Denial command_denied(const std::string& line) {
     Denial d;
     auto toks = tokenize(line);
@@ -205,9 +151,6 @@ inline Denial command_denied(const std::string& line) {
         }
     }
 
-    // Special case: `prospect all` (and `prospect ... all`) is a whole-embark scan that freezes the
-    // fort; bare `prospect` (current tile) is cheap and stays allowed. Checked here rather than as a
-    // head rule so the useful form survives.
     if (head == "prospect") {
         for (size_t i = 1; i < toks.size(); ++i) {
             if (lower_ascii(toks[i]) == "all") {

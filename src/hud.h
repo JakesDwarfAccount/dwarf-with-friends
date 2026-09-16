@@ -43,11 +43,12 @@ struct HudState {
     int happiness[7] = {};
     int food = 0;
     int drink = 0;
-    // WD-5: DF's top bar also shows Seeds/Meat/Fish counts + a weather summary
-    // (df.global.plotinfo.tasks.food.{seeds,meat,fish} + df.global.current_weather[2][2]).
+    // Native's top bar presents these seven food-task counters in this exact order.
     int seeds = 0;
     int meat = 0;
     int fish = 0;
+    int plant = 0;
+    int other = 0;
     std::string weather = "Clear";
 
     int elevation = 0;

@@ -1,0 +1,159 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+
+@layer panels.item-information {
+  .stock-item-sheet {
+    height: 100%;
+    min-height: 430px;
+    display: flex;
+    flex-direction: column;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-surface);
+    font: var(--dwfui-font);
+  }
+  .stock-item-frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .stock-item-header {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 54px;
+    padding: 8px 10px 4px;
+  }
+  .stock-item-headcopy {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .stock-item-glyph {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--dwfui-slab);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-numeric);
+    font-weight: 900;
+  }
+  .stock-item-title {
+    color: var(--dwfui-text-title);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stock-item-body {
+    flex: 1;
+    margin: 0 10px 10px;
+    padding: 9px 10px;
+    overflow: auto;
+    line-height: 1.22;
+  }
+  .stock-item-description {
+    min-height: 118px;
+    margin: 0 0 14px;
+    color: var(--dwfui-text-body);
+    white-space: pre-wrap;
+  }
+  .stock-item-label {
+    color: var(--dwfui-text-numeric);
+    font-weight: 700;
+  }
+  /* Location row (oracle: stockpile art tile + name, right-aligned green "View stockpile"). */
+  .stock-item-loc-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 4px;
+    padding: 4px 2px;
+  }
+  .stock-item-loc-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+  }
+  .stock-item-loc-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stock-item-loc-name {
+    color: var(--dwfui-text-row);
+  }
+  .stock-item-loc-btn {
+    flex: 0 0 auto;
+  }
+  .stock-item-unit {
+    margin: 16px 0 4px;
+    display: grid;
+    grid-template-columns: 1fr 156px;
+    align-items: center;
+    gap: 12px;
+  }
+  .stock-item-unit-name {
+    color: var(--dwfui-text-row);
+  }
+  .stock-item-contents {
+    margin: 14px 0 4px;
+    border-top: 1px solid var(--dwfui-gold-bevel-mid);
+    padding-top: 6px;
+  }
+  .stock-item-content-row {
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    margin-top: 3px;
+    border: 1px solid var(--dwfui-slab);
+    background: var(--dwfui-surface);
+  }
+  .stock-item-content-row:hover {
+    border-color: var(--dwfui-text-numeric);
+    background: rgba(216, 155, 39, 0.12);
+  }
+  .stock-item-content-icon {
+    width: 26px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--dwfui-slab);
+    background: var(--dwfui-surface);
+    color: var(--dwfui-text-numeric);
+    font-weight: 900;
+  }
+  .stock-item-content-copy {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stock-item-content-name {
+    color: var(--dwfui-text-row);
+  }
+}
