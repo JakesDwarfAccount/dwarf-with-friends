@@ -61,7 +61,7 @@
     var v;
     try {
       v = Number((gem.splitmix64(seedFor(gx, gy, gz)) >> 32n) & 3n);
-    } catch (_e) { return null; }
+    } catch { return null; }
     if (plane.size >= MAX_PER_PLANE) plane.clear();
     plane.set(key, v);
     return v;
@@ -77,7 +77,7 @@
     try {
       var seeded = seedFor(gx | 0, gy | 0, gz | 0) + BigInt((salt || 0) | 0);
       return Number((gem.splitmix64(seeded) >> 32n) % BigInt(count));
-    } catch (_e) { return 0; }
+    } catch { return 0; }
   }
   function bloodFamily(rgb) {
     if (!Array.isArray(rgb) || rgb.length < 3) return null;
@@ -169,7 +169,7 @@
   function constructedTerrainPlan(kind, ttname, material, openMask) {
     if (kind !== "FLOOR" && kind !== "RAMP" && kind !== "UD" && kind !== "U" &&
         kind !== "D" && kind !== "FORT") return null;
-    var token = null, palRow = null, mask = 0, multiplyRgb = null;
+    var token, palRow = null, mask = 0, multiplyRgb = null;
     if (kind === "FLOOR") {
       mask = trackMaskOfConstruction(ttname);
       if (material.family === "GLASS") token = material.glassMt === 3 ? "GLASS_GREEN_FLOOR" :

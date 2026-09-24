@@ -96,7 +96,7 @@
     }
     if (Number.isFinite(Number(result?.value))) fields.push(`Value: ~${escapeHtml(result.value)}☼`);
     return fields.length
-      ? `<div class="unit-meta-line stock-item-weight">${fields.join("&nbsp;&nbsp;&nbsp;")}</div>` : "";
+      ? `<div class="stock-item-weight">${fields.join("&nbsp;&nbsp;&nbsp;")}</div>` : "";
   }
   // ---- the native prose sentence ----------------------------------------------------------------
   const QUALITY_ADJECTIVE = {
@@ -241,15 +241,15 @@
     const contentsBlock = contents.length
       ? `<div class="stock-item-contents">${contents.map(contentRow).join("")}</div>` : "";
     // Superset kept: item -> holder/owner navigation is real wire data and exists nowhere else on the sheet.
-    const unitBlock = unit ? `
-      <div class="stock-item-unit">
-        <div>
-          <div class="stock-item-label">${holder ? "With" : "Owned by"}</div>
-          <div class="stock-item-unit-name">${escapeHtml(unit.name || `Unit ${unit.id}`)}</div>
-        </div>
-        ${ui.plaqueBtnHtml({ label: "View", tone: "green", chassis: "slab", cls: "stock-item-view-unit",
-            dataset: { stockItemUnit: unit.id }, title: "View this unit" })}
-      </div>` : "";
+    const unitBlock = unit ? ui.rowHtml({
+      cls: "stock-item-unit",
+      copyCls: "stock-item-unit-copy",
+      label: holder ? "With" : "Owned by",
+      labelCls: "stock-item-label",
+      sub: { text: unit.name || `Unit ${unit.id}` },
+      trailing: ui.plaqueBtnHtml({ label: "View", tone: "green", chassis: "slab", cls: "stock-item-view-unit",
+        dataset: { stockItemUnit: unit.id }, title: "View this unit" }),
+    }) : "";
     return {
       className: "visible view-sheet-panel stock-item-panel",
       siblings,
@@ -286,7 +286,7 @@
       const r = await fetch(`/stock-item-action?player=${encodeURIComponent(player)}&id=${id}&action=info&t=${Date.now()}`,
         { method: "POST", cache: "no-store" });
       if (r.ok) { await showResolvedStockItemSheet(await r.json(), { siblings }); return; }
-    } catch (_) {}
+    } catch {}
     showStockItemUnavailable();
   }
 
@@ -363,7 +363,7 @@
             focusPage();
             return;
           }
-        } catch (_) {}
+        } catch {}
         // The flag write did not take -- another client acted, or the host cannot answer. NEVER swallow
         // it and leave the stale sheet up: re-read the item authoritatively.
         await reReadStockItemOrUnavailable(itemId, siblings);

@@ -1704,7 +1704,6 @@ void register_interaction_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(stock_item_action_json(item_id, result), "application/json; charset=utf-8");
     };
-    server.Get("/stock-item-action", stock_item_action_handler);
     server.Post("/stock-item-action", stock_item_action_handler);
 
     server.Get("/inspect", [](const httplib::Request& req, httplib::Response& res) {

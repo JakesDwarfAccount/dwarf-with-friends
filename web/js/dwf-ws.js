@@ -362,7 +362,7 @@
   // inflated text length -- so the stats overlay reports the real tunnel cost.
   function handleText(text, wireBytes) {
     const wb = (typeof wireBytes === "number") ? wireBytes : text.length;
-    let msg = null;
+    let msg;
     try {
       msg = JSON.parse(text);
     } catch {
@@ -540,7 +540,7 @@
     if (type === 0x02 /* AUX */) {
       v1RecordBytes(wireBytes, "aux");
       v1LastAuxArrival = Date.now();
-      let obj = null;
+      let obj;
       try { obj = JSON.parse(new TextDecoder("utf-8").decode(payloadBuffer)); }
       catch (err) { obj = null; ERR.report("ws.aux-decode", err); }
       // Phase-5 Settings Info consumes this optional, read-only AUX value. Delete it when an
@@ -813,7 +813,7 @@
 
   // The worker's lost addresses are unknowable, so resume is unsafe: close, and force the next HELLO to
   // advertise have=0 so the server seeds a complete snapshot.
-  function recoverFreshSnapshot(_reason) {
+  function recoverFreshSnapshot() {
     if (!v1Mode || !wantOpen) return false;
     forceFreshHave = true;
     clearReconnect();

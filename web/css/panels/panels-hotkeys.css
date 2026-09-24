@@ -21,11 +21,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.hotkeys {
-  /* Runtime-mounted panels */
-  /* Hotkey panel */
   #dfHotkeysPanel {
     position: fixed;
     right: 0;
@@ -35,69 +33,81 @@
     max-height: 76vh;
     display: flex;
     flex-direction: column;
-    background: var(--dwfui-surface, #1c1c1c);
-    border: 2px solid var(--dwfui-gold, #ffbf01);
-    font:
-      400 12px ui-monospace,
-      Consolas,
-      monospace;
-    box-shadow: -3px 0 14px rgba(0, 0, 0, 0.5);
+    background: var(--dwfui-surface);
+    border: 2px solid var(--dwfui-gold);
+    font: var(--dwfui-font);
   }
   #dfHotkeysPanel.hidden {
     display: none;
+  }
+  #dfHotkeysPanel .hotkey-head {
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-gold);
   }
   #dfHotkeysPanel .hotkey-head.pf-handle {
     cursor: move;
   }
   #dfHotkeysPanel .hotkey-hint {
-    color: var(--dwfui-text-secondary);
     margin-left: auto;
   }
   #dfHotkeysPanel .hotkey-body {
     overflow: auto;
     flex: 1 1 auto;
     min-height: 0;
-    padding: 8px 10px 0;
+    padding: 0 var(--dwfui-space-m);
   }
   #dfHotkeysPanel .hotkey-row {
-    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--dwfui-space-xs);
+    padding: var(--dwfui-space-m) 0;
   }
   #dfHotkeysPanel .hotkey-row-main {
+    order: -1;
     display: flex;
     align-items: center;
-    gap: 2px;
-  }
-  #dfHotkeysPanel .hotkey-name::placeholder {
-    color: var(--dwfui-text-row);
-    opacity: 1;
-  }
-  #dfHotkeysPanel .hotkey-name:focus {
-    outline: 1px solid var(--dwfui-gold, #ffbf01);
+    gap: var(--dwfui-space-xs);
   }
   #dfHotkeysPanel .hotkey-pos {
-    display: block;
-    margin: 3px 0 0 2px;
-    color: var(--dwfui-text-active);
+    white-space: normal;
+    margin-left: var(--dwfui-space-xs);
   }
   #dfHotkeysPanel .hotkey-pos.hotkey-unset {
     color: var(--dwfui-text-secondary);
   }
   #dfHotkeysPanel .hotkey-hotline {
-    margin: 1px 0 0 2px;
+    display: block;
+    margin-left: var(--dwfui-space-xs);
+  }
+  #dfHotkeysPanel .hotkey-name {
+    flex: 1 1 auto;
+    background: #000;
+    border: var(--dwfui-divider) solid var(--dwfui-silver);
+    color: var(--dwfui-text-row);
+    padding: var(--dwfui-space-s);
+  }
+  #dfHotkeysPanel .hotkey-name::placeholder {
     color: var(--dwfui-text-row);
   }
-  #dfHotkeysPanel .hotkey-key {
-    color: var(--dwfui-text-good);
+  #dfHotkeysPanel .hotkey-name:focus {
+    outline: var(--dwfui-divider) solid var(--dwfui-gold);
+  }
+  #dfHotkeysPanel .hotkey-tools {
+    gap: var(--dwfui-space-xs);
+    flex: 0 0 auto;
+  }
+  #dfHotkeysPanel .hotkey-tools button {
+    display: block;
   }
   #dfHotkeysPanel .hotkey-foot {
     flex: 0 0 auto;
-    padding: 6px 10px 10px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
   }
   #dfHotkeysPanel .hotkey-status {
-    padding: 2px 10px 6px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-s);
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    min-height: 14px;
+    min-height: var(--dwfui-height-line);
   }
   #dfHotkeysPanel .hotkey-status.err {
     color: var(--dwfui-text-warning);

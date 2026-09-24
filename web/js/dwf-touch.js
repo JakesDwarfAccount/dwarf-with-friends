@@ -248,13 +248,13 @@
     const hooks = {
       placementArmed: () => {
         try { return !!(window.DFPlacementArmed && window.DFPlacementArmed()); }
-        catch (_) { return false; }
+        catch { return false; }
       },
       cellPx: () => {
         try {
           const nav = window.DFTouchNav;
           return (nav && nav.cellPx && nav.cellPx()) || 24;
-        } catch (_) { return 24; }
+        } catch { return 24; }
       },
       panTiles: (dx, dy) => { try { window.DFTouchNav && window.DFTouchNav.panTiles(dx, dy); }
         catch { /* pointer-move pan retries on the next gesture sample */ } },
@@ -264,7 +264,7 @@
         catch { /* pointer-move pinch retries on the next gesture sample */ } },
       getZoomPx: () => {
         try { return (window.DFTouchNav && window.DFTouchNav.getZoomPx()) || 24; }
-        catch (_) { return 24; }
+        catch { return 24; }
       },
       // A tap re-dispatches a synthetic pointerdown+pointerup pair on #view, so the existing pointerup chain
       // runs exactly as for a mouse click. The __dfTouchSynthetic marker stops this layer re-intercepting it.
@@ -312,7 +312,7 @@
         try {
           const inset = keyboardInsetPx(window.innerHeight, vv.height, vv.offsetTop);
           document.documentElement.style.setProperty("--dfvv-kb-inset", inset + "px");
-        } catch (_) { DwfErr.count("touch.keyboard-inset"); }
+        } catch { DwfErr.count("touch.keyboard-inset"); }
       };
       vv.addEventListener("resize", apply);
       vv.addEventListener("scroll", apply);

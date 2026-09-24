@@ -57,7 +57,7 @@
       s === "STAIR_UP" || s === "STAIR_DOWN" || s === "STAIR_UPDOWN" || s === "RAMP";
   }
 
-  function soilCode(t, materialMap) {
+  function soilCode(t) {
     // Synthetic fixtures and a future richer wire may carry native's already-classified code.
     var explicit = t && (t.edge_code != null ? t.edge_code : t.edgeCode);
     if (explicit >= 3 && explicit <= 7) return explicit | 0;
@@ -68,7 +68,7 @@
 
   function family(code, index, name) { return { code: code, index: index, name: name }; }
 
-  function familiesForTile(t, materialMap) {
+  function familiesForTile(t) {
     // Native routes shrub, sapling and plant tiletypes through the same grass lookup as exposed floors:
     // the standing plant neither suppresses the species nor stops it claiming a neighbour side.
     if (!t || t.hidden || (!terrainShape(t) && !t.plant)) return [];
@@ -81,7 +81,7 @@
     }
     var shape = t.shape || "", mat = t.mat || "";
     if (mat === "SOIL") {
-      var sc = soilCode(t, materialMap);
+      var sc = soilCode(t);
       out.push(family(sc, sc, "SOIL " + sc));
     } else if (shape === "PEBBLES") {
       out.push(family(8, 8, "PEBBLES"));
@@ -102,11 +102,11 @@
     return incumbent;
   }
 
-  function sideCodes(lookup, x, y, materialMap) {
+  function sideCodes(lookup, x, y) {
     var out = { S: 0, W: 0, E: 0, N: 0 };
     for (var i = 0; i < SIDE.length; i++) {
       var d = SIDE[i];
-      var f = pickFamily(familiesForTile(lookup(x + d.dx, y + d.dy), materialMap));
+      var f = pickFamily(familiesForTile(lookup(x + d.dx, y + d.dy)));
       out[d.name] = f ? f.code : 0;
     }
     return out;
@@ -118,8 +118,8 @@
     return word >>> 0;
   }
 
-  function plan(lookup, x, y, materialMap) {
-    var codes = sideCodes(lookup, x, y, materialMap);
+  function plan(lookup, x, y) {
+    var codes = sideCodes(lookup, x, y);
     var draws = [];
     var i, d, code;
     for (i = 0; i < SIDE.length; i++) {

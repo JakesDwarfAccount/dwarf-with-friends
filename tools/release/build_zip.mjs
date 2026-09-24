@@ -9,16 +9,17 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
-  closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, lstatSync, statSync, writeSync,
+  closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeSync,
 } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
-import { readDoc, requireDoc } from "../lib/docpath.mjs";
+import { requireDoc } from "../lib/docpath.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const ZIP_ROOT = "DwarfWithFriends";
+const PUBLIC_REPO = "https://github.com/JakesDwarfAccount/dwarf-with-friends";
 const PLACEHOLDER = /(?:BAKE_[A-Z0-9_]+|PLACEHOLDER|REPLACE_ME|TODO_SHA256)/i;
 const REQUIRED_HOST_FILES = [
   "setup.mjs", "install.mjs", "hostlib.mjs", "fetchers.mjs", "host_panel.mjs",
@@ -42,6 +43,8 @@ const PLATFORMS = {
     excludedPluginBinary: "dwf.plug.so",
     launchers: [["DWF Setup.cmd", "setup.mjs"], ["Dwarf With Friends.cmd", "host_panel.mjs"]],
     setupCommand: "Double-click DWF Setup.cmd.",
+    setupName: "DWF Setup.cmd",
+    hostAgainLine: "To host again, open the Dwarf With Friends shortcut or Dwarf With Friends.cmd in this folder.",
     unpackLine: "1. Unzip this folder anywhere on your Windows PC.",
     suffix: "",
   },
@@ -51,6 +54,9 @@ const PLATFORMS = {
     excludedPluginBinary: "dwf.plug.dll",
     launchers: [["dwf-setup.sh", "setup.mjs"], ["dwarf-with-friends.sh", "host_panel.mjs"]],
     setupCommand: "Run ./dwf-setup.sh from a terminal.",
+    setupName: "./dwf-setup.sh",
+    hostAgainLine: "To host again, open Dwarf With Friends from your applications menu or run ./dwarf-with-friends.sh in this folder.",
+    steamLine: "For Steam hosting, set Dwarf Fortress Launch Options to: sh -c 'exec \"./dfhack\"' %command%",
     unpackLine: "1. Unzip this folder anywhere on your Linux PC (native Steam Dwarf Fortress).",
     suffix: "-linux",
   },
@@ -72,7 +78,8 @@ function sourceCommit(explicit) {
 }
 
 // The staged release/web tree is a copy of the repository's web/, so a gitignored asset or scratch
-// file left there is on disk at packaging time; only the tracked set is publishable.
+// file left there is on disk at packaging time; only the tracked set is publishable. host/ ships
+// as-is, so an untracked file there is refused outright.
 function trackedPayloadFiles() {
   let listed;
   try { listed = execFileSync("git", ["ls-files", "-z", "--", "web", "host"], { cwd: ROOT, encoding: "utf8" }); }
@@ -143,12 +150,15 @@ function launcher(script, platform) {
   ].join("\r\n"), "utf8");
 }
 
-function readme(version, platform) {
+// Release-specific wording (known issues, a fallback version) lives in that release's notes, which
+// ship beside this README; nothing here names a particular release.
+function readme(version, platform, dfhackVersion) {
   const p = PLATFORMS[platform];
+  const dfVersion = `0.${String(dfhackVersion).split("-")[0]}`;
   return Buffer.from([
     `Dwarf With Friends v${version}`,
     "",
-    "Requires Dwarf Fortress 0.53.16 and DFHack 53.16-r1. Dwarf Fortress is not included.",
+    `Requires Dwarf Fortress ${dfVersion} and DFHack ${dfhackVersion}. Dwarf Fortress is not included.`,
     "Close Dwarf Fortress before installing or updating the mod.",
     "",
     p.unpackLine,
@@ -156,23 +166,17 @@ function readme(version, platform) {
     "3. Follow the setup page that opens in your browser.",
     "   If no page opens, the address is printed in the console window (http://127.0.0.1:<port>).",
     "The console window is the engine log; minimize it, but leave it open.",
-    platform === "linux"
-      ? "To host again, open Dwarf With Friends from your applications menu or run ./dwarf-with-friends.sh in this folder."
-      : "To host again, open the Dwarf With Friends shortcut or Dwarf With Friends.cmd in this folder.",
-    ...(platform === "linux" ? ["For Steam hosting, set Dwarf Fortress Launch Options to: sh -c 'exec \"./dfhack\"' %command%"] : []),
+    p.hostAgainLine,
+    ...(p.steamLine ? [p.steamLine] : []),
     "Friends open the link shown in the host panel and enter the join password if you set one.",
-    `Close Dwarf Fortress, then re-run ${platform === "linux" ? "./dwf-setup.sh" : "DWF Setup.cmd"} to verify or repair the installation.`,
+    `Close Dwarf Fortress, then re-run ${p.setupName} to verify or repair the installation.`,
     "DFHack (the modding engine Dwarf With Friends runs on) is installed automatically by setup if it is missing.",
     "",
-    "Beta 4 has known interface issues, including Labor layout and selection styling, and occasional long announcement text overflow. No new full live gameplay test pass was performed for this release.",
-    "",
-    "Beta 3 remains the more stable fallback: https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3",
-    "Both beta 3 packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2. Follow that release's setup instructions in a compatible installation. Do not assume saves opened in a newer Dwarf Fortress version can be downgraded.",
-    "",
+    `What changed in v${version}, and anything still rough: RELEASE-NOTES.md in this folder.`,
     "Something not working? See TROUBLESHOOTING.md in this folder.",
     "Installing by hand, or want Tailscale instead of the default tunnel? See MANUAL-INSTALL.md.",
     "Found a bug? See REPORTING-BUGS.md for how to report it well.",
-    "Full docs and updates: https://github.com/JakesDwarfAccount/dwarf-with-friends",
+    `Full docs and updates: ${PUBLIC_REPO}`,
     "",
   ].join("\r\n"), "utf8");
 }
@@ -224,7 +228,7 @@ function writeZip(output, sourceEntries, executables = new Set()) {
       const compressed = deflated.length < data.length ? deflated : data;
       const method = compressed === deflated && deflated !== data ? 8 : 0;
       // Unix mode in the external-attr high word (version-made-by is already 3=Unix): 0755 for
-      // the Linux launchers + node binary so unzip restores runnable files, 0644 otherwise.
+      // the launchers, the node binary and the plugin so unzip restores runnable files, 0644 otherwise.
       const mode = name.endsWith("/") ? 0o755 : executables.has(name) ? 0o755 : 0o644;
       const externalAttrs = ((mode | (name.endsWith("/") ? 0o040000 : 0o100000)) << 16) >>> 0 |
                             (name.endsWith("/") ? 0x10 : 0);
@@ -290,11 +294,10 @@ export function buildReleaseZip(options) {
 
   const tracked = trackedPayloadFiles();
   const untrackedWeb = walkFiles(releaseDir).filter((rel) => rel.startsWith("web/") && !tracked.has(rel));
-
-  const untrackedHost = walkFiles(hostDir).filter(rel => !tracked.has(`host/${rel}`));
+  const untrackedHost = walkFiles(hostDir).filter((rel) => !tracked.has(`host/${rel}`));
   if (untrackedHost.length) fail(`host tree contains unapproved files: ${untrackedHost.join(", ")}`);
   const releaseAllowed = new Set([...requiredReleaseFiles(platform), "VERSION.txt", plat.excludedPluginBinary]);
-  const unexpectedRelease = walkFiles(releaseDir).filter(rel => !rel.startsWith("web/") && !releaseAllowed.has(rel));
+  const unexpectedRelease = walkFiles(releaseDir).filter((rel) => !rel.startsWith("web/") && !releaseAllowed.has(rel));
   if (unexpectedRelease.length) fail(`release tree contains unapproved files: ${unexpectedRelease.join(", ")}`);
 
   const entries = new Map();
@@ -304,8 +307,7 @@ export function buildReleaseZip(options) {
   entries.set(`${ZIP_ROOT}/host/download-manifest.json`, Buffer.from(manifestText));
   entries.set(`${ZIP_ROOT}/release/VERSION.txt`, Buffer.from(`v${version}\n`));
   entries.set(`${ZIP_ROOT}/${plat.nodeEntry}`, readFileSync(nodeExe));
-  const executables = new Set([`${ZIP_ROOT}/${plat.nodeEntry}`]);
-  if (platform === "linux") executables.add(`${ZIP_ROOT}/release/${plat.pluginBinary}`);
+  const executables = new Set([`${ZIP_ROOT}/${plat.nodeEntry}`, `${ZIP_ROOT}/release/${plat.pluginBinary}`]);
   entries.set(`${ZIP_ROOT}/NODE-LICENSE.txt`, nodeLicenseBytes);
   entries.set(`${ZIP_ROOT}/LICENSE`, readFileSync(path.join(ROOT, "LICENSE")));
   entries.set(`${ZIP_ROOT}/NOTICE`, readFileSync(path.join(ROOT, "NOTICE")));
@@ -313,33 +315,29 @@ export function buildReleaseZip(options) {
     entries.set(`${ZIP_ROOT}/${name}`, launcher(script, platform));
     executables.add(`${ZIP_ROOT}/${name}`);
   }
-  entries.set(`${ZIP_ROOT}/README.txt`, readme(version, platform));
-  // Most players only ever open this zip, never the git repo -- so the player-facing docs must
-  // ship here too, not just in source control. ALL of them land at the zip ROOT (owner call,
-  // beta.2): a player browsing the unzipped folder should see TROUBLESHOOTING next to the
-  // launchers, not tucked in docs/. The repo keeps its docs/ layout, so the inter-doc relative
-  // links ("docs/guides/X.md" from the root, "../../TROUBLESHOOTING.md" from docs/guides/) are
-  // rewritten to flat siblings in the bundled copies only.
-  //
-  // This strips the WHOLE path down to the basename rather than peeling one known prefix. The two
-  // `replaceAll`s it replaces ("](docs/" -> "](", "](../" -> "](") only ever handled a single
-  // segment of nesting, so the 2026-07-30 docs/ regrouping silently re-broke every link it used to
-  // fix: "](docs/guides/MANUAL-INSTALL.md)" became "](guides/MANUAL-INSTALL.md)" and
-  // "](../../TROUBLESHOOTING.md)" became "](../TROUBLESHOOTING.md)", neither of which resolves in a
-  // zip where every doc is a root sibling. Depth-independent now, so the next docs/ move cannot.
-  // Only .md/.html targets match, which leaves anchors ("](#section)"), images, and absolute URLs
-  // alone -- "https://" cannot match because ":" and "//" are outside the segment character class.
+  const dfhackVersion = manifestItem("dfhack").version || manifest.dfhack?.version;
+  if (!dfhackVersion) fail("download-manifest.json names no DFHack version; README.txt and the release manifest need it");
+  entries.set(`${ZIP_ROOT}/README.txt`, readme(version, platform, dfhackVersion));
+  // Player docs land at the zip root beside the launchers, so their links are flattened to siblings.
+  // requireDoc finds each one in either the grouped dev tree or the flat public tree.
   const flattenDocLinks = (text) => String(text)
     .replace(/\]\((?:\.\.\/)*(?:[\w.-]+\/)*([\w.-]+\.(?:md|html))((?:#[^)\s]*)?)\)/g, "]($1$2)");
-  // Resolved through findDoc because the public tree flattens docs/guides/ into docs/: the owner
-  // builds these archives FROM the merged public tree (PUBLISH-PROCEDURE step 17), where a bare
-  // readFileSync on the private path throws.
-  const playerDocs = ["TROUBLESHOOTING.md", "docs/guides/MANUAL-INSTALL.md", "docs/guides/REPORTING-BUGS.md", "docs/guides/CONFIG.md"];
-  for (const rel of playerDocs) {
-    const base = rel.split("/").pop();
-    entries.set(`${ZIP_ROOT}/${base}`, Buffer.from(flattenDocLinks(readDoc(ROOT, rel)), "utf8"));
+  const packagedDocs = new Map([
+    ["TROUBLESHOOTING.md", "TROUBLESHOOTING.md"],
+    ["docs/guides/MANUAL-INSTALL.md", "MANUAL-INSTALL.md"],
+    ["docs/guides/REPORTING-BUGS.md", "REPORTING-BUGS.md"],
+    ["docs/guides/CONFIG.md", "CONFIG.md"],
+    [`docs/releases/RELEASE-NOTES-v${version}.md`, "RELEASE-NOTES.md"],
+  ]);
+  const sourceDestinations = new Map([["LICENSE", `${ZIP_ROOT}/LICENSE`], ["NOTICE", `${ZIP_ROOT}/NOTICE`]]);
+  for (const [rel, name] of packagedDocs) {
+    const abs = requireDoc(ROOT, rel);
+    sourceDestinations.set(path.relative(ROOT, abs).split(path.sep).join("/"), `${ZIP_ROOT}/${name}`);
+    entries.set(`${ZIP_ROOT}/${name}`, Buffer.from(flattenDocLinks(readFileSync(abs, "utf8")), "utf8"));
   }
 
+  // Markdown inside host/ and release/web/ keeps working links: a packaged file becomes a relative
+  // link, anything else a GitHub link pinned to the source commit.
   const packageSourceCommit = sourceCommit(options.sourceCommit);
   const copiedSources = new Map();
   for (const name of entries.keys()) {
@@ -347,21 +345,20 @@ export function buildReleaseZip(options) {
     if (relative.startsWith("host/")) copiedSources.set(relative, name);
     else if (relative.startsWith("release/web/")) copiedSources.set(relative.slice("release/".length), name);
   }
-  const sourceDestinations = new Map([...copiedSources,
-    ["LICENSE", `${ZIP_ROOT}/LICENSE`], ["NOTICE", `${ZIP_ROOT}/NOTICE`],
-    ...playerDocs.map(rel => [path.relative(ROOT, requireDoc(ROOT, rel)).split(path.sep).join("/"), `${ZIP_ROOT}/${path.posix.basename(rel)}`]),
-  ]);
+  for (const [source, destination] of copiedSources) sourceDestinations.set(source, destination);
   for (const [source, destination] of copiedSources) {
     if (!source.endsWith(".md")) continue;
     const text = entries.get(destination).toString("utf8").replace(/\]\(([^)\s]+)\)/g, (link, target) => {
       if (/^(?:[a-z][a-z0-9+.-]*:|#|\/)/i.test(target)) return link;
       const [file, fragment] = target.split("#", 2);
       const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(source), file));
-      if (resolved.startsWith("../") || !existsSync(path.join(ROOT, resolved))) fail(`unresolved packaged documentation link: ${source} -> ${target}`);
+      if (resolved.startsWith("../") || !existsSync(path.join(ROOT, resolved))) {
+        fail(`unresolved packaged documentation link: ${source} -> ${target}`);
+      }
       const bundled = sourceDestinations.get(resolved);
       const url = bundled
         ? path.posix.relative(path.posix.dirname(destination), bundled)
-        : `https://github.com/JakesDwarfAccount/dwarf-with-friends/blob/${packageSourceCommit}/${resolved.split("/").map(encodeURIComponent).join("/")}`;
+        : `${PUBLIC_REPO}/blob/${packageSourceCommit}/${resolved.split("/").map(encodeURIComponent).join("/")}`;
       return `](${url}${fragment === undefined ? "" : `#${fragment}`})`;
     });
     entries.set(destination, Buffer.from(text));
@@ -375,7 +372,7 @@ export function buildReleaseZip(options) {
     sourceCommit: packageSourceCommit,
     releaseVersion: version,
     platform,
-    dfhackVersion: manifestItem("dfhack").version || manifest.dfhack?.version,
+    dfhackVersion,
     node: { version: nodeVersion, sha256: actualNodeSha },
     manifestSelfExcluded: true,
     files: [...entries].sort(([a], [b]) => a.localeCompare(b)).map(([name, bytes]) => ({

@@ -621,7 +621,6 @@ void register_notification_routes(httplib::Server& server) {
         res.status = 400;
         res.set_content("bad notification action\n", "text/plain; charset=utf-8");
     };
-    server.Get("/notification-action", notification_action_handler);
     server.Post("/notification-action", notification_action_handler);
 }
 

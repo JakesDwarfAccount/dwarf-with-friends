@@ -21,10 +21,10 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.hauling {
-  /* Screen- and panel-family presentation. */
+  /* Burrows and hauling share one full-height left panel beside the zone palette. */
   #burrowPanel,
   #haulingPanel {
     position: fixed;
@@ -32,62 +32,43 @@
     top: var(--zone-palette-top);
     bottom: 48px;
     z-index: 60;
-    width: min(440px, calc(100vw - 84px));
+    width: min(calc(44 * var(--dwfui-cell-drawn-w)), calc(100vw - 84px));
     display: flex;
     flex-direction: column;
-    border: 2px solid var(--dwfui-gold);
-    background: var(--dwfui-surface);
-    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
     pointer-events: auto;
   }
-  #burrowPanel[hidden],
-  #haulingPanel[hidden] {
-    display: none;
-  }
-  .burrow-cit-row.is-expanded {
-    display: block;
-  }
   .hauling-stop-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 12px;
-    font-size: 11px;
-    color: var(--dwfui-text-row);
+    gap: var(--dwfui-space-s);
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m);
   }
   .hauling-stop-name {
-    color: var(--dwfui-text-body);
     flex: 1;
     min-width: 0;
   }
   .hauling-vehicles {
-    padding: 4px 12px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
   }
 
   .hauling-stop-detail {
-    padding: 2px 12px 8px;
-    border-left: 2px solid var(--dwfui-slab);
-    margin: 0 0 6px 12px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-m);
+    border-left: calc(2 * var(--dwfui-divider)) solid var(--dwfui-slab);
+    margin: 0 0 var(--dwfui-space-s) var(--dwfui-space-m);
   }
   .hauling-cond-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 0;
-    font-size: 11px;
-    color: var(--dwfui-text-row);
+    gap: var(--dwfui-space-s);
+    padding: var(--dwfui-space-xs) 0;
   }
-  .hauling-cond-list {
-    max-height: 132px;
-  }
+  .hauling-cond-list,
   .hauling-vehicle-list {
-    max-height: 132px;
+    max-height: calc(11 * var(--dwfui-cell-drawn-h));
   }
   .hauling-cond-form {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 6px;
+    gap: var(--dwfui-space-s);
+    margin-top: var(--dwfui-space-s);
   }
   .hauling-cond-seg {
     flex-wrap: wrap;
@@ -95,35 +76,33 @@
   .hauling-cond-checks {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: var(--dwfui-space-s);
     color: var(--dwfui-text-row);
   }
   .hauling-desired {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 0;
-    font-size: 11px;
+    gap: var(--dwfui-space-s);
+    padding: var(--dwfui-space-xs) 0;
   }
   #haulingPanel .burrow-row-tools .hauling-stop-arm {
     flex: 1 1 auto;
     min-width: calc(14 * var(--dwfui-cell-drawn-w));
-    max-width: none;
   }
   #haulingPanel .hauling-stop-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
+  /* A stop name keeps its whole plaque; the summary drops under it when both do not fit. */
   #haulingPanel .hauling-stop-main {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     min-width: 0;
-    gap: var(--dwfui-cell-drawn-w);
+    column-gap: var(--dwfui-space-m);
   }
   #haulingPanel .hauling-stop-open {
-    flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
@@ -136,12 +115,12 @@
   #haulingPanel .hauling-stop-tools {
     display: flex;
     align-items: center;
-    gap: calc(0.5 * var(--dwfui-cell-drawn-w));
-    margin-left: calc(0.5 * var(--dwfui-cell-drawn-w));
+    gap: var(--dwfui-space-s);
+    margin-left: var(--dwfui-space-s);
   }
 
   #haulingPanel .hauling-stockpile-links {
-    margin-bottom: calc(0.5 * var(--dwfui-cell-drawn-h));
+    margin-bottom: calc(0.5 * var(--dwfui-space-l));
   }
   #haulingPanel .hauling-stockpile-link-list {
     max-height: calc(13 * var(--dwfui-cell-drawn-h));
@@ -151,26 +130,25 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--dwfui-cell-drawn-w);
-    min-height: calc(3 * var(--dwfui-cell-drawn-h));
-    padding: calc(0.25 * var(--dwfui-cell-drawn-h)) 0;
+    gap: var(--dwfui-space-m);
+    min-height: var(--dwfui-height-row-tall);
+    padding: calc(0.25 * var(--dwfui-space-l)) 0;
   }
   #haulingPanel .hauling-stockpile-link-tools,
   #haulingPanel .hauling-stockpile-link-add,
   #haulingPanel .hauling-link-check {
     display: flex;
     align-items: center;
-    gap: calc(0.5 * var(--dwfui-cell-drawn-w));
+    gap: var(--dwfui-space-s);
   }
   #haulingPanel .hauling-stockpile-link-add {
     flex-wrap: wrap;
-    padding-top: calc(0.5 * var(--dwfui-cell-drawn-h));
+    padding-top: calc(0.5 * var(--dwfui-space-l));
   }
   #haulingPanel .hauling-link-check,
   #haulingPanel .hauling-link-armed,
   #haulingPanel .hauling-stockpile-link-empty {
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
   }
   #haulingPanel .hauling-stockpile-link-direction {
     color: var(--dwfui-text-secondary);

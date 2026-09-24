@@ -825,7 +825,6 @@ void register_mission_routes(httplib::Server& server) {
         }
         json_error(res, 400, err.empty() ? "invalid mission order" : err);
     };
-    server.Get("/mission-create", create_handler);
     server.Post("/mission-create", create_handler);
 
     // POST /mission-rescue runs DFHack's own fix/stuck-squad script through the lua bridge.
@@ -845,7 +844,6 @@ void register_mission_routes(httplib::Server& server) {
              << ",\"output\":" << json_string(output) << "}\n";
         set_no_store_json(res, body.str());
     };
-    server.Get("/mission-rescue", rescue_handler);
     server.Post("/mission-rescue", rescue_handler);
 }
 

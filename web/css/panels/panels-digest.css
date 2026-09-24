@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.digest {
   /* Since-you-left digest */
@@ -29,71 +29,23 @@
     position: fixed;
     inset: 0;
     z-index: 9100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-content: center;
     pointer-events: none;
-    font-family: var(--dwfui-font-face);
   }
   #dfDigestPanel {
-    width: min(520px, calc(100vw - 28px));
-    max-height: min(70vh, 520px);
-    overflow: auto;
     pointer-events: auto;
-    background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-gold);
-    border-radius: 6px;
-    color: var(--dwfui-text-body);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.58);
   }
-  #dfDigestPanel .digest-head {
+  .digest-window {
+    width: calc(52 * var(--dwfui-cell-drawn-w));
+    max-height: 70vh;
+  }
+  .digest-cat + .digest-cat {
+    margin-top: var(--dwfui-space-l);
+  }
+  .digest-foot {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--dwfui-gold);
-  }
-  #dfDigestPanel .digest-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--dwfui-text-title);
-  }
-  #dfDigestPanel .digest-close {
-    border: 1px solid var(--dwfui-gold);
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-secondary);
-    border-radius: 4px;
-    padding: 2px 7px;
-    cursor: pointer;
-    font: inherit;
-  }
-  #dfDigestPanel .digest-body {
-    padding: 10px 12px 12px;
-    display: grid;
-    gap: 10px;
-  }
-  #dfDigestPanel .digest-cat {
-    display: grid;
-    gap: 4px;
-    border-bottom: 1px solid var(--dwfui-gold);
-    padding-bottom: 8px;
-  }
-  #dfDigestPanel .digest-cat:last-child {
-    border-bottom: 0;
-    padding-bottom: 0;
-  }
-  #dfDigestPanel .digest-cat-title {
-    font-size: 12px;
-    color: var(--dwfui-text-heading);
-  }
-  #dfDigestPanel .digest-line {
-    font-size: 12px;
-    line-height: 1.35;
-    color: var(--dwfui-text-body);
-  }
-  #dfDigestPanel .digest-more {
-    font-size: 11px;
-    color: var(--dwfui-text-secondary);
+    justify-content: flex-end;
+    margin-top: var(--dwfui-space-l);
   }
 }

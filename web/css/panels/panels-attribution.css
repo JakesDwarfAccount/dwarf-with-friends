@@ -21,20 +21,18 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.attribution {
   /* Attribution chip */
   .attrib-chip {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    font-size: 12px;
+    gap: var(--dwfui-space-xs);
     opacity: 0.92;
   }
   .attrib-chip .attrib-dot {
     color: attr(data-attrib-color type(<color>), currentColor);
-    font-size: 11px;
     line-height: 1;
   }
   .attrib-chip .attrib-name {

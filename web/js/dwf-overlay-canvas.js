@@ -38,7 +38,7 @@
         var anchorZ = parseInt(getComputedStyle(options.zAfterAnchor).zIndex, 10);
         if (!isNaN(anchorZ)) zi = anchorZ + 1;
       }
-    } catch (_) { zi = options.defaultZ; }
+    } catch { zi = options.defaultZ; }
     s.zIndex = String(zi);
     if (options.anchor && options.anchor.parentNode)
       options.anchor.parentNode.insertBefore(canvas, options.anchor.nextSibling);

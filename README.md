@@ -1,8 +1,8 @@
 # Dwarf With Friends
 
-[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE) [![Release: beta 4](https://img.shields.io/badge/release-v1.0.0--beta.4-blue)](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.4) [![Windows native build](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml/badge.svg?branch=main)](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE) [![Release: beta 4.1](https://img.shields.io/badge/release-v1.0.0--beta.4.1-blue)](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.4.1) [![Windows native build](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml/badge.svg?branch=main)](https://github.com/JakesDwarfAccount/dwarf-with-friends/actions/workflows/windows-native-build.yml)
 
-### Download beta 4: [Windows](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.4/DwarfWithFriends-v1.0.0-beta.4.zip) · [Linux](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.4/DwarfWithFriends-v1.0.0-beta.4-linux.zip)
+### Download beta 4.1: [Windows](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.4.1/DwarfWithFriends-v1.0.0-beta.4.1.zip) · [Linux](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/download/v1.0.0-beta.4.1/DwarfWithFriends-v1.0.0-beta.4.1-linux.zip)
 
 *(Those links are the ready-to-play release zips. The green "Code → Download ZIP" button is the source code: that's for developers, not for playing.)*
 
@@ -21,7 +21,7 @@ watch the box grow. It's the difference between watching someone play and *playi
 Dwarf With Friends is a [DFHack](https://github.com/DFHack/dfhack) plugin for Steam-era Dwarf
 Fortress (v0.53.16, DFHack 53.16-r1). It is a **beta** with substantial gameplay, rendering, and loading improvements. Some actions still require the host to use the native game.
 
-Beta 4 has known interface rough edges, including Labor layout and selection styling and occasional long announcement text overflow. No new full live gameplay test pass was performed for this release. If these issues get in your way, [beta 3](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3) remains the more stable fallback. Its Windows and Linux packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2; beta 4 requires Dwarf Fortress 0.53.16 with DFHack 53.16-r1. Follow beta 3’s own setup instructions in a compatible installation. Do not assume a save opened in a newer Dwarf Fortress version can be downgraded.
+Beta 4.1 fixes most of the interface regressions from beta 4. If something still gets in your way, [beta 3](https://github.com/JakesDwarfAccount/dwarf-with-friends/releases/tag/v1.0.0-beta.3) remains the more stable fallback. Its Windows and Linux packages require Dwarf Fortress 0.53.15 with DFHack 53.15-r2; beta 4 and 4.1 require Dwarf Fortress 0.53.16 with DFHack 53.16-r1. Follow beta 3’s own setup instructions in a compatible installation. Do not assume a save opened in a newer Dwarf Fortress version can be downgraded.
 
 The project grew directly from Gabriel Rios's
 [SourceAirbender/multi-dwarf](https://github.com/SourceAirbender/multi-dwarf) and retains that

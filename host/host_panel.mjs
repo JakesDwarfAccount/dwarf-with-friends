@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile, execFileSync, spawn } from "node:child_process";
 import {
-  SERVER_PORT, AUTH_COOKIE, PLUGIN_BINARY, CLOUDFLARED_BIN, DF_EXE_NAME,
+  SERVER_PORT, AUTH_COOKIE, PLUGIN_BINARY, CLOUDFLARED_BIN,
   checkDfhack, autodetectDfRoot, dfhackMarkers,
   readPassword, writePassword, passwordFilePath, generatePassword,
   readHostFlags, writeHostFlags,

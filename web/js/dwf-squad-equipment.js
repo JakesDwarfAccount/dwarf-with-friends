@@ -29,7 +29,7 @@
   const UNIFORM_NEW_LABELS = ["New bodywear", "New headwear", "New legwear", "New handwear",
     "New footwear", "New shield", "New weapon"];
 
-  function sqMaterialClassOptions(catalog, selected, esc = window.sqEsc) {
+  function sqMaterialClassOptions(catalog) {
     const classes = Array.isArray(catalog && catalog.materialClasses) ? catalog.materialClasses : [];
     if (!classes.length) return [[-1, "any"]];
     return classes.map(mc => [mc.value, mc.value === -1 ? "any material" : String(mc.name || "")]);
@@ -45,57 +45,53 @@
     return "subtype " + subtype;
   }
 
-  function sqUniformAssignRows(members, uniforms, esc = window.sqEsc, picks = {}) {
+  function sqUniformAssignRows(members, uniforms, picks = {}) {
     if (!Array.isArray(members) || !members.length) {
       return `<div class="info-message">This squad has no positions.</div>`;
     }
     const templates = Array.isArray(uniforms) ? uniforms : [];
-    const options = templates.map(u => [u.id, u.name || ("Uniform " + u.id)]);
+    // The last choice clears the position, as the template pane's own "No uniform" row does.
+    const options = templates.map(u => [u.id, u.name || ("Uniform " + u.id)]).concat([[-1, "No uniform"]]);
     return members.map(m => {
-      const portrait = m.filled ? window.sqUnitPortrait(m) : "";
-      const name = m.name || ("Unit " + m.unitId);
-      const who = m.filled ? portrait +
-        `<span class="squad-uassign-name-fit"${window.sqProfessionColorStyle(m)}>${DWFUI.bitmapTextHtml(name,
-          { fitNativeLabel: { host: "parent" } })}</span>` : DWFUI.bitmapTextHtml("(empty)");
-      const pick = picks[m.idx] != null ? picks[m.idx] : (templates.length ? templates[0].id : -1);
-      const strip = window.sqEquipmentStrip(m);
+      const name = m.filled ? (m.name || ("Unit " + m.unitId)) : "(empty)";
+      const pick = picks[m.idx] != null ? picks[m.idx] : options[0][0];
       const items = Number(m.uniformItems) || 0;
-      return `<div class="squad-uassign-row squad-uassign-matrix-row">
-        <div class="squad-uassign-pos">${m.idx} &middot; ${esc(m.positionName || "")}</div>
-        <div class="squad-uassign-who">${who}</div>
-        <div class="squad-uassign-items" title="${items} uniform item${items === 1 ? "" : "s"} required">${strip ||
-          DWFUI.bitmapTextHtml(items ? `${items} items` : "no uniform", { cls: "squad-uassign-items-text" })}</div>
-        ${window.sqCyclerHtml("uniformPick", options, pick, { cls: "squad-uniform-select",
-          dataset: { uniformPos: m.idx }, title: "Uniform template", empty: "No uniform templates",
-          ariaLabel: "Uniform template for this position" })}
-        ${DWFUI.plaqueBtnHtml({ label: "Apply", tone: "green", artTone: "neutral",
-          dataset: { uniformApply: m.idx }, disabled: !templates.length,
-          title: "Apply the cycled template to this position" })}
-        ${DWFUI.plaqueBtnHtml({ label: "Clear", tone: "red", dataset: { uniformClear: m.idx },
-          title: "Clear this position's uniform" })}
-        ${DWFUI.artBtnHtml({ sprite: DWFUI.TOKENS.sprites.inspect, cls: "squad-uassign-inspect",
-          dataset: { equipmentInspect: m.idx }, title: "Inspect this position's equipment", ariaLabel: "Inspect equipment" })}
-        ${DWFUI.plaqueBtnHtml({ label: "Details", tone: "green", artTone: "neutral",
-          dataset: { equipmentDetails: m.idx }, title: "Open equipment details" })}
-      </div>`;
+      return DWFUI.rowHtml({
+        tag: "div", cls: "squad-uassign-member", chassis: "table", copyCls: "squad-uassign-copy",
+        icon: `<span class="squad-uassign-portrait">${m.filled ? window.sqUnitPortrait(m) : ""}</span>`,
+        labelHtml: DWFUI.rawHtml("DF profession colour wraps the bitmap-rendered squad member name",
+          `<span class="squad-uassign-name-fit"${window.sqProfessionColorStyle(m)}>${DWFUI.bitmapTextHtml(name,
+            { fitNativeLabel: { host: "parent" } })}</span>`),
+        sub: { html: DWFUI.bitmapTextHtml(m.positionName || "", { fitNativeLabel: { host: "parent" } }) },
+        cells: [
+          { cls: "squad-uassign-items", html: window.sqEquipmentStrip(m) ||
+            DWFUI.bitmapTextHtml(items ? `${items} items` : "no uniform", { cls: "squad-uassign-items-text" }) },
+        ],
+        trailing: `<span class="squad-uassign-actions">${window.sqCyclerHtml("uniformPick", options, pick, {
+          cls: "squad-uniform-select", dataset: { uniformPos: m.idx }, title: "Uniform template",
+          ariaLabel: "Uniform template for this position" })}${DWFUI.plaqueBtnHtml({ label: "Apply", tone: "green", artTone: "neutral",
+          dataset: { uniformApply: m.idx }, title: "Apply the cycled uniform to this position" })}${
+          DWFUI.plaqueBtnHtml({ label: "Details", tone: "green", artTone: "neutral",
+            dataset: { equipmentDetails: m.idx }, title: "Open equipment details" })}</span>`,
+      });
     }).join("");
   }
 
-  function sqUniformTemplatePane(uniforms, esc = window.sqEsc) {
+  function sqUniformTemplatePane(uniforms) {
     const templates = Array.isArray(uniforms) ? uniforms : [];
     // Oracle 5.1: the template pane's rows are native's GREY slabs, not the lit-green toggle paint.
     const rows = templates.map(u => DWFUI.rowHtml({
-      tag: "div", cls: "squad-uniform-template-row", chassis: "slab",
+      tag: "div", cls: "squad-uniform-template-row", chassis: "slab", state: "some",
       dataset: { uniformTemplate: u.id }, label: u.name || ("Uniform " + u.id),
       trailing: DWFUI.artBtnHtml({ sprite: DWFUI.TOKENS.sprites.squadsDisband,
         cls: "squad-uniform-template-delete",
         dataset: { uniformTemplateDelete: u.id }, title: "Delete uniform template", ariaLabel: "Delete uniform template" }),
     })).join("") + DWFUI.rowHtml({
-      tag: "div", cls: "squad-uniform-template-row squad-uniform-template-none", chassis: "slab",
+      tag: "div", cls: "squad-uniform-template-row squad-uniform-template-none", chassis: "slab", state: "some",
       dataset: { uniformTemplate: -1 }, label: "No uniform",
     });
     return `<aside class="squad-uniform-template-pane">
-      ${DWFUI.bitmapProseHtml("Choose a uniform for the selected squads.", 48, { cls: "squad-uniform-template-prompt" })}
+      ${DWFUI.bitmapProseHtml("Choose a uniform for the selected squads.", 24, { cls: "squad-uniform-template-prompt" })}
       ${window.sqListHtml({ cls: "squad-uniform-template-list", rows: ".squad-uniform-template-row", preserveKey: "squads:uniform-templates" },
         rows || `<div class="info-message">No uniform templates.</div>`)}</aside>`;
   }
@@ -145,7 +141,7 @@
     const subtypesByCat = catalog.subtypes || {};
     const drafts = sel.uitemDrafts || {};
     const flags = sel.uniformFlags || { replaceClothing: !!u.replaceClothing, exactMatches: !!u.exactMatches };
-    const matOptions = sqMaterialClassOptions(catalog, -1, esc);
+    const matOptions = sqMaterialClassOptions(catalog);
     const catRows = UNIFORM_CATS.map(([cat, label]) => {
       const catItems = items.filter(it => it.cat === cat);
       const itemRows = catItems.map(it => {
@@ -178,7 +174,7 @@
               dataset: { ucat: cat }, title: "Subtype", ariaLabel: `${label} subtype` })}
             ${window.sqCyclerHtml("uitemMat", matOptions, matclass, { cls: "squad-uitem-mat",
               dataset: { ucat: cat }, title: "Material", ariaLabel: `${label} material` })}
-            ${window.sqStepperHtml({ cls: "squad-pos-input squad-uitem-color", inputCls: "squad-input squad-uitem-color-input",
+            ${window.sqStepperHtml({ cls: "squad-uitem-color", inputCls: "squad-input squad-uitem-color-input",
               dataset: { uitemColor: cat }, label: "Dye", min: -1, max: 15, value: color,
               ariaLabel: "Dye color (0-15, -1 none)", title: "Dye color (0-15, -1 none)" })}
             ${cat === 6 ? DWFUI.segmentedHtml({ cls: "squad-uitem-choice", dataAttr: "uitem-choice",
@@ -189,7 +185,7 @@
               title: `Add this ${String(label).toLowerCase()} requirement to the template` })}
           </div>
         </div>
-        <div class="squad-uitem-list">${itemRows || `<span class="squad-empty">(none)</span>`}</div>
+        <div class="squad-uitem-list">${itemRows || `<span class="dwfui-text--empty squad-empty">(none)</span>`}</div>
       </div>`;
     }).join("");
     return `
@@ -223,7 +219,7 @@
     const rows = specs.length
       ? specs.map(a => {
           const name = esc(a.ammoName || ("Ammo #" + a.subtype));
-          const mat = esc(a.materialName && a.materialClass !== -1 ? a.materialName : "any");
+          const mat = DWFUI.bitmapTextHtml(a.materialName && a.materialClass !== -1 ? a.materialName : "any");
           const d = rowDrafts[a.index] || {};
           const amount = d.amount != null ? Number(d.amount) : (Number(a.amount) || 0);
           const combat = d.combat != null ? !!d.combat : !!a.combat;
@@ -248,7 +244,7 @@
       : `<div class="info-message">No ammunition assigned. (${defs.length ? "add bolts/arrows below" : "ammo catalog unavailable"})</div>`;
     const defOptions = defs.map(d =>
       [d.subtype, (d.name || ("ammo " + d.subtype)) + (d.ammoClass ? " (" + d.ammoClass + ")" : "")]);
-    const matOptions = sqMaterialClassOptions(catalog, -1, esc);
+    const matOptions = sqMaterialClassOptions(catalog);
     const addSubtype = add.subtype != null ? add.subtype : (defs.length ? defs[0].subtype : -1);
     const addAmount = add.amount != null ? Number(add.amount) : 100;
     // Same rule as the uniform editor: the displayed default IS the posted default (the old
@@ -261,7 +257,7 @@
       <div class="squad-controls squad-ammo-add">
         ${window.sqCyclerHtml("ammoType", defOptions, addSubtype, { cls: "squad-ammo-type", title: "Ammo type",
           empty: "No ammo types", ariaLabel: "Ammunition type" })}
-        ${window.sqStepperHtml({ cls: "squad-pos-input squad-ammo-add-amount", inputCls: "squad-input squad-ammo-add-amount-input",
+        ${window.sqStepperHtml({ cls: "squad-ammo-add-amount", inputCls: "squad-input squad-ammo-add-amount-input",
           dataset: { ammoAddAmount: "" }, label: "Amount", min: 0, max: 9999, value: addAmount,
           ariaLabel: "Amount" })}
         ${window.sqCyclerHtml("ammoMat", matOptions, addMat,
@@ -281,7 +277,7 @@
   const SUPPLY_FOOD_OPTIONS = [[3, "3 food"], [2, "2 food"], [1, "1 food"], [0, "No food"]];
   const SUPPLY_WATER_OPTIONS = [["drink", "Drink"], ["water", "Water"], ["nowater", "No water"]];
 
-  function sqSuppliesSection(detail, esc = window.sqEsc) {
+  function sqSuppliesSection(detail) {
     const supplies = detail && detail.supplies;
     if (!supplies) {
       return `<div class="info-message">This build does not serve squad supplies, so they cannot be edited here.</div>`;
@@ -289,7 +285,6 @@
     const food = Number(supplies.food);
     const water = String(supplies.water || "none");
     return `
-      <div class="squad-section-title">Supplies carried by each squad member</div>
       <div class="squad-controls squad-supply-row">${DWFUI.segmentedHtml({
         cls: "squad-supply-food", dataAttr: "supply-food", active: String(food),
         ariaLabel: "Food carried by each squad member",
@@ -321,7 +316,7 @@
       dataset, labelHtml: DWFUI.bitmapTextHtml(String(label), { cls: "squad-picker-row-text" }),
       labelCls: "squad-pos-role",
     });
-    let rows = "";
+    let rows;
     if (picker.kind === "color") {
       const colors = Array.isArray(catalog && catalog.colors) ? catalog.colors : [];
       rows = pickerRow({ equipmentPickColor: -1 }, "any color") +
@@ -381,7 +376,7 @@
     return `${DWFUI.bitmapProseHtml(
         "Saving this position as a fort uniform template is not served (DEF-112). Equipment requirements below remain editable.",
         72, { cls: "squad-equip-save-gap" })}
-      <div class="squad-section-title">${esc(squad.alias || squad.name || "Squad")} · Position ${Number(member.idx) + 1}</div>
+      <div class="dwfui-text--section squad-section-title">${esc(squad.alias || squad.name || "Squad")} · Position ${Number(member.idx) + 1}</div>
       <div class="squad-controls"><span class="squad-field-label">Edit position</span>${
         window.sqCyclerHtml("equipPos", posOptions, member.idx, { cls: "squad-equipment-pos",
           title: "Position", ariaLabel: "Position being edited" })}</div>
@@ -419,22 +414,22 @@
     } else if (active === "ammo") {
       body = sqAmmoSection(detail, catalog, esc, sel);
     } else if (active === "supplies") {
-      body = sqSuppliesSection(detail, esc);
+      body = sqSuppliesSection(detail);
     } else if (active === "details") {
       body = sqEquipmentDetails(detail, catalog, posIndex, picker, esc);
     } else {
       const uniforms = Array.isArray(detail.uniforms) ? detail.uniforms : [];
       const members = Array.isArray(squad.members) ? squad.members : [];
-      body = `<div class="squad-uniform-assign-layout">${sqUniformTemplatePane(uniforms, esc)}
-        ${window.sqListHtml({ cls: "squad-uassign-list", rows: ".squad-uassign-matrix-row", preserveKey: "squads:uassign" },
-          sqUniformAssignRows(members, uniforms, esc, sel.uniformPick || {}))}</div>`;
+      body = `<div class="squad-uniform-assign-layout">${sqUniformTemplatePane(uniforms)}
+        ${window.sqListHtml({ cls: "squad-uassign-list", rows: ".squad-uassign-member", preserveKey: "squads:uassign" },
+          sqUniformAssignRows(members, uniforms, sel.uniformPick || {}))}</div>`;
     }
     const squadName = esc(squad.alias || squad.name || ("Squad " + squad.id));
     const confirm = DWFUI.plaqueBtnHtml({ label: "Confirm", tone: "green", artTone: "neutral",
       dataset: { equipTab: "uniform" }, title: "Return to squad equipment" });
     let header;
     if (active === "uniform") {
-      header = `<div class="squad-tabbar squad-equip-native-nav">${nav}<span class="squad-equip-nav-spacer"></span>${
+      header = `<div class="squad-tabbar">${nav}<span class="squad-equip-nav-spacer"></span>${
         DWFUI.plaqueBtnHtml({ label: "Update equipment", tone: "green", artTone: "neutral",
           disabled: true, title: "Native equipment refresh; automatic in Dwarf With Friends" })}</div>`;
     } else if (active === "add") {
@@ -477,9 +472,9 @@
   // The per-position template chooser is now a CYCLER; its value lives in `window.DFSquadController.uniformPick` (seeded, like
   // the old `select`'s first option, from the first served template). Apply POSTs the same uniform id.
   function wireSquadUniformControls(squad) {
-    clientPanel.querySelectorAll("[data-equipment-details],[data-equipment-inspect]").forEach(button => {
+    clientPanel.querySelectorAll("[data-equipment-details]").forEach(button => {
       button.addEventListener("click", () => {
-        window.setEquipmentPosition(squad.id, Number(button.dataset.equipmentDetails ?? button.dataset.equipmentInspect));
+        window.setEquipmentPosition(squad.id, Number(button.dataset.equipmentDetails));
         window.DFSquadController.equipTab = "details";
         window.DFSquadController.equipmentPicker = null;
         window.renderSquadsPanel();
@@ -523,23 +518,14 @@
       button.addEventListener("click", async () => {
         const pos = Number(button.dataset.uniformApply);
         const templates = Array.isArray(window.DFSquadController.squadDetail && window.DFSquadController.squadDetail.uniforms) ? window.DFSquadController.squadDetail.uniforms : [];
-        const uniform = window.DFSquadController.uniformPick[pos] != null ? Number(window.DFSquadController.uniformPick[pos])
-          : (templates.length ? Number(templates[0].id) : -1);
-        if (!(uniform >= 0)) { window.DFSquadController.squadStatusMsg = "No uniform template selected."; window.renderSquadsPanel(); return; }
+        const picked = window.DFSquadController.uniformPick[pos];
+        const uniform = picked != null ? Number(picked) : (templates.length ? Number(templates[0].id) : -1);
         try {
-          await squadUniformPost({ squad: squad.id, pos, action: "apply", uniform });
-          window.DFSquadController.squadStatusMsg = "Uniform applied.";
-        } catch (err) { window.DFSquadController.squadStatusMsg = err.message || "Could not apply uniform."; }
-        await window.loadSquadDetail(squad.id);
-      });
-    });
-    clientPanel.querySelectorAll("[data-uniform-clear]").forEach(button => {
-      button.addEventListener("click", async () => {
-        const pos = Number(button.dataset.uniformClear);
-        try {
-          await squadUniformPost({ squad: squad.id, pos, action: "clear" });
-          window.DFSquadController.squadStatusMsg = "Uniform cleared.";
-        } catch (err) { window.DFSquadController.squadStatusMsg = err.message || "Could not clear uniform."; }
+          await squadUniformPost(uniform >= 0
+            ? { squad: squad.id, pos, action: "apply", uniform }
+            : { squad: squad.id, pos, action: "clear" });
+          window.DFSquadController.squadStatusMsg = uniform >= 0 ? "Uniform applied." : "Uniform cleared.";
+        } catch (err) { window.DFSquadController.squadStatusMsg = err.message || "Could not update the uniform."; }
         await window.loadSquadDetail(squad.id);
       });
     });
@@ -637,7 +623,7 @@
   function wireSquadAmmoControls(squad) {
     const defs = Array.isArray(window.DFSquadController.squadDetail && window.DFSquadController.squadDetail.ammoDefs) ? window.DFSquadController.squadDetail.ammoDefs : [];
     const specs = Array.isArray(window.DFSquadController.squadDetail && window.DFSquadController.squadDetail.ammo) ? window.DFSquadController.squadDetail.ammo : [];
-    const matOptions = sqMaterialClassOptions(window.DFSquadController.uniformCatalog, -1);
+    const matOptions = sqMaterialClassOptions(window.DFSquadController.uniformCatalog);
     const addDraft = () => Object.assign({
       subtype: defs.length ? Number(defs[0].subtype) : -1, amount: 100,
       matclass: matOptions.length ? Number(matOptions[0][0]) : -1,
@@ -826,7 +812,7 @@
         const cat = Number(btn.dataset.uitemAdd);
         const box = clientPanel.querySelector(`.squad-uitem-add[data-ucat="${cat}"]`);
         const colorInput = box && box.querySelector(".squad-uitem-color-input");
-        const matOptions = sqMaterialClassOptions(window.DFSquadController.uniformCatalog, -1);
+        const matOptions = sqMaterialClassOptions(window.DFSquadController.uniformCatalog);
         const d = window.DFSquadController.uitemDrafts[cat] || {};
         const subtype = Number(d.subtype ?? -1);
         const matclass = Number(d.matclass ?? (matOptions.length ? matOptions[0][0] : -1));

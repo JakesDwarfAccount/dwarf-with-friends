@@ -24,7 +24,7 @@
   "use strict";
 
   if (window.DWFUI && typeof window.DWFUI.require === "function") window.DWFUI.require("occupant-navigation", [
-    "esc", "cyclerHtml", "iconHtml", "occupantListHtml", "occupantRailHtml", "rowHtml", "scrollHtml", "statusHtml",
+    "cyclerHtml", "iconHtml", "occupantListHtml", "occupantRailHtml",
   ]);
 
   function currentSheetData() {
@@ -37,7 +37,7 @@
     if (!tile) return [];
     var tx = Number(tile.x), ty = Number(tile.y), tz = Number(tile.z);
     if (!isFinite(tx) || !isFinite(ty) || !isFinite(tz)) return [];
-    var all = [];
+    var all;
     try {
       all = (window.DwfTiles && typeof DwfTiles.getLatest === "function" &&
         (DwfTiles.getLatest() || {}).units) || [];
@@ -159,25 +159,6 @@
     return null;
   }
 
-  function nextChooserIndex(index, count, direction) {
-    if (!(count > 0)) return -1;
-    return ((Number(index) || 0) + (direction < 0 ? -1 : 1) + count) % count;
-  }
-
-  function tileListMarkup(candidates) {
-    var rows = (Array.isArray(candidates) ? candidates : []).map(function (candidate, index) {
-      return window.DWFUI.rowHtml({
-        tag: "button", cls: "tile-list-row", dataset: { tileCandidate: index },
-        icon: '<span class="tile-list-icon">' + occupantIconHtml(candidate) + '</span>',
-        label: candidate.label || candidate.kind || "Occupant",
-        trailing: '<span class="tile-list-kind">' + window.DWFUI.esc(candidate.kind || "unknown") + '</span>',
-      });
-    }).join("");
-    return '<div class="tile-list">' +
-      '<div class="tile-list-title">' + window.DWFUI.statusHtml({ tag: "span", cls: "tile-list-title-copy", text: "Select tile occupant" }) + '</div>' +
-      window.DWFUI.scrollHtml({ cls: "tile-list-rows", rows: ".tile-list-row", ariaLabel: "Tile occupants" }, rows) + '</div>';
-  }
-
   function unitCycleMarkup(index, count) {
     var safeCount = Math.max(0, Number(count) || 0);
     var safeIndex = Math.max(0, Math.min(Math.max(0, safeCount - 1), Number(index) || 0));
@@ -187,31 +168,6 @@
       previous: { dataset: { cyc: -1 }, title: "Previous unit on this tile (Shift+Tab)" },
       next: { dataset: { cyc: 1 }, title: "Next unit on this tile (Tab)" },
     });
-  }
-
-  var chooserState = null;
-  function chooseCandidate(candidate, candidates) {
-    var route = routeForCandidate(candidate);
-    if (!route) return;
-    chooserState = null;
-    if (route.flow === 'unit') { switchTo(route.id, (candidates || []).filter(function (c) { return c.kind === 'unit'; })); return; }
-    if (route.flow === 'item') {
-      var siblings = (candidates || []).filter(function (c) {
-        return c.kind === 'item' && !c.disabled && isFinite(Number(c.id)) && Number(c.id) >= 0;
-      }).map(function (c) {
-        return { id: Number(c.id), name: String(c.label || ('Item ' + c.id)), spriteRef: c.spriteRef || null };
-      });
-      try { if (typeof openItemPanel === 'function') openItemPanel(route.id, siblings.length > 1 ? siblings : null); }
-      catch (err) { DwfErr.report("unitcycle.open-item", err); }
-      return;
-    }
-    if (route.flow === 'engraving') {
-      try { if (typeof openEngravingPanel === 'function') openEngravingPanel(route.tile, null); }
-      catch (err) { DwfErr.report("unitcycle.open-engraving", err); }
-      return;
-    }
-    try { if (typeof openInfoPlace === 'function') openInfoPlace(route.kind, route.id); }
-    catch (err) { DwfErr.report("unitcycle.open-place", err); }
   }
 
   // ---- the tile-occupant rail, and the list sheets as its overflow -------------------------------
@@ -429,7 +385,7 @@
         return window.DWFUI.iconHtml({ emptyTile: false, cls: 'dwfui-occupant-icon', size: px,
           alt: String(c && c.label || kind || 'Occupant') });
       }
-    } catch { /* a failed sprite leaves an empty icon slot without dropping the chooser row */ }
+    } catch { /* a failed sprite leaves an empty icon slot without dropping the row */ }
     return '';
   }
 
@@ -553,7 +509,6 @@
     if (!candidates.length) return false;
     var sel = document.getElementById('selection');
     if (!sel) return false;
-    chooserState = null;
     sel.className = 'visible occupant-list-panel';
     var content = (window.DFPanelFrame && typeof window.DFPanelFrame.contentEl === 'function')
       ? window.DFPanelFrame.contentEl(sel) : sel;
@@ -630,7 +585,6 @@
     if (railSuppressed(cells, law)) return false;
     var first = initialCell(cells, law), route = first && routeForCandidate(first);
     if (!route) return false;
-    chooserState = null;
     occupantSession = { candidates: candidates, cells: cells, law: law,
       active: first, activeKey: candKey(first), pixel: pixel || null };
     openRoute(route, itemSiblingsOf(candidates));
@@ -681,35 +635,7 @@
     openRoute(routeForCandidate(first), itemSiblingsOf(occ));
   }
 
-  function renderChooser(candidates) {
-    var sel = document.getElementById('selection');
-    if (!sel) return false;
-    chooserState = { candidates: candidates, index: 0 };
-    sel.className = 'visible tile-list-panel';
-    // Write into the .pf-content child, or this render destroys the panel framework's persistent
-    // header and grips on #selection.
-    var content = (typeof window !== "undefined" && window.DFPanelFrame && window.DFPanelFrame.contentEl)
-      ? window.DFPanelFrame.contentEl(sel) : sel;
-    var renderedRows = [];
-    if (typeof content.querySelectorAll === "function" && "innerHTML" in content) {
-      content.innerHTML = tileListMarkup(candidates);
-      renderedRows = Array.from(content.querySelectorAll("[data-tile-candidate]"));
-      renderedRows.forEach(function (row) {
-        var candidate = candidates[Number(row.dataset.tileCandidate)];
-        if (!candidate) return;
-        row.addEventListener("click", function (event) { event.preventDefault(); event.stopPropagation(); chooseCandidate(candidate, candidates); });
-      });
-      if (renderedRows.length === candidates.length) return true;
-    }
-    DwfErr.report("tile-list.render-mismatch", new Error(
-      "expected " + candidates.length + " rows, rendered " + renderedRows.length));
-    if (content && "innerHTML" in content) content.innerHTML = window.DWFUI.statusHtml({
-      cls: "tile-list-error", tone: "danger", role: "alert", text: "Tile occupant list unavailable",
-    });
-    return false;
-  }
-
-  // Old hosts 404 this route, so the cache-derived chooser stays as the fallback; keep the cache
+  // Old hosts 404 this route, so the cache-derived rail stays as the fallback; keep the cache
   // list visible while the click-time request runs.
   function routeCandidates(payload) {
     var raw = payload && Array.isArray(payload.occupants) ? payload.occupants : [];
@@ -820,7 +746,6 @@
 
   window.DFTileList = { consumeInspect: consumeInspect, buildCandidates: buildCandidates,
     routeCandidates: routeCandidates, routeForCandidate: routeForCandidate,
-    nextChooserIndex: nextChooserIndex, renderChooser: renderChooser,
     switchToOccupant: switchToOccupant, occupantListCfg: occupantListCfg,
     occupantTabsCfg: occupantTabsCfg, injectOccupantTabs: injectOccupantTabs,
     occupantLaw: occupantLaw, railCells: railCells, initialCell: initialCell,
@@ -828,7 +753,7 @@
     renderOccupantListSheet: renderOccupantListSheet, adoptAuthoritativeOccupants: adoptAuthoritativeOccupants,
     getOccupantSession: function () { return occupantSession; },
     clearOccupantSession: clearOccupantSession, noteOccupantArt: noteOccupantArt,
-    tileListMarkup: tileListMarkup, occupantListMarkup: occupantListMarkup, unitCycleMarkup: unitCycleMarkup };
+    occupantListMarkup: occupantListMarkup, unitCycleMarkup: unitCycleMarkup };
 
   var busy = false;
   function switchTo(id, units) {
@@ -892,20 +817,13 @@
   // Capture phase, so Tab cycling wins over the page's own focus and keymap handling.
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Tab") return;
-    // A modal owns Tab completely. The chooser must yield before changing the hidden selection
-    // behind it; the dialog's own bubble handler then performs its focus cycle.
+    // A modal owns Tab completely: the rail must not change the hidden selection behind it.
     var help = document.getElementById("helpPopup");
     if (help && help.classList.contains("open")) return;
     // Never hijack Tab out of an editable control (place panels carry search fields).
     var t = e.target;
     if (t && (String(t.tagName).toUpperCase() === "INPUT" || String(t.tagName).toUpperCase() === "TEXTAREA" || t.isContentEditable)) return;
     var sel = document.getElementById("selection");
-    if (sel && sel.classList.contains("tile-list-panel") && chooserState && chooserState.candidates.length) {
-      e.preventDefault(); e.stopPropagation();
-      chooserState.index = nextChooserIndex(chooserState.index, chooserState.candidates.length, e.shiftKey ? -1 : 1);
-      chooseCandidate(chooserState.candidates[chooserState.index], chooserState.candidates);
-      return;
-    }
     if (occupantSession && sel &&
         sel.classList.contains("visible") && sel.classList.contains("has-occupant-rail")) {
       var cs = occupantSession.cells || [];

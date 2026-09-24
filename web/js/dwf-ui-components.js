@@ -177,6 +177,17 @@
       `${o.eager ? " data-dwfui-bitmap-eager" : ""}${fitAttrs}>` +
       `<span class="dwfui-bitmap-fallback">${esc(text)}</span></span>`;
   }
+  // Retext a bitmap label in place; `host` is the label or any wrapper around one. Writes only on a change.
+  function setBitmapText(host, value) {
+    const label = host && host.getAttribute("data-dwfui-bitmap-text") != null
+      ? host : host && host.querySelector("[data-dwfui-bitmap-text]");
+    const text = String(value == null ? "" : value);
+    if (!label || label.getAttribute("data-dwfui-bitmap-text") === text) return false;
+    label.setAttribute("data-dwfui-bitmap-text", text);
+    const fallback = label.querySelector(".dwfui-bitmap-fallback");
+    if (fallback) fallback.textContent = text;
+    return true;
+  }
   // A bitmap label is ONE canvas with no break opportunities, so prose must be broken to a character
   // column BEFORE rendering. A word longer than the column gets its own line, never a cut.
   function wrapToColumns(text, columns) {
@@ -262,20 +273,8 @@
         },
       },
     },
-    // EXPRESS GEOMETRY IN CELLS, NOT PX. Until the glyph loader lands --dwfui-font-face falls back
-    // to the mono stack: every screen still gets the right size and cell grid, only the face is wrong.
-    font: {
-      mono: "ui-monospace, Consolas, monospace",   // the fallback face (pinned by ui_components_test)
-      face: "var(--dwfui-font-face)",               // the bitmap face, once the loader mounts it
-      cell: { w: 8, h: 12 },                       // DF's AUTHORING text cell, in px. Native. Fixed.
-      // The drawn cell is `cell` times the interface scale. NOT a constant: read it, never state it.
-      interfaceScale: "var(--dwfui-interface-scale)",
-      scale: 2,                                    // legacy label multiplier ceiling; NOT the DF scale
-      // Native uses ONE text size: the window TITLE is the same size as the body. Sizes are in CELLS.
-      sizes: { title: 1, heading: 1, body: 1, row: 1, secondary: 1, numeric: 1 },
-      weights: { normal: 400, strong: 700 },
-      lineHeights: { cell: 1 },
-    },
+    // DF's 8x12 AUTHORING text cell, in px; the drawn cell is this times the interface scale.
+    font: { face: "var(--dwfui-font-face)", cell: { w: 8, h: 12 } },
     // Every text role resolves to a --dwfui-* custom property, so a CSS rule and a JS builder cannot
     // drift apart. A migrated family may NOT define its own colour table.
     text: {
@@ -389,7 +388,6 @@
       // sort headers -- VANILLA DF, not a DFHack overlay.
       sortAsc: "SORT_ASCENDING_ACTIVE", sortAscOff: "SORT_ASCENDING_INACTIVE",
       sortDesc: "SORT_DESCENDING_ACTIVE", sortDescOff: "SORT_DESCENDING_INACTIVE",
-      sortText: "SORT_TEXT_ACTIVE", sortTextOff: "SORT_TEXT_INACTIVE",
       // Every name here is verified present in web/interface_map.json by dwfui_boot_test on every
       // build: a token absent from the map ships as an INVISIBLE HOLE, which is why that gate exists.
       invAssignedClothing: "INVENTORY_ASSIGNED_CLOTHING", invAssignedTool: "INVENTORY_ASSIGNED_TOOL",
@@ -572,7 +570,9 @@
       thumbBottom: "SCROLLBAR_BOTTOM_SCROLLER",           // 16x12 -- the gold 'v' chevron CAP
       thumbSmall: "SCROLLBAR_SMALL_SCROLLER",             // 16x24 -- the MINIMUM thumb
       thumbBlank: "SCROLLBAR_BLANK_SCROLLER",             // 16x12 -- plain body; tile behind one gem
-      thumbOffcenter: "SCROLLBAR_OFFCENTER_SCROLLER",     // 16x24 -- unadopted; role unconfirmed
+      thumbOffcenter: "SCROLLBAR_OFFCENTER_SCROLLER",     // 16x24 -- the gem straddling an even thumb's middle
+      thumbSmallHover: "SCROLLBAR_SMALL_SCROLLER_HOVER",
+      thumbOffcenterHover: "SCROLLBAR_OFFCENTER_SCROLLER_HOVER",
       thumbBlankHover: "SCROLLBAR_BLANK_SCROLLER_HOVER",
       thumbTopHover: "SCROLLBAR_TOP_SCROLLER_HOVER",
       thumbCenterHover: "SCROLLBAR_CENTER_SCROLLER_HOVER",
@@ -580,7 +580,6 @@
       upHover: "SCROLLBAR_UP_HOVER", upPressed: "SCROLLBAR_UP_PRESSED",
       downHover: "SCROLLBAR_DOWN_HOVER", downPressed: "SCROLLBAR_DOWN_PRESSED",
       cell: { w: 16, h: 12 },      // 2 cells wide, 1 cell tall
-      minThumb: 24,                // = SMALL_SCROLLER's height
     },
     // DEPRECATED. Every entry below now has a real DF sprite in TOKENS.sprites; this is kept only so
     // unmigrated surfaces keep rendering. DO NOT ADD A KEY HERE -- new code uses sprites + iconHtml.
@@ -702,7 +701,7 @@
     TOKENS.sprites.stepHash, TOKENS.sprites.stepPlus, TOKENS.sprites.stepMinus,
     TOKENS.sprites.priorityUp, TOKENS.sprites.priorityDown,
     TOKENS.sprites.sortAsc, TOKENS.sprites.sortAscOff, TOKENS.sprites.sortDesc,
-    TOKENS.sprites.sortDescOff, TOKENS.sprites.sortText, TOKENS.sprites.sortTextOff,
+    TOKENS.sprites.sortDescOff,
     // Every one of these is a complete control cell: omitting one makes artBtnHtml draw a SECOND
     // border around a sprite that already carries its own.
     TOKENS.sprites.squadsKill, TOKENS.sprites.squadsMove, TOKENS.sprites.squadsPatrol,
@@ -828,7 +827,7 @@
     if (!kind) return "";
     const o = opts || {};
     return iconHtml({
-      spriteCrop: TRI_MARK_CROP[state], cls: `${o.cls || "dwfui-mark"} ${kind}`,
+      spriteCrop: TRI_MARK_CROP[state], cls: `${withBaseClass("dwfui-mark", o.cls)} ${kind}`,
       dataset: o.dataset, title: o.title, cssSized: o.cssSized,
     });
   }
@@ -1924,15 +1923,23 @@
       if (!node || !node.querySelectorAll) return;
       paintSprites(node);
       try { refitNativeLabels(node); } catch (error) { DwfErr.report("dwfui.mount-labels", error); }
-      paintBitmapText(node);
+      const labelsPainted = paintBitmapText(node);
       restoreScroll(node);
       restoreSearchCaret(node);
-      // These four MEASURE, so they run AFTER the labels are painted. Each is individually guarded,
-      // so one surface with no measurable rows cannot stop the others.
-      try { mountRowScroll(node); } catch (error) { DwfErr.report("dwfui.mount-row-scroll", error); }
-      try { mountLists(node); } catch (error) { DwfErr.report("dwfui.mount-lists", error); }
-      try { mountTableColumns(node); } catch (error) { DwfErr.report("dwfui.mount-table-columns", error); }
+      // These MEASURE. Each is individually guarded, so one surface with no measurable rows cannot
+      // stop the others.
+      const measure = () => {
+        try { mountRowScroll(node); } catch (error) { DwfErr.report("dwfui.mount-row-scroll", error); }
+        try { mountLists(node); } catch (error) { DwfErr.report("dwfui.mount-lists", error); }
+        try { mountTableColumns(node); } catch (error) { DwfErr.report("dwfui.mount-table-columns", error); }
+      };
+      measure();
       try { mountTabPromotion(node); } catch (error) { DwfErr.report("dwfui.mount-tab-promotion", error); }
+      // Bitmap labels paint asynchronously and can change row heights and column widths, so measure
+      // again once they land. Only when something painted: a no-op pass must not re-measure forever.
+      Promise.resolve(labelsPainted).then(count => {
+        if (count > 0 && node.isConnected !== false) measure();
+      }).catch(error => DwfErr.report("dwfui.mount-remeasure", error));
     };
     pass(d);
     const MO = (root && root.MutationObserver) ||
@@ -2002,7 +2009,9 @@
         const named = {
           "--dwfui-sb-thumb-top": SB.thumbTop, "--dwfui-sb-thumb-center": SB.thumbCenter,
           "--dwfui-sb-thumb-bottom": SB.thumbBottom, "--dwfui-sb-thumb-blank": SB.thumbBlank,
-          "--dwfui-sb-thumb-small": SB.thumbSmall,
+          "--dwfui-sb-thumb-small": SB.thumbSmall, "--dwfui-sb-thumb-offcenter": SB.thumbOffcenter,
+          "--dwfui-sb-thumb-small-hover": SB.thumbSmallHover,
+          "--dwfui-sb-thumb-offcenter-hover": SB.thumbOffcenterHover,
           "--dwfui-sb-thumb-top-hover": SB.thumbTopHover,
           "--dwfui-sb-thumb-center-hover": SB.thumbCenterHover,
           "--dwfui-sb-thumb-bottom-hover": SB.thumbBottomHover,
@@ -2155,23 +2164,33 @@
     });
   }
 
+  // One-line text plaques, all 8|8|8 cells: the cycler's middle and the sort header's label.
+  const TEXT_PLAQUES = [
+    ["--dwfui-cycler-mid", "TYPE_FILTER_TEXT"],
+    ["--dwfui-sort-text-off", "SORT_TEXT_INACTIVE"],
+    ["--dwfui-sort-text-on", "SORT_TEXT_ACTIVE"],
+  ];
   function mountCyclerArt(doc) {
     const d = doc || (typeof document !== "undefined" ? document : null);
     const chrome = root && root.DFChrome;
     if (!d || !d.documentElement || !chrome || !chrome.loadMap || typeof Image === "undefined") return false;
     if (d.documentElement.getAttribute("data-dwfui-cycler") === "native") return Promise.resolve(true);
     return chrome.loadMap().then(map => {
-      const rec = map && map.TYPE_FILTER_TEXT;
-      if (!rec || rec.w !== 24 || rec.h !== 12) return false;
-      const sheet = new Image();
-      sheet.src = "/asset/" + rec.img;
+      const records = TEXT_PLAQUES.map(([, token]) => map && map[token]);
+      if (records.some(rec => !rec || rec.w !== 24 || rec.h !== 12)) return false;
+      const sheets = {};
+      records.forEach(rec => {
+        if (sheets[rec.img]) return;
+        sheets[rec.img] = new Image();
+        sheets[rec.img].src = "/asset/" + rec.img;
+      });
       const iface = interfaceScale(d);
       const crop = (record, sx, sw) => {
         const canvas = d.createElement("canvas");
         canvas.width = sw; canvas.height = record.h;
         const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(sheet, record.cx + sx, record.cy, sw, record.h, 0, 0, sw, record.h);
+        ctx.drawImage(sheets[record.img], record.cx + sx, record.cy, sw, record.h, 0, 0, sw, record.h);
         // Bake the scale and the blend ONCE at mount, so the CSS box and the slice match and nothing
         // resamples at paint time.
         if (Math.abs(iface - 1) < 1e-6) return `url("${canvas.toDataURL("image/png")}")`;
@@ -2183,17 +2202,19 @@
       };
       const publish = () => {
         const style = d.documentElement.style;
-        style.setProperty("--dwfui-cycler-mid-left", crop(rec, 0, 8));
-        style.setProperty("--dwfui-cycler-mid-middle", crop(rec, 8, 8));
-        style.setProperty("--dwfui-cycler-mid-right", crop(rec, 16, 8));
+        TEXT_PLAQUES.forEach(([prefix], i) => {
+          style.setProperty(`${prefix}-left`, crop(records[i], 0, 8));
+          style.setProperty(`${prefix}-middle`, crop(records[i], 8, 8));
+          style.setProperty(`${prefix}-right`, crop(records[i], 16, 8));
+        });
         d.documentElement.setAttribute("data-dwfui-cycler", "native");
         return true;
       };
-      if (sheet.complete && sheet.naturalWidth) return publish();
-      return new Promise(resolve => {
-        sheet.addEventListener("load", () => resolve(publish()), { once: true });
+      const loaded = sheet => sheet.complete && sheet.naturalWidth ? Promise.resolve(true) : new Promise(resolve => {
+        sheet.addEventListener("load", () => resolve(true), { once: true });
         sheet.addEventListener("error", () => resolve(false), { once: true });
       });
+      return Promise.all(Object.values(sheets).map(loaded)).then(ok => ok.every(Boolean) && publish());
     });
   }
 
@@ -2308,7 +2329,7 @@
                              "danger"]);
   function subLineHtml(line) {
     if (line == null) return "";
-    const classes = [line.cls || "dwfui-sub"];
+    const classes = [withBaseClass("dwfui-sub", line.cls)];
     if (line.tone && SUB_TONES.has(line.tone)) classes.push(`dwfui-sub--${line.tone}`);
     const body = line.html != null ? line.html : bitmapTextHtml(line.text == null ? "" : line.text);
     return `<span class="${classes.join(" ")}">${body}</span>`;
@@ -2336,6 +2357,8 @@
     if (c.announce && c.announceLine) classes.push("dwfui-row--announce-line");
     // `disabled` on a <div> is inert, and most native rows ARE divs -- so add the class too.
     if (c.disabled) classes.push("disabled");
+    // A row tone colours the whole row except sub lines with their own tone.
+    if (SUB_TONES.has(c.tone)) classes.push("dwfui-row--toned");
     let attrs = ` class="${classes.join(" ")}"`;
     if (c.role) attrs += ` role="${esc(c.role)}"`;
     if (c.checked != null) attrs += ` aria-checked="${c.checked ? "true" : "false"}"`;
@@ -2343,17 +2366,18 @@
     if (c.ariaLabel) attrs += ` aria-label="${esc(c.ariaLabel)}"`;
     if (c.title) attrs += ` title="${esc(c.title)}"`;
     if (c.disabled) attrs += " disabled";
+    if (SUB_TONES.has(c.tone)) attrs += ` style="--dwfui-row-tone:var(--dwfui-text-${c.tone})"`;
     attrs += datasetAttrs(c.dataset);
     const icon = c.icon != null ? c.icon : (c.iconCfg ? iconHtml(c.iconCfg) : "");
     const label = c.labelHtml != null ? c.labelHtml : bitmapTextHtml(c.label == null ? "" : c.label);
     const sub = Array.isArray(c.sub)
       ? c.sub.map(subLineHtml).join("")
       : (c.sub ? subLineHtml(c.sub) : "");
-    const copy = `<span class="${c.copyCls || "dwfui-copy"}"><span class="${c.labelCls || "dwfui-label"}">${label}</span>${sub}</span>`;
+    const copy = `<span class="${withBaseClass("dwfui-copy", c.copyCls)}"><span class="${withBaseClass("dwfui-label", c.labelCls)}">${label}</span>${sub}</span>`;
     // The multi-column table row. Omitted cells emit NOTHING.
     const cells = Array.isArray(c.cells)
       ? c.cells.filter(cell => cell != null && cell.html != null).map(cell =>
-        `<span class="dwfui-cell${cell.cls ? " " + cell.cls : ""}"` +
+        `<span class="dwfui-cell${cell.numeric ? " dwfui-cell--num" : ""}${cell.cls ? " " + cell.cls : ""}"` +
         `${Number(cell.width) > 0 ? ` style="--dwfui-cell-w:${Math.round(Number(cell.width))}px"` : ""}` +
         `>${cell.html}</span>`).join("")
       : "";
@@ -2430,7 +2454,7 @@
         `${stateArtAttr(family, state)}${datasetAttrs(item.dataset)}` +
         `${item.title ? ` title="${esc(item.title)}"` : ""}${item.disabled ? " disabled" : ""}>${content}</button>`;
     }).join("");
-    return `<span class="${o.cls || "dwfui-actions"}"${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>${buttons}</span>`;
+    return `<span class="${withBaseClass("dwfui-actions", o.cls)}"${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>${buttons}</span>`;
   }
 
   // Native's checkbox is a COMPLETE sprite in BOTH states, so an UNCHECKED check renders a REAL TILE.
@@ -2454,12 +2478,11 @@
       `${iconHtml({ sprite: token, size: c.size, nativeCell: selfFramed, alt: c.ariaLabel || c.title })}</button>`;
   }
 
-  // The native column sort header is a RADIOGROUP over columns -- exactly one active key -- which is
-  // why it is neither actionButtonsHtml nor tabsHtml. Asc, desc and text are THREE DIFFERENT SPRITES.
+  // A RADIOGROUP over columns (exactly one active key). Each column is a direction arrow, then its caption,
+  // if any, on the SORT_TEXT plaque that mountCyclerArt publishes.
   const SORT_SPRITE = {
     asc: { on: TOKENS.sprites.sortAsc, off: TOKENS.sprites.sortAscOff },
     desc: { on: TOKENS.sprites.sortDesc, off: TOKENS.sprites.sortDescOff },
-    text: { on: TOKENS.sprites.sortText, off: TOKENS.sprites.sortTextOff },
   };
   function sortHeaderHtml(cfg) {
     const c = cfg || {};
@@ -2472,11 +2495,9 @@
       throw new Error(`DWFUI.sortHeaderHtml: active key ${JSON.stringify(c.active)} names no column ` +
         `(${keys.join(", ")}) -- a header with no reachable active key is how the sort silently lies`);
     const cells = columns.map(col => {
-      if (!SORT_SPRITE[col.sort])
-        throw new Error("DWFUI.sortHeaderHtml: column " + col.key + " needs sort: 'asc' | 'desc' | " +
-          "'text' -- native carries the distinction in THREE DIFFERENT SPRITES, so it cannot be defaulted");
       const active = col.key === c.active;
-      const token = active ? SORT_SPRITE[col.sort].on : SORT_SPRITE[col.sort].off;
+      const arrow = SORT_SPRITE[col.sort === "asc" ? "asc" : "desc"];
+      const token = active ? arrow.on : arrow.off;
       const classes = ["dwfui-sort-col"];
       if (active) classes.push("active");
       if (!col.label) classes.push("dwfui-sort-col--bare");
@@ -2687,7 +2708,7 @@
     if (!c.reason || typeof c.reason !== "string")
       throw new Error("DWFUI.nonNativeTabsHtml: `reason` is REQUIRED -- state the evidence that this " +
         "surface is not a native DF tab row. If it IS one, call tabsHtml({level}) instead.");
-    const tabCls = c.tabCls || "dwfui-nntab";
+    const tabCls = withBaseClass("dwfui-nntab", c.tabCls);
     const activeCls = c.activeCls || "active";
     const attr = c.dataAttr || "nntab";
     const buttons = (c.tabs || []).map(tab => {
@@ -2698,7 +2719,7 @@
         ` data-${attr}="${esc(tab.key)}"${tab.title ? ` title="${esc(tab.title)}"` : ""}` +
         `${tab.disabled ? " disabled" : ""}>${esc(tab.label)}${tab.suffixHtml || ""}</button>`;
     }).join("");
-    return `<div class="${c.cls || "dwfui-nntabs"}" role="tablist" data-non-native-tabs="${esc(c.reason)}"` +
+    return `<div class="${withBaseClass("dwfui-nntabs", c.cls)}" role="tablist" data-non-native-tabs="${esc(c.reason)}"` +
       `${c.ariaLabel ? ` aria-label="${esc(c.ariaLabel)}"` : ""}>${buttons}</div>`;
   }
 
@@ -2767,7 +2788,8 @@
     const placeholder = c.placeholder == null ? "" : ` placeholder="${esc(c.placeholder)}"`;
     const maxLength = Number.isFinite(Number(c.maxLength))
       ? ` maxlength="${Math.max(0, Math.floor(Number(c.maxLength)))}"` : "";
-    return `<input type="text" class="${classes}"${c.id ? ` id="${esc(c.id)}"` : ""}${value}${placeholder}${maxLength}` +
+    const type = c.type === "password" ? "password" : "text";
+    return `<input type="${type}" class="${classes}"${c.id ? ` id="${esc(c.id)}"` : ""}${value}${placeholder}${maxLength}` +
       `${datasetAttrs(c.dataset)}${c.ariaLabel ? ` aria-label="${esc(c.ariaLabel)}"` : ""}` +
       `${c.title ? ` title="${esc(c.title)}"` : ""}` +
       `${c.autocomplete != null ? ` autocomplete="${esc(c.autocomplete)}"` : ""}` +
@@ -2775,12 +2797,17 @@
       `${c.disabled ? " disabled" : ""}${c.readOnly ? " readonly" : ""}>`;
   }
 
+  // A caller class is ADDED to a builder's base class, never swapped for it: the component rules always apply.
+  function withBaseClass(base, extra) {
+    return [base, ...String(extra || "").split(/\s+/).filter(cls => cls && cls !== base)].join(" ");
+  }
+
   // ---- NativeSearch -------------------------------------------------------------------------------
   function searchHtml(cfg) {
     const c = cfg || {};
     const maxLength = Number.isFinite(Number(c.maxLength)) && Number(c.maxLength) > 0
       ? ` maxlength="${Math.floor(Number(c.maxLength))}"` : "";
-    const input = `<input class="${c.inputCls || "dwfui-search-input"}"${c.id ? ` id="${esc(c.id)}"` : ""}` +
+    const input = `<input class="${withBaseClass("dwfui-search-input", c.inputCls)}"${c.id ? ` id="${esc(c.id)}"` : ""}` +
       ` type="${c.type || "text"}"${c.dataAttr ? ` data-${c.dataAttr}` : ""}` +
       `${c.preserveKey ? ` data-dwfui-search-key="${esc(c.preserveKey)}"` : ""}` +
       ` value="${esc(c.value || "")}" placeholder="${esc(c.placeholder || "")}"${maxLength}` +
@@ -2792,7 +2819,7 @@
     // `magnifier` stays OPT-IN: defaulting it on would inject a new button into the surfaces that pass
     // neither flag and disturb their grids.
     const mag = c.magnifier
-      ? `<button type="button" class="${c.buttonCls || "dwfui-search-btn"}" data-dwfui-native-art="true" data-dwfui-self-framed="true" tabindex="-1"` +
+      ? `<button type="button" class="${withBaseClass("dwfui-search-btn", c.buttonCls)}" data-dwfui-native-art="true" data-dwfui-self-framed="true" tabindex="-1"` +
         ` aria-label="Search">${iconHtml({ spriteCrop: "filterButton", alt: "Search" })}</button>`
       : "";
     const empty = c.emptyHtml ? `<div class="dwfui-search-empty">${c.emptyHtml}</div>` : "";
@@ -2802,9 +2829,6 @@
   // ---- FillScroll ----------------------------------------------------------------------------------
   function scrollHtml(cfg, innerHtml) {
     const c = cfg || {};
-    if (c.maxPx != null)
-      throw new Error("DWFUI.scrollHtml: `maxPx` is removed (F5). A pixel cap manufactures a " +
-        "scrollbar where native has none. Put the region under the B167 flex-fill chain instead.");
     const cls = `dwfui-scroll${c.cls ? " " + c.cls : ""}`;
     return `<div class="${cls}"${c.id ? ` id="${esc(c.id)}"` : ""}${datasetAttrs(c.dataset)}` +
       `${c.preserveKey ? ` data-dwfui-scroll-key="${esc(c.preserveKey)}"` : ""}` +
@@ -2812,59 +2836,96 @@
       `${c.ariaLabel ? ` aria-label="${esc(c.ariaLabel)}"` : ""}>${innerHtml || ""}</div>`;
   }
 
-  // Two mechanisms make a half-row impossible: the box is floored to whole rows, and the scroll
-  // position snaps to row starts in CSS. Opt-in, because a box holding PROSE has no rows to quantise.
-  function quantiseHeight(availablePx, pitchPx) {
-    const avail = Number(availablePx) || 0;
-    const pitch = Number(pitchPx) || 0;
-    if (pitch <= 0) return avail;               // no measurable rows: leave the box alone
-    return Math.max(1, Math.floor(avail / pitch)) * pitch;
-  }
-  // The DOM path deliberately does NOT use quantiseHeight: real row pitches alternate by a pixel, so
-  // multiplying any single pitch drifts a sliced row back to the bottom. Walk the rows instead.
-  function _layoutScale(container) {
-    const layout = container.offsetHeight;
+  // ---- Whole rows ------------------------------------------------------------------------------------
+  // Shared by the row quantiser (a browser-scrolled box) and the list control (a positioned one).
+
+  // getBoundingClientRect reports pixels AFTER an ancestor transform; offsetHeight is the same box in
+  // layout pixels, so their ratio converts back.
+  function _layoutScale(el) {
+    const layout = el.offsetHeight;
     if (!layout) return 1;
-    const painted = container.getBoundingClientRect().height;
-    const scale = painted / layout;
+    const scale = el.getBoundingClientRect().height / layout;
     return (isFinite(scale) && scale > 0.01) ? scale : 1;
   }
-  function _quantiseRowScroll(container) {
-    const selector = container.getAttribute("data-dwfui-rows");
-    if (!selector) return false;
-    // Release last pass's cap BEFORE measuring, or the box can only ever shrink: we would be measuring
-    // the ceiling we imposed and could never grow back when the panel does.
-    container.style.maxHeight = "";
-    const rows = container.querySelectorAll(selector);
-    // The class is what CSS hangs the snap alignment on. Cleared first, because a re-render can leave
-    // the marks on rows that are no longer last, or no longer rows at all.
-    rows.forEach(row => row.classList.remove("dwfui-row-snap", "dwfui-row-snap--last"));
-    if (!rows.length) return false;
-    rows.forEach(row => row.classList.add("dwfui-row-snap"));
-    // `scroll-snap-type: y mandatory` forbids resting anywhere that is not a snap point, and the BOTTOM
-    // of the content is not one -- so mark the final row end-aligned or the tail becomes unreachable.
-    rows[rows.length - 1].classList.add("dwfui-row-snap--last");
-    const available = container.clientHeight;
-    if (!available) return false;
-    // Admission decides WHICH rows are drawn when there are MORE rows than fit. Capping a box that
-    // already fits puts the ceiling below its own content and manufactures a scrollbar over it.
-    if (container.scrollHeight <= available) return true;
-    // Distances are measured from the container's content-box top in layout pixels and include the
-    // scroll offset, so leading non-row content is carried along for free.
-    const scale = _layoutScale(container);
-    const contentTop = container.getBoundingClientRect().top + container.clientTop * scale;
-    let admitted = 0;
-    for (const row of rows) {
-      const bottom =
-        (row.getBoundingClientRect().bottom - contentTop) / scale + container.scrollTop;
-      if (bottom > available + 0.5) break;      // this row would be sliced -- do not admit it
-      admitted = bottom;
+
+  // The rendered rows, so a row hidden by a filter is not an item.
+  function _boxRows(box) {
+    const selector = box.getAttribute("data-dwfui-rows");
+    return selector ? [...box.querySelectorAll(selector)].filter(row => row.getClientRects().length) : [];
+  }
+
+  // Each row's top and bottom in the box's scrolled content, in layout pixels from the padding edge. A
+  // row's bottom margin is part of it, or the end of the scroll range would stop inside that margin.
+  function _rowExtents(box, rows) {
+    const scale = _layoutScale(box);
+    const origin = box.getBoundingClientRect().top + box.clientTop * scale;
+    const at = y => (y - origin) / scale + box.scrollTop;
+    const rects = rows.map(row => row.getBoundingClientRect());
+    return { tops: rects.map(r => at(r.top)),
+      bottoms: rects.map((r, i) => at(r.bottom) + (parseFloat(getComputedStyle(rows[i]).marginBottom) || 0)) };
+  }
+
+  // A row's pitch runs to the next row's top, so any gap belongs to the row above it.
+  const _rowPitches = (tops, end) => tops.map((top, i) => (i + 1 < tops.length ? tops[i + 1] : end) - top);
+  // How many rows the fullest last page holds: admission run backwards from `end`.
+  function _lastPageSize(tops, end, available) {
+    return admitRows(available, _rowPitches(tops, end).reverse(), 0);
+  }
+
+  // The browser stops scrolling where the content ends, which starts the last page mid-row whenever the
+  // rows do not divide the box. A tail spacer (`.dwfui-scroll--tail`) makes `scrollTop` reachable.
+  function _padTail(box, scrollTop) {
+    const set = tail => {
+      box.__dwfuiTail = tail;
+      box.style.setProperty("--dwfui-scroll-tail", `${tail}px`);
+      box.classList.toggle("dwfui-scroll--tail", tail > 0);
+    };
+    let tail = box.__dwfuiTail || 0;
+    if (!(scrollTop > 0)) { if (tail) set(0); return; }
+    // Corrected against the real reach, twice: a new spacer in a flex or grid box also brings a gap.
+    for (let pass = 0; pass < 2; pass++) {
+      const next = Math.max(0, tail + Math.ceil(scrollTop - (box.scrollHeight - box.clientHeight)));
+      if (next === tail) break;
+      set(tail = next);
     }
-    // Not even one row fits: capping to a fraction of a row would show nothing, so leave the box alone.
-    if (admitted <= 0) return true;
-    container.style.maxHeight = Math.round(admitted) + "px";
+  }
+
+  // A plain `.dwfui-scroll[data-dwfui-rows]` box: floored to whole rows, snapped to row starts in CSS,
+  // and given a tail so its last page starts on a row too.
+  function _quantiseRowScroll(box) {
+    // A saved position is restored before the tail exists, so the browser clamps it: re-apply it after.
+    const key = box.getAttribute("data-dwfui-scroll-key");
+    const saved = key != null ? _scrollPos[key] : null;
+    // Release last pass's cap first, or the box could only ever shrink.
+    box.style.maxHeight = "";
+    const rows = _boxRows(box);
+    rows.forEach(row => row.classList.add("dwfui-row-snap"));
+    if (!rows.length || !box.clientHeight) return false;
+    let { tops, bottoms } = _rowExtents(box, rows);
+    const overflow = bottoms[bottoms.length - 1] > box.clientHeight + 0.5;
+    // Capping switches the scrollbar on, which narrows the rows and can re-wrap them taller: re-admit
+    // against the settled height.
+    for (let attempt = 0; overflow && attempt < 3; attempt++) {
+      const available = box.clientHeight;
+      const admitted = bottoms.filter(bottom => bottom <= available + 0.5).pop() || 0;
+      if (admitted <= 0) break;                   // not even one row fits: leave the box alone
+      // A horizontal scrollbar takes its height out of the box: add it back rather than drop a row.
+      const cs = getComputedStyle(box);
+      const borders = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+      const hbar = Math.max(0, box.offsetHeight - box.clientHeight - borders);
+      // max-height sizes the content box unless border-box: padding is inside `admitted`, borders are not.
+      const frame = cs.boxSizing === "border-box" ? borders
+        : -((parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0));
+      box.style.maxHeight = Math.round(admitted + hbar + frame) + "px";
+      ({ tops, bottoms } = _rowExtents(box, rows));
+      if (box.clientHeight >= Math.round(admitted) - 0.5) break;
+    }
+    const lastPage = _lastPageSize(tops, bottoms[bottoms.length - 1], box.clientHeight);
+    _padTail(box, overflow ? tops[rows.length - lastPage] : 0);
+    if (saved != null && box.scrollTop < saved) box.scrollTop = saved;
     return true;
   }
+
   // Column widths are negotiated from content, never hand-picked: the widest cell sets the column.
   // Missing cells (a short row) contribute nothing rather than counting as zero width.
   function negotiateColumns(rowWidths, minimums) {
@@ -2883,15 +2944,15 @@
     }
     return out;
   }
-  // Native does not distribute spare width, so every track is a fixed pixel width and none is `1fr`.
-  // `flexColumn` makes one track `minmax(<measured>, 1fr)` -- never less than the measured content.
-  function columnTemplate(widths, flexColumn) {
-    const flex = Number.isInteger(flexColumn) ? flexColumn : -1;
+  // Every track is its measured width. `flexColumn` may grow past it; `yieldColumn` may shrink below it,
+  // so a narrow pane squeezes that one track instead of pushing the others out of sight.
+  function columnTemplate(widths, flexColumn, yieldColumn) {
     return (widths || []).map((w, i) =>
-      i === flex ? `minmax(${w}px, 1fr)` : `${w}px`).join(" ");
+      i === flexColumn ? `minmax(${w}px, 1fr)` : i === yieldColumn ? `minmax(0, ${w}px)` : `${w}px`).join(" ");
   }
   // scrollWidth, not getBoundingClientRect().width: it reports the width the content WANTS even while
-  // the cell is clipping it, which is precisely the state being detected.
+  // the cell is clipping it, which is precisely the state being detected. `data-dwfui-table-head` names a
+  // sibling header (outside the scroll) that takes the same template, so its cells stay over their columns.
   function mountTableColumns(rootNode) {
     const host = rootNode || (typeof document !== "undefined" ? document : null);
     if (!host || !host.querySelectorAll) return 0;
@@ -2901,13 +2962,15 @@
       const rows = [...table.querySelectorAll(rowSel)];
       if (!rows.length) return;
       const measured = rows.map(row => [...row.children].map(cell => cell.scrollWidth));
-      const flexAttr = parseInt(table.getAttribute("data-dwfui-table-flex"), 10);
-      const template = columnTemplate(negotiateColumns(measured), flexAttr);
+      const template = columnTemplate(negotiateColumns(measured),
+        parseInt(table.getAttribute("data-dwfui-table-flex"), 10),
+        parseInt(table.getAttribute("data-dwfui-table-yield"), 10));
       if (!template) return;
       // Written to BOTH the table and each row, because a "table" here is sometimes one grid with
       // display:contents rows and sometimes a stack of per-row grids.
-      table.style.gridTemplateColumns = template;
-      rows.forEach(row => { row.style.gridTemplateColumns = template; });
+      const headSel = table.getAttribute("data-dwfui-table-head");
+      const head = headSel && table.parentElement ? table.parentElement.querySelector(headSel) : null;
+      [table, ...rows, head].forEach(el => { if (el) el.style.gridTemplateColumns = template; });
       n++;
     });
     return n;
@@ -2922,29 +2985,30 @@
       // bar. Capping here as well would be two controls arguing over one box.
       if (container.closest && container.closest("[data-dwfui-list]")) return;
       if (_quantiseRowScroll(container)) n++;
-      // Available space changes on resize and the row pitch changes with the interface scale, so
-      // re-run on both rather than assuming the first measurement holds.
+      // Re-measure when the box resizes and when its rows change (added rows, labels painting in),
+      // at most once per frame.
       if (!container.__dwfuiRowsBound && typeof ResizeObserver === "function") {
         container.__dwfuiRowsBound = true;
         let scheduled = false;
-        const observer = new ResizeObserver(() => {
-          if (scheduled) return;                 // one re-measure per frame, not one per callback
+        const again = () => {
+          if (scheduled) return;
           scheduled = true;
           requestAnimationFrame(() => { scheduled = false; _quantiseRowScroll(container); });
-        });
+        };
+        const observer = new ResizeObserver(again);
         observer.observe(container);
         if (container.parentElement) observer.observe(container.parentElement);
+        if (typeof MutationObserver === "function")
+          new MutationObserver(again).observe(container, { childList: true, subtree: true });
       }
     });
     return n;
   }
 
 
-  // UI-DIV-015: admitRows fixes native's dead pull-back and strict-fit bugs; list_primitive_test.mjs
-  // pins that divergence. Pointer dragging retains native's no-grab-offset jump.
+  // ---- List control ----------------------------------------------------------------------------------
+  // UI-DIV-015: the last page is full, where native under-fills it; list_primitive_test.mjs pins that.
 
-  // The bar occupies columns x and x+1 -- 2, always -- and the gutter is 2 wide when it exists.
-  const LIST_GUTTER_COLS = 2;
   // Eight sprite bands, in paint order down the bar. `thumbCentre` carries the band's two FORMS --
   // one centred row on an odd thumb, two off-centre rows on an even one.
   const LIST_BANDS = ["up", "track", "down", "thumbSmall", "thumbTop", "thumbCentre", "thumbBlank",
@@ -2970,7 +3034,7 @@
     let used = 0, admitted = 0;
     for (let i = start; i < heights.length; i++) {
       const h = Number(heights[i]) || 0;
-      if (used + h > available) break;          // native's `<`; ours `<=`, so a snug row is drawn
+      if (used + h > available + 0.5) break;    // native's `<`; ours `<=`, so a snug row is drawn
       used += h;
       admitted++;
     }
@@ -2985,11 +3049,13 @@
     const min = _lInt(s.min, 0);
     const highestIndex = Math.max(min - 1, _lInt(s.highestIndex, min - 1));
     const pageSize = Math.max(1, _lInt(s.pageSize, 1));
+    // Rows held by the LAST page; differs from `pageSize` only when row heights do.
+    const lastPageSize = Math.max(1, _lInt(s.lastPageSize, pageSize));
     const trackTop = _lInt(s.trackTop, 0);
     const trackBottom = Math.max(trackTop, _lInt(s.trackBottom, trackTop));
     const totalItems = Math.max(1, highestIndex - min + 1);
     // *** THE IDENTITY. *** Everything else in this file is a consequence of this line.
-    const bottomMost = Math.max(min, highestIndex - pageSize + 1);
+    const bottomMost = Math.max(min, highestIndex - lastPageSize + 1);
     const position = _lClamp(_lInt(s.position, min), min, bottomMost);
     const trackLength = trackBottom - trackTop + 1;
     // The bar exists IFF the admitted rows are fewer than the eligible rows. When it does not
@@ -3091,30 +3157,21 @@
     return _lClamp(geom.position + delta, geom.min, geom.bottomMost);
   }
 
-  // The VIEWPORT is scrollHtml's own node: until mountLists marks the host mounted the surface is an
-  // ordinary scrolling div, so a JS failure degrades to a working list, not an unreachable one.
+  // Until mountLists marks the host mounted, the viewport is a plain scrolling div (a working fallback).
+  // `headHtml` (a sort header) sits above the viewport, over the rows' own width, and never scrolls.
   function listHtml(cfg, innerHtml) {
     const c = cfg || {};
     const unit = c.unit == null ? "entries" : String(c.unit);
     if (unit !== "entries" && unit !== "rows")
-      throw new Error("DWFUI.listHtml: `unit` is 'entries' (0089 R13's default -- whole entries) or " +
-        "'rows' (grid rows, the build-material-picker exception). It is a parameter of the ONE " +
-        "control; a third value means someone is building a second control.");
-    const gutter = c.gutter == null ? "inside" : String(c.gutter);
-    if (gutter !== "inside" && gutter !== "outside")
-      throw new Error("DWFUI.listHtml: `gutter` is 'inside' (0089 R14's hand-rolled family -- the " +
-        "bar eats 2 columns of the container and SHRINKS the row hit rects) or 'outside' (the " +
-        "widget family -- the parent reserved the columns, hit rects unchanged).");
+      throw new Error("DWFUI.listHtml: `unit` is 'entries' (whole entries) or 'rows' (grid rows).");
     if (unit === "rows" && !(Number(c.pageRows) > 0))
-      throw new Error("DWFUI.listHtml: unit:'rows' needs `pageRows` -- the picker parameterises the " +
-        "shared scrollbar in GRID ROWS (0089 R13), so its page size is a row count the caller " +
-        "computes from the grid authority, not a count of entries this layer can measure.");
+      throw new Error("DWFUI.listHtml: unit:'rows' needs `pageRows`, the caller's page size in grid rows.");
     const view = scrollHtml({ cls: c.cls, id: c.id, rows: c.rows, preserveKey: c.preserveKey,
       ariaLabel: c.ariaLabel, dataset: c.dataset }, innerHtml || "");
     return `<div class="dwfui-list${c.hostCls ? " " + c.hostCls : ""}" data-dwfui-list="${unit}"` +
-      ` data-dwfui-list-gutter="${gutter}"` +
       `${c.key ? ` data-dwfui-list-key="${esc(c.key)}"` : ""}` +
       `${unit === "rows" ? ` data-dwfui-list-page-rows="${Math.max(1, _lInt(c.pageRows, 1))}"` : ""}>` +
+      (c.headHtml ? `<div class="dwfui-list-head">${c.headHtml}</div>` : "") +
       view +
       `<div class="dwfui-list-bar" data-dwfui-list-bar aria-hidden="true"></div></div>`;
   }
@@ -3130,16 +3187,6 @@
       return axis === "y" ? grid.cellH() : grid.cellW();
     return axis === "y" ? 12 : 8;
   }
-  // getBoundingClientRect reports pixels AFTER an ancestor transform; offsetHeight is the same box in
-  // layout pixels, so their ratio converts back. Same trap and same fix as _quantiseRowScroll.
-  function _listLayoutScale(el) {
-    const layout = el.offsetHeight;
-    if (!layout) return 1;
-    const painted = el.getBoundingClientRect().height;
-    const scale = painted / layout;
-    return (isFinite(scale) && scale > 0.01) ? scale : 1;
-  }
-
   function _listState(host) {
     if (!host.__dwfuiList) host.__dwfuiList = { position: 0, hover: {}, drag: false };
     const key = host.getAttribute("data-dwfui-list-key");
@@ -3173,50 +3220,61 @@
     const bar = host.querySelector("[data-dwfui-list-bar]");
     if (!view || !bar) return null;
     const state = _listState(host);
-    const unit = host.getAttribute("data-dwfui-list") === "rows" ? "rows" : "entries";
     const cellH = _listCell("y");
     const available = view.clientHeight;
     if (!available || !cellH) return null;
-    const scale = _listLayoutScale(view);
+    const rows = _boxRows(view);
+    const { tops, bottoms } = _rowExtents(view, rows);
+    const end = rows.length ? bottoms[rows.length - 1] : view.scrollHeight;
 
-    let highestIndex, pageSize, offsets = null;
-    if (unit === "rows") {
+    // Entries mode: a page step moves by what the CURRENT page holds, while the bottom-most position is
+    // the first row of a full LAST page; the two differ only when row heights do.
+    let highestIndex, pageSize, lastPageSize, scrollTopOf;
+    if (host.getAttribute("data-dwfui-list") === "rows") {
       pageSize = Math.max(1, _lInt(host.getAttribute("data-dwfui-list-page-rows"), 1));
-      const selector = view.getAttribute("data-dwfui-rows");
-      const rows = selector ? [...view.querySelectorAll(selector)] : [];
-      const top = view.getBoundingClientRect().top;
-      const contentHeight = rows.length
-        ? (rows[rows.length - 1].getBoundingClientRect().bottom - top) / scale + view.scrollTop
-        : view.scrollHeight;
-      highestIndex = Math.max(0, Math.ceil(contentHeight / cellH) - 1);
+      highestIndex = Math.max(0, Math.ceil(end / cellH) - 1);
+      scrollTopOf = position => position * cellH;
     } else {
-      const selector = view.getAttribute("data-dwfui-rows");
-      const rows = selector ? [...view.querySelectorAll(selector)] : [];
-      if (!rows.length) { _listStore(host, 0); view.scrollTop = 0; host.classList.remove("dwfui-list--overflow"); return null; }
-      const top = view.getBoundingClientRect().top;
-      offsets = rows.map(row => (row.getBoundingClientRect().top - top) / scale + view.scrollTop);
-      const heights = rows.map((row, i) =>
-        (i + 1 < rows.length ? offsets[i + 1] - offsets[i] : row.getBoundingClientRect().height / scale));
       highestIndex = rows.length - 1;
+      scrollTopOf = position => tops[position] || 0;
       // The ONE clamp that fires: an index at or past the end of the eligible list resets to 0.
       if (state.position > highestIndex) _listStore(host, 0);
-      pageSize = admitRows(available, heights, state.position);
+      lastPageSize = _lastPageSize(tops, end, available);
+      const from = Math.min(state.position, Math.max(0, highestIndex - lastPageSize + 1));
+      pageSize = admitRows(available, _rowPitches(tops, end), from);
     }
 
     // The caps sit ONE ROW OUTSIDE the track at each end, so a bar `n` rows tall has a track of `n - 2`.
     const barRows = Math.max(3, Math.floor(available / cellH));
-    const geom = listGeometry({ position: state.position, min: 0, highestIndex, pageSize,
+    const geom = listGeometry({ position: state.position, min: 0, highestIndex, pageSize, lastPageSize,
       trackTop: 1, trackBottom: barRows - 2 });
     _listStore(host, geom.position);
     host.classList.toggle("dwfui-list--overflow", geom.overflow);
     _listPaintBar(bar, geom, state.hover, cellH);
-    // In entries mode the scroll lands on the row's OWN measured top, not position * pitch: real rows
-    // differ by a pixel, and multiplying any single pitch drifts a sliced row back to the bottom edge.
-    view.scrollTop = unit === "rows" ? geom.position * cellH
-      : (offsets && offsets[geom.position] != null ? offsets[geom.position] : 0);
+    _padTail(view, geom.overflow ? scrollTopOf(geom.bottomMost) : 0);
+    view.scrollTop = geom.overflow ? scrollTopOf(geom.position) : 0;
+    // Native draws only the rows that fit whole; the row at the position is drawn even if it cannot.
+    if (host.getAttribute("data-dwfui-list") !== "rows") {
+      const pageTop = view.scrollTop, pageBottom = pageTop + available + 0.5;
+      rows.forEach((row, i) => row.toggleAttribute("data-dwfui-list-unshown", i !== geom.position &&
+        (tops[i] < pageTop - 0.5 || bottoms[i] > pageBottom)));
+    }
     _admitAnnouncementActions(view);
+    _listAlignHead(host, view);
     host.__dwfuiListGeom = geom;
     return geom;
+  }
+
+  // A head over a grid viewport takes the viewport's resolved tracks, gap and inset.
+  function _listAlignHead(host, view) {
+    const cs = host.querySelector(":scope > .dwfui-list-head") ? getComputedStyle(view) : null;
+    const grid = !!cs && cs.display === "grid";
+    host.classList.toggle("dwfui-list--columns", grid);
+    if (!grid) return;
+    const inset = side => `${(parseFloat(cs[`border${side}Width`]) || 0) + (parseFloat(cs[`padding${side}`]) || 0)}px`;
+    host.style.setProperty("--dwfui-list-columns", cs.gridTemplateColumns);
+    host.style.setProperty("--dwfui-list-column-gap", cs.columnGap);
+    host.style.setProperty("--dwfui-list-inset", `${inset("Left")} ${inset("Right")}`);
   }
 
   function _listPaintBar(bar, geom, hover, cellH) {
@@ -3286,8 +3344,7 @@
     geom = _listArrange(host);
     if (restoreRow && geom && position.follow && !position.follow.hidden) {
       const view = host.querySelector(".dwfui-scroll");
-      const selector = view && view.getAttribute("data-dwfui-rows");
-      const rows = selector ? [...view.querySelectorAll(selector)] : [];
+      const rows = _boxRows(view);
       const followIndex = rows.indexOf(position.follow);
       if (followIndex >= 0) {
         for (let attempts = 0; attempts <= rows.length; attempts++) {
@@ -3352,10 +3409,10 @@
     host.__dwfuiListBound = true;
     // The fail-open latch: until this attribute exists the viewport is a plain browser scroll box, so a
     // script that never ran leaves a working list rather than an unreachable one.
-    host.setAttribute("data-dwfui-list-mounted", "1");
     const view = host.querySelector(".dwfui-scroll");
     const bar = host.querySelector("[data-dwfui-list-bar]");
     if (!view || !bar) return;
+    host.setAttribute("data-dwfui-list-mounted", "1");
     const doc = ownerDoc;
     host.__dwfuiListOwnerDocument = doc;
     const state = _listState(host);
@@ -3619,7 +3676,7 @@
         title: (c.back !== true && c.back.title) || "Back", ariaLabel: "Back",
       })
       : "";
-    const classes = [c.cls || "dwfui-head"];
+    const classes = [withBaseClass("dwfui-head", c.cls)];
     if (c.variant) classes.push(`dwfui-head--${esc(c.variant)}`);
     const title = Array.isArray(c.titleLines)
       ? c.titleLines.map((line, i) => bitmapTextHtml(line == null ? "" : line,
@@ -3629,7 +3686,7 @@
       ? headerToolRowsHtml(c.toolRows, { cls: c.toolsCls })
       : headerToolsHtml(c.tools, { cls: c.toolsCls });
     return `<${tag} class="${classes.join(" ")}">${back}${c.icon || ""}` +
-      `<${titleTag} class="${c.titleCls || "dwfui-head-title"}">${title}</${titleTag}>` +
+      `<${titleTag} class="${withBaseClass("dwfui-head-title", c.titleCls)}">${title}</${titleTag}>` +
       `${toolCluster}${close}</${tag}>`;
   }
 
@@ -3643,7 +3700,7 @@
       ` role="dialog"${c.ariaLabel ? ` aria-label="${esc(c.ariaLabel)}"` : ""}>` +
       `${prompt ? `<div class="dwfui-modal-prompt">${prompt}</div>` : ""}` +
       `<div class="dwfui-modal-body">${bodyHtml || ""}</div>` +
-      `${c.footerHtml != null ? `<div class="dwfui-modal-footer">${c.footerHtml}</div>` : ""}</div>`;
+      `${c.footerHtml != null ? `<div class="${withBaseClass("dwfui-modal-footer", c.footerCls)}">${c.footerHtml}</div>` : ""}</div>`;
   }
 
   // The real yes/no box: a centred square over the middle 40% x 40%. Built ON TOP of modalHtml so the
@@ -3672,20 +3729,8 @@
     }, bodyHtml || "");
   }
 
-  // Chips are selected BY INDEX and are mutually exclusive, and selection writes an explicit art state
-  // onto EVERY chip. The multi-criteria form re-tests each row against ALL groups in one combined test.
+  // Chips are selected BY INDEX and are mutually exclusive; selection writes an explicit art state onto EVERY chip.
   const FILTER_NONE = -1;
-  // A group with nothing selected constrains nothing; a row survives only if it satisfies every
-  // constrained group -- one combined test per row, not a chain of per-group passes.
-  function applyFilterChips(rows, groups) {
-    const list = Array.isArray(rows) ? rows : [];
-    const active = (Array.isArray(groups) ? groups : [])
-      .map(g => (g && Number.isInteger(g.active) && g.active !== FILTER_NONE)
-        ? (g.chips || [])[g.active] : null)
-      .filter(chip => chip && typeof chip.test === "function");
-    if (!active.length) return list.slice();
-    return list.filter(row => active.every(chip => chip.test(row)));
-  }
   // cfg: {chips: [{key, label, count, disabled}], active (index, -1 for none), dataAttr,
   //       noneLabel (omit to hide the clear-all chip), cls, ariaLabel}
   function filterChipsHtml(cfg) {
@@ -3709,13 +3754,6 @@
     const chips = (c.chips || []).map((t, i) => chip(String(t.label == null ? "" : t.label), i, t)).join("");
     return `<div class="dwfui-chips${c.cls ? " " + c.cls : ""}" role="radiogroup"` +
       `${c.ariaLabel ? ` aria-label="${esc(c.ariaLabel)}"` : ""}>${none}${chips}</div>`;
-  }
-  // Several chip groups laid left to right; native separates its children by a two-cell gap.
-  function multiFilterHtml(groups, opts) {
-    const o = opts || {};
-    const inner = (groups || []).map(g => filterChipsHtml(g)).join("");
-    return `<div class="dwfui-multifilter${o.cls ? " " + o.cls : ""}"` +
-      `${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>${inner}</div>`;
   }
 
   // ---- PlaqueButton ---------------------------------------------------------------------------------
@@ -3788,9 +3826,6 @@
       ' style="--dwfui-gb-cols:' + cols + ';--dwfui-gb-rows:' + rows + '">' +
       native + cells.join("") + '</span>';
   }
-
-  // Compatibility name for existing callers. New chrome work uses frameNineSlice explicitly.
-  function glyphBoxHtml(cfg) { return frameNineSlice(cfg); }
 
   // frameNineSlice owns only chrome; glyphBoxButton keeps artBtnHtml's unproven interaction states.
   // In joined strips the left button emits the only separator and the right shares that edge.
@@ -4045,11 +4080,10 @@
   function windowHtml(cfg) {
     const c = cfg || {};
     const tag = c.tag || "div";
-    const variant = /^(?:window|sidepanel|modal|secondary)$/.test(c.variant || "") ? c.variant : null;
     const prompt = c.promptHtml != null ? c.promptHtml : (c.prompt ? bitmapTextHtml(c.prompt,
       { cls: "dwfui-window-prompt-text" }) : "");
     const body = c.bodyHtml != null ? c.bodyHtml
-      : `<div class="${c.bodyCls || "info-body"}">${c.sideHtml || ""}<div class="${c.mainCls || "info-main"}">${c.mainHtml || ""}</div></div>`;
+      : `<div class="info-body">${c.sideHtml || ""}<div class="info-main">${c.mainHtml || ""}</div></div>`;
     // Ledger 0073 R6: the nativeFrame default must stay viewSheet, never masterChrome.
     let nativeFrame = "viewSheet";
     if (c.nativeFrame === false) nativeFrame = null;
@@ -4058,12 +4092,12 @@
     const frame = nativeFrame ? nativeFrameHtml(nativeFrame, { cls: "dwfui-window-native-frame" }) : "";
     return `<${tag}${c.id ? ` id="${esc(c.id)}"` : ""} class="dwfui-window info-window` +
       `${nativeFrame ? " dwfui-window--native-framed" : ""}` +
-      `${variant ? " dwfui-window--" + variant : ""}${c.cls ? " " + c.cls : ""}"` +
+      `${c.cls ? " " + c.cls : ""}"` +
       `${nativeFrame ? ` data-dwfui-window-native-frame="${esc(nativeFrame)}"` : ""}` +
       `${c.role ? ` role="${esc(c.role)}"` : ""}${c.ariaLabel ? ` aria-label="${esc(c.ariaLabel)}"` : ""}>` +
       `${frame}${prompt ? `<div class="dwfui-window-prompt">${prompt}</div>` : ""}${c.primaryTabs || ""}` +
       `${c.detailTabs || ""}${c.sectionTabs || ""}${body}` +
-      `${c.footerHtml != null ? `<div class="${c.footerCls || "info-footer"}">${c.footerHtml}</div>` : ""}</${tag}>`;
+      `${c.footerHtml != null ? `<div class="${withBaseClass("info-footer", c.footerCls)}">${c.footerHtml}</div>` : ""}</${tag}>`;
   }
 
   // ---- Stepper ------------------------------------------------------------------------------
@@ -4091,7 +4125,7 @@
     const displayValue = c.valueText != null ? String(c.valueText) : String(value);
     const input = c.editable === false
       ? `<span class="dwfui-stepper-value" aria-live="polite"${titleAttr}>${bitmapTextHtml(displayValue)}</span>`
-      : `<input class="${c.inputCls || "dwfui-stepper-input"}"${c.inputId ? ` id="${esc(c.inputId)}"` : ""} type="number" min="${min}" max="${max}" value="${value}"${titleAttr}${datasetAttrs(c.dataset)}>`;
+      : `<input class="${withBaseClass("dwfui-stepper-input", c.inputCls)}"${c.inputId ? ` id="${esc(c.inputId)}"` : ""} type="number" min="${min}" max="${max}" value="${value}"${titleAttr}${datasetAttrs(c.dataset)}>`;
     const hash = c.hash
       ? `<button type="button" class="dwfui-stepper-btn hash"${art ? ` data-dwfui-native-art="true" data-dwfui-self-framed="true"` : ""}${datasetAttrs(hashData)} title="Enter ${esc(c.label || "value")}">` +
         `${art ? iconHtml({ sprite: TOKENS.sprites.stepHash, size: c.tileSize || 24, nativeCell: true, alt: "Enter amount" }) : "#"}</button>`
@@ -4134,7 +4168,7 @@
       return `<span class="${classes} dwfui-number-entry--editing"${ariaAttr}${titleAttr}` +
         ` data-dwfui-number-min="${min}" data-dwfui-number-max="${max}">` +
         labelHtml +
-        `<input class="${c.inputCls || "dwfui-number-entry-input"}"${c.id ? ` id="${esc(c.id)}"` : ""}` +
+        `<input class="${withBaseClass("dwfui-number-entry-input", c.inputCls)}"${c.id ? ` id="${esc(c.id)}"` : ""}` +
         ` type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false"` +
         ` maxlength="${maxLength}" value="${esc(raw)}"${ariaAttr}${datasetAttrs(c.dataset)}>` +
         // The caret is a separate element so the blink is CSS and needs no timer. It is decoration -- the
@@ -4151,18 +4185,19 @@
   }
 
   // ---- switchHtml ------------------------------------------------------------------------------
-  // The visible pill is CSS; the semantic control remains a real checkbox.
+  // The visible pill is CSS; the semantic control remains a real checkbox. `columns` wraps label and sub.
   function switchHtml(cfg) {
     const c = cfg || {};
     const labelTag = /^(?:span|b|strong)$/.test(c.labelTag || "") ? c.labelTag : "span";
     const subTag = /^(?:span|small)$/.test(c.subTag || "") ? c.subTag : "span";
-    const knob = c.knob === false ? "" : `<span class="${c.knobCls || "dwfui-switch-knob"}"></span>`;
+    const knob = c.knob === false ? "" : `<span class="dwfui-switch-knob"></span>`;
+    const text = value => c.columns ? bitmapProseHtml(value, c.columns) : bitmapTextHtml(value);
     return `<label class="dwfui-switch${c.cls ? " " + c.cls : ""}"${datasetAttrs(c.rootDataset)}${c.title ? ` title="${esc(c.title)}"` : ""}>` +
       `<input type="checkbox" role="switch"${c.name ? ` name="${esc(c.name)}"` : ""}${datasetAttrs(c.dataset)}` +
       `${c.checked ? " checked" : ""}${c.disabled ? " disabled" : ""}>` +
-      `<span class="${c.trackCls || "dwfui-switch-track"}" aria-hidden="true">${knob}</span>` +
-      `<span class="${c.copyCls || "dwfui-switch-copy"}"><${labelTag} class="${c.labelCls || "dwfui-switch-label"}">${bitmapTextHtml(c.label || "")}</${labelTag}>` +
-      `${c.sub ? `<${subTag} class="${c.subCls || "dwfui-switch-sub"}">${bitmapTextHtml(c.sub)}</${subTag}>` : ""}</span></label>`;
+      `<span class="dwfui-switch-track" aria-hidden="true">${knob}</span>` +
+      `<span class="${withBaseClass("dwfui-switch-copy", c.copyCls)}"><${labelTag} class="${withBaseClass("dwfui-switch-label", c.labelCls)}">${text(c.label || "")}</${labelTag}>` +
+      `${c.sub ? `<${subTag} class="dwfui-switch-sub">${text(c.sub)}</${subTag}>` : ""}</span></label>`;
   }
 
   // `columns` is the WRAPPING form: the default paints the whole string as one canvas, which cannot
@@ -4286,9 +4321,6 @@
     } catch { return false; }
   }
 
-  // Read-only ordering report: `paintedFirst === true` means a colour resolved before the palette landed.
-  function paletteState() { return { ...PALETTE_STATE }; }
-
   // Self-install at module load, before every panel module. Guarded so a headless import is a no-op.
   try { adoptVersionPalette(); }
   catch (error) { DwfErr.report("dwfui.palette-boot", error); }
@@ -4408,7 +4440,6 @@
   const EMBLEM_SYMBOL_COUNT = 23;        // CUSTOM_SYMBOL declarations in graphics_interface.txt
   const EMBLEM_ALPHA_SOLID = 255;        // `solid_texpos`
   const EMBLEM_ALPHA_BLENDED = 160;      // `blended_texpos` (0xA0)
-  const EMBLEM_CONTRAST_FLOOR = 64;      // Chebyshev floor, NOT a luminance test
 
   function _emblemChannel(value) {
     const n = Math.round(Number(value));
@@ -4417,14 +4448,6 @@
   function emblemRgb(colour) {
     return { r: _emblemChannel(colour && colour.r), g: _emblemChannel(colour && colour.g),
       b: _emblemChannel(colour && colour.b) };
-  }
-  // The emblem contrast test: accept when AT LEAST ONE channel differs by the floor. Exported because
-  // the server-side roll must satisfy the same rule, and a rule stated in two places drifts.
-  function emblemContrasts(fg, bg) {
-    const a = emblemRgb(fg), b = emblemRgb(bg);
-    return Math.abs(a.r - b.r) >= EMBLEM_CONTRAST_FLOOR ||
-      Math.abs(a.g - b.g) >= EMBLEM_CONTRAST_FLOOR ||
-      Math.abs(a.b - b.b) >= EMBLEM_CONTRAST_FLOOR;
   }
   // "Never drawn": native's own predicate reads host memory a browser never receives, so the served
   // halves are used -- an out-of-range symbol, or an in-range one with both colour triples still zero.
@@ -4550,137 +4573,10 @@
     return painted;
   }
 
-  // ---- THE LAWS, AS NAMED CITIZENS --------------------------------------------------------------
-  const TEXT_LAWS = {
-    hardCutDots: {
-      ledger: "0082 R4",
-      what: "Cut to the budget, then OVERWRITE the final three characters with dots in place. " +
-        "No abbreviation pass, no article strip, no vowel elision, no word-boundary search. " +
-        "Output length is EXACTLY the budget for any over-budget input.",
-      notThe: "abbreviateThenCut",
-      why: "0082 R4 prints an explicit caution: 0042's abbreviate-then-cut is a DIFFERENT renderer " +
-        "on a DIFFERENT path. Applying it here yields a different string from native for any text " +
-        "over the budget. Both rules are real; neither may be simplified into the other.",
-      screens: ["info window / Tasks list", "Nobles candidate chooser", "info window / vermin caption"],
-    },
-    abbreviateThenCut: {
-      ledger: "0042 (+ 0036 for the squeeze ladder)",
-      what: "SQUEEZE first -- drop one leading a/an/the, then delete non-word-initial vowels from " +
-        "the back -- and only if the squeezed name STILL does not fit, cut and stamp the last three " +
-        "characters with three separate periods. Output length is <= the budget, often < it.",
-      notThe: "hardCutDots",
-      why: "See above. This is the UNIT-NAME renderer; native shows a squashed but COMPLETE name " +
-        "where a hard cut would show a name with its ending missing.",
-      screens: ["zone/chooser unit rows", "material and item name slots"],
-    },
-    abbreviate: {
-      ledger: "0036",
-      what: "Steps 1-4 of the squeeze ladder ONLY -- article strip and vowel elision. It " +
-        "deliberately does not cut; the cut and the three periods belong to the caller (0042).",
-      notThe: null,
-      why: "Exposed on its own because a caller with its own cut policy still wants native's " +
-        "squeeze. Callers that want the whole 0042 policy call abbreviateThenCut.",
-      screens: ["the squeeze half of abbreviateThenCut"],
-    },
-    entryCap: {
-      ledger: "0081 R20",
-      what: "A HARD CAP AT ENTRY, NOT A TRUNCATION. Native's line editor refuses the keystroke " +
-        "past the field's maximum; nothing is ever shortened, marked, or elided, because the " +
-        "string never gets long. There is no dots marker and there must not be one.",
-      notThe: "hardCutDots",
-      why: "The most tempting mis-implementation in the family: the numbers LOOK like budgets " +
-        "(17/18/19/23/30) and one of them is 30, the same as 0082 R4's worker budget. They are " +
-        "maxlength values on five input fields. Truncating a display string to one of them, or " +
-        "stamping dots on an entry field, is native-shaped and wrong.",
-      screens: ["squad nickname", "schedule cell nickname", "ammo amount", "uniform nickname",
-        "patrol route name", "routine name"],
-    },
-  };
-
-  // `null` is an HONEST REFUSAL: that screen's budget was never recovered and budgetFor returns null.
-  // Callers MUST NOT invent one -- a guessed number is indistinguishable from a decoded one.
-  const TEXT_BUDGETS = {
-    "info.tasks.job":      { law: "hardCutDots", cells: TASKS_TEXT_BUDGETS.job,    ledger: "0082 R4" },
-    "info.tasks.worker":   { law: "hardCutDots", cells: TASKS_TEXT_BUDGETS.worker, ledger: "0082 R4",
-      note: "derived in native from the gap between the name column and the recenter buttons, minus 7" },
-    "info.vermin.caption": { law: "hardCutDots", cells: cols => Math.max(0, (Number(cols) || 0) - 23),
-      ledger: "0082 R4 (width-derived)", note: "native shortens to interiorWidth-23, then dots in place" },
-    "nobles.candidate":    { law: "hardCutDots", cells: null, ledger: "0082 R4",
-      note: "same mechanism, against a width-derived budget the decode did not pin a constant for" },
-    "workDetails.name":    { law: null, cells: null, ledger: "0082 (refused)",
-      note: "THE HONEST REFUSAL. The work-details screen's budget was not recovered. Do not " +
-        "borrow the Tasks list's 23/30: they belong to a different renderer, and 0082 R4's own " +
-        "caution is that a borrowed budget diverges silently." },
-  };
-
-  // The five name fields plus the digits-only one. INPUT CAPS -- see TEXT_LAWS.entryCap.
-  const NAME_ENTRY_MAXIMA = {
-    squadNickname: 17, scheduleCellNickname: 18, ammoAmount: 18,
-    uniformNickname: 19, patrolRouteName: 30, routineName: 23,
-  };
-
-  function budgetFor(key, columns) {
-    const rec = TEXT_BUDGETS[key];
-    if (!rec) return null;
-    if (typeof rec.cells === "function") return columns == null ? null : rec.cells(columns);
-    return typeof rec.cells === "number" ? rec.cells : null;
-  }
-
-  // Apply a law BY NAME, so a call site records WHICH law it believes it is under and the wrong one
-  // is a readable defect rather than an invisible one.
-  const TEXT_LAW_FN = {
-    hardCutDots, abbreviateThenCut: fitNativeLabel, abbreviate: abbreviateToCells,
-    entryCap: (text, cells) => String(text == null ? "" : text)
-      .slice(0, Math.max(0, Math.floor(Number(cells) || 0))),
-  };
-  function applyTextLaw(law, text, budget) {
-    const fn = TEXT_LAW_FN[law];
-    if (!fn) throw new Error(`unknown text law "${law}" -- named laws: ${Object.keys(TEXT_LAW_FN).join(", ")}`);
-    if (budget == null) throw new Error(`text law "${law}" needs a budget; a null budget is a REFUSAL, not a default`);
-    return fn(text, budget);
-  }
-  // Returns the text UNTOUCHED when the budget is a refusal: showing the full string is honest.
-  function fitForScreen(key, text, columns) {
-    const rec = TEXT_BUDGETS[key];
-    const cells = budgetFor(key, columns);
-    if (!rec || !rec.law || cells == null) return String(text == null ? "" : text);
-    return applyTextLaw(rec.law, text, cells);
-  }
-
-  // The difference pin, executable: hand it a string and a budget and it reports what each law does,
-  // and whether they disagree -- which over the budget they MUST.
-  function compareTextLaws(text, budget) {
-    const cut = hardCutDots(text, budget);
-    const squeeze = fitNativeLabel(text, budget);
-    return { text: String(text == null ? "" : text), budget,
-      hardCutDots: cut, abbreviateThenCut: squeeze, differ: cut !== squeeze };
-  }
-
-  // Two rulers, not interchangeable: "bitmap" is what OUR labels occupy (a LAYOUT question), "grid"
-  // is native's character grid (a PARITY question). Both report the same cells per code point.
-  function measureText(text, opts) {
-    const o = opts || {};
-    const value = String(text == null ? "" : text);
-    const cells = Array.from(value).length;
-    if (String(o.ruler || "bitmap") === "grid") {
-      const grid = (typeof root !== "undefined" && root.DwfGrid) || null;
-      const cw = grid ? grid.cellW() : 8, ch = grid ? grid.cellH() : 12;
-      return { text: value, cells, ruler: "grid", renderable: true,
-        cellW: cw, cellH: ch, width: cells * cw, height: ch, cssWidth: cells * cw, cssHeight: ch };
-    }
-    const bitmap = (typeof root !== "undefined" && root.DFBitmapText) || null;
-    if (bitmap && typeof bitmap.measure === "function")
-      return Object.assign({ ruler: "bitmap" }, bitmap.measure(value, o));
-    // Headless / pre-boot: the atlas's authoring cell at 1:1. Exact, and never a guess.
-    return { text: value, cells, ruler: "bitmap", renderable: true, labelScale: 1, scale: 1,
-      interfaceScale: 1, zoom: 1, cellW: 8, cellH: 12,
-      width: cells * 8, height: 12, cssWidth: cells * 8, cssHeight: 12 };
-  }
-  function textCells(text) { return Array.from(String(text == null ? "" : text)).length; }
-  function textFits(text, cells) { return textCells(text) <= Math.max(0, Math.floor(Number(cells) || 0)); }
-  // How many whole cells fit in a pixel box, on whichever ruler. The inverse of measureText.
+  // How many whole bitmap-text cells fit in a pixel box (8px per cell before the bitmap layer loads).
   function cellsForWidth(pixels, opts) {
-    const cw = measureText("", opts).cellW;
+    const bitmap = root.DFBitmapText;
+    const cw = bitmap && typeof bitmap.measure === "function" ? bitmap.measure("", opts).cellW : 8;
     const n = Math.floor(Number(pixels) / cw);
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
@@ -4727,11 +4623,7 @@
       budgets.push({ original, fitted, budget, width, reserve });
       if (label.getAttribute("data-dwfui-fit-budget") !== String(budget))
         label.setAttribute("data-dwfui-fit-budget", String(budget));
-      if (label.getAttribute("data-dwfui-bitmap-text") === fitted) continue;
-      label.setAttribute("data-dwfui-bitmap-text", fitted);
-      const fallback = label.querySelector && label.querySelector(".dwfui-bitmap-fallback");
-      if (fallback && fallback.textContent !== fitted) fallback.textContent = fitted;
-      changed++;
+      if (setBitmapText(label, fitted)) changed++;
     }
     if (changed) paintBitmapText(scope);
     return { labels: labels.length, changed, budgets };
@@ -4754,31 +4646,8 @@
     return observer;
   }
 
-  // ---- colour ----------------------------------------------------------------------------------
-  // Surfaced, not reimplemented: DwfDfMarkup owns the [C:f:b:br] grammar and this module owns the palette.
-  function markupModule() { return (typeof root !== "undefined" && root.DwfDfMarkup) || null; }
-  function markupHtml(text) {
-    const m = markupModule();
-    return m ? m.html(text) : esc(text);
-  }
-  function markupBitmapHtml(text, opts) {
-    const m = markupModule();
-    if (m && typeof m.bitmapHtml === "function") return m.bitmapHtml(text, opts);
-    return m ? m.html(text) : bitmapTextHtml(text, opts);
-  }
-  // The reset-token law: `[C:7:0:0]` is index 7, and an UNCODED string is index 7 too, because the
-  // parser's initial state is DF's own.
-  const MARKUP_RESET_TOKEN = "[C:7:0:0]";
-  const MARKUP_RESET_INDEX = 7;
-
   const TextLaw = {
-    LAWS: TEXT_LAWS, BUDGETS: TEXT_BUDGETS, NAME_ENTRY_MAXIMA,
-    budgetFor, apply: applyTextLaw, fitForScreen, compare: compareTextLaws,
-    hardCutDots, abbreviateThenCut: fitNativeLabel, abbreviate: abbreviateToCells,
-    measure: measureText, cells: textCells, fits: textFits, cellsForWidth, wrap: wrapToColumns,
-    fitRuntime: refitNativeLabels, mountFitting: mountNativeLabelFitting,
-    markupHtml, markupBitmapHtml,
-    RESET_TOKEN: MARKUP_RESET_TOKEN, RESET_INDEX: MARKUP_RESET_INDEX,
+    hardCutDots, abbreviateThenCut: fitNativeLabel, fitRuntime: refitNativeLabels, mountFitting: mountNativeLabelFitting,
   };
   // ===============================================================================================
 
@@ -4787,32 +4656,29 @@
   const api = {
     VERSION,
     TOKENS,
-    esc, sentenceCase, bitmapTextHtml, wrapToColumns, bitmapProseHtml, rawHtml,
+    esc, sentenceCase, bitmapTextHtml, setBitmapText, wrapToColumns, bitmapProseHtml, rawHtml,
     triState: { stateFor: triStateFor, fromAgg: triStateFromAgg, markHtml: triMarkHtml },
     rowHtml, actionButtonsHtml, toolButtonHtml, tabsHtml, nonNativeTabsHtml, cyclerHtml, occupantListHtml, occupantRailHtml, textInputHtml, searchHtml, scrollHtml, headerHtml,
-    plaqueBtnHtml, lightPlaqueHtml, nativeFrameHtml, nativeCellRunsHtml, frameNineSlice, glyphBoxButton, glyphBoxHtml, artBtnHtml, accessPolicyButtonsHtml, sideWindowHtml, messageBoxHtml, statTileHtml, barRowHtml,
+    plaqueBtnHtml, lightPlaqueHtml, nativeFrameHtml, nativeCellRunsHtml, frameNineSlice, glyphBoxButton, artBtnHtml, accessPolicyButtonsHtml, sideWindowHtml, messageBoxHtml, statTileHtml, barRowHtml,
     windowHtml, stepperHtml, numberEntryHtml, clampNumberEntry, switchHtml, statusHtml, require: requireComponents,
     iconHtml, rowGroupHtml, checkHtml, latchHtml, segmentedHtml, modalHtml, confirmHtml, sortHeaderHtml,
-    abbreviateToCells, fitNativeLabel, cellsForElementWidth,
-    quantiseHeight, mountRowScroll,
-    LIST_GUTTER_COLS, LIST_BANDS, LIST_KEYS,
+    fitNativeLabel, cellsForElementWidth,
+    LIST_BANDS, LIST_KEYS,
     admitRows, listGeometry, listBands, listPress, listDragPosition, listWheel, listKeyScroll,
-    announceActionFits,
     listHtml, mountLists, resetList, setListPosition,
-    negotiateColumns, columnTemplate, mountTableColumns,
-    packTabRows, promoteSelectedTabRow, mountTabPromotion,
-    filterChipsHtml, multiFilterHtml, applyFilterChips, FILTER_NONE,
+    negotiateColumns, mountTableColumns,
+    mountTabPromotion,
+    filterChipsHtml,
     gridHtml, gridCellHtml, selectCellHtml, selectCellGroupHtml, workDetailSprite, workDetailIconHtml,
     zoneSprite, STOCKPILE_ICON_ROWS, stockpileIconCrop,
-    DESIGNATION_PALETTES, DESIGNATION_TRAFFIC_BANDS, DESIGNATION_TRAFFIC_DEFAULTS, hydrateDesignationPalettes, mountDesignationPalettes, placeDesignationPalettes,
-    paintSprites, paintItemSprites, paintBitmapText, mountScrollbarArt, mountTabArt, mountPlaqueArt, mountCyclerArt, mountButtonStateArt, restoreScroll, restoreSearchCaret, mountDom,
+    DESIGNATION_PALETTES, hydrateDesignationPalettes, mountDesignationPalettes, placeDesignationPalettes,
+    paintSprites, paintItemSprites, paintBitmapText, mountScrollbarArt, mountTabArt, mountPlaqueArt, mountButtonStateArt, restoreScroll, restoreSearchCaret, mountDom,
     SOFTEN, interfaceScale, uiZoom, setInterfaceScale,
-    dfColor, applyPalette, adoptVersionPalette, paletteState,
+    dfColor, applyPalette,
     hardCutDots, TASKS_TEXT_BUDGETS, infoTaskControls, infoTaskRecenterTarget,
     TextLaw,
     workOrderStatusKey, workOrderBadgeHtml, textCursorVisible,
-    emblemHtml, paintEmblems, emblemIsUnassigned, emblemContrasts, emblemRgb,
-    EMBLEM_SYMBOL_COUNT, EMBLEM_ATLAS_COLS, EMBLEM_ALPHA_SOLID, EMBLEM_ALPHA_BLENDED, EMBLEM_CONTRAST_FLOOR,
+    emblemHtml, paintEmblems, emblemIsUnassigned, emblemRgb, EMBLEM_SYMBOL_COUNT,
   };
   root.DWFUI = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

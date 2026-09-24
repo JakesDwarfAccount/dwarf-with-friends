@@ -71,13 +71,13 @@
   let selectedDesignation = null; // visual selection, including tools not wired yet
   const GESTURE = (typeof window !== "undefined" && window.DwfGesture) || null;
   function gestureArm(family, sel) {
-    try { return GESTURE ? GESTURE.arm(family, sel) : null; } catch (_) { return null; }
+    try { return GESTURE ? GESTURE.arm(family, sel) : null; } catch { return null; }
   }
   function gestureArmed(family) {
-    try { return GESTURE ? GESTURE.armed(family) : null; } catch (_) { return null; }
+    try { return GESTURE ? GESTURE.armed(family) : null; } catch { return null; }
   }
   function gestureClear(family) {
-    try { return GESTURE ? GESTURE.clear(family) : false; } catch (_) { return false; }
+    try { return GESTURE ? GESTURE.clear(family) : false; } catch { return false; }
   }
   function desigAnchor() { return gestureArmed("designation"); }
   let twoClickCursor = null;
@@ -100,7 +100,7 @@
     return "designation";
   }
   function paintModeOf(subsystem) {
-    try { return PAINT_MODES ? PAINT_MODES.get(subsystem) : "rect"; } catch (_) { return "rect"; }
+    try { return PAINT_MODES ? PAINT_MODES.get(subsystem) : "rect"; } catch { return "rect"; }
   }
   function setPaintModeOf(subsystem, mode) {
     try { if (PAINT_MODES) PAINT_MODES.set(subsystem, mode); }
@@ -185,78 +185,6 @@
                           haulingStopArmedRoute >= 0 || haulingLinkArmed || wsLinkArmed || leverLinkArmed || chatPingArmed) ? "crosshair" : "default";
     updatePlacementMode();
   }
-  const LEGACY_SPRITE_TOKENS = {
-    lowerMenu:{normal:"BUTTON_LOWER_MENU"},
-    digMenu:{normal:"BUTTON_DIG"},
-    dig:{normal:"BUTTON_DIG_DIG_INACTIVE", active:"BUTTON_DIG_DIG_ACTIVE"},
-    // Native DF has one stairs tool. The range request chooses Up/Down/UpDown per z level.
-    stairs:{normal:"BUTTON_DIG_STAIRS_INACTIVE", active:"BUTTON_DIG_STAIRS_ACTIVE"},
-    ramp:{normal:"BUTTON_DIG_RAMP_INACTIVE", active:"BUTTON_DIG_RAMP_ACTIVE"},
-    channel:{normal:"BUTTON_DIG_CHANNEL_INACTIVE", active:"BUTTON_DIG_CHANNEL_ACTIVE"},
-    remove:{normal:"BUTTON_DIG_REMOVE_STAIRS_RAMPS_INACTIVE", active:"BUTTON_DIG_REMOVE_STAIRS_RAMPS_ACTIVE"},
-    chop:{normal:"BUTTON_DES_CHOP_INACTIVE", active:"BUTTON_DES_CHOP_ACTIVE"},
-    gather:{normal:"BUTTON_DES_GATHER_INACTIVE", active:"BUTTON_DES_GATHER_ACTIVE"},
-    smooth:{normal:"BUTTON_DES_SMOOTH_INACTIVE", active:"BUTTON_DES_SMOOTH_ACTIVE"},
-    engrave:{normal:"BUTTON_DES_SMOOTH_ENGRAVE_INACTIVE", active:"BUTTON_DES_SMOOTH_ENGRAVE_ACTIVE"},
-    track:{normal:"BUTTON_DES_SMOOTH_TRACK_INACTIVE", active:"BUTTON_DES_SMOOTH_TRACK_ACTIVE"},
-    fortify:{normal:"BUTTON_DES_SMOOTH_FORTIFY_INACTIVE", active:"BUTTON_DES_SMOOTH_FORTIFY_ACTIVE"},
-    erase:{normal:"BUTTON_DES_ERASE", active:"BUTTON_DES_ERASE"},
-    build:{normal:"BUTTON_BUILDING_INACTIVE", active:"BUTTON_BUILDING_ACTIVE"},
-    zone:{normal:"BUTTON_ZONE_INACTIVE", active:"BUTTON_ZONE_ACTIVE"},
-    stockpile:{normal:"BUTTON_STOCKPILE_INACTIVE", active:"BUTTON_STOCKPILE_ACTIVE"},
-    // Bottom-LEFT info-window openers.
-    citizens:{normal:"BUTTON_INFO_CREATURES", active:"BUTTON_INFO_CREATURES_ACTIVE"},
-    orders:{normal:"BUTTON_INFO_TASKS", active:"BUTTON_INFO_TASKS_ACTIVE"},
-    locations:{normal:"BUTTON_INFO_PLACES", active:"BUTTON_INFO_PLACES_ACTIVE"},
-    labor:{normal:"BUTTON_INFO_LABOR", active:"BUTTON_INFO_LABOR_ACTIVE"},
-    workorders:{normal:"BUTTON_INFO_WORK_ORDERS", active:"BUTTON_INFO_WORK_ORDERS_ACTIVE"},
-    nobles:{normal:"BUTTON_INFO_NOBLES", active:"BUTTON_INFO_NOBLES_ACTIVE"},
-    objects:{normal:"BUTTON_INFO_OBJECTS", active:"BUTTON_INFO_OBJECTS_ACTIVE"},
-    justice:{normal:"BUTTON_INFO_JUSTICE", active:"BUTTON_INFO_JUSTICE_ACTIVE"},
-    squads:{normal:"BUTTON_SQUADS"},
-    worldmap:{normal:"BUTTON_WORLD"},
-    // Bottom-CENTER "modes" + item/building-designations groups.
-    burrow:{normal:"BUTTON_BURROW_INACTIVE", active:"BUTTON_BURROW_ACTIVE"},
-    hauling:{normal:"BUTTON_HAULING_INACTIVE", active:"BUTTON_HAULING_ACTIVE"},
-    traffic:{normal:"BUTTON_DES_TRAFFIC", active:"BUTTON_DES_TRAFFIC"},
-    itemdesig:{normal:"BUTTON_DES_ITEM_BUILDING", active:"BUTTON_DES_ITEM_BUILDING"},
-    // base-row paint-mode pair (rectangle-corners vs free-hand paint).
-    paintRect:{normal:"BUTTON_PAINT_RECTANGLE_INACTIVE", active:"BUTTON_PAINT_RECTANGLE_ACTIVE"},
-    paintFree:{normal:"BUTTON_FREE_PAINT_INACTIVE", active:"BUTTON_FREE_PAINT_ACTIVE"},
-    // the marker toggle plus the convert-to-marker/-standard trio.
-    markerToggle:{normal:"BUTTON_DES_BLUEPRINT_INACTIVE", active:"BUTTON_DES_BLUEPRINT_ACTIVE"},
-    convertmarker:{normal:"BUTTON_DES_TO_BLUEPRINT_INACTIVE", active:"BUTTON_DES_TO_BLUEPRINT_ACTIVE"},
-    convertstandard:{normal:"BUTTON_DES_FROM_BLUEPRINT_INACTIVE", active:"BUTTON_DES_FROM_BLUEPRINT_ACTIVE"},
-    // item/building designations submenu, on DF's own raw tokens.
-    claim:{normal:"BUTTON_DES_CLAIM_INACTIVE", active:"BUTTON_DES_CLAIM_ACTIVE"},
-    forbid:{normal:"BUTTON_DES_FORBID_INACTIVE", active:"BUTTON_DES_FORBID_ACTIVE"},
-    dump:{normal:"BUTTON_DES_DUMP_INACTIVE", active:"BUTTON_DES_DUMP_ACTIVE"},
-    undump:{normal:"BUTTON_DES_UNDUMP_INACTIVE", active:"BUTTON_DES_UNDUMP_ACTIVE"},
-    melt:{normal:"BUTTON_DES_MELT_INACTIVE", active:"BUTTON_DES_MELT_ACTIVE"},
-    unmelt:{normal:"BUTTON_DES_UNMELT_INACTIVE", active:"BUTTON_DES_UNMELT_ACTIVE"},
-    unhide:{normal:"BUTTON_DES_UNHIDE_INACTIVE", active:"BUTTON_DES_UNHIDE_ACTIVE"},
-    hide:{normal:"BUTTON_DES_HIDE_INACTIVE", active:"BUTTON_DES_HIDE_ACTIVE"},
-    // stockpile paint-first submenu; paintRect/paintFree above are reused as-is.
-    stockNew:{normal:"BUTTON_STOCKPILE_NEW"},
-    stockErase:{normal:"STOCKPILE_ERASE_INACTIVE", active:"STOCKPILE_ERASE_ACTIVE"},
-    stockRemoveExisting:{normal:"STOCKPILE_REMOVE_EXISTING"},
-    // zone paint-first submenu; ZONE_PREVIOUS/ZONE_NEXT drive the overlap-cycling pair.
-    zoneErase:{normal:"ZONE_ERASE_INACTIVE", active:"ZONE_ERASE_ACTIVE"},
-    zoneRemoveExisting:{normal:"ZONE_REMOVE_EXISTING"},
-    zoneRepaint:{normal:"ZONE_REPAINT"},
-    zonePrevious:{normal:"ZONE_PREVIOUS"},
-    zoneNext:{normal:"ZONE_NEXT"},
-    // burrow left panel. Erase reuses the generic designation-erase glyph: DF ships no burrow one.
-    burrowErase:{normal:"BUTTON_DES_ERASE", active:"BUTTON_DES_ERASE"},
-    burrowSuspend:{normal:"BURROW_SUSPEND_INACTIVE", active:"BURROW_SUSPEND_ACTIVE"},
-    burrowDelete:{normal:"BURROW_DELETE"},
-    burrowRepaint:{normal:"BURROW_REPAINT"},                                    // symbol picker
-    burrowRecenter:{normal:"BURROW_RECENTER"},  // DF's own recenter glyph
-    burrowWorkshopsAll:{normal:"BURROW_WORKSHOPS_EVERYWHERE", active:"BURROW_WORKSHOPS_EVERYWHERE"},
-    burrowWorkshopsOnly:{normal:"BURROW_WORKSHOPS_BURROW_ONLY", active:"BURROW_WORKSHOPS_BURROW_ONLY"},
-    burrowAddUnit:{normal:"BURROW_ADD_UNIT"}
-  };
-  const SPRITE_TOKENS = window.DwfControlShell.SPRITE_TOKENS;
   // Semantic control-shell keys for tiles whose selected state lives in a DF _ACTIVE sprite.
   const DIG_MODE_SPRITES = ["digModeAll", "digModeAuto", "digModeOre", "digModeGem"];
   const TRAFFIC_SPRITES = { high:"trafficHigh", normal:"trafficNormal", low:"trafficLow", restricted:"trafficRestricted" };
@@ -477,16 +405,16 @@
   function updateDesignationButtons() {
     const inMineMode = digMenuOpen || digTools.has(selectedDesignation);
     try { if (window.DwfTiles && window.DwfTiles.setMineMode) window.DwfTiles.setMineMode(inMineMode); }
-    catch (_) { DwfErr.count("designation.tiles-mine-mode"); }
+    catch { DwfErr.count("designation.tiles-mine-mode"); }
     try { if (window.DwfGL && window.DwfGL.setMineMode) window.DwfGL.setMineMode(inMineMode); }
-    catch (_) { DwfErr.count("designation.gl-mine-mode"); }
+    catch { DwfErr.count("designation.gl-mine-mode"); }
     // Native draws traffic marks ONLY while a traffic paint mode is the active tool. This is the same
     // expression that opens the traffic submenu below, so overlay and menu cannot disagree.
     const inTrafficMode = selectedDesignation === "traffic";
     try { if (window.DwfTiles && window.DwfTiles.setToolStateOverlay) window.DwfTiles.setToolStateOverlay("traffic", inTrafficMode); }
-    catch (_) { DwfErr.count("designation.tiles-traffic-mode"); }
+    catch { DwfErr.count("designation.tiles-traffic-mode"); }
     try { if (window.DwfGL && window.DwfGL.setToolStateOverlay) window.DwfGL.setToolStateOverlay("traffic", inTrafficMode); }
-    catch (_) { DwfErr.count("designation.gl-traffic-mode"); }
+    catch { DwfErr.count("designation.gl-traffic-mode"); }
 
     digSubmenu.classList.toggle("visible", digMenuOpen);
     digSubmenu.setAttribute("aria-hidden", digMenuOpen ? "false" : "true");
@@ -617,7 +545,7 @@
   // DESIGNATION_OWNED_FLOWS is popped, whether or not it is currently occupied.
   const DESIGNATION_OWNED_FLOWS = new Set(["designations", "paint-gesture", "screen-stack"]);
   function tearDownForDesignation() {
-    let levels = [];
+    let levels;
     try { levels = (window.MODE_STACK && window.MODE_STACK.all()) || []; }
     catch (err) { DwfErr.report("mode-stack.read", err); return; }
     levels
@@ -795,7 +723,7 @@
       if (!data || !data.costs) return;   // old DLL without the route: keep the defaults, stay quiet
       Object.assign(trafficCosts, data.costs);
       paintTrafficCostOutputs();
-    } catch (_) { /* offline/older host: the sliders keep DF's documented defaults */ }
+    } catch { /* offline/older host: the sliders keep DF's documented defaults */ }
   }
   async function postTrafficCost(key, value) {
     try {
@@ -1005,7 +933,7 @@
     try {
       const r = await fetch(url, { method: "POST", cache: "no-store", signal: ctl.signal });
       return r.ok ? r : null;
-    } catch (_) {
+    } catch {
       return null;
     } finally {
       clearTimeout(timer);
@@ -1080,7 +1008,7 @@
     renderZoneOverlay();
   }
 
-  async function submitDesignationRange(selection, endZ) {
+  async function submitDesignationRange(selection) {
     if (!selection) return false;
     // Shift+wheel moves the camera through the normal queue. Await it so camera_for_player()
     // sees the active release level instead of racing a still-pending /camera request.

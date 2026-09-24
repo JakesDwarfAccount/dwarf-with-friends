@@ -36,7 +36,7 @@ const INFO = {
 function render(s) {
   const x = s.steps;
   const rows = [];
-  let dfBody, dfAction = "";
+  let dfBody, dfAction;
   const pathEntry = (extra = "") => `<div class="path-entry"${extra}><input id="df-path" type="text" placeholder="C:\\...\\Dwarf Fortress" aria-label="Dwarf Fortress folder">${button("choose-df", "Use this folder")}</div>`;
   if (x.df.ok) {
     dfBody = `Found <code>${esc(s.dfRoot)}</code>`;

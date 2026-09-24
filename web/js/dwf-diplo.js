@@ -148,6 +148,7 @@
       ariaLabel: "Diplomacy meeting",
       dataset: { diploOpen: state.open ? "1" : "0" },
       footerHtml: footer,
+      footerCls: "diplomacy-footer",
     }, body);
   }
 

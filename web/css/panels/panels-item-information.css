@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.item-information {
   .stock-item-sheet {
@@ -29,7 +29,6 @@
     min-height: 430px;
     display: flex;
     flex-direction: column;
-    color: var(--dwfui-text-body);
     background: var(--dwfui-surface);
     font: var(--dwfui-font);
   }
@@ -37,29 +36,17 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 0;
   }
   .stock-item-header {
     position: relative;
-    display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: var(--dwfui-space-m);
     min-height: 54px;
-    padding: 8px 10px 4px;
+    padding: var(--dwfui-space-m) var(--dwfui-space-m) var(--dwfui-space-s);
   }
-  .stock-item-headcopy {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-  }
-  .stock-item-glyph {
-    width: 32px;
-    height: 32px;
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--dwfui-slab);
-    background: var(--dwfui-surface);
+  .stock-item-glyph,
+  .stock-item-content-icon {
+    border: var(--dwfui-divider) solid var(--dwfui-slab);
     color: var(--dwfui-text-numeric);
     font-weight: 900;
   }
@@ -69,91 +56,53 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .stock-item-weight {
+    margin-top: var(--dwfui-space-m);
+    color: var(--dwfui-text-numeric);
+  }
   .stock-item-body {
     flex: 1;
-    margin: 0 10px 10px;
-    padding: 9px 10px;
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-m);
+    padding: var(--dwfui-space-m);
     overflow: auto;
     line-height: 1.22;
   }
   .stock-item-description {
     min-height: 118px;
-    margin: 0 0 14px;
-    color: var(--dwfui-text-body);
+    margin: 0 0 var(--dwfui-space-l);
     white-space: pre-wrap;
+  }
+  /* Location row (oracle: stockpile art tile + name, right-aligned green "View stockpile"). */
+  .stock-item-loc-row,
+  .stock-item-unit {
+    display: flex;
+    align-items: center;
+    gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-s) 0;
+    padding: var(--dwfui-space-s) var(--dwfui-space-xs);
+  }
+  .stock-item-loc-copy {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stock-item-loc-btn {
+    flex: 0 0 auto;
+  }
+  .stock-item-unit-copy {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
   }
   .stock-item-label {
     color: var(--dwfui-text-numeric);
     font-weight: 700;
   }
-  /* Location row (oracle: stockpile art tile + name, right-aligned green "View stockpile"). */
-  .stock-item-loc-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 6px 0 4px;
-    padding: 4px 2px;
-  }
-  .stock-item-loc-icon {
-    width: 30px;
-    height: 30px;
-    flex: 0 0 auto;
-  }
-  .stock-item-loc-copy {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .stock-item-loc-name {
-    color: var(--dwfui-text-row);
-  }
-  .stock-item-loc-btn {
-    flex: 0 0 auto;
-  }
-  .stock-item-unit {
-    margin: 16px 0 4px;
-    display: grid;
-    grid-template-columns: 1fr 156px;
-    align-items: center;
-    gap: 12px;
-  }
-  .stock-item-unit-name {
-    color: var(--dwfui-text-row);
-  }
   .stock-item-contents {
-    margin: 14px 0 4px;
-    border-top: 1px solid var(--dwfui-gold-bevel-mid);
-    padding-top: 6px;
-  }
-  .stock-item-content-row {
-    align-items: center;
-    gap: 10px;
-    padding: 4px 8px;
-    margin-top: 3px;
-    border: 1px solid var(--dwfui-slab);
-    background: var(--dwfui-surface);
-  }
-  .stock-item-content-row:hover {
-    border-color: var(--dwfui-text-numeric);
-    background: rgba(216, 155, 39, 0.12);
-  }
-  .stock-item-content-icon {
-    width: 26px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--dwfui-slab);
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-numeric);
-    font-weight: 900;
+    margin: var(--dwfui-space-l) 0 var(--dwfui-space-s);
   }
   .stock-item-content-copy {
-    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .stock-item-content-name {
-    color: var(--dwfui-text-row);
   }
 }

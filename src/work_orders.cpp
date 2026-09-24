@@ -97,7 +97,6 @@ void register_work_order_routes(httplib::Server& server) {
             attrib_stamp(AttribKind::Order, oid, player);
         set_no_store_json(res, "{\"ok\":true,\"msg\":" + json_string(msg) + "}\n");
     };
-    server.Get("/order-create", order_create_handler);
     server.Post("/order-create", order_create_handler);
 
     auto order_import_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -113,7 +112,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true,\"msg\":" + json_string(msg) + "}\n");
     };
-    server.Get("/order-import", order_import_handler);
     server.Post("/order-import", order_import_handler);
 
     auto order_cancel_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -129,7 +127,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-cancel", order_cancel_handler);
     server.Post("/order-cancel", order_cancel_handler);
 
     auto order_adjust_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -148,7 +145,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-adjust", order_adjust_handler);
     server.Post("/order-adjust", order_adjust_handler);
 
     auto order_cond_item_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -171,7 +167,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-condition-item-add", order_cond_item_handler);
     server.Post("/order-condition-item-add", order_cond_item_handler);
 
     auto order_cond_item_edit_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -199,7 +194,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-condition-item-edit", order_cond_item_edit_handler);
     server.Post("/order-condition-item-edit", order_cond_item_edit_handler);
 
     server.Get("/condition-materials", [](const httplib::Request& req, httplib::Response& res) {
@@ -240,7 +234,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-condition-order-add", order_cond_order_handler);
     server.Post("/order-condition-order-add", order_cond_order_handler);
 
     // Edits the row IN PLACE: a remove-then-add through the routes above re-appends the condition
@@ -263,7 +256,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-condition-order-edit", order_cond_order_edit_handler);
     server.Post("/order-condition-order-edit", order_cond_order_edit_handler);
 
     auto order_cond_remove_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -281,7 +273,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-condition-remove", order_cond_remove_handler);
     server.Post("/order-condition-remove", order_cond_remove_handler);
 
     auto order_maxshops_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -298,7 +289,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-max-workshops", order_maxshops_handler);
     server.Post("/order-max-workshops", order_maxshops_handler);
 
     auto order_workshop_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -316,7 +306,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-workshop", order_workshop_handler);
     server.Post("/order-workshop", order_workshop_handler);
 
     auto order_reorder_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -333,7 +322,6 @@ void register_work_order_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/order-reorder", order_reorder_handler);
     server.Post("/order-reorder", order_reorder_handler);
 }
 

@@ -26,7 +26,7 @@
 
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
     DWFUI.require("host-panel", ["headerHtml", "switchHtml", "plaqueBtnHtml", "rowHtml",
-      "scrollHtml", "textInputHtml", "esc"]);
+      "scrollHtml", "textInputHtml", "statusHtml", "esc"]);
 
   function isHost() {
     try {
@@ -79,6 +79,9 @@
   let consoleCfg = null;    // { enabled, host } from /console-config (null => route absent/old DLL)
   let joinRouteMissing = false; // set true once a POST /join-password returns 404
 
+  const PROSE_COLS = 56;    // a full-width line of text in the 60-cell panel
+  const SWITCH_COLS = 50;   // the switch copy's width, in cells, beside the pill in the 60-cell panel
+
   function pauseSection(state) {
     const cfg = (state && state.pauseCfg) || pauseCfg || {};
     const paused = cfg.paused === true;
@@ -88,15 +91,25 @@
     const ap = cfg.autopause === true;
     // No `trackCls` or `knob` overrides here: they made this module render its private copy of the pill
     // instead of DWFUI's shared one. [data-hp-toggle] on the root is the wire.
-    const hostSwitch = window.DWFUI.switchHtml({ cls: `host-panel-toggle${huo ? " on" : ""}`, checked: huo, rootDataset: { hpToggle: "hostunpause" }, copyCls: "host-panel-lbl", labelTag: "b", label: "Only the host can unpause", sub: "Anyone can pause, but only you (the host machine) can resume. Keeps a spectator from unpausing your world." });
-    const autoSwitch = window.DWFUI.switchHtml({ cls: `host-panel-toggle${ap ? " on" : ""}`, checked: ap, rootDataset: { hpToggle: "autopause" }, copyCls: "host-panel-lbl", labelTag: "b", label: "Auto-pause when a player leaves", sub: "Pause automatically a few seconds after the last connection of a player drops, so nothing runs unattended." });
+    const hostSwitch = window.DWFUI.switchHtml({
+      cls: `host-panel-toggle${huo ? " on" : ""}`, checked: huo, rootDataset: { hpToggle: "hostunpause" },
+      columns: SWITCH_COLS, label: "Only the host can unpause",
+      sub: "Anyone can pause, but only you (the host machine) can resume.",
+    });
+    const autoSwitch = window.DWFUI.switchHtml({
+      cls: `host-panel-toggle${ap ? " on" : ""}`, checked: ap, rootDataset: { hpToggle: "autopause" },
+      columns: SWITCH_COLS, label: "Auto-pause when a player leaves",
+      sub: "Pause a few seconds after the last player disconnects, so nothing runs unattended.",
+    });
     return `
       <section>
         <h3>Pause &amp; permissions</h3>
         <div class="host-panel-state"><span class="host-panel-dot ${paused ? "host-panel-dot-warning" : "host-panel-dot-good"}"></span>${window.DWFUI.esc(stateText)}</div>
         ${hostSwitch}
         ${autoSwitch}
-        <div class="host-panel-note">These apply immediately. With an updated host they persist across restarts; on an older host they reset when Dwarf Fortress restarts.</div>
+        ${window.DWFUI.statusHtml({ cls: "host-panel-note", tone: "dim", columns: PROSE_COLS,
+          text: "These apply immediately. With an updated host they persist across restarts; on an older " +
+                "host they reset when Dwarf Fortress restarts." })}
       </section>`;
   }
 
@@ -107,8 +120,8 @@
     const on = known && version.authRequired === true;
     const status = !known
       ? `<span class="host-panel-checking">checking…</span>`
-      : (on ? `<span class="host-panel-dot host-panel-dot-good"></span>On &mdash; a password is required to join`
-            : `<span class="host-panel-dot host-panel-dot-warning"></span>Off &mdash; anyone who can reach the port can join`);
+      : (on ? `<span class="host-panel-dot host-panel-dot-good"></span>On: a password is required to join`
+            : `<span class="host-panel-dot host-panel-dot-warning"></span>Off: anyone who can reach the port can join`);
     const fallback = routeMissing ? `
       <div class="host-panel-fallback">This host build can't change the password from the browser yet.
         In the Dwarf Fortress console (DFHack), run <code>capture-join-password &lt;passphrase&gt;</code>
@@ -136,8 +149,8 @@
         <div class="host-panel-pw-row">
           ${passwordInput}
           ${setBtn}
+          ${offBtn}
         </div>
-        <div class="host-panel-pw-row host-panel-pw-row-end">${offBtn}</div>
         <div class="host-panel-msg" id="hpPwMsg"></div>
         ${fallback}
       </section>`;
@@ -150,11 +163,9 @@
     const on = cc.enabled === true;
     const consoleSwitch = window.DWFUI.switchHtml({
       cls: `host-panel-toggle${on ? " on" : ""}`, checked: on, rootDataset: { hpToggle: "console" },
-      copyCls: "host-panel-lbl", labelTag: "b",
-      label: "Let players run DFHack commands on my PC (advanced)",
-      sub: "Opens the in-browser DFHack console for every joined player. Commands run on YOUR " +
-           "machine and can affect your game and files (a blocklist stops the worst, not " +
-           "everything). Leave off unless you know you want it.",
+      columns: SWITCH_COLS, label: "Let players run DFHack commands on my PC (advanced)",
+      sub: "Opens the DFHack console for every joined player. Commands run on YOUR machine and can " +
+           "affect your game and files; a blocklist stops only the worst. Leave off unless you want it.",
     });
     return `
       <section>
@@ -164,7 +175,7 @@
   }
 
   function fmtAge(ms) {
-    if (typeof ms !== "number" || ms < 0) return "&mdash;";
+    if (typeof ms !== "number" || ms < 0) return "-";
     if (ms < 1500) return "now";
     const s = Math.round(ms / 1000);
     if (s < 60) return s + "s ago";
@@ -176,33 +187,26 @@
     const playerRows = state && Array.isArray(state.players) ? state.players : players;
     let rows;
     if (playerRows == null) {
-      rows = `<div class="host-panel-players-empty">loading…</div>`;
+      rows = `<div class="dwfui-text--empty host-panel-players-empty">loading…</div>`;
     } else if (!playerRows.length) {
-      rows = `<div class="host-panel-players-empty">No players connected</div>`;
+      rows = `<div class="dwfui-text--empty host-panel-players-empty">No players connected</div>`;
     } else {
       const self = state && typeof state.self === "string" ? state.self : (function () { try { return window.player || ""; } catch { return ""; } })();
-      // Cells are RAW html because the name cell carries the "(you)" marker; every user-supplied value in
-      // them still goes through DWFUI.esc.
       const R = window.DWFUI.rowHtml;
-      const cell = (html, cls) => ({ html: html, cls: cls });
-      const head = R({ chassis: "table", cls: "host-panel-head-row", copyCls: "host-panel-hidden-copy",
-        cells: [cell("Player"), cell("Conns", "host-panel-num"), cell("Ping", "host-panel-num"),
-          cell("Last seen", "host-panel-num")] });
+      const num = text => ({ html: window.DWFUI.bitmapTextHtml(text), numeric: true, cls: "host-panel-num" });
+      const head = R({ chassis: "table", tone: "secondary", label: "Player",
+        cells: [num("Conns"), num("Ping"), num("Last seen")] });
       const body = playerRows.slice().sort((a, b) =>
         String(a && a.player).localeCompare(String(b && b.player))).map(p => {
-        const name = window.DWFUI.esc(p.player);
-        const you = p.player === self ? ' <span class="host-panel-you">(you)</span>' : "";
-        const conns = (typeof p.connections === "number") ? p.connections : "&mdash;";
-        const ping = (typeof p.rttMs === "number" && p.rttMs >= 0) ? p.rttMs + " ms" : "&mdash;";
-        const seen = fmtAge(p.lastInboundAgeMs);
-        return R({ chassis: "table", copyCls: "host-panel-hidden-copy",
-          dataset: { hpPlayer: p.player == null ? "" : String(p.player) },
-          cells: [cell(name + you), cell(String(conns), "host-panel-num"), cell(String(ping), "host-panel-num"),
-            cell(seen, "host-panel-num")] });
+        const conns = (typeof p.connections === "number") ? String(p.connections) : "-";
+        const ping = (typeof p.rttMs === "number" && p.rttMs >= 0) ? p.rttMs + " ms" : "-";
+        return R({ chassis: "table", dataset: { hpPlayer: p.player == null ? "" : String(p.player) },
+          label: String(p.player) + (p.player === self ? " (you)" : ""),
+          cells: [num(conns), num(ping), num(fmtAge(p.lastInboundAgeMs))] });
       }).join("");
       rows = `<div class="host-panel-players">${head}${body}</div>`;
     }
-    const count = playerRows == null ? "" : ` &mdash; ${playerRows.length}`;
+    const count = playerRows == null ? "" : `: ${playerRows.length}`;
     return `
       <section>
         <h3>Connected players${count}</h3>
@@ -213,14 +217,13 @@
   function footer(state) {
     const version = state && state.versionInfo ? state.versionInfo : versionInfo;
     const audioState = state && Object.prototype.hasOwnProperty.call(state, "audioInfo") ? state.audioInfo : audioInfo;
-    const build = window.DWFUI.esc((version && version.build) || window.DFCAPTURE_BUILD || "unknown");
-    let audio = "";
-    if (audioState) {
-      audio = audioState.remote
-        ? `<div>Remote game audio: <b>shared with remote players</b> (set in dfhack-config/dfcapture.json).</div>`
-        : `<div>Remote game audio: <b>local host only</b> (enable <b>audio_remote</b> in dfhack-config/dfcapture.json to share, then restart).</div>`;
-    }
-    return `<div class="host-panel-foot"><div>Build ${build}</div>${audio}</div>`;
+    const build = (version && version.build) || window.DFCAPTURE_BUILD || "unknown";
+    const lines = [`Build ${build}`];
+    if (audioState) lines.push(audioState.remote
+      ? "Remote game audio: shared with remote players (set in dfhack-config/dfcapture.json)."
+      : "Remote game audio: local host only (enable audio_remote in dfhack-config/dfcapture.json to share, then restart).");
+    return `<div class="host-panel-foot">${lines.map(text =>
+      window.DWFUI.statusHtml({ tone: "dim", columns: PROSE_COLS, text })).join("")}</div>`;
   }
 
   function hostPanelMarkup(state) {
@@ -231,8 +234,7 @@
       close: { cls: "host-panel-close", dataset: { hpAct: "close" }, title: "Close" },
     });
     // `preserveKey` keeps the player's scroll position across the panel's 2 s refresh re-render.
-    const body = `<div class="host-panel-sub">Controls only you, the host, can change.</div>
-       ${pauseSection(state)}
+    const body = `${pauseSection(state)}
        ${joinSection(state)}
        ${guardsSection(state)}
        ${playersSection(state)}

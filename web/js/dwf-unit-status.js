@@ -28,8 +28,6 @@
   var USTAT_UNCONSCIOUS = 0x02;
   var USTAT_STRESSED = 0x04;
   var USTAT_STRANGE_MOOD = 0x08;
-  var USTAT_CAGED = 0x10;
-  var USTAT_CHAINED = 0x20;
   var USTAT_WINDED = 0x00000200;
   var USTAT_STUNNED = 0x00000400;
   var USTAT_NAUSEA = 0x00000800;
@@ -118,7 +116,6 @@
     if (st & USTAT_GROUNDED) return usCell(38, "GROUNDED");
     if (st & USTAT_CLIMBING) return usCell(40, "CLIMBING");
     if (st & USTAT_WEBBED) return usCell(39, "WEBBED");
-    if (st & (USTAT_CAGED | USTAT_CHAINED)) return null;
     return null;
   }
 

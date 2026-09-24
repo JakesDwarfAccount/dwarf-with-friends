@@ -73,7 +73,7 @@
       }
       const finalId = Number(data.id);
       reopen(Number.isInteger(finalId) && finalId >= 0 ? finalId : id);
-    } catch (_) {
+    } catch {
       loadZones();
       reopen(id, { text: "The zone-repaint route did not respond -- the host's game may be older than this client.", isError: true });
     } finally {
@@ -251,7 +251,7 @@
       const why = reason || "rightclick";
       if (flow && window.MODE_STACK.popOne(why, flow)) return true;
       return !!window.MODE_STACK.popOne(why);
-    } catch (_) { return false; }
+    } catch { return false; }
   }
   try { window.DFBackOut = backOutOneLevel; } catch (err) { DwfErr.report("tool-mode.back-out-export", err); }
 

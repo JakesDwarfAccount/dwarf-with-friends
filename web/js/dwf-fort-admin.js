@@ -128,10 +128,10 @@
       adminData[adminTab] = { error: err.message || "unavailable" };
     }
     if (adminTab !== "justice") return;
-    // GET /justice-convict is READ-ONLY; if it cannot be read every drive renders LOCKED -- fail closed.
+    // If the host's unlock flags cannot be read, every drive renders LOCKED -- fail closed.
     try {
       const state = await fortFetchJson(
-        `/justice-convict?player=${encodeURIComponent(player)}&t=${Date.now()}`);
+        `/justice-state?player=${encodeURIComponent(player)}&t=${Date.now()}`);
       justiceHostState = (state && state.ok) ? state : null;
     } catch {
       justiceHostState = null;
@@ -209,7 +209,10 @@
       const empty = candidates.length ? "" : `<div class="info-message">No eligible citizens.</div>`;
       // Vacating is a supported /noble-assign operation and remains available even when the
       // candidate set is empty. The old branch accidentally discarded this row in that state.
-      inner = `<div class="fort-candidate-list">${vacant}${rows}${empty}</div>`;
+      inner = DWFUI.scrollHtml({
+        cls: "fort-candidate-list", rows: ".fort-candidate-row",
+        preserveKey: `noble-candidates-${positionId}`, ariaLabel: "Candidates",
+      }, vacant + rows + empty);
     }
     return inner;
   }
@@ -221,7 +224,7 @@
       dataset: { nobleAssign: positionId },
     });
     return `<div id="fortStatus" class="info-message fort-status"></div>` +
-      `<div class="fort-section-title">${DWFUI.bitmapTextHtml(
+      `<div class="dwfui-text--section fort-section-title">${DWFUI.bitmapTextHtml(
         positionName ? `Appoint ${positionName}` : "Appoint a citizen")}</div>` +
       back + nobleCandidateListHtml(positionId, candidateData, loading);
   }
@@ -335,7 +338,7 @@
         title: `Bookkeeper precision ${n}`,
         dataset: { noblePrecision: n - 1 },
       })),
-      { cls: "dwfui-actions noble-precision", ariaLabel: "Bookkeeper accounting precision" });
+      { cls: "noble-precision", ariaLabel: "Bookkeeper accounting precision" });
   }
 
   // A noble seat has FOUR display states: holder, vacant, unfillable, travelling.
@@ -433,18 +436,11 @@
       return `<div class="fort-noble-row">
         ${DWFUI.rowHtml({
           chassis: "table", cls: "fort-row fort-row-noble",
-          copyCls: "dwfui-copy fort-cell-main",
+          copyCls: "fort-cell-main", labelCls: "noble-position-name",
           labelHtml: DWFUI.bitmapTextHtml(p.name),
           // R4: squad name second line on militia rows ("The Pinkertons"/"Delta Squad").
           sub: p.squadName ? { text: p.squadName, cls: "fort-dim noble-squad-name" } : null,
-          // CAPTURE-FIRST FIX (CIM-Nobles and administrators.jpg): the crown/regalia tile sits
-          // BETWEEN the holder's name and the room-requirement icons in native -- one fixed column,
-          // immediately left of the five room tiles -- not after them. We emitted it as `trailing`,
-          // which put it LAST, so on screen the order read
-          // [rooms][demand][mandate][precision][crown] against native's
-          // [crown][rooms][demand][mandate][precision]. Moving it from `trailing` to a `cells` entry
-          // ahead of the sub cell restores native's order; `.fort-row-noble`'s five-track template
-          // is re-ordered to match (the production stylesheet), since that grid places children BY ORDER.
+          // Native's order: [+], holder, crown, then the room and demand tiles.
           cells: [
             { html: assignBtn },
             { html: who, cls: "fort-cell-who" },
@@ -475,7 +471,7 @@
         ? ` &middot; <span class="fort-dim">${DWFUI.bitmapTextHtml("multiple offenders punished")}</span>` : "";
       return DWFUI.rowHtml({
         cls: "fort-row fort-row-tall",
-        copyCls: "dwfui-copy fort-cell-main",
+        copyCls: "fort-cell-main",
         labelHtml: DWFUI.bitmapTextHtml(titleText) +
           `<span class="fort-dim"> &middot; ${DWFUI.bitmapTextHtml(kind)}</span>`,
         cells: [
@@ -491,10 +487,13 @@
       preserveKey: "nobles-positions",
       ariaLabel: "Nobles and administrators",
     }, rows);
-    return `<div id="fortStatus" class="info-message fort-status"></div>
-      <div class="fort-note">Members of the nobility have required rooms and can make demands. They cannot be reassigned. Administrators handle various aspects of your fortress and can be reassigned. Many administrators also require rooms.</div>
+    const mandateList = DWFUI.scrollHtml({
+      cls: "nobles-mandate-list", rows: ".fort-row", preserveKey: "nobles-mandates", ariaLabel: "Active mandates",
+    }, mandateRows);
+    return `<div class="nobles-screen"><div id="fortStatus" class="info-message fort-status"></div>
+      <div class="dwfui-text--note fort-note">Members of the nobility have required rooms and can make demands. They cannot be reassigned. Administrators handle various aspects of your fortress and can be reassigned. Many administrators also require rooms.</div>
       ${positionList}
-      <div class="fort-section-title">Active mandates</div>${mandateRows}`;
+      <div class="dwfui-text--section fort-section-title">Active mandates</div>${mandateList}</div>`;
   }
 
   function wireNoblesBody(root) {
@@ -577,12 +576,11 @@
     interrogate: 'Assigning an interrogation from the browser is built, but it is locked until the ' +
       'host verifies it on this machine: flag "justice_interrogate" in dfcapture-hostwrites.json ' +
       '(next to the DF exe) is off. It unlocks live -- no reload.',
-    unreadable: 'The host is not reporting its justice action flags (GET /justice-convict did not ' +
-      'answer), so this action stays locked. That is a host/plugin problem, not a rule -- tell ' +
-      'whoever runs the fort.',
+    unreadable: 'The host is not reporting its justice action flags, so this action stays locked. ' +
+      'That is a host/plugin problem, not a rule -- tell whoever runs the fort.',
   };
 
-  // {enabled, reason} for one drive. `hostState` is the GET /justice-convict payload (or null when
+  // {enabled, reason} for one drive. `hostState` is the GET /justice-state payload (or null when
   // it could not be read). Fails closed on every unknown: no flags = no action.
   function justiceActionState(hostState, kind) {
     const key = kind === "convict" ? "justiceConvict" : "justiceInterrogate";
@@ -752,12 +750,18 @@
         rows: ".justice-case-btn, .justice-convict-row, .justice-report-row",
         ariaLabel: "Justice cases and reports",
       }, listHtml) +
-      `<div class="justice-case-detail">${detailHtml}</div></div>`;
+      // Prose: its lines are the rows, as in native's text panes.
+      DWFUI.scrollHtml({
+        cls: "justice-case-detail",
+        rows: ".justice-detail-line, .dwfui-status, .justice-breakdown-title, .justice-breakdown-row, " +
+          ".justice-detail-actions .dwfui-plaque",
+        ariaLabel: "Case details",
+      }, detailHtml) + `</div>`;
   }
   // `data-justice-case` IS the capability: it drives the detail pane, the only route to Pardon on Convicts.
   function justiceCaseButtonHtml(id, label, active) {
-    return DWFUI.plaqueBtnHtml({
-      cls: "justice-case-btn", label: String(label), focus: !!active,
+    return DWFUI.rowHtml({
+      tag: "button", chassis: "slab", cls: "justice-case-btn", label: String(label), selected: !!active,
       dataset: { justiceCase: id },
     });
   }
@@ -788,7 +792,7 @@
          disabled: !live, dataset: { justiceRecenter: live ? unitId : "" } },
        { action: "view", sprite: S.view, title: `View ${name}`,
          dataset: { unitId: live ? unitId : "" } }],
-      { cls: "dwfui-actions justice-row-actions", ariaLabel: "Convict actions" });
+      { cls: "justice-row-actions", ariaLabel: "Convict actions" });
     return DWFUI.rowHtml(Object.assign({
       chassis: "table", cls: "justice-convict-row", selected: !!selected,
       icon: portrait,
@@ -802,10 +806,10 @@
       cls: "justice-sort", dataAttr: "justice-sort", ariaLabel: "Sort convicts",
       active: active === "name" ? "name" : "name",
       columns: [
-        { key: "name", label: "Name", sort: "desc", title: "Sort by name" },
-        { key: "cat", label: "Cat", sort: "desc", disabled: true,
+        { key: "name", label: "Name", title: "Sort by name" },
+        { key: "cat", label: "Cat", disabled: true,
           title: "Category sorting needs a `category` field on /justice (not served)" },
-        { key: "prof", label: "Prof", sort: "desc", disabled: true,
+        { key: "prof", label: "Prof", disabled: true,
           title: "Profession sorting needs a `profession` field on /justice (not served)" },
       ],
     });
@@ -1007,7 +1011,7 @@
         Number.isFinite(selectedUnitId) && Number(m.unitId) === selectedUnitId)).join("");
       return status + headingHtml +
         justiceConvictSortHtml("name") +
-        `<div class="justice-guard-list">${rows}</div>`;
+        DWFUI.scrollHtml({ cls: "justice-guard-list", rows: ".justice-convict-row", ariaLabel: "Fortress guard" }, rows);
     }
     if (activeMode === "convicts") {
       const convicts = Array.isArray(data.convicts) ? data.convicts : [];
@@ -1236,14 +1240,14 @@
       ? `<div class="petition-copy"><div class="petition-person">${escapeHtml(selected.petitioner)}</div><div>wishes to reside in</div><div class="petition-site">${escapeHtml(selected.site)}</div><div>for the purpose of</div><div class="petition-purpose">${escapeHtml(selected.purpose)}</div></div>`
       : `<div class="petition-copy"><div class="petition-person">${escapeHtml(selected.petitioner || "Unknown petitioner")}</div><div class="petition-wire-gap">${escapeHtml(fortPrettyKey(selected.summary || "Petition details unavailable"))}</div></div>`;
     const selectedActions = selected.pending
-      ? `<div class="petition-question">This petition must be decided by the host</div><div class="petition-hint">Approving or denying isn't available in the browser — a plugin write can’t grant residency or record the decision, so it would only hide the row without resolving it. The host can decide it in the Steam client (the petition notification / Agreements screen). You can still set the auto-response for future petitions of this kind below.</div>`
-      : `<span class="fort-badge fort-badge-done">Accepted</span>`;
+      ? `<div class="petition-question">This petition must be decided by the host</div><div class="dwfui-text--note petition-hint">Approving or denying isn't available in the browser — a plugin write can’t grant residency or record the decision, so it would only hide the row without resolving it. The host can decide it in the Steam client (the petition notification / Agreements screen). You can still set the auto-response for future petitions of this kind below.</div>`
+      : `<span class="fort-badge fort-badge-done">${DWFUI.bitmapTextHtml("Accepted")}</span>`;
     const future = DWFUI.plaqueBtnHtml({
       label: `Future such petitions: ${selected.futurePolicy || "unavailable"}`,
       tone: "grey", cls: "petition-future", dataset: { petitionFuture: selected.id },
       disabled: !selected.futurePolicy,
     });
-    return `<div id="fortStatus" class="info-message fort-status"></div><div class="petition-box"><div class="petition-list">${rows}</div><div class="petition-detail">${detail}${selectedActions}${future}<div class="petition-hint">This can also be changed in<br>Labor -&gt; Standing orders -&gt; Petitions.</div></div></div>`;
+    return `<div id="fortStatus" class="info-message fort-status"></div><div class="petition-box"><div class="petition-list">${rows}</div><div class="petition-detail">${detail}${selectedActions}${future}<div class="dwfui-text--note petition-hint">This can also be changed in<br>Labor -&gt; Standing orders -&gt; Petitions.</div></div></div>`;
   }
 
   function petitionsWindowHtml(data) {

@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.information-tables {
   .info-window {
@@ -32,128 +32,112 @@
   }
   .info-window:not(.dwfui-window) {
     background: var(--dwfui-surface);
-    box-shadow: none;
+    box-shadow: 0 0 0 3px var(--dwfui-gold-bevel-mid) inset;
   }
   .info-tab-row,
   .info-section-tabs,
   .info-detail-tabs {
-    display: flex;
     flex-wrap: wrap;
-    gap: 0;
-    padding: 4px 10px 0;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) 0;
   }
   .info-section-tabs {
     padding-top: 0;
   }
   .info-detail-tabs {
     padding-top: 0;
-    padding-bottom: 8px;
+    padding-bottom: var(--dwfui-space-m);
   }
   .info-body {
-    flex: 1;
     min-height: 0;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 0 14px 8px;
+    gap: var(--dwfui-space-m);
+    padding: 0 var(--dwfui-space-l) var(--dwfui-space-m);
     overflow: hidden;
   }
   .info-body.with-side {
-    grid-template-columns: 244px 1fr;
+    grid-template-columns: calc(24 * var(--dwfui-cell-drawn-w)) 1fr;
   }
   .info-side-list {
-    overflow: auto;
-    padding-top: 8px;
+    padding-top: var(--dwfui-space-m);
   }
   .info-side-item {
     display: grid;
-    grid-template-columns: 32px 1fr;
     align-items: center;
-    min-height: 33px;
-    padding: 2px 8px;
-    color: var(--dwfui-text-body);
     background: var(--dwfui-slab);
-    border: 1px solid var(--dwfui-slate);
-    margin-bottom: 3px;
+    border: var(--dwfui-divider) solid var(--dwfui-slate);
+    margin-bottom: var(--dwfui-space-xs);
   }
   .info-main {
-    --resident-grid-columns: calc(40px * var(--dwfui-interface-scale, 1)) minmax(0, 1.05fr) max-content minmax(0, 0.9fr)
-      max-content max-content max-content max-content minmax(0, 1.1fr);
     min-width: 0;
     overflow: auto;
   }
   .info-message {
-    margin: 8px 0 10px;
+    margin: var(--dwfui-space-m) 0;
     color: var(--dwfui-text-body);
     white-space: pre-wrap;
   }
-  .info-table-head {
-    display: grid;
-    grid-template-columns: 40px minmax(250px, 1.6fr) minmax(150px, 0.75fr) minmax(180px, 1fr) minmax(180px, 1fr);
-    align-items: center;
-    gap: 0;
-    margin: 4px 0 6px;
-    color: var(--dwfui-text-heading);
-    font-weight: 700;
-  }
-  .info-table-head span {
-    display: inline-block;
-    padding: 1px 12px;
-    background: var(--dwfui-slab);
-    border-left: 2px solid var(--dwfui-gold);
-  }
   .info-row {
     display: grid;
-    grid-template-columns: 40px minmax(250px, 1.6fr) minmax(150px, 0.75fr) minmax(180px, 1fr) minmax(180px, 1fr);
     align-items: center;
-    min-height: 42px;
-    color: var(--dwfui-text-body);
-    border: 1px solid transparent;
+    min-height: var(--dwfui-height-row-tall);
+    border: var(--dwfui-divider) solid transparent;
     background: repeating-linear-gradient(-25deg, rgba(255, 255, 255, 0.025) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
   }
   .info-row.clickable {
     cursor: pointer;
+  }
+  .info-row:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
   }
   .info-row.clickable:hover,
   .info-row.selected {
     border-color: var(--dwfui-text-numeric);
     background-color: rgba(216, 155, 39, 0.12);
   }
+  /* Places and Objects. In the wide layout the columns sit on native's cell anchors: a place's detail
+     at cell 43 and its locate/view pair at 80; an object's pair at 80 and its status after it. */
   .info-row.info-place-row {
-    grid-template-columns: calc(40px * var(--dwfui-interface-scale)) minmax(0, 1fr) auto;
-    gap: 8px;
-    padding-right: 6px;
+    grid-template-columns: calc(5 * var(--dwfui-cell-drawn-w)) minmax(0, 1fr) auto;
+    column-gap: var(--dwfui-space-m);
+    padding-right: var(--dwfui-space-s);
   }
+  .info-row.info-object-row {
+    grid-template-columns: calc(5 * var(--dwfui-cell-drawn-w)) minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .info-main[data-info-place-wide="true"] .info-row.info-place-row {
+    grid-template-columns: calc(5 * var(--dwfui-cell-drawn-w)) calc(36 * var(--dwfui-cell-drawn-w))
+      calc(36 * var(--dwfui-cell-drawn-w)) auto;
+  }
+  .info-main[data-info-place-wide="true"] .info-row.info-object-row {
+    grid-template-columns: calc(5 * var(--dwfui-cell-drawn-w)) calc(73 * var(--dwfui-cell-drawn-w)) auto minmax(0, 1fr);
+  }
+  /* A place's detail column only shows in the wide layout; an object's status always does. */
   .info-place-detail {
     display: none;
     min-width: 0;
   }
-  .info-main[data-info-place-wide="true"] .info-row.info-place-row {
-    grid-template-columns: calc(40px * var(--dwfui-interface-scale)) minmax(250px, 1.6fr) minmax(180px, 0.8fr) auto;
-  }
-  .info-main[data-info-place-wide="true"] .info-place-detail {
+  .info-main[data-info-place-wide="true"] .info-place-detail,
+  .info-object-row .info-place-detail {
     display: flex;
     flex-direction: column;
-    gap: 2px;
   }
-  .info-place-row > .info-row-actions {
-    align-self: center;
-    margin-top: 0;
+  .info-place-detail > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .info-portrait-small {
     width: 32px;
     height: 32px;
     display: grid;
     place-items: center;
-    margin-left: 4px;
-    border: 1px solid var(--dwfui-gold);
+    margin-left: var(--dwfui-space-s);
+    border: var(--dwfui-divider) solid var(--dwfui-gold);
     overflow: hidden;
     background: var(--dwfui-surface);
     color: var(--dwfui-text-numeric);
     font-weight: 900;
-  }
-  .info-portrait-small.has-native-portrait {
-    background: var(--dwfui-surface);
   }
   .info-portrait-small .native-portrait-img {
     object-fit: cover;
@@ -162,14 +146,9 @@
     width: 100%;
     height: 100%;
     border: 0;
-    background: transparent;
-    font-size: 15px;
   }
   .unit-sprite-portrait {
     image-rendering: pixelated;
-    object-fit: contain !important;
-  }
-  .info-portrait-small .unit-sprite-portrait {
     object-fit: contain !important;
   }
   .info-portrait-small.creature-cell-box {
@@ -179,31 +158,9 @@
   .info-portrait-small.creature-cell-box .portrait-glyph {
     display: none;
   }
-  .info-row-actions {
-    display: flex;
-    gap: 4px;
-    margin-top: 4px;
-  }
-  .info-row-action {
-    min-width: 26px;
-    height: 24px;
-    border: 1px solid var(--dwfui-gold);
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-body);
-    font:
-      700 11px/1 ui-monospace,
-      Consolas,
-      monospace;
-    cursor: pointer;
-  }
-  .info-row-action:hover {
-    border-color: var(--dwfui-text-numeric);
-    color: var(--dwfui-text-numeric);
-  }
   .livestock-status {
     grid-column: 1 / -1;
-    font-size: 11px;
-    margin-top: 2px;
+    margin-top: var(--dwfui-space-xs);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -214,7 +171,6 @@
   @media (max-width: 900px) {
     .unit-tab {
       min-width: 58px;
-      font-size: 12px;
     }
   }
   @media (max-width: 900px) {
@@ -224,32 +180,25 @@
     .info-side-list {
       display: none;
     }
-    .info-row {
-      grid-template-columns: 40px minmax(180px, 1.3fr) minmax(120px, 0.7fr);
-    }
-    .info-row > :nth-child(n + 4),
-    .info-table-head > :nth-child(n + 4) {
+    /* A resident's labour tile and a pet's status line are not table columns: they stay. */
+    .creature-row > :nth-child(n + 4):not(.creature-spec, .livestock-status) {
       display: none;
     }
-    .info-table-head {
-      grid-template-columns: 40px minmax(180px, 1.3fr) minmax(120px, 0.7fr);
-    }
-    .info-row.info-task-row > :nth-child(n + 4) {
-      display: flex;
-    }
-    .info-row.info-place-row > :nth-child(n + 4) {
-      display: flex;
-    }
   }
-  .info-main:has(> .info-task-table),
-  .info-main:has(> .info-table[aria-label="Creatures"]) {
+  /* Name over status line, as native stacks them. */
+  .info-place-copy {
+    display: flex;
+    flex-direction: column;
+  }
+  .info-main:has(> .pf-fill-scroll),
+  .info-main:has(> .justice-master-detail),
+  .info-main:has(> .info-task-table) {
     display: flex;
     flex-direction: column;
     min-height: 0;
     overflow: hidden !important;
   }
-  .info-main > .info-task-table,
-  .info-main > .info-table[aria-label="Creatures"] {
+  .info-main > .info-task-table {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
@@ -268,9 +217,8 @@
     min-height: 0;
     overflow: hidden !important;
   }
-  .info-main > .creature-info-list {
-    flex: 1 1 auto;
-    min-height: 0;
+  .creature-info-list > .info-table {
+    overflow-y: auto;
   }
   .info-row.creature-row > .info-name-main,
   .info-row.creature-row > div:not([class]),
@@ -279,25 +227,24 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .creature-row .info-row-actions {
-    flex-wrap: nowrap;
-  }
   .creature-row .livestock-actions {
     flex-wrap: wrap;
   }
-  .creature-row.resident-row .creature-workdetails {
-    min-width: max-content;
+  .info-place-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    margin-left: var(--dwfui-space-s);
+    border: var(--dwfui-divider) solid var(--dwfui-slab);
+    overflow: hidden;
+    background-color: var(--dwfui-plum);
+    background-repeat: no-repeat;
   }
-  .creature-sort-head-row [data-creature-sort="name"] {
-    grid-column: 2;
-    justify-self: start;
+  .info-place-icon.zone-icon {
+    background-size: auto;
   }
-  .creature-sort-head-row [data-creature-sort="category"] {
-    grid-column: 5;
-    justify-self: start;
-  }
-  .creature-sort-head-row [data-creature-sort="profession"] {
-    grid-column: 6;
-    justify-self: start;
+  #clientPanel.info-panel > .pf-head {
+    display: none;
   }
 }

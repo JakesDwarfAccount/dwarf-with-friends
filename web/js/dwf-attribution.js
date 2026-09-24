@@ -146,14 +146,9 @@
   // Expose the browser API globally for the panels that render dots.
   if (typeof window !== "undefined") {
     window.attribRefresh = attribRefresh;
-    window.attribFor = attribFor;
     window.attribRowHtml = attribRowHtml;
     window.attribShowEnabled = attribShowEnabled;
     window.attribSetShow = attribSetShow;
-    window.dfAttrib = {
-      refresh: attribRefresh, for: attribFor, rowHtml: attribRowHtml,
-      showEnabled: attribShowEnabled, setShow: attribSetShow,
-    };
   }
 
   // Node export for the offline fixture test.

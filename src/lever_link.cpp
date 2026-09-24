@@ -528,7 +528,8 @@ bool queue_pull_job(int32_t lever_id, int32_t& job_id, std::string* err) {
 } // namespace
 
 void register_lever_link_routes(httplib::Server& server) {
-    server.Get("/lever-link", [](const httplib::Request& req, httplib::Response& res) {
+    // GET /trigger-info?id= -> read-only lever/pressure-plate sheet: links, mechanisms, legal targets.
+    server.Get("/trigger-info", [](const httplib::Request& req, httplib::Response& res) {
         int id = -1;
         if (!query_int(req, "id", id)) {
             res.status = 400;
@@ -539,7 +540,7 @@ void register_lever_link_routes(httplib::Server& server) {
         std::string json = lever_link_json(id, &err);
         if (json.empty()) {
             res.status = 400;
-            res.set_content("{\"ok\":false,\"error\":" + json_string(err.empty() ? "lever-link unavailable" : err) + "}\n",
+            res.set_content("{\"ok\":false,\"error\":" + json_string(err.empty() ? "trigger info unavailable" : err) + "}\n",
                             "application/json; charset=utf-8");
             return;
         }

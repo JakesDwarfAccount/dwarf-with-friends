@@ -107,7 +107,7 @@
   // reserved key. A single bad entry never poisons the rest.
   function decodeOverrides(raw) {
     var obj;
-    try { obj = JSON.parse(raw); } catch (_) { return {}; }
+    try { obj = JSON.parse(raw); } catch { return {}; }
     if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
     var clean = {};
     for (var id in obj) {
@@ -245,7 +245,7 @@
       if (!_managed.has(k)) return k;
       var id = _boundBy[k];
       return id ? DEFAULTS_BY_ID[id] : "\u0000";
-    } catch (_) { return event && event.key; }
+    } catch { return event && event.key; }
   }
 
   function setBinding(actionId, key) {
@@ -274,7 +274,7 @@
   // no DWFUI and no document at all.
   if (hasDom && typeof root.DWFUI !== "undefined" && typeof root.DWFUI.require === "function")
     root.DWFUI.require("settings", ["headerHtml", "nonNativeTabsHtml", "plaqueBtnHtml", "switchHtml",
-      "rowHtml", "scrollHtml", "bitmapTextHtml", "esc", "TOKENS"]);
+      "rowHtml", "scrollHtml", "bitmapTextHtml", "statusHtml", "esc", "TOKENS"]);
 
   // Human label for a key string (Space, Shift+X for a bare uppercase letter, else the key).
   function keyLabel(key) {
@@ -302,6 +302,11 @@
     backdrop.addEventListener("pointerdown", function (ev) { if (ev.target === backdrop) close(); });
   }
 
+  // A help line in DF's own font, wrapped to the settings pane's width.
+  function settingsNote(text) {
+    return root.DWFUI.statusHtml({ cls: "settings-note", tone: "dim", columns: 50, text: text });
+  }
+
   var TABS = [
     { id: "keybinds",  label: "Keybinds" },
     { id: "interface", label: "Interface" },
@@ -324,7 +329,7 @@
     // `preserveKey` keeps the scroll position across the re-render that every rebind or toggle triggers.
     return root.DWFUI.headerHtml({ cls: "settings-head", titleTag: "h2", title: "Settings", titleCls: "settings-title", close: { cls: "settings-x", dataset: { dfsClose: "" }, title: "Close" } }) +
       '<div class="settings-body">' + navHtml +
-      root.DWFUI.scrollHtml({ cls: "settings-pane", preserveKey: "settings:" + activeTab }, pane) +
+      root.DWFUI.scrollHtml({ cls: "settings-pane", rows: ":scope > *", preserveKey: "settings:" + activeTab }, pane) +
       "</div>";
   }
 
@@ -367,7 +372,7 @@
         var isOverridden = overrides[a.id] != null;
         var listening = rebindingId === a.id;
         var bind = D.plaqueBtnHtml({
-          label: listening ? "Press a key…" : keyLabel(key),
+          label: listening ? "Press a key..." : keyLabel(key),
           tone: "grey", cls: "keyboard-binding-bind" + (listening ? " listening" : ""),
           dataset: { rebind: a.id }, title: "Click, then press the new key",
         });
@@ -377,8 +382,8 @@
         });
         return D.rowHtml({
           chassis: "table", cls: "keyboard-binding-row" + (isConflict ? " conflict" : ""),
-          dataset: { action: a.id }, title: a.label,
-          cells: [{ html: root.DWFUI.esc(a.label), cls: "keyboard-binding-label" }, { html: bind }, { html: reset }],
+          dataset: { action: a.id }, title: a.label, label: a.label,
+          cells: [{ html: bind, cls: "keyboard-binding-key" }, { html: reset, cls: "keyboard-binding-undo" }],
         });
       }).join("");
       return "<h3>" + root.DWFUI.esc(cat) + "</h3>" + rows;
@@ -392,20 +397,16 @@
       ["Esc", "Back out one layer / open this menu"],
       ["Shift+H, ?, F1", "Hotkey reference overlay"],
       ["F3", "Performance overlay"],
-      ["Ctrl + / − / 0, Ctrl+Wheel", "UI scale (see Interface tab)"],
+      ["Ctrl +/-/0, Ctrl+Wheel", "UI scale (see Interface tab)"],
     ].map(function (r) {
       return D.rowHtml({
-        chassis: "table", cls: "keyboard-binding-row readonly",
-        cells: [
-          { html: root.DWFUI.esc(r[1]), cls: "keyboard-binding-label" },
-          { html: D.plaqueBtnHtml({ label: r[0], tone: "grey", cls: "keyboard-binding-bind dim", disabled: true }) },
-        ],
+        chassis: "table", cls: "keyboard-binding-row readonly", label: r[1],
+        cells: [{ html: D.bitmapTextHtml(r[0]), cls: "keyboard-binding-fixed" }],
       });
     }).join("");
     return banner +
-      '<div class="settings-note">Click a binding, then press the new key. These apply to client ' +
-      'shortcuts only. Space and Shift+letter chords are allowed; camera and system keys below ' +
-      'are fixed.</div>' +
+      settingsNote("Click a binding, then press the new key. These apply to client shortcuts only. Space and " +
+        "Shift+letter chords are allowed; camera and system keys below are fixed.") +
       body +
       '<div class="settings-actions">' +
       D.plaqueBtnHtml({ label: "Reset all to defaults", tone: "grey", cls: "settings-btn",
@@ -466,17 +467,17 @@
   // ---- Interface tab ------------------------------------------------------------------------
   function panelFrameEnabled() {
     try { return root.DFPanelFrame ? root.DFPanelFrame.enabled : lsGet("dwf.panelFrame.enabled") !== "0"; }
-    catch (_) { return true; }
+    catch { return true; }
   }
 
   // State, persistence and live apply all live in DwfRender; this panel only presents the switch.
   function smoothMotionEnabled() {
-    try { return !!(root.DwfRender && root.DwfRender.smoothMotion); } catch (_) { return false; }
+    try { return !!(root.DwfRender && root.DwfRender.smoothMotion); } catch { return false; }
   }
 
   // State, persistence and live apply all live in DwfTiles; this panel only presents the switch.
   function hiDpiEnabled() {
-    try { return root.DwfTiles ? !!root.DwfTiles.hiDpiEnabled() : true; } catch (_) { return true; }
+    try { return root.DwfTiles ? !!root.DwfTiles.hiDpiEnabled() : true; } catch { return true; }
   }
 
   function renderInterface() {
@@ -484,7 +485,7 @@
     try { if (root.DWFUIScale) scale = root.DWFUIScale.get(); }
     catch (err) { DwfErr.report("settings.ui-scale-read", err); }
     var pct = Math.round(clampScale(scale) * 100);
-    var prefsHtml = "";
+    var prefsHtml;
     var prefs = null;
     try { if (root.DFClientPrefs) prefs = root.DFClientPrefs.list(); }
     catch (err) { DwfErr.report("settings.client-prefs-list", err); }
@@ -498,12 +499,11 @@
         });
       }).join("");
     } else {
-      prefsHtml = '<div class="settings-note">Interface toggles are provided by the top-bar cog menu ' +
-        'on this build.</div>';
+      prefsHtml = settingsNote("Interface toggles are provided by the top-bar cog menu on this build.");
     }
     return '<h3>UI scale</h3>' +
-      '<div class="settings-note">Size of the interface panels and toolbars (the map is never rescaled). ' +
-      'Also Ctrl + / − / 0. (Ctrl + mouse wheel zooms the MAP, like DF.)</div>' +
+      settingsNote("Size of the interface panels and toolbars (the map is never rescaled). Also Ctrl + / - / 0. " +
+        "(Ctrl + mouse wheel zooms the MAP, like DF.)") +
       // DECLARED NON-NATIVE CONTROL: the UI-scale slider stays a raw range input. DF has no continuous-value
       // control anywhere, so DWFUI must not grow a sliderHtml -- it would have no native grammar to render.
       '<div class="interface-option-scale"><input type="range" id="dfsScale" min="' + UI_SCALE_MIN + '" max="' + UI_SCALE_MAX +
@@ -514,7 +514,7 @@
       root.DWFUI.switchHtml({ cls: "interface-option-row" + (panelFrameEnabled() ? " on" : ""),
         checked: panelFrameEnabled(), rootDataset: { dfsToggle: "panelframe" },
         label: "Movable panels (beta)" }) +
-      '<div class="settings-note">Lets migrated panels be moved, resized, closed, and remembered in this browser.</div>' +
+      settingsNote("Lets migrated panels be moved, resized, closed, and remembered in this browser.") +
       '<div class="settings-actions">' +
       root.DWFUI.plaqueBtnHtml({ label: "Reset panel layout", tone: "grey", cls: "settings-btn",
         dataset: { dfsAct: "panelframe-reset" },
@@ -524,20 +524,20 @@
       root.DWFUI.switchHtml({ cls: "interface-option-row" + (smoothMotionEnabled() ? " on" : ""),
         checked: smoothMotionEnabled(), rootDataset: { dfsToggle: "smoothmotion" },
         label: "Smooth creature motion" }) +
-      '<div class="settings-note">Off by default: creatures step from tile to tile, exactly the way ' +
-      'Dwarf Fortress itself draws them (it never paints a creature part-way between two tiles). ' +
-      'Turn this on to glide them between tiles instead, which looks calmer on a slow connection ' +
-      'but is not how the real game moves. Takes effect immediately.</div>' +
+      settingsNote("Off by default: creatures step from tile to tile, exactly the way Dwarf Fortress itself draws " +
+        "them (it never paints a creature part-way between two tiles). Turn this on to glide them between " +
+        "tiles instead, which looks calmer on a slow connection but is not how the real game moves. " +
+        "Takes effect immediately.") +
       // DECLARED BROWSER-CLIENT CONTROL: the escape hatch for the DPR-correct backing store, which costs 4x
       // the fragment work a weak integrated GPU may not want to spend.
       '<h3>Map sharpness</h3>' +
       root.DWFUI.switchHtml({ cls: "interface-option-row" + (hiDpiEnabled() ? " on" : ""),
         checked: hiDpiEnabled(), rootDataset: { dfsToggle: "hidpi" },
         label: "Sharp map (match display scale)" }) +
-      '<div class="settings-note">On by default: the map is drawn at your display\'s real pixel ' +
-      'density, so it stays crisp when Windows (or your browser) is set above 100% scale. ' +
-      'Turn it off if the map feels slow on a laptop with weak graphics -- it draws up to four ' +
-      'times fewer pixels, but the map goes soft. Takes effect immediately.</div>' +
+      settingsNote("On by default: the map is drawn at your display's real pixel density, so it stays crisp when " +
+        "Windows (or your browser) is set above 100% scale. Turn it off if the map feels slow on a laptop " +
+        "with weak graphics: it draws up to four times fewer pixels, but the map goes soft. Takes effect " +
+        "immediately.") +
       '<h3>Preferences</h3>' + prefsHtml;
   }
 
@@ -635,8 +635,8 @@
   // ---- Audio tab ----------------------------------------------------------------------------
   function renderAudio() {
     return '<h3>Audio &amp; music</h3>' +
-      '<div class="settings-note">Audio has its own controls in the top-bar speaker popover: manual ' +
-      'playlist, per-channel volume/mute, UI click sounds, and announcement stingers.</div>' +
+      settingsNote("Audio has its own controls in the top-bar speaker popover: manual playlist, per-channel " +
+        "volume/mute, UI click sounds, and announcement stingers.") +
       '<div class="settings-actions">' +
       root.DWFUI.plaqueBtnHtml({ label: "Open audio controls", tone: "green", cls: "settings-btn",
         dataset: { dfsAct: "open-audio" }, title: "Open the audio & music popover" }) +
@@ -658,19 +658,16 @@
     try { autosave = root.DwfSessionInfo && root.DwfSessionInfo.autosave; }
     catch (err) { DwfErr.report("settings.autosave-read", err); }
     var D = root.DWFUI;
-    // The three read-only key/value lines become DWFUI table rows (the same chassis the keybind list
-    // uses). `.info-row` / `.k` / `.v` stay as the pinned class hooks, and #dfsAutosave is preserved.
-    var infoRow = function (k, valueHtmlRaw) {
-      return D.rowHtml({ chassis: "table", cls: "info-row",
-        cells: [{ html: root.DWFUI.esc(k), cls: "k" }, { html: valueHtmlRaw, cls: "v" }] });
+    var infoRow = function (k, value) {
+      return D.rowHtml({ chassis: "table", cls: "settings-info-row", label: k,
+        cells: [{ html: D.bitmapTextHtml(value), cls: "settings-info-value" }] });
     };
     return '<h3>Autosave</h3>' +
-      infoRow("Autosave interval",
-        '<span id="dfsAutosave">' + root.DWFUI.esc(autosaveIntervalLabel(autosave)) + '</span>') +
-      '<div class="settings-note">Reported read-only by the host from Dwarf Fortress\'s autosave setting.</div>' +
+      infoRow("Autosave interval", autosaveIntervalLabel(autosave)) +
+      settingsNote("Reported read-only by the host from Dwarf Fortress's autosave setting.") +
       '<h3>Session</h3>' +
-      infoRow("Your name", root.DWFUI.esc(player)) +
-      infoRow("Renderer", root.DWFUI.esc(renderer));
+      infoRow("Your name", player) +
+      infoRow("Renderer", renderer);
   }
 
   // ---- open / close -------------------------------------------------------------------------

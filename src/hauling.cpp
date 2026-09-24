@@ -621,7 +621,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(id) + "}\n");
     };
-    server.Get("/hauling-route-create", route_create_handler);
     server.Post("/hauling-route-create", route_create_handler);
 
     // POST /hauling-route-rename?id=&name=
@@ -638,7 +637,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-route-rename", route_rename_handler);
     server.Post("/hauling-route-rename", route_rename_handler);
 
     // POST /hauling-stop-rename?route=&stop=&name=
@@ -656,7 +654,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-rename", stop_rename_handler);
     server.Post("/hauling-stop-rename", stop_rename_handler);
 
     // POST /hauling-route-remove?id=
@@ -670,7 +667,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-route-remove", route_remove_handler);
     server.Post("/hauling-route-remove", route_remove_handler);
 
     // POST /hauling-stop-add?player=&route=&px=&py=&w=&h=&name=
@@ -696,7 +692,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(id) + "}\n");
     };
-    server.Get("/hauling-stop-add", stop_add_handler);
     server.Post("/hauling-stop-add", stop_add_handler);
 
     // POST /hauling-stop-remove?route=&stop=
@@ -712,7 +707,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-remove", stop_remove_handler);
     server.Post("/hauling-stop-remove", stop_remove_handler);
 
     // POST /hauling-stop-link?route=&stop=&building=&take=1&give=1
@@ -734,7 +728,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-link", stop_link_handler);
     server.Post("/hauling-stop-link", stop_link_handler);
 
     // POST /hauling-stop-link-remove?route=&stop=&building=
@@ -753,7 +746,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-link-remove", stop_link_remove_handler);
     server.Post("/hauling-stop-link-remove", stop_link_remove_handler);
 
     // POST /hauling-stop-conditions?route=&stop=&timeout=&direction=&mode=&load=
@@ -779,7 +771,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-conditions", stop_conditions_handler);
     server.Post("/hauling-stop-conditions", stop_conditions_handler);
 
     // POST /hauling-stop-conditions-remove?route=&stop=&index=
@@ -798,7 +789,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-conditions-remove", stop_conditions_remove_handler);
     server.Post("/hauling-stop-conditions-remove", stop_conditions_remove_handler);
 
     // POST /hauling-vehicle-assign?route=&item=&on=1
@@ -815,7 +805,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-vehicle-assign", vehicle_assign_handler);
     server.Post("/hauling-vehicle-assign", vehicle_assign_handler);
 
     // GET /hauling-vehicles -> the free-minecart pool, so the client can offer a picker instead of
@@ -873,7 +862,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-toggle-item", stop_toggle_item_handler);
     server.Post("/hauling-stop-toggle-item", stop_toggle_item_handler);
 
     auto stop_toggle_all_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -894,7 +882,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-toggle-all", stop_toggle_all_handler);
     server.Post("/hauling-stop-toggle-all", stop_toggle_all_handler);
 
     // The group-level preset (stone, food, "none", ...), same vocabulary as /stockpile-set.
@@ -914,7 +901,6 @@ void register_hauling_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hauling-stop-preset", stop_preset_handler);
     server.Post("/hauling-stop-preset", stop_preset_handler);
 }
 

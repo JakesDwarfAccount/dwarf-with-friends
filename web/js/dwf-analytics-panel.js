@@ -28,7 +28,7 @@
   // MUST match the /attrib section name (attribution.cpp map_for()).
   const ANALYTICS_KINDS = [
     { key: "buildings",  label: "Constructions", blurb: "workshops, furniture & built tiles" },
-    { key: "zones",      label: "Rooms & zones", blurb: "bedrooms, dining halls, pastures…" },
+    { key: "zones",      label: "Rooms & zones", blurb: "bedrooms, dining halls, pastures..." },
     { key: "stockpiles", label: "Stockpiles",    blurb: "where the hauling piles up" },
     { key: "orders",     label: "Work orders",   blurb: "manager queue jobs" },
   ];
@@ -36,9 +36,9 @@
   // Player actions that genuinely happen but are NOT attributed today (no stable id). Rendered as
   // greyed "not tracked yet" rows so the screen is honest about its own blind spots.
   const ANALYTICS_UNTRACKED = [
-    { label: "Digging & mining",                note: "tile designations aren't stamped with a player yet" },
-    { label: "Tree cutting & gathering",        note: "designation jobs — no stable id to attribute" },
-    { label: "Smoothing & engraving",           note: "designation jobs — not attributed" },
+    { label: "Digging & mining",                note: "designations carry no player yet" },
+    { label: "Tree cutting & gathering",        note: "designation jobs have no stable id" },
+    { label: "Smoothing & engraving",           note: "designation jobs, not attributed" },
     { label: "Item marking (forbid / dump / claim)", note: "acts on items, not attributed" },
     { label: "Squad & military orders",         note: "not attributed yet" },
   ];
@@ -84,7 +84,7 @@
 
   // The honest window statement, rendered at the top of the panel. NEVER claims "all-time".
   function analyticsWindowLabel() {
-    return "This session — counted since the fort was loaded. Resets when the host restarts " +
+    return "This session: counted since the fort was loaded. Resets when the host restarts " +
       "Dwarf Fortress or switches world.";
   }
 
@@ -103,13 +103,14 @@
     return parts.join(" · ");
   }
 
+  const AN_TEXT_COLS = 40;   // a line of text in the default 460px-wide panel
+
   function _anUntrackedHtml(D) {
     const rows = ANALYTICS_UNTRACKED.map(u => D.rowHtml({
-      cls: "activity-untracked-row", label: u.label,
-      sub: { text: u.note, cls: "activity-untracked-note" },
-      trailing: `<span class="activity-dash">—</span>`,
+      chassis: "table", tone: "disabled", label: u.label,
+      sub: D.wrapToColumns(u.note, AN_TEXT_COLS).map(text => ({ text })),
     })).join("");
-    return `<div class="activity-section-title">Not tracked yet</div>` +
+    return `<div class="dwfui-text--section activity-section-title">Not tracked yet</div>` +
       `<div class="activity-kinds">${rows}</div>`;
   }
 
@@ -117,11 +118,12 @@
   function anRenderBody(agg) {
     const D = _anUI();
     if (!D) return "";
-    const windowLine = `<div class="activity-window">${D.esc(analyticsWindowLabel())}</div>`;
+    const windowLine = D.statusHtml({ cls: "activity-window", tone: "dim", columns: AN_TEXT_COLS,
+      text: analyticsWindowLabel() });
     if (!agg || agg.empty) {
-      return windowLine +
-        `<div class="activity-empty">No tracked activity yet. Build something, designate a room, drop a ` +
-        `stockpile, or queue a work order — it'll show up here.</div>` +
+      return windowLine + D.statusHtml({ cls: "dwfui-text--empty activity-empty", columns: AN_TEXT_COLS,
+        text: "No tracked activity yet. Build something, designate a room, drop a stockpile, or queue " +
+              "a work order, and it will show up here." }) +
         _anUntrackedHtml(D);
     }
     // Stat tiles -- each fun stat only rendered when real data backs it.
@@ -146,15 +148,14 @@
       label: p.name, value: p.total, max, tone: "gold",
       sub: _anBreakdown(p.counts),
     })).join("");
-    const board = `<div class="activity-section-title">Who's been busy</div>` +
+    const board = `<div class="dwfui-text--section activity-section-title">Who's been busy</div>` +
       `<div class="activity-board">${bars}</div>`;
     // By-kind totals.
     const kindRows = ANALYTICS_KINDS.map(k => D.rowHtml({
-      cls: "activity-kind-row", label: k.label,
-      sub: { text: k.blurb, cls: "activity-kind-blurb" },
-      trailing: `<span class="activity-kind-total">${agg.grand[k.key]}</span>`,
+      chassis: "table", cls: "activity-kind-row", label: k.label, sub: { text: k.blurb },
+      cells: [{ numeric: true, cls: "activity-kind-total", html: D.bitmapTextHtml(String(agg.grand[k.key])) }],
     })).join("");
-    const kinds = `<div class="activity-section-title">By kind</div>` +
+    const kinds = `<div class="dwfui-text--section activity-section-title">By kind</div>` +
       `<div class="activity-kinds">${kindRows}</div>`;
     return windowLine + tilesRow + board + kinds + _anUntrackedHtml(D);
   }
@@ -176,10 +177,10 @@
     document.body.appendChild(panel);
     // Right-click anywhere closes (native DF convention, matching the combat log).
     panel.addEventListener("contextmenu", e => { e.preventDefault(); anClose(); });
-    // The DWFUI header close (data-bld-close) closes too -- wired directly so it works even if the
+    // The DWFUI header close (data-building-close) closes too -- wired directly so it works even if the
     // framework never adopted the header (dormant / old cached page).
     panel.addEventListener("click", e => {
-      if (e.target.closest && e.target.closest("[data-bld-close]")) { e.preventDefault(); anClose(); }
+      if (e.target.closest && e.target.closest("[data-building-close]")) { e.preventDefault(); anClose(); }
     });
     anShell = { panel, body: panel.querySelector(".activity-body") };
     if (typeof window !== "undefined" && window.DFPanelFrame) {
@@ -187,7 +188,7 @@
         key: "analytics", el: () => anShell && anShell.panel, title: "Fortress activity",
         headSel: ".activity-head", closable: true, resizable: { minW: 340, minH: 260 },
         fillSel: ".activity-body", persistOpen: false,
-        defaultPos: (vw, vh) => ({ anchor: "tl", x: 80, y: 60, w: 460, h: 520 }),
+        defaultPos: () => ({ anchor: "tl", x: 80, y: 60, w: 460, h: 520 }),
         open: () => { if (!anOpen) openAnalyticsPanel(); },
         close: () => anClose(),
         isOpen: () => anOpen, escClosable: true,

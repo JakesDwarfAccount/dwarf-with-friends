@@ -21,14 +21,25 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.labor {
+  /* The add button stays put; only the work details scroll, in whole rows. */
+  .info-side-list.labor-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .info-side-list > .labor-add {
+    width: 100%;
+    margin: 0 0 var(--dwfui-space-xs);
+  }
   .info-side-item.labor-wd {
     cursor: pointer;
-    grid-template-columns: 38px minmax(0, 1fr);
-    min-height: 40px;
-    padding: 1px 7px;
+    grid-template-columns: var(--dwfui-icon-m) minmax(0, 1fr);
+    min-height: var(--dwfui-height-row-tall);
+    padding: 0 var(--dwfui-space-s);
   }
   .labor-wd-icon {
     justify-self: center;
@@ -39,24 +50,22 @@
   }
   .labor-detail-head {
     display: grid;
-    grid-template-columns: minmax(180px, 1fr) auto;
+    grid-template-columns: minmax(calc(18 * var(--dwfui-cell-drawn-w)), 1fr) auto;
     align-items: center;
-    gap: 8px;
-    margin: 2px 0 8px;
-    padding: 5px 9px;
+    gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-xs) 0 var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
   }
   .labor-name-wrap {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(160px, 420px) auto;
+    grid-template-columns: minmax(calc(16 * var(--dwfui-cell-drawn-w)), calc(42 * var(--dwfui-cell-drawn-w))) auto;
     align-items: center;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
   }
   .labor-name-input {
     width: 100%;
-    min-width: 0;
-    height: 28px;
-    box-sizing: border-box;
+    height: var(--dwfui-height-row);
   }
   .labor-detail-skill {
     color: var(--dwfui-text-secondary);
@@ -65,39 +74,46 @@
   .labor-head-actions {
     display: flex;
     align-items: center;
-    gap: 5px;
-  }
-  .labor-icon-btn {
-    width: 30px;
-    height: 28px;
+    gap: var(--dwfui-space-s);
   }
   .labor-mode-row {
-    display: flex;
-    gap: 6px;
-    margin: 0 0 10px;
+    justify-content: flex-end;
+    margin: 0 0 var(--dwfui-space-m);
+  }
+  .labor-mode-row > .dwfui-seg {
+    flex: 0 0 auto;
   }
   .labor-row {
     display: grid;
     align-items: center;
-    min-height: 36px;
+    column-gap: var(--dwfui-space-m);
+    min-height: var(--dwfui-height-row-tall);
     /* mountTableColumns needs shrink-wrapped cells when it reads scrollWidth; auto tracks are load-bearing. */
     grid-template-columns: auto auto auto auto auto;
   }
-  .labor-grid {
-    overflow-x: auto;
+  .labor-copy,
+  .labor-skill {
+    justify-self: start;
+    min-width: 0;
+    overflow: hidden;
+    max-width: 100%;
   }
+  /* Native packs the captioned sort over the name column and puts a bare arrow over the skill column.
+     mountTableColumns gives it the rows' measured template (data-dwfui-table-head). */
   .labor-grid-head {
-    margin: 2px 0 4px;
-    color: var(--dwfui-text-heading);
-    font-weight: 700;
+    display: grid;
+    column-gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-xs) 0 var(--dwfui-space-s);
   }
-  .labor-grid-head span {
-    padding: 1px 10px;
+  .labor-grid-head [data-labor-sort="name"] {
+    grid-column: 2;
+  }
+  .labor-grid-head [data-labor-sort="skill"] {
+    grid-column: 3;
   }
   .labor-assigned {
     color: var(--dwfui-text-good);
-    font-size: 12px;
-    padding-left: 6px;
+    padding-left: var(--dwfui-space-s);
   }
   .labor-col-spec,
   .labor-col-do {
@@ -107,7 +123,6 @@
     color: var(--dwfui-text-row);
     font-weight: 700;
     cursor: pointer;
-    padding-left: 6px;
   }
   .labor-name:hover {
     text-decoration: underline;
@@ -118,7 +133,7 @@
   .labor-task-panel {
     display: grid;
     grid-template-rows: auto 1fr;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     height: 100%;
     min-height: 0;
   }
@@ -128,7 +143,7 @@
   .labor-task-toolbar {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     align-items: center;
   }
   .labor-task-title {
@@ -140,7 +155,7 @@
     overflow-y: auto;
   }
   .labor-task-cat {
-    padding: 6px 10px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     color: var(--labor-cat, currentColor);
     border-left: 3px solid var(--labor-cat, currentColor);
     font-weight: 900;
@@ -150,7 +165,7 @@
     grid-template-columns: minmax(170px, 1fr) minmax(120px, 0.7fr) calc(32px * var(--dwfui-interface-scale)) 42px;
     align-items: center;
     min-height: 34px;
-    padding: 2px 8px 2px 9px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-xs) var(--dwfui-space-m);
     border-left: 2px solid var(--labor-cat, currentColor);
   }
   .labor-task-name {
@@ -159,11 +174,10 @@
   }
   .labor-task-meta {
     color: var(--dwfui-text-secondary);
-    font-size: 12px;
   }
   /* The 36px-tall native cell top-aligns inside its 32px square icon slot. */
   .labor-task-native {
-    width: calc(32px * var(--dwfui-interface-scale));
+    width: var(--dwfui-icon-m);
     height: calc(36px * var(--dwfui-interface-scale));
     display: grid;
     place-items: start center;
@@ -172,8 +186,7 @@
     justify-self: end;
   }
   .labor-empty {
-    padding: 12px 10px;
-    color: var(--dwfui-text-secondary);
+    padding: var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .unit-workdetails {
     min-height: 0;
@@ -189,9 +202,8 @@
     display: grid;
     grid-template-columns: calc(34px * var(--dwfui-interface-scale)) minmax(120px, 1fr) 30px;
     align-items: center;
-    gap: 8px;
-    min-height: 34px;
-    padding: 2px 10px 2px 8px;
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-xs) var(--dwfui-space-m);
     cursor: pointer;
   }
   .unit-wd-row.unit-wd-header {
@@ -204,7 +216,7 @@
   .unit-wd-icon-slot {
     display: grid;
     place-items: center;
-    width: calc(32px * var(--dwfui-interface-scale));
+    width: var(--dwfui-icon-m);
   }
   /* The header slot holds a self-framed sprite; a fixed track crushes it. */
   .unit-wd-row.unit-wd-header .unit-wd-icon-slot {
@@ -218,7 +230,7 @@
     height: calc(36px * var(--dwfui-interface-scale) + 4px);
   }
   .unit-wd-icon-blank {
-    width: calc(32px * var(--dwfui-interface-scale));
+    width: var(--dwfui-icon-m);
     height: calc(36px * var(--dwfui-interface-scale));
   }
   .unit-wd-anywhere-icon {
@@ -237,17 +249,25 @@
   .labor-create-detail {
     display: flex;
     flex-direction: column;
-    gap: calc(0.5 * var(--dwfui-cell-drawn-h));
+    gap: calc(0.5 * var(--dwfui-space-l));
     max-width: calc(48 * var(--dwfui-cell-drawn-w));
-    padding: calc(0.5 * var(--dwfui-cell-drawn-h)) var(--dwfui-cell-drawn-w);
+    padding: calc(0.5 * var(--dwfui-space-l)) var(--dwfui-space-m);
   }
   .labor-create-row {
     display: grid;
     grid-template-columns: minmax(calc(18 * var(--dwfui-cell-drawn-w)), 1fr) auto;
     align-items: center;
-    gap: var(--dwfui-cell-drawn-w);
+    gap: var(--dwfui-space-m);
   }
   .labor-create-row .labor-name-input {
-    height: calc(3 * var(--dwfui-cell-drawn-h));
+    height: var(--dwfui-height-row-tall);
+  }
+  .labor-name-input:disabled {
+    color: var(--dwfui-text-disabled);
+    border-color: var(--dwfui-slate);
+    opacity: 0.82;
+  }
+  .labor-delete {
+    min-width: calc(9 * var(--dwfui-cell-drawn-w));
   }
 }

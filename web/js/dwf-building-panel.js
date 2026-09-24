@@ -65,6 +65,26 @@
   let buildingRestraintSortKey = "name";
   let buildingRestraintSortDirection = 1;
 
+  async function fetchCoffinBurialInfo(id) {
+    try {
+      const r = await fetch(`/burial-coffin?id=${id}&t=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) return null;
+      const data = await r.json();
+      if (data && data.ok !== false && data.isCoffin) return data;
+    } catch { globalThis.DwfErr?.count("building-panel.coffin-info"); }
+    return null;
+  }
+
+  async function postCoffinBurialAction(id, action) {
+    const r = await fetch(`/burial-coffin-action?id=${id}&action=${encodeURIComponent(action)}&t=${Date.now()}`,
+      { method: "POST", cache: "no-store" });
+    const text = await r.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { globalThis.DwfErr?.count("building-panel.burial-response-parse"); }
+    if (!r.ok || data.ok === false) throw new Error(data.error || text.trim() || "burial action failed");
+    return data;
+  }
+
   function coffinBurialSummary(info) {
     if (!info || !info.isCoffin || !info.built) return null;
     const tombId = Number(info.tombId ?? -1);
@@ -100,7 +120,7 @@
     const nameLine = artName
       ? `<div class="building-art-name">${escapeHtml(artName)}</div>` : "";
     const qualityLine = String((info && info.artQualityName) || "").trim()
-      ? `<div class="building-note building-art-quality">${escapeHtml(info.artQualityName)}</div>` : "";
+      ? `<div class="dwfui-text--note building-note building-art-quality">${escapeHtml(info.artQualityName)}</div>` : "";
     // Long art prose is a scrollbox, per the component-architecture spec -- never a clipped div.
     const proseBlock = prose
       ? DWFUI.scrollHtml({ cls: "building-art-scroll" },
@@ -124,16 +144,16 @@
     const passageBtn = info.passageControl
       ? DWFUI.plaqueBtnHtml({ cls: "building-btn", size: "compact", on: !!info.passageForbidden,
           dataset: { bldAct: "toggle-passage" }, label: info.passageForbidden ? "Allow passage" : "Close to passage" }) +
-        `<div class="building-note">Passage: ${info.passageForbidden ? "Closed to traffic" : "Allowed"}${info.passageClosed ? " (physically closed)" : " (currently open)"}</div>`
+        `<div class="dwfui-text--note building-note">Passage: ${info.passageForbidden ? "Closed to traffic" : "Allowed"}${info.passageClosed ? " (physically closed)" : " (currently open)"}</div>`
       : "";
     const cageSummary = buildingCageSummary(info);
     const cageBtn = cageSummary && info.built
-      ? `<div class="zone-section-label">Cage / Terrarium</div>` +
+      ? `<div class="dwfui-text--section zone-section-label">Cage / Terrarium</div>` +
         DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { buildingCage: "" },
           label: `View occupants and assign (${cageSummary.label})` })
       : "";
     const restraintBtn = info.isRestraint && info.built
-      ? `<div class="zone-section-label">Chain / Restraint</div>` +
+      ? `<div class="dwfui-text--section zone-section-label">Chain / Restraint</div>` +
         DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Choose assigned creature",
           dataset: { buildingRestraint: "" } })
       : "";
@@ -141,8 +161,8 @@
     const coffinSummary = coffinBurialSummary(coffinInfo);
     const coffinTomb = coffinInfo?.tomb || {};
     const coffinBtn = coffinSummary
-      ? `<div class="zone-section-label">Burial</div>
-         <div class="zone-note">${escapeHtml(coffinSummary.label)}</div>` +
+      ? `<div class="dwfui-text--section zone-section-label">Burial</div>
+         <div class="dwfui-text--note zone-note">${escapeHtml(coffinSummary.label)}</div>` +
         DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { coffinOwner: "" }, label: coffinSummary.manageLabel }) +
         (coffinSummary.hasTomb
           ? DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { coffinAny: "" }, label: "Use for any citizen" }) +
@@ -160,21 +180,21 @@
     const machineChipText = machineInfo ? window.machinePanelState(machineInfo).machines
       .filter(m => m.id === Number(machineInfo.machineId)).map(m => m.chip.text)[0] : "";
     const machineBtn = machineInfo
-      ? `<div class="zone-section-label">Power</div>
-         <div class="zone-note">${escapeHtml(machineChipText || "Not connected to a network")}</div>
-         <div class="zone-note">${escapeHtml(DWF_EXTENSION_LABEL)}: opens a fortress-wide overview with no native screen counterpart.</div>
+      ? `<div class="dwfui-text--section zone-section-label">Power</div>
+         <div class="dwfui-text--note zone-note">${escapeHtml(machineChipText || "Not connected to a network")}</div>
+         <div class="dwfui-text--note zone-note">${escapeHtml(DWF_EXTENSION_LABEL)}: opens a fortress-wide overview with no native screen counterpart.</div>
          ${DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Open DWF power overview", dataset: { machineView: "" } })}`
       : "";
     const siegeInfo = options.siegeInfo || null;
     const siegeSummary = siegeInfo ? window.siegeEnginePanelState(siegeInfo) : null;
     const siegeBtn = siegeSummary
-      ? `<div class="zone-section-label">Siege engine</div>
-         <div class="zone-note">${escapeHtml(siegeSummary.built ? siegeSummary.actionLabel : "Still being built")}</div>
+      ? `<div class="dwfui-text--section zone-section-label">Siege engine</div>
+         <div class="dwfui-text--note zone-note">${escapeHtml(siegeSummary.built ? siegeSummary.actionLabel : "Still being built")}</div>
          ${DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Siege engine controls", dataset: { siegeView: "" } })}`
       : "";
     const leverLinkBtn = leverLinkInfo
-      ? `<div class="zone-section-label">${escapeHtml(leverLinkInfo.sourceType || "Lever")}</div>
-         <div class="zone-note">${escapeHtml(leverLinkStatus.label)}</div>
+      ? `<div class="dwfui-text--section zone-section-label">${escapeHtml(leverLinkInfo.sourceType || "Lever")}</div>
+         <div class="dwfui-text--note zone-note">${escapeHtml(leverLinkStatus.label)}</div>
          ${DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Trigger controls", dataset: { leverLink: "" } })}`
       : "";
     const artBlock = buildingArtMarkup(info);
@@ -208,7 +228,7 @@
         dataset: { wsWorkerSearch: wsWorkerSearchText(u) },
         copyCls: "workshop-worker-copy", labelCls: "workshop-name",
         labelHtml: DWFUI.rawHtml("DF profession colour wraps the bitmap-rendered workshop worker name", labelHtml),
-        sub: u.profession ? { text: u.profession, cls: "dwfui-sub workshop-meta" } : null,
+        sub: u.profession ? { text: u.profession, cls: "workshop-meta" } : null,
         trailing: DWFUI.plaqueBtnHtml({ cls: "workshop-icon-btn", size: "compact", on: !!u.assigned,
           dataset: { wsWorker: Number(u.id), wsAssign: u.assigned ? "0" : "1" }, label: u.assigned ? "On" : "Add" }),
       });
@@ -227,18 +247,17 @@
       `</div>`;
   }
 
-  function engravingPanelMarkup(data, tile) {
+  function engravingPanelMarkup(data) {
     const present = !!(data && data.present);
     const artName = String((data && data.artName) || "").trim();
     const prose = data && data.descriptionAvailable ? String(data.description || "").trim() : "";
     const artist = String((data && data.artistName) || "").trim() || "Unknown";
     const quality = String((data && data.qualityName) || "").trim() || "Unknown";
-    const factsHtml = present
-      ? `<div class="engrave-row"><span class="engrave-key">${DWFUI.bitmapTextHtml("Artist")}</span><span class="engrave-val">${DWFUI.bitmapTextHtml(artist)}</span></div>
-         <div class="engrave-row"><span class="engrave-key">${DWFUI.bitmapTextHtml("Quality")}</span><span class="engrave-val">${DWFUI.bitmapTextHtml(quality)}</span></div>`
-      : "";
+    const fact = (label, value) => DWFUI.rowHtml({ cls: "engrave-row", label,
+      cells: [{ html: DWFUI.bitmapTextHtml(value), numeric: true, cls: "engrave-value" }] });
+    const factsHtml = present ? fact("Artist", artist) + fact("Quality", quality) : "";
     const bodyHtml = !present
-      ? `<div class="engrave-note">No engraving on this tile.</div>`
+      ? `<div class="dwfui-text--note engrave-note">No engraving on this tile.</div>`
       : `${factsHtml}${prose
           ? DWFUI.scrollHtml({ cls: "engrave-scroll" },
               `<div class="engrave-prose">${escapeHtml(prose)}</div>`)
@@ -279,7 +298,7 @@
       }
     } catch { globalThis.DwfErr?.count("building-panel.engraving-info"); }
     selection.className = "view-sheet-panel engraving-sheet-panel";
-    panelContent(selection).innerHTML = engravingPanelMarkup(data, tile);
+    panelContent(selection).innerHTML = engravingPanelMarkup(data);
     if (DWFUI.paintSprites) DWFUI.paintSprites(panelContent(selection));
     selection.classList.add("visible");
   }
@@ -304,11 +323,11 @@
     // yields an empty string and nothing renders.
     try { if (typeof attribRefresh === "function") await attribRefresh(); } catch { globalThis.DwfErr?.count("building-panel.attribution"); }
     const orderedByChip = (typeof attribRowHtml === "function") ? attribRowHtml("building", info.id) : "";
-    const orderedByLine = orderedByChip ? `<div class="building-note building-attrib">Ordered by ${orderedByChip}</div>` : "";
+    const orderedByLine = orderedByChip ? `<div class="dwfui-text--note building-note building-attrib">Ordered by ${orderedByChip}</div>` : "";
     // Older hosts omit isFarmPlot, so no farm request is made until a matching server arrives.
     let farmPlotInfo = info.isFarmPlot && info.built ? await window.fetchFarmPlotInfo(info.id) : null;
     let farmSelectedSeason = 0;
-    const coffinInfo = info.built ? await window.fetchCoffinBurialInfo(info.id) : null;
+    const coffinInfo = info.built ? await fetchCoffinBurialInfo(info.id) : null;
     const leverLinkInfo = info.built ? await window.fetchLeverLinkInfo(info.id) : null;
     // The route answers "not a machine part" cheaply, so this is one small request, not a scan.
     const machineInfo = info.built ? await window.fetchMachineInfo(info.id) : null;
@@ -422,8 +441,8 @@
     selection.querySelector("[data-coffin-owner]")?.addEventListener("click", async event => {
       event.stopPropagation();
       try {
-        await window.postCoffinBurialAction(info.id, "ensure-tomb");
-        const next = await window.fetchCoffinBurialInfo(info.id);
+        await postCoffinBurialAction(info.id, "ensure-tomb");
+        const next = await fetchCoffinBurialInfo(info.id);
         const tombId = Number(next && next.tombId);
         if (Number.isInteger(tombId) && tombId >= 0) window.openZoneOwnersPanel(tombId);
         else openBuildingPanel(info.id);
@@ -432,13 +451,13 @@
     });
     selection.querySelector("[data-coffin-any]")?.addEventListener("click", async event => {
       event.stopPropagation();
-      try { await window.postCoffinBurialAction(info.id, "any-citizen"); } catch (err) { globalThis.DwfOrder.lost("building.coffin-access", err, "That burial setting"); }
+      try { await postCoffinBurialAction(info.id, "any-citizen"); } catch (err) { globalThis.DwfOrder.lost("building.coffin-access", err, "That burial setting"); }
       openBuildingPanel(info.id);
       focusPage();
     });
     selection.querySelectorAll("[data-coffin-act]").forEach(btn => btn.addEventListener("click", async event => {
       event.stopPropagation();
-      try { await window.postCoffinBurialAction(info.id, btn.dataset.coffinAct || ""); } catch (err) { globalThis.DwfOrder.lost("building.coffin-access", err, "That burial setting"); }
+      try { await postCoffinBurialAction(info.id, btn.dataset.coffinAct || ""); } catch (err) { globalThis.DwfOrder.lost("building.coffin-access", err, "That burial setting"); }
       openBuildingPanel(info.id);
       focusPage();
     }));
@@ -456,57 +475,30 @@
   }
 
   // ---- the zone-unit-list row grammar -----------------------------------------------------------
-  const ZONE_ROW_GEOMETRY = {
-    panel: 620,                  // #selection.building-panel.zone-panel.zone-wide -> min(620px, ...)
-    listInset: 8 + 8 + 1 + 1 + 20, // .zone-unit-list margin-inline (8+8) + 1px border + the 20px
-                                 // plus the scrollbar the scrollbox draws whenever the list overflows
-    rowPad: 6 + 6,               // .zone-unit-row padding: 6px
-    gap: 6,                      // .zone-unit-row gap: 6px
-    act: 72,                     // .zone-unit-row > .zone-unit-act flex: 0 0 72px
-    icon: 40,                    // .dwfui-icon: 32px * --dwfui-interface-scale (1.25)
-    cell: 10,                    // ONE bitmap cell: 8px * --dwfui-interface-scale (1.25)
-    slack: 7,                    // the bitmap span's own box over its canvas. Chrome, this row:
-                                 // scrollWidth = 10 * characters + 7, flat, across 49..59 chars
-  };
-  function zoneUnitNameCells(hasIcon, hasTrailing) {
-    const g = ZONE_ROW_GEOMETRY;
-    let width = g.panel - g.listInset - g.rowPad;
-    if (hasIcon) width -= g.icon + g.gap;
-    if (hasTrailing) width -= g.act + g.gap;
-    return Math.max(1, Math.floor((width - g.slack) / g.cell));
-  }
-  // The whole fit policy -- squeeze, then cut, then three periods -- lives in DWFUI.fitNativeLabel.
-  // Do not re-implement the ladder here or anywhere else; the guard covers a cold load only.
-  function fitZoneUnitName(text, cells) {
-    const value = String(text == null ? "" : text);
-    if (value.length <= cells) return value;    // the overwhelmingly common case
-    const ui = (typeof DWFUI !== "undefined" && DWFUI) || null;
-    if (ui && typeof ui.fitNativeLabel === "function") return ui.fitNativeLabel(value, cells);
-    return cells < 4 ? value.slice(0, cells) : value.slice(0, cells - 3) + "...";
-  }
+  // The name fits its column at runtime (DWFUI.fitNativeLabel: squeeze, cut, then three periods), so
+  // a narrow panel, a scrollbar or a wider button never cuts it mid-letter. `inkColor` is a DF palette
+  // index for the name, as native colours a unit by profession.
   function zoneUnitRowHtml(cfg) {
     const c = cfg || {};
-    // A META LINE CANNOT WRAP AND CANNOT ELLIPSISE: DWFUI paints it as ONE canvas, so a too-long line
-    // is SLICED DEAD at the row edge. Pass `sub` an ARRAY of short lines instead.
+    // A meta line cannot wrap either, so a long one is cut to fit; `metaLines` stacks short lines.
     const lines = (Array.isArray(c.metaLines) ? c.metaLines : [{ text: c.meta }])
       .filter(line => line && line.text);
     const fullName = c.label == null ? "" : String(c.label);
-    const shownName = fitZoneUnitName(fullName, zoneUnitNameCells(c.icon != null, c.trailing != null));
-    const nameWasCut = shownName !== fullName;
-    // A cut name survives in the row's title, and only when it was cut, so a fitting row keeps its own.
-    const metaTitle = lines.length > 1 ? lines.map(line => line.text).join(" - ") : null;
+    const ink = c.inkColor == null ? NaN : Number(c.inkColor);
+    const name = DWFUI.bitmapTextHtml(fullName, { fitNativeLabel: { host: "parent" } });
+    const nameHtml = Number.isInteger(ink) && ink >= 0 && ink <= 15
+      ? `<span class="zone-unit-ink" style="color:${DWFUI.dfColor(ink)}">${name}</span>` : name;
     return DWFUI.rowHtml({
       cls: "zone-unit-row" + (c.rowCls ? " " + c.rowCls : ""),
       dataset: c.dataset,
       icon: c.icon,
-      title: c.title != null ? c.title
-        : nameWasCut ? [fullName, metaTitle].filter(Boolean).join(" - ")
-        : metaTitle,
+      title: c.title != null ? c.title : [fullName, ...lines.map(line => line.text)].join(" - "),
       copyCls: "zone-animal-copy", labelCls: "zone-unit-name",
-      labelHtml: DWFUI.rawHtml("unit-row label may wrap bitmap text in DF's profession colour",
-        c.nativeLabelHtml != null ? c.nativeLabelHtml : DWFUI.bitmapTextHtml(shownName)),
+      labelHtml: c.nativeLabelHtml != null ? c.nativeLabelHtml
+        : DWFUI.rawHtml("a unit name takes DF's profession colour", nameHtml),
       sub: lines.length
-        ? lines.map(line => ({ text: line.text, cls: "zone-unit-meta", tone: line.tone }))
+        ? lines.map(line => ({ cls: "zone-unit-meta", tone: line.tone,
+            html: DWFUI.bitmapTextHtml(line.text, { fitNativeLabel: { host: "parent" } }) }))
         : null,
       trailing: c.trailing,
     });
@@ -514,7 +506,7 @@
   function zoneUnitListHtml(rows, emptyNote) {
     return rows.length
       ? DWFUI.scrollHtml({ cls: "zone-unit-list", rows: ".zone-unit-row" }, rows.join(""))
-      : `<div class="zone-note">${emptyNote}</div>`;
+      : `<div class="dwfui-text--note zone-note">${emptyNote}</div>`;
   }
 
   async function openBuildingCagePanel(id) {
@@ -644,7 +636,7 @@
     selection.querySelector("[data-building-back]")?.addEventListener("click", event => {
       event.stopPropagation(); openBuildingPanel(data.id); focusPage();
     });
-    selection.querySelector("[data-bld-close]")?.addEventListener("click", event => {
+    selection.querySelector("[data-building-close]")?.addEventListener("click", event => {
       event.stopPropagation(); closeSelection(); focusPage();
     });
     // Intentionally no assignment handler: every payload-bearing plaque is visibly disabled.
@@ -655,4 +647,4 @@
   if (typeof window !== "undefined") Object.assign(window.DFBuildingOperationsMarkup ||= {}, { genericBuildingPanelMarkup });
 
   if (typeof window !== "undefined") Object.assign(window, { buildingCageActionLabel, buildingRemovalSectionHtml, openBuildingPanel, setSelectionPanel, setStockpilePanel, setViewSheetPanel, wsWorkerRowsHtml, zoneUnitListHtml, zoneUnitRowHtml });
-  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { viewSheetPanelMarkup, setViewSheetPanel, setSelectionPanel, stockpilePanelMarkup, setStockpilePanel, buildingCageSummary, buildingCageActionLabel, coffinBurialSummary, buildingArtMarkup, genericBuildingPanelMarkup, wsWorkerSearchText, wsWorkerRowsHtml, buildingRemovalSectionHtml, engravingPanelMarkup, openEngravingPanel, openBuildingPanel, ZONE_ROW_GEOMETRY, zoneUnitNameCells, fitZoneUnitName, zoneUnitRowHtml, zoneUnitListHtml, openBuildingCagePanel, openBuildingRestraintPanel });
+  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { viewSheetPanelMarkup, setViewSheetPanel, setSelectionPanel, stockpilePanelMarkup, setStockpilePanel, buildingCageSummary, buildingCageActionLabel, coffinBurialSummary, buildingArtMarkup, genericBuildingPanelMarkup, wsWorkerSearchText, wsWorkerRowsHtml, buildingRemovalSectionHtml, engravingPanelMarkup, openEngravingPanel, openBuildingPanel, zoneUnitRowHtml, zoneUnitListHtml, openBuildingCagePanel, openBuildingRestraintPanel });

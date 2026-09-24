@@ -21,16 +21,15 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.training-knowledge {
-  /* Ledger 0053: the fortress-wide training-knowledge panel (one row per race, alphabetical). */
+  /* The fortress-wide animal training knowledge page: one row per race. */
   .training-knowledge-title {
     flex: 0 0 auto;
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    margin-bottom: 4px;
-    padding: 0 0 4px;
+    margin-bottom: var(--dwfui-space-s);
+    padding: 0 0 var(--dwfui-space-s);
   }
   .training-knowledge-race {
     color: var(--dwfui-text-row);
@@ -46,7 +45,7 @@
     display: flex;
     justify-content: flex-end;
     flex: 0 0 auto;
-    padding: 0 calc(2 * var(--dwfui-cell-drawn-w)) var(--dwfui-cell-drawn-h) 0;
+    padding: 0 var(--dwfui-space-xl) var(--dwfui-space-l) 0;
   }
   .training-knowledge-panel {
     display: flex;
@@ -68,20 +67,12 @@
   }
   .training-knowledge-row {
     display: grid;
-    grid-template-columns:
-      calc(4 * var(--dwfui-cell-drawn-w))
-      minmax(0, 1fr)
-      max-content;
+    grid-template-columns: var(--dwfui-icon-m) minmax(0, 1fr) max-content;
     align-items: center;
-    min-height: calc(3 * var(--dwfui-cell-drawn-h));
-    gap: 0 var(--dwfui-cell-drawn-w);
-    font-size: inherit;
-    justify-content: unset;
-    border: 1px solid transparent;
-    background: repeating-linear-gradient(-25deg, rgba(255, 255, 255, 0.025) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
-  }
-  .training-knowledge-row:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02);
+    min-height: var(--dwfui-height-row-tall);
+    gap: 0 var(--dwfui-space-m);
+    border: var(--dwfui-divider) solid transparent;
+    background: var(--dwfui-row-hatch);
   }
   .training-knowledge-row > * {
     min-width: 0;
@@ -91,5 +82,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .overall-training-bar {
+    min-width: calc(10 * var(--dwfui-space-xl));
+    min-height: var(--dwfui-height-row-tall);
+  }
+  .training-knowledge-portrait {
+    width: var(--dwfui-icon-m);
+    height: var(--dwfui-height-row-tall);
+    min-width: 0;
   }
 }

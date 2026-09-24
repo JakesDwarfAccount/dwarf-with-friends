@@ -40,7 +40,7 @@
       entry.t = Math.round((root.performance && root.performance.now && root.performance.now()) || 0);
       errors.push(entry);
       while (errors.length > ERROR_CAP) errors.shift();
-    } catch (_) { /* the reporter must never be the thing that breaks boot */ }
+    } catch { /* the reporter must never be the thing that breaks boot */ }
   }
 
   // The one call other modules make. Deliberately tolerant of being called before or without a console.
@@ -48,7 +48,7 @@
     push({ kind: String(kind || "note"), message: String(message == null ? "" : message),
       detail: extra == null ? undefined : String(extra) });
     try { if (root.console && root.console.warn) root.console.warn("[dwf boot] " + kind + ": " + message); }
-    catch (_) { /* the in-memory boot error remains available when console access fails */ }
+    catch { /* the in-memory boot error remains available when console access fails */ }
   }
 
   // A file with an EMPTY provides list cannot be verified by its globals. Those are covered by the
@@ -63,7 +63,7 @@
     var names = (entry && entry.provides) || [];
     for (var i = 0; i < names.length; i++) {
       try { if (typeof root[names[i]] !== "undefined" && root[names[i]] !== null) return true; }
-      catch (_) { /* a throwing optional-global probe means this candidate is unavailable */ }
+      catch { /* a throwing optional-global probe means this candidate is unavailable */ }
     }
     return false;
   }
@@ -288,7 +288,7 @@
       };
       box.appendChild(msg); box.appendChild(btn);
       (root.document.body || root.document.documentElement).appendChild(box);
-    } catch (_) { /* if even this fails there is nothing left to do but stay quiet */ }
+    } catch { /* if even this fails there is nothing left to do but stay quiet */ }
   }
 
   // ---- status, for the harness and for a human in the console --------------------------------

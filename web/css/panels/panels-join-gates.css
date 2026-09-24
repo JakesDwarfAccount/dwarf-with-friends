@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.join-gates {
   /* Join and version gates */
@@ -36,47 +36,41 @@
     backdrop-filter: blur(2px);
   }
   #dfcapJoinCard h1 {
-    margin: 0 0 4px;
-    font-size: 20px;
-    font-weight: 600;
+    margin: 0 0 var(--dwfui-space-s);
+    font: var(--dwfui-font);
     color: var(--dwfui-text-numeric);
-    letter-spacing: 0.2px;
   }
   #dfcapJoinCard .join-gate-sub {
-    margin: 0 0 16px;
-    font-size: 12.5px;
+    margin: 0 0 var(--dwfui-space-l);
     color: var(--dwfui-text-secondary);
   }
   #dfcapJoinCard label {
     display: block;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
     color: var(--dwfui-text-secondary);
-    margin: 12px 0 5px;
+    margin: var(--dwfui-space-m) 0 var(--dwfui-space-s);
   }
-  /* Editable text fields deliberately remain real DOM inputs. */
-  #dfcapJoinCard input {
+  #dfcapJoinCard .join-gate-input {
     width: 100%;
-    box-sizing: border-box;
-    padding: 9px 11px;
-    border: 1px solid var(--dwfui-gold);
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-body);
-    font-size: 14px;
-    outline: none;
+    padding: var(--dwfui-space-m);
   }
-  #dfcapJoinCard input:focus {
+  #dfcapJoinCard .join-gate-input:focus {
+    outline: none;
     border-color: var(--dwfui-text-numeric);
   }
+  #dfcapJoinCard {
+    width: min(calc(36 * var(--dwfui-cell-drawn-w)), 90vw);
+    height: auto;
+  }
   #dfcapJoinBtn {
-    margin-top: 18px;
+    margin-top: var(--dwfui-space-xl);
     display: flex;
   }
+  #dfcapJoinBtn .join-gate-join {
+    flex: 1 1 auto;
+  }
   #dfcapJoinErr {
-    min-height: 16px;
-    margin-top: 10px;
-    font-size: 12px;
+    min-height: var(--dwfui-height-line);
+    margin-top: var(--dwfui-space-m);
     color: var(--dwfui-text-warning);
   }
   #dfcapVerBanner {
@@ -85,10 +79,9 @@
     right: 0;
     top: 0;
     z-index: 99999;
-    padding: 10px 16px;
-    font-size: 13.5px;
+    padding: var(--dwfui-space-m) var(--dwfui-space-l);
     display: flex;
-    gap: 12px;
+    gap: var(--dwfui-space-m);
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);

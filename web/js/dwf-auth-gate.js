@@ -38,7 +38,7 @@
         ? String(input)
         : input && typeof input.url === "string" ? input.url : "";
       return new URL(raw, root.location && root.location.href || "http://localhost/");
-    } catch (_) {
+    } catch {
       return null;
     }
   }
@@ -86,7 +86,7 @@
       "html.dwf-auth-pending body>:not(#dfcapJoinOverlay):not(#dwfBootFailure):not(#dfcapVerBanner):not(script):not(svg){" +
       "display:none!important}}";
     root.document.head.appendChild(style);
-  } catch (_) { /* a failed preboot gate leaves the page visible instead of trapping it hidden */ }
+  } catch { /* a failed preboot gate leaves the page visible instead of trapping it hidden */ }
 
   function release() {
     if (ready) return;

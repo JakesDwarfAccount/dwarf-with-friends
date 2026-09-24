@@ -27,6 +27,7 @@
   let haulingFreeVehicles = [];    // /hauling-vehicles -- df::vehicle with route_id == -1
   const haulingPanel = document.createElement("div");
   haulingPanel.id = "haulingPanel";
+  haulingPanel.className = "df-panel";
   haulingPanel.hidden = true;
   document.body.appendChild(haulingPanel);
 
@@ -49,7 +50,7 @@
       haulingRoutesCache = Array.isArray(data.routes) ? data.routes : [];
       if (haulingSelectedRouteId >= 0 && !haulingRoutesCache.some(r => r.id === haulingSelectedRouteId))
         haulingSelectedRouteId = -1;
-    } catch (_) {
+    } catch {
       haulingRoutesCache = [];
     }
     // Free-cart pool for the picker. A failure here must not blank the routes, so it is caught
@@ -58,7 +59,7 @@
       const r = await fetch(`/hauling-vehicles?t=${Date.now()}`, { cache: "no-store" });
       const data = r.ok ? await r.json() : {};
       haulingFreeVehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
-    } catch (_) {
+    } catch {
       haulingFreeVehicles = [];
     }
     // Drop the expanded-stop selection if that stop went away underneath us.
@@ -87,7 +88,7 @@
         if (!r.ok) throw new Error("rename failed");
         await refreshHaulingPanel();
         setHaulingStatus(okMsg);
-      } catch (_) { renderHaulingPanel(); setHaulingStatus("Rename failed.", true); }
+      } catch { renderHaulingPanel(); setHaulingStatus("Rename failed.", true); }
     };
     haulingPanel.querySelectorAll("[data-hauling-route-rename]").forEach(b => b.addEventListener("click", event => {
       event.stopPropagation();
@@ -166,7 +167,7 @@
         await refreshHaulingPanel();
         if (typeof data.id === "number") { haulingSelectedRouteId = data.id; renderHaulingPanel(); }
         setHaulingStatus("Route created.");
-      } catch (_) { setHaulingStatus("Create failed.", true); }
+      } catch { setHaulingStatus("Create failed.", true); }
       focusPage();
     });
     haulingPanel.querySelectorAll("[data-hauling-stop-arm]").forEach(b => b.addEventListener("click", event => {

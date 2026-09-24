@@ -653,7 +653,6 @@ void register_trade_depot_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"result\":" + std::to_string(r) + "}\n");
     };
-    server.Get("/depot-mark", mark_handler);
     server.Post("/depot-mark", mark_handler);
 
     auto broker_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -671,7 +670,6 @@ void register_trade_depot_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/depot-broker", broker_handler);
     server.Post("/depot-broker", broker_handler);
 
     server.Get("/depot-trade-status", [](const httplib::Request& req, httplib::Response& res) {

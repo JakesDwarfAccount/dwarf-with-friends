@@ -36,6 +36,7 @@
   let burrowRenamingId = -1;   // burrow id whose row is in inline-rename mode, or -1
   const burrowPanel = document.createElement("div");
   burrowPanel.id = "burrowPanel";
+  burrowPanel.className = "df-panel";
   burrowPanel.hidden = true;
   document.body.appendChild(burrowPanel);
 
@@ -80,7 +81,7 @@
     try {
       const gate = window.DwfConfirmGate;
       return !!gate && gate.isArmed(gate.key("burrow-delete", id));
-    } catch (_) { return false; }
+    } catch { return false; }
   }
 
   function confirmGateRerender() {
@@ -155,7 +156,7 @@
         await refreshBurrowPanel();
         setBurrowStatus("Burrow created. Paint its tiles on the map.");
         window.updateToolCursor();
-      } catch (_) { setBurrowStatus("Create failed.", true); }
+      } catch { setBurrowStatus("Create failed.", true); }
       focusPage();
     });
     burrowPanel.querySelector("[data-burrow-paint-done]")?.addEventListener("click", event => {
@@ -193,7 +194,7 @@
         if (!r.ok) throw new Error("rename failed");
         await refreshBurrowPanel();
         setBurrowStatus("Burrow renamed.");
-      } catch (_) {
+      } catch {
         renderBurrowPanel();
         setBurrowStatus("Rename failed.", true);
       }
@@ -314,7 +315,7 @@
         if (!r.ok) throw new Error("symbol failed");
         await refreshBurrowPanel();   // re-renders this sub-view with the new selection latched
         setBurrowStatus(msg);
-      } catch (_) { setBurrowStatus("Symbol change failed.", true); }
+      } catch { setBurrowStatus("Symbol change failed.", true); }
       focusPage();
     };
     burrowPanel.querySelectorAll("[data-burrow-symbol-pick]").forEach(b => b.addEventListener("click", event => {
@@ -339,7 +340,7 @@
       </div>
       <div data-burrow-cit-controls></div>
       ${DWFUI.scrollHtml({ cls: "burrow-list burrow-cit-list", rows: ".burrow-cit-row",
-        ariaLabel: "Burrow citizens" }, '<div class="burrow-empty">Loading...</div>')}
+        ariaLabel: "Burrow citizens" }, '<div class="dwfui-text--empty burrow-empty">Loading...</div>')}
       <div data-burrow-cit-search></div>
       <div class="stock-palette-status" data-burrow-status></div>`;
     burrowPanel.querySelector("[data-burrow-back]").addEventListener("click", event => {
@@ -373,7 +374,7 @@
           });
         });
       }
-    } catch (_) {
+    } catch {
       setBurrowStatus("Citizen list unavailable.", true);
     }
     if (burrowCitizensFor !== id) return; // navigated away while loading
@@ -403,13 +404,13 @@
         ? ` data-df-color="${professionColor}"` : "";
         return `<div class="burrow-cit-row">
           <div class="burrow-cit-name"${nameStyle}>${escapeHtml(u.name || `Unit ${uid}`)}</div>
-          <div class="burrow-cit-prof">${escapeHtml(u.profession || "")}</div>
+          <div class="burrow-cit-prof">${DWFUI.bitmapTextHtml(u.profession || "")}</div>
           ${DWFUI.plaqueBtnHtml({ cls: `zone-unit-act${u.assigned ? " assigned" : ""}`,
             dataset: { burrowUnit: uid, on: u.assigned ? 0 : 1 },
             label: u.assigned ? "Unassign" : "Assign", tone: u.assigned ? "red" : "green",
             title: u.assigned ? "Remove this citizen from the burrow" : "Assign this citizen to the burrow" })}
         </div>`;
-      }).join("") : `<div class="burrow-empty">No citizens match these filters.</div>`;
+      }).join("") : `<div class="dwfui-text--empty burrow-empty">No citizens match these filters.</div>`;
 
       controlsEl.querySelectorAll("[data-burrow-cit-filter]").forEach(button =>
         button.addEventListener("click", event => {
@@ -431,7 +432,7 @@
           const r = await fetch(`/burrow-unit?player=${encodeURIComponent(player)}&id=${id}&unit=${uid}&on=${on}`, { method: "POST", cache: "no-store" });
           if (!r.ok) throw new Error("membership failed");
           renderBurrowCitizens(); // re-read both membership and military classification
-        } catch (_) { setBurrowStatus("Membership change failed.", true); }
+        } catch { setBurrowStatus("Membership change failed.", true); }
         focusPage();
       }));
       try {
@@ -459,7 +460,7 @@
       burrowPalette = Array.isArray(data?.palette) ? data.palette : [];
       if (window.DFPlacementController.burrowPaintId >= 0 && !burrowsCache.some(b => b.id === window.DFPlacementController.burrowPaintId))
         window.DFPlacementController.burrowPaintId = -1;
-    } catch (_) {
+    } catch {
       burrowsCache = [];
     }
     if (window.DwfBurrowOverlay) window.DwfBurrowOverlay.setBurrows(burrowsCache, burrowsZ);

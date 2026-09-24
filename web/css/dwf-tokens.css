@@ -22,11 +22,25 @@
  */
 
 /* Shared values, fonts, art handles, and global design ingredients. */
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer tokens {
+  /* A button row drops the browser's button look (black text, centred copy, bevelled border).
+     Kept in this base layer so any component or panel style still wins over it. */
+  button.dwfui-row {
+    color: inherit;
+    text-align: start;
+    background: none;
+    border: 0;
+  }
+  /* DF draws one text size, so controls and headings take the surrounding text, not the browser's. */
+  :where(button, input, select, textarea, h1, h2, h3, h4, h5, h6) {
+    font: inherit;
+  }
   :root {
-    --dwfui-alert-rail-w: calc(32px * var(--dwfui-interface-scale));
+    /* The DF face ships one weight; a synthesized bold smears its pixel glyphs. System fonts keep real bold. */
+    font-synthesis-weight: none;
+    --dwfui-alert-rail-w: calc(32px * var(--dwfui-interface-scale)); /* the alert icon column, not the plate */
     --panel-dock-left: calc(var(--dwfui-alert-rail-w) + 2px * var(--dwfui-interface-scale));
   }
 }
@@ -54,6 +68,8 @@
   font-weight: 400;
   font-style: normal;
   font-display: block; /* block, not swap: a flash of the fallback face is the defect this avoids */
+  /* The face has no line gap, so an unset line-height stacked lines touching; 25% matches the old stack. */
+  line-gap-override: 25%;
 }
 
 @layer tokens {
@@ -69,7 +85,6 @@
     --dwfui-cell-h: 12px;
     --dwfui-interface-scale: 1.25; /* THE interface knob: every DWFUI geometry is a native measurement times this */
     --dwfui-row-icon-gap: calc(10px * var(--dwfui-interface-scale));
-    --dwfui-cell-scale: 2; /* legacy label multiplier ceiling; NOT the DF scale */
     --dwfui-font-face: "DFCurses", ui-monospace, Consolas, monospace;
     /* DwfGrid recomputes these onto documentElement.style at runtime and out-specifies this block, so
      the calc()s here are the pre-boot fallback only. A third writer fails ui_drift_guard R9. */
@@ -85,9 +100,27 @@
     --dwf-right-chrome-width: calc(29 * var(--dwfui-cell-drawn-w));
     --dwf-right-chrome-height: calc(18 * var(--dwfui-cell-drawn-h));
     --dwf-status-height: calc(4 * var(--dwfui-cell-drawn-h));
+    /* The ALERT plate: DF's five-cell caption plus a 2px ring and 2px of margin a side. */
+    --dwf-alert-badge-w: calc(5 * var(--dwfui-cell-drawn-w) + 8px);
     --dwfui-font-size: var(--dwfui-cell-drawn-h);
     --dwfui-line-height: var(--dwfui-cell-drawn-h);
     --dwfui-font: var(--dwfui-font-weight, 400) var(--dwfui-font-size) / var(--dwfui-line-height) var(--dwfui-font-face);
+    /* DF draws one text size; double is only for a glyph standing in for a missing sprite. */
+    --dwfui-font-double: var(--dwfui-font-weight, 400) calc(2 * var(--dwfui-font-size)) / 1 var(--dwfui-font-face);
+
+    /* Sizes on the text cell; a panel uses these, never a raw px or a font size. Space: a quarter, half and
+       whole cell width, a cell height, then two of each, in whole pixels. Heights: one, two, three lines. */
+    --dwfui-space-xs: round(down, var(--dwfui-cell-drawn-w) / 4, 1px);
+    --dwfui-space-s: round(down, var(--dwfui-cell-drawn-w) / 2, 1px);
+    --dwfui-space-m: round(down, var(--dwfui-cell-drawn-w), 1px);
+    --dwfui-space-l: round(down, var(--dwfui-cell-drawn-h), 1px);
+    --dwfui-space-xl: round(down, 2 * var(--dwfui-cell-drawn-w), 1px);
+    --dwfui-space-2xl: round(down, 2 * var(--dwfui-cell-drawn-h), 1px);
+    --dwfui-height-line: var(--dwfui-cell-drawn-h);
+    --dwfui-height-row: calc(2 * var(--dwfui-cell-drawn-h));
+    --dwfui-height-row-tall: calc(3 * var(--dwfui-cell-drawn-h)); /* a list row holding an icon */
+    --dwfui-icon-s: calc(2 * var(--dwfui-cell-drawn-w));
+    --dwfui-icon-m: calc(4 * var(--dwfui-cell-drawn-w)); /* DF's 32px interface icon */
     /* the 1-bit glyph-mask filter; it needs <filter id="dwfui-crisp"> in the document, else inert */
     --dwfui-text-crisp: url(#dwfui-crisp);
 
@@ -128,6 +161,7 @@
     --dwfui-surface: #1c1c1c; /* ledger 0074 surface */
     --dwfui-buildmenu-separator: #60b9c0; /* native-sampled build-menu separator pinned by build_menu_native_visual_test */
     --dwfui-field-dark: #121212; /* native-sampled build-menu field pinned by build_menu_native_visual_test */
+    --dwfui-selected-tile: #5fac14; /* native-sampled selected stockpile type tile */
     --dwfui-hatch: #252525; /* ledger 0074 hatch */
     --dwfui-gold: #ffbf01; /* ledger 0074 goldNative */
     --dwfui-gold-bright: #ffc300; /* ledger 0074 goldBrightNative */
@@ -152,7 +186,8 @@
 
     /* Scrollbar sizes are native cells; DWFUI.mountScrollbarArt() supplies its paint. */
     --dwfui-sb-w: calc(16px * var(--dwfui-interface-scale));
-    --dwfui-sb-min-thumb: calc(24px * var(--dwfui-interface-scale));
+    /* Three rows: a shorter browser thumb would draw both chevron caps with no gem between them. */
+    --dwfui-sb-min-thumb: calc(36px * var(--dwfui-interface-scale));
   }
 }
 
@@ -166,16 +201,4 @@
   syntax: "<integer>";
   inherits: false;
   initial-value: 0;
-}
-
-@layer tokens {
-  :root {
-    --zone-palette-width: calc(45 * var(--dwfui-cell-drawn-w));
-  }
-}
-
-@layer tokens {
-  :root {
-    --zone-palette-width: calc(55 * var(--dwfui-cell-drawn-w));
-  }
 }

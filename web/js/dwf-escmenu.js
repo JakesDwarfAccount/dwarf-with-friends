@@ -134,7 +134,6 @@
           closeEscMenu();
           // DF's own settings screen is unreachable over HTTP, so this opens the client's Settings panel.
           if (window.DFSettings && typeof window.DFSettings.open === "function") window.DFSettings.open();
-          else document.getElementById("settingsMenu")?.classList.add("open");
           return;
         }
       });

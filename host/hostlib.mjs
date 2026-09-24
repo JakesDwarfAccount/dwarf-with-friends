@@ -44,12 +44,12 @@ export const CLOUDFLARED_BIN = IS_WIN ? "cloudflared.exe" : "cloudflared";
 
 // The served web-root dir name must match the plugin's hard-coded kWebRoot; any other name
 // makes the running plugin 404 index.html and serve its "web UI not found" stub.
-export function resolveManifest(dfRoot, releaseDir) {
+export function resolveManifest(dfRoot, releaseDir, pluginBinary = PLUGIN_BINARY) {
   const j = path.join;
   return [
     { role: "dll", kind: "file",
-      src: j(releaseDir, PLUGIN_BINARY),
-      dest: j(dfRoot, "hack", "plugins", PLUGIN_BINARY) },
+      src: j(releaseDir, pluginBinary),
+      dest: j(dfRoot, "hack", "plugins", pluginBinary) },
     { role: "lua-plugins", kind: "file",
       src: j(releaseDir, "dwf.lua"),
       dest: j(dfRoot, "hack", "lua", "plugins", "dwf.lua") },

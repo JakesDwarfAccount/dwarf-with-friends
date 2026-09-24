@@ -359,7 +359,7 @@
       key: "chat", el: function () { return els.panel; }, title: "Chat", headSel: ".chat-head",
       closable: true, resizable: { minW: 220, minH: 140 },
       fillSel: "#dfChatLog",
-      defaultPos: function (vw, vh) { return { anchor: "bl", x: 8, y: 52, w: 302, h: 272 }; },
+      defaultPos: function () { return { anchor: "bl", x: 8, y: 52, w: 302, h: 272 }; },
       open: openPanel, close: closePanel, isOpen: function () { return open; }, escClosable: true,
     });
     bindPingBridge();   // publish onArmed/onDisarmed/onPick for the map-side armed mode

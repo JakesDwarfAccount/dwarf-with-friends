@@ -132,8 +132,8 @@
     for (var i = 0; i < levels.length; i++) {
       var level = levels[i];
       if (flow && level.flow !== flow) continue;
-      var live = false;
-      try { live = !!level.active(); } catch (_) { live = false; }
+      var live;
+      try { live = !!level.active(); } catch { live = false; }
       if (live) out.push(level);
     }
     out.sort(function (a, b) {
@@ -153,8 +153,8 @@
   function popOne(reason, flow) {
     var level = top(flow);
     if (!level) { lastPopped = null; return null; }
-    var done = false;
-    try { done = level.pop(reason || "back") !== false; } catch (_) { done = false; }
+    var done;
+    try { done = level.pop(reason || "back") !== false; } catch { done = false; }
     lastPopped = done ? level.id : null;
     return done ? level.id : null;
   }
@@ -164,8 +164,8 @@
   function popLevel(id, reason) {
     for (var i = 0; i < levels.length; i++) {
       if (levels[i].id !== id) continue;
-      var done = false;
-      try { done = levels[i].pop(reason || "back") !== false; } catch (_) { done = false; }
+      var done;
+      try { done = levels[i].pop(reason || "back") !== false; } catch { done = false; }
       if (done) lastPopped = id;
       return done;
     }

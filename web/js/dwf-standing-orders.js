@@ -255,9 +255,6 @@
   // POST value that FLIPS a currently-`enabled` checkbox (0 turns off, 1 turns on).
   function choreToggleValue(enabled) { return enabled ? 0 : 1; }
 
-  // R8: /chores payload cache (children roster + chore flags). Fetched lazily when the Chores tab
-  // is opened; dormant-graceful when the route is absent on an old DLL (404 -> friendly message).
-  let choresData = null;
   let choresLoadToken = 0;
 
   function choreCheckHtml(cfg) {
@@ -272,8 +269,8 @@
     const kids = m.children.length ? m.children.map(k => `
         <div class="chore-child-row">
           ${typeof unitPortraitMarkup === "function"
-            ? unitPortraitMarkup({ unitId: k.unitId, name: k.name, portraitTexpos: k.portraitTexpos }, "info-portrait-small chore-child-portrait")
-            : `<span class="info-portrait-small chore-child-portrait" data-parity-missing="portrait-helper"></span>`}
+            ? unitPortraitMarkup({ unitId: k.unitId, name: k.name, portraitTexpos: k.portraitTexpos }, "info-portrait-small")
+            : `<span class="info-portrait-small" data-parity-missing="portrait-helper"></span>`}
           <span class="chore-child-name">${escapeHtml(k.name)}, Dwarven Child</span>
           ${choreCheckHtml({ enabled: k.enabled, title: "Child does chores",
             dataset: { choreChild: k.unitId, choreOn: choreToggleValue(k.enabled) } })}
@@ -316,7 +313,6 @@
       const data = await r.json();
       if (token !== choresLoadToken) return;
       if (!data || data.ok === false) throw new Error("chores unavailable");
-      choresData = data;
       body.innerHTML = choresRosterHtml(data);
       wireChoresBody(body);
     } catch {
@@ -346,28 +342,22 @@
     }));
   }
 
-  // Keep the `.standing-order-toggle` / `.standing-order-toggle.on` / `.standing-order-petition` class hooks: ui_lab_test pins standing-order-petition.
+  // One native list button per order; the label itself names the current state.
   function soItemButtonHtml(item) {
+    const row = (label, cls, dataset) => DWFUI.rowHtml({
+      tag: "button", chassis: "slab", cls: `standing-order-toggle ${cls}`, label, dataset,
+      disabled: !!item.disabled,
+    });
     if (soItemUsesRaw(item)) {
       const count = soItemStateCount(item);
       const raw = soItemRaw(item);
       const petition = count === 3 && String(item.key || "").startsWith("petition_");
       const label = count > 2 || soItemHasGenericStates(item) ? petitionRowLabel(item) : item.label;
-      return DWFUI.plaqueBtnHtml({
-        label, artTone: "neutral",
-        cls: count === 2
-          ? (raw ? "standing-order-toggle on" : "standing-order-toggle off")
-          : (petition ? "standing-order-toggle standing-order-petition" : "standing-order-toggle standing-order-tristate"),
-        dataset: { soKey: item.key, soRaw: soItemNextRaw(item) },
-        disabled: !!item.disabled,
-      });
+      return row(label,
+        count === 2 ? (raw ? "on" : "off") : (petition ? "standing-order-petition" : "standing-order-tristate"),
+        { soKey: item.key, soRaw: soItemNextRaw(item) });
     }
-    return DWFUI.plaqueBtnHtml({
-      label: item.label, artTone: "neutral",
-      cls: item.value ? "standing-order-toggle on" : "standing-order-toggle off",
-      dataset: { soKey: item.key, soOn: item.value ? 0 : 1 },
-      disabled: !!item.disabled,
-    });
+    return row(item.label, item.value ? "on" : "off", { soKey: item.key, soOn: item.value ? 0 : 1 });
   }
 
   function standingOrdersMarkup(data, activeGroup = "workshops", options = {}) {
@@ -395,7 +385,11 @@
       return `<div class="standing-orders-screen">${tabs}<div class="standing-order-chores"><div class="standing-order-chores-body">${chores}</div></div></div>`;
     }
     const footnote = selectedGroup === "forbidding" ? `<div class="info-message standing-order-footnote">Forbidding of death objects occurs at time of death.</div>` : "";
-    return `<div class="standing-orders-screen">${tabs}<div class="standing-order-list">${items.length ? items.map(soItemButtonHtml).join("") : `<div class="info-message">No standing orders in this category.</div>`}</div>${footnote}</div>`;
+    const list = DWFUI.scrollHtml({
+      cls: "standing-order-list", rows: ".standing-order-toggle",
+      preserveKey: `standing-orders-${selectedGroup}`, ariaLabel: "Standing orders",
+    }, items.length ? items.map(soItemButtonHtml).join("") : `<div class="info-message">No standing orders in this category.</div>`);
+    return `<div class="standing-orders-screen">${tabs}${list}${footnote}</div>`;
   }
 
   function renderStandingOrdersPanel() {
@@ -411,9 +405,9 @@
     // is the roster route). Ensure it's always selectable.
     if (!groups.some(g => g.id === "chores")) groups.splice(5, 0, { id: "chores", label: "Chores", items: [] });
     if (!groups.some(g => g.id === soActiveGroup)) soActiveGroup = groups[0].id;
-    const wireTabs = () => main.querySelectorAll("[data-so-group]").forEach(b => b.addEventListener("click", e => {
+    const wireTabs = () => main.querySelectorAll("[data-standing-order-group]").forEach(b => b.addEventListener("click", e => {
       e.preventDefault(); e.stopPropagation();
-      soActiveGroup = b.dataset.soGroup;
+      soActiveGroup = b.dataset.standingOrderGroup;
       renderStandingOrdersPanel();
       focusPage();
     }));

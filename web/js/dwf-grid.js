@@ -36,8 +36,8 @@
 
   // Captured as locals: the browser-dependency inventory reads a `typeof root.X` compare as an
   // export, which would make DwfBoot.check() report this script loaded when it never was.
-  const CustomEventCtor = (function () { try { return root.CustomEvent; } catch (_) { return null; } })();
-  const MutationObserverCtor = (function () { try { return root.MutationObserver; } catch (_) { return null; } })();
+  const CustomEventCtor = (function () { try { return root.CustomEvent; } catch { return null; } })();
+  const MutationObserverCtor = (function () { try { return root.MutationObserver; } catch { return null; } })();
 
   const finite = n => typeof n === "number" && isFinite(n);
   const num = (v, fallback) => (finite(Number(v)) && Number(v) > 0 ? Number(v) : fallback);
@@ -111,14 +111,14 @@
     const el = doc && doc.documentElement;
     const view = doc && doc.defaultView;
     if (!el || !view || typeof view.getComputedStyle !== "function") return fallback;
-    let raw = null;
-    try { raw = view.getComputedStyle(el).getPropertyValue(prop); } catch (_) { return fallback; }
+    let raw;
+    try { raw = view.getComputedStyle(el).getPropertyValue(prop); } catch { return fallback; }
     const n = Number(String(raw == null ? "" : raw).trim());
     return finite(n) && n > 0 ? n : fallback;
   }
   function docOf(doc) {
     if (doc) return doc;
-    try { return root.document || null; } catch (_) { return null; }
+    try { return root.document || null; } catch { return null; }
   }
   // Headless (no document) returns neutral inputs so every consumer stays callable in Node. Never
   // read devicePixelRatio: native reads SDL's LOGICAL window size and there is no DPR term.
@@ -189,7 +189,7 @@
     if (!d || installed) return;
     installed = true;
     const view = d.defaultView || root;
-    const bump = () => { try { refresh(d); } catch (_) { DwfErr.count("grid.refresh-event"); } };
+    const bump = () => { try { refresh(d); } catch { DwfErr.count("grid.refresh-event"); } };
     if (view && typeof view.addEventListener === "function") {
       view.addEventListener("resize", bump);
       view.addEventListener("orientationchange", bump);
@@ -219,7 +219,7 @@
     toPx, toCells, cellsIn, onChange,
   };
 
-  try { root.DwfGrid = api; } catch (_) { /* non-browser context */ }
+  try { root.DwfGrid = api; } catch { /* non-browser context */ }
   if (typeof module === "object" && module && module.exports) module.exports = api;
 
   try {

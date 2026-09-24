@@ -297,7 +297,7 @@
       labelHtml: DWFUI.rawHtml("the compact help chrome keeps its existing close glyph", "&#10005;"),
     });
     const dontShow = DWFUI.checkHtml({
-      checked: false, dataset: { helpDontshow: "" }, ariaLabel: "Don't show again",
+      checked: false, cls: "df-help-dontshow-check", dataset: { helpDontshow: "" }, ariaLabel: "Don't show again",
     });
     const okay = DWFUI.plaqueBtnHtml({
       cls: "df-help-okay", label: "Okay", dataset: { helpOkay: "" },

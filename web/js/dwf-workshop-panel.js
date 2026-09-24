@@ -122,12 +122,14 @@
       laborHtml = full.map(l => {
         const lid = Number(l.id);
         const blocked = blockedIds.has(lid);
-        return `<div class="workshop-labor-row">${DWFUI.checkHtml({ checked: blocked,
-          ariaLabel: `${blocked ? "Unblock" : "Block"} ${l.name || ("Labor " + lid)}`,
-          dataset: { wsLabor: lid, blocking: blocked ? 0 : 1 } })}<span>${escapeHtml(l.name || ("Labor " + lid))}</span></div>`;
+        return DWFUI.rowHtml({ cls: "workshop-labor-row", layout: "icon",
+          icon: DWFUI.checkHtml({ checked: blocked,
+            ariaLabel: `${blocked ? "Unblock" : "Block"} ${l.name || ("Labor " + lid)}`,
+            dataset: { wsLabor: lid, blocking: blocked ? 0 : 1 } }),
+          label: l.name || ("Labor " + lid) });
       }).join("");
     } else {
-      laborNote = `<div class="workshop-note">Full labor list unavailable &mdash; showing only currently-blocked labors.</div>`;
+      laborNote = `<div class="dwfui-text--note workshop-note">Full labor list unavailable &mdash; showing only currently-blocked labors.</div>`;
       laborHtml = blockedLabors.length
         ? blockedLabors.map(b => {
             const lid = Number(b.id);
@@ -137,9 +139,9 @@
                 dataset: { wsLaborUnblock: lid },
               }) });
           }).join("")
-        : `<div class="workshop-note">No labors are blocked at this workshop.</div>`;
+        : `<div class="dwfui-text--note workshop-note">No labors are blocked at this workshop.</div>`;
     }
-    return `<div class="workshop-section-title">Blocked labors (${blockedLabors.length})</div>
+    return `<div class="dwfui-text--section workshop-section-title">Blocked labors (${blockedLabors.length})</div>
             ${laborNote}
             <div class="workshop-list compact workshop-labor-list">${laborHtml}</div>`;
   }
@@ -154,8 +156,8 @@
         ? `<div class="workshop-profile-field"><span>Min skill</span>${wsSkillCycler("min", p.minLevel, false)}</div>` : "";
       const maxSel = p.maxLevel !== undefined
         ? `<div class="workshop-profile-field"><span>Max skill</span>${wsSkillCycler("max", p.maxLevel, true)}</div>` : "";
-      sections += `<div class="workshop-section-title">Skill range</div>
-        <div class="workshop-note">Only citizens whose skill in this workshop's labor is within this range may work here.</div>
+      sections += `<div class="dwfui-text--section workshop-section-title">Skill range</div>
+        <div class="dwfui-text--note workshop-note">Only citizens whose skill in this workshop's labor is within this range may work here.</div>
         <div class="zone-btn-row">${minSel}${maxSel}</div>`;
     }
     // The general-work-orders allowance is not a Workers-tab control and is not a dropdown: it is a
@@ -193,7 +195,7 @@
     const text = kind === "orders"
       ? "Work orders cannot be assigned to this building."
       : "Workers cannot be assigned to this building.";
-    return `<div class="workshop-note workshop-refusal" data-ws-refusal="${kind === "orders" ? "orders" : "workers"}">${escapeHtml(text)}</div>`;
+    return `<div class="dwfui-text--note workshop-note workshop-refusal" data-ws-refusal="${kind === "orders" ? "orders" : "workers"}">${escapeHtml(text)}</div>`;
   }
   // Workshop / Kitchen row 1 is the TAB row. `width:'hug'` -- these three tabs hug their labels.
   function wsTabsHtml(active) {
@@ -315,7 +317,7 @@
   function wsMasterPolicyLine(master) {
     const flag = (master || {}).onlyAssignedJobs;
     if (typeof flag !== "boolean") return "";
-    return `<div class="workshop-note workshop-master-policy">${escapeHtml(flag
+    return `<div class="dwfui-text--note workshop-note workshop-master-policy">${escapeHtml(flag
       ? "This dwarf only does tasks at workshops they are assigned to."
       : "This dwarf also does tasks at workshops they are not assigned to.")}</div>`;
   }
@@ -325,7 +327,7 @@
     const masterId = wsMasterId(i);
     const workers = Array.isArray(i.workers) ? i.workers : [];
     if (masterId < 0) {
-      return `<div class="workshop-note workshop-master-free">This workshop is free for anybody to use.</div>`;
+      return `<div class="dwfui-text--note workshop-note workshop-master-free">This workshop is free for anybody to use.</div>`;
     }
     const master = workers.find(u => u && Number(u.id) === masterId) || null;
     // If the id resolves to nothing the row is skipped; the one-master line still follows.
@@ -333,11 +335,11 @@
     // A count above one is a state native's renderer CANNOT produce: say so rather than rendering one
     // of several and pretending the rest are not there.
     const extra = Number((i.profile || {}).permittedCount || 0) > 1
-      ? `<div class="workshop-note err workshop-master-overfull">This workshop has more than one assigned worker, which native cannot produce. Only the first is the master.</div>`
+      ? `<div class="dwfui-text--note workshop-note err workshop-master-overfull">This workshop has more than one assigned worker, which native cannot produce. Only the first is the master.</div>`
       : "";
     return `<div class="workshop-list compact workshop-master-row">${row}</div>` +
       extra +
-      `<div class="workshop-note workshop-master-rule">Only one dwarf may be the master of a workshop.</div>` +
+      `<div class="dwfui-text--note workshop-note workshop-master-rule">Only one dwarf may be the master of a workshop.</div>` +
       wsMasterPolicyLine(master);
   }
 
@@ -353,10 +355,10 @@
     switch (wsOrdersState(info)) {
       case "refused": return wsRefusalHtml("orders");
       case "no-manager":
-        return `<div class="workshop-note err workshop-orders-no-manager">${escapeHtml(
+        return `<div class="dwfui-text--note workshop-note err workshop-orders-no-manager">${escapeHtml(
           "You need a manager to add work orders.")}</div>`;
       default:
-        return `<div class="workshop-note workshop-orders-ok">${escapeHtml(
+        return `<div class="dwfui-text--note workshop-note workshop-orders-ok">${escapeHtml(
           "Work orders created here are assigned to this exact workshop.")}</div>`;
     }
   }
@@ -367,7 +369,7 @@
   function wsGeneralOrdersFieldHtml(profile, editing, text) {
     const p = profile || {};
     if (p.maxGeneralOrders === undefined) return "";
-    return `<div class="workshop-section-title">General work orders</div>` +
+    return `<div class="dwfui-text--section workshop-section-title">General work orders</div>` +
       `<div class="zone-btn-row workshop-genorders-row">` +
       DWFUI.numberEntryHtml({
         cls: "workshop-genorders-entry", label: "Maximum general work orders",
@@ -386,7 +388,8 @@
       ? DWFUI.iconHtml({ item: item.spriteRef, cls: "workshop-item-ico", size: 40, alt: item.name || `Item ${id}` })
       : `<span class="workshop-item-ico"${st ? ` style="${st}"` : ""}></span>`;
     const status = String(item.role || "").toUpperCase() === "PERM"
-      ? `<span class="workshop-item-status" title="Part of this building">${DWFUI.TOKENS.glyphs.building}</span>`
+      ? DWFUI.iconHtml({ sprite: "BUILDING_ITEM_INCORPORATED", nativeCell: true, cls: "workshop-item-status",
+        title: "Part of this building", alt: "Part of this building" })
       : `<span class="workshop-item-status" aria-hidden="true"></span>`;
     return DWFUI.rowHtml({
       cls: "workshop-item-row", dataset: { wsItemRow: id },
@@ -406,7 +409,8 @@
   }
   function wsContentsSectionHtml(items) {
     if (!Array.isArray(items) || !items.length) return "";
-    return `<div class="workshop-contents" aria-label="Workshop contents">${items.map(wsContentRowHtml).join("")}</div>`;
+    return DWFUI.scrollHtml({ cls: "workshop-contents", rows: ".workshop-item-row", ariaLabel: "Workshop contents" },
+      items.map(wsContentRowHtml).join(""));
   }
 
   // Contents is not a Tasks-tab child: it is the fixed lower section, so changing tabs swaps only the
@@ -444,8 +448,8 @@
       dataset: c.dataset,
       copyCls: "workshop-option-copy", labelCls: "workshop-option-label",
       label: c.label || "Task",
-      sub: unavailable && c.objection ? { text: c.objection, cls: "dwfui-sub workshop-objection" }
-        : (c.subText ? { text: c.subText, cls: "dwfui-sub workshop-option-meta" } : null),
+      sub: unavailable && c.objection ? { text: c.objection, cls: "workshop-objection" }
+        : (c.subText ? { text: c.subText, cls: "workshop-option-meta" } : null),
     });
   }
   function wsPickerSearchHtml() {
@@ -538,8 +542,8 @@
       cls: "workshop-link-row", dataset: { wsLinkRow: id },
       // A direction MARK, not a control: the row's own buttons live in `trailing`.
       icon: DWFUI.iconHtml({ sprite: dirSprite, cls: "workshop-link-dir", title: dirTitle, alt: dirTitle }),
-      copyCls: "workshop-link-copy", labelCls: "workshop-name",
-      label: link.name || `Stockpile ${id}`,
+      copyCls: "workshop-link-copy", labelCls: "workshop-name", title: link.name || "",
+      labelHtml: DWFUI.bitmapTextHtml(link.name || `Stockpile ${id}`, { fitNativeLabel: { host: "parent" } }),
       trailing: DWFUI.actionButtonsHtml([
         { action: "view", sprite: DWFUI.TOKENS.sprites.recenter, title: "Locate on the map",
           dataset: { wsLinkLocate: id, spX: Number(link.x), spY: Number(link.y), spZ: Number(link.z) } },
@@ -551,7 +555,7 @@
   function wsLinksWindowHtml(info, armMode) {
     const links = Array.isArray(info.linkedStockpiles) ? info.linkedStockpiles : [];
     const rows = links.map(wsLinkRowHtml).join("") ||
-      `<div class="workshop-note">No linked stockpiles. Choose give or take above, then click a stockpile on the map.</div>`;
+      `<div class="dwfui-text--note workshop-note">No linked stockpiles. Choose give or take above, then click a stockpile on the map.</div>`;
     return DWFUI.sideWindowHtml({
       cls: "workshop-links-win", ariaLabel: "Linked stockpiles",
       tools:
@@ -630,7 +634,7 @@
     // A workshop is stamped as a Building by id, so its "Ordered by" line reads from the same /attrib
     // buildings section as the plain building panel.
     const wsOrderedByChip = (typeof attribRowHtml === "function") ? attribRowHtml("building", info.id) : "";
-    const wsOrderedByLine = wsOrderedByChip ? `<div class="building-note building-attrib">Ordered by ${wsOrderedByChip}</div>` : "";
+    const wsOrderedByLine = wsOrderedByChip ? `<div class="dwfui-text--note building-note building-attrib">Ordered by ${wsOrderedByChip}</div>` : "";
 
     function buildTaskPicker(list, addAttr, valueOf) {
       const MTF = (typeof window !== "undefined") ? window.DwfMenuTree : null;
@@ -671,7 +675,7 @@
         });
       }).join("");
       return `${backHtml}${wsPickerSearchHtml()}
-        <div class="workshop-task-grid">${rows || `<div class="workshop-note">No orderable tasks reported for this station.</div>`}</div>`;
+        <div class="workshop-task-grid">${rows || `<div class="dwfui-text--note workshop-note">No orderable tasks reported for this station.</div>`}</div>`;
     }
     // Wired after innerHTML is set; the picker is one flat list.
     function wireTaskSearch() {
@@ -681,7 +685,7 @@
         const term = (input.value || "").trim();
         workshopTaskSearch = input.value || "";
         selection.querySelectorAll(".workshop-task-option[data-ws-search]").forEach(btn => {
-          btn.classList.toggle("workshop-task-filtered", !wsPickerMatches(btn.dataset.wsSearch, term));
+          btn.hidden = !wsPickerMatches(btn.dataset.wsSearch, term);
         });
       };
       input.addEventListener("input", apply);
@@ -703,7 +707,7 @@
         ? `<span class="workshop-meta workshop-tree-crumb">${escapeHtml(crumbs.join(" \u203a "))}</span>` : "";
       const orderRows = rows => (MT.orderRowsAlpha ? MT.orderRowsAlpha(rows)
         : rows.map((node, idx) => ({ node, idx })));
-      let rowsHtml = "";
+      let rowsHtml;
       if (nav.level === 0) {
         // The root can MIX submenu containers and directly-queueable leaves, so render each per its kind.
         rowsHtml = orderRows(nav.rows).map(({ node, idx }) => {
@@ -738,7 +742,7 @@
       const noneMsg = nav.level === 0 ? "No forge categories available." : "Nothing here.";
       return `${backHtml || crumbHtml ? `<div class="workshop-tree-bar">${backHtml}${crumbHtml}</div>` : ""}
         ${wsPickerSearchHtml()}
-        <div class="workshop-task-grid">${rowsHtml || `<div class="workshop-note">${noneMsg}</div>`}</div>`;
+        <div class="workshop-task-grid">${rowsHtml || `<div class="dwfui-text--note workshop-note">${noneMsg}</div>`}</div>`;
     }
 
     const tasksBody = (() => {
@@ -750,7 +754,7 @@
           ? `${wsPickerSearchHtml()}
              <div class="workshop-task-grid workshop-unit-pick-grid">${
                wsUnitPickRowsHtml(wsUnitPickUnits(info, workshopUnitPick), workshopUnitPick.job) ||
-               `<div class="workshop-note">No dead or missing historical figures to memorialize.</div>`
+               `<div class="dwfui-text--note workshop-note">No dead or missing historical figures to memorialize.</div>`
              }</div>`
           : (menuTree
             ? buildTreePicker(menuTree, MT)
@@ -762,7 +766,7 @@
       const addBtn = info.canAddTasks
         ? `<div class="workshop-add-row">${DWFUI.plaqueBtnHtml({ label: "Add new task", tone: "green",
             cls: "workshop-add-plaque", dataset: { wsToggleAdd: "" }, title: "Queue a new task" })}</div>`
-        : `<div class="workshop-note">No orderable tasks reported for this station.</div>`;
+        : `<div class="dwfui-text--note workshop-note">No orderable tasks reported for this station.</div>`;
       return `${addBtn}
         <div class="workshop-list workshop-task-list">${rows}</div>`;
     })();
@@ -773,7 +777,7 @@
       if (!wsHasProfile(info)) return wsRefusalHtml("workers");
       const hasMaster = wsMasterId(info) >= 0;
       const rows = workers.length ? window.wsWorkerRowsHtml(workers)
-        : `<div class="workshop-note">No citizens available.</div>`;
+        : `<div class="dwfui-text--note workshop-note">No citizens available.</div>`;
       const profileControls = wsProfileControlsHtml(profile, wsLaborListCache);
       // Drawn only when there is a list to filter, so a workshop reporting no citizens shows its note alone.
       const workerSearch = workers.length ? wsWorkerSearchHtml() : "";
@@ -781,10 +785,10 @@
       // meaningful state.
       return `${wsMasterBlockHtml(info)}
         ${hasMaster ? DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { wsWorkersClear: "" }, label: "Let anybody use this workshop" }) : ""}
-        <div class="workshop-section-title">Choose the master</div>
+        <div class="dwfui-text--section workshop-section-title">Choose the master</div>
         ${workerSearch}
         <div class="workshop-list compact workshop-worker-list">${rows}</div>
-        <div class="workshop-note workshop-worker-empty" hidden>No citizens match that search.</div>
+        <div class="dwfui-text--note workshop-note workshop-worker-empty" hidden>No citizens match that search.</div>
         ${profileControls}`;
     })();
 
@@ -802,18 +806,17 @@
           cls: "workshop-order-row",
           copyCls: "workshop-order-copy", labelCls: "workshop-name",
           label: o.job || "Work order",
-          sub: { cls: "dwfui-sub workshop-meta",
+          sub: { cls: "workshop-meta",
             html: `${escapeHtml(o.frequency === "OneTime" ? "One time" : (o.frequency || "One time"))} &middot; ${escapeHtml(amount)} &middot; ${o.active ? "Active" : "Inactive"}${o.validated ? "" : " &middot; Pending"}${oAttrib ? ` &middot; ${oAttrib}` : ""}` },
           trailing: DWFUI.plaqueBtnHtml({ cls: "workshop-icon-btn danger", size: "compact", tone: "red",
             dataset: { wsOrderCancel: Number(o.id) }, title: "Cancel order", label: "Cancel" }),
         });
-      }).join("") : `<div class="workshop-note">No work orders are assigned to this workshop.</div>`;
+      }).join("") : `<div class="dwfui-text--note workshop-note">No work orders are assigned to this workshop.</div>`;
       const orderTasks = Array.isArray(info.orderTasks)
         ? info.orderTasks.filter(t => t.orderKey)
         : tasks.filter(t => t.orderKey);
       const frequencies = typeof WO_FREQS !== "undefined" ? WO_FREQS : ["OneTime", "Daily", "Monthly", "Seasonally", "Yearly"];
       if (!frequencies.includes(wsOrderFrequency)) wsOrderFrequency = frequencies[0];
-      const frequencyIndex = frequencies.indexOf(wsOrderFrequency);
       const frequencyField = DWFUI.cyclerHtml({ cls: "workshop-order-frequency",
         label: typeof woFreqLabel === "function" ? woFreqLabel(wsOrderFrequency) : wsOrderFrequency,
         ariaLabel: "Order frequency",
@@ -831,7 +834,7 @@
         dataset: { wsOrderQtyInput: "" }, enterDataset: { wsOrderQtyEnter: "" },
       });
       const picker = workshopOrderAddMode ? `
-        <div class="workshop-section-title">New shop work order</div>
+        <div class="dwfui-text--section workshop-section-title">New shop work order</div>
         <div class="zone-btn-row">
           ${qtyField}
           ${frequencyField}
@@ -876,9 +879,9 @@
         ${body}
       </div>
     `);
-    selection.querySelectorAll("[data-ws-tab]").forEach(btn => btn.addEventListener("click", event => {
+    selection.querySelectorAll("[data-workshop-tab]").forEach(btn => btn.addEventListener("click", event => {
       event.preventDefault(); event.stopPropagation();
-      activeWorkshopTab = wsNormalizeTab(btn.dataset.wsTab);
+      activeWorkshopTab = wsNormalizeTab(btn.dataset.workshopTab);
       workshopAddMode = false;
       workshopOrderAddMode = false;
       workshopTaskSearch = "";

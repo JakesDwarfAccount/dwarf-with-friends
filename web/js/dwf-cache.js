@@ -187,7 +187,7 @@
     // authoritative snapshot; merely retrying the broken worker would churn forever.
     try {
       if (window.DwfWS && typeof window.DwfWS.recoverFreshSnapshot === "function")
-        window.DwfWS.recoverFreshSnapshot("cache worker failed");
+        window.DwfWS.recoverFreshSnapshot();
     } catch (err) { DwfErr.report("cache.demote-resync", err); }
   }
 

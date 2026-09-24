@@ -27,6 +27,7 @@
 
   var LS_PREFIX = "dwf.digest.lastSeen.";
   var MAX_FETCH = 300;
+  var DIGEST_COLUMNS = 48; // text cells per wrapped headline line
   var MAX_HEADLINES = 3;
 
   function reportDigest(key, err) {
@@ -221,21 +222,25 @@
 
   function digestPanelMarkup(summary) {
     if (!summary || !summary.total) return "";
-    var head = root.DWFUI.headerHtml({
-      cls: "digest-head", title: "Since you left", titleCls: "digest-title",
-      close: { cls: "digest-close", dataset: { digestClose: "" }, title: "Dismiss digest", glyph: "Dismiss" },
-    });
+    var ui = root.DWFUI;
     var body = (summary.categories || []).map(function (cat) {
-      var categoryTitle = cat.label + " (" + cat.count + ")";
-      var lines = (cat.headlines || []).map(function (line) {
-        return '<div class="digest-line">' + root.DWFUI.esc(line) + "</div>";
+      var shown = cat.headlines || [];
+      var lines = shown.map(function (line) {
+        return ui.statusHtml({ cls: "digest-line", text: line, columns: DIGEST_COLUMNS });
       }).join("");
-      var more = cat.count > (cat.headlines || []).length
-        ? '<div class="digest-more">+' + (cat.count - cat.headlines.length) + " more</div>" : "";
-      return '<section class="digest-cat"><div class="digest-cat-title" aria-label="' + root.DWFUI.esc(categoryTitle) + '">' +
-        root.DWFUI.statusHtml({ tag: "span", cls: "digest-cat-title-copy", text: categoryTitle }) + "</div>" + lines + more + "</section>";
+      var more = cat.count > shown.length
+        ? ui.statusHtml({ cls: "dwfui-text--note", text: "+" + (cat.count - shown.length) + " more" }) : "";
+      return '<section class="digest-cat">' +
+        ui.statusHtml({ cls: "dwfui-text--section", text: cat.label + " (" + cat.count + ")" }) +
+        lines + more + "</section>";
     }).join("");
-    return head + '<div class="digest-body">' + body + "</div>";
+    return ui.windowHtml({
+      cls: "digest-window",
+      prompt: "Since you left",
+      bodyHtml: ui.scrollHtml({ cls: "digest-body", ariaLabel: "Events since you left" }, body) +
+        '<div class="digest-foot">' + ui.plaqueBtnHtml({ label: "Dismiss", tone: "grey", cls: "digest-close",
+          dataset: { digestClose: "" }, title: "Dismiss digest" }) + "</div>",
+    });
   }
 
   function renderDigest(summary, doc) {

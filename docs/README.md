@@ -6,8 +6,8 @@
 - [Manual installation](MANUAL-INSTALL.md): file placement and networking.
 - [Configuration](CONFIG.md): passwords, audio, pause policy, and guarded actions.
 - [Troubleshooting](../TROUBLESHOOTING.md) and [reporting bugs](REPORTING-BUGS.md).
-- [Beta 4 release notes](RELEASE-NOTES-v1.0.0-beta.4.md).
-- Earlier notes: [beta 3](RELEASE-NOTES-v1.0.0-beta.3.md), [beta 2](RELEASE-NOTES-v1.0.0-beta.2.md), [beta 1](RELEASE-NOTES-v1.0.0-beta.1.md).
+- [Beta 4.1 release notes](RELEASE-NOTES-v1.0.0-beta.4.1.md).
+- Earlier notes: [beta 4](RELEASE-NOTES-v1.0.0-beta.4.md), [beta 3](RELEASE-NOTES-v1.0.0-beta.3.md), [beta 2](RELEASE-NOTES-v1.0.0-beta.2.md), [beta 1](RELEASE-NOTES-v1.0.0-beta.1.md).
 
 ## Build and contribute
 

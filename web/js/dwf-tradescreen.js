@@ -70,8 +70,8 @@
     return words.charAt(0).toUpperCase() + words.slice(1);
   }
 
-  async function _tsFetchJson(path) {
-    const { response: r, text, data } = await globalThis.DwfCoreTransport.queryJson(path);
+  async function _tsFetchJson(path, method) {
+    const { response: r, text, data } = await globalThis.DwfCoreTransport.queryJson(path, {}, { method });
     if (!r.ok && !(data && data.ok === false))
       throw new Error((data && data.error) || text.trim() || `request failed (${r.status})`);
     return data;
@@ -284,7 +284,7 @@
       ariaLabel: row.selected ? "Marked for this trade" : "Not marked for this trade",
     });
     return ui.rowHtml({
-      cls: "trade-screen-row", chassis: "table", selected: row.selected,
+      cls: "trade-screen-row", chassis: "table", selected: row.selected, labelCls: "trade-screen-row-name",
       dataset: { tsRowItem: row.id, tsRowSide: side },
       iconCfg: { item: row.spriteRef, cls: "trade-screen-row-icon", size: 32, alt: row.desc },
       label: row.desc, sub,
@@ -356,7 +356,7 @@
     });
   }
 
-  function _tsFooterHtml(state) {
+  function _tsFooterHtml(state, hostCloseHtml) {
     const ui = _tsUi();
     const trade = state.trade;
     const f = tsFooter(trade);
@@ -370,8 +370,8 @@
         ? `${on ? "Mark" : "Unmark"} every item on this side of the table`
         : selectState.reason,
     });
-    const block = (line1, line2Html) =>
-      `<div class="trade-screen-totals">${ui.bitmapTextHtml(line1, { cls: "trade-screen-totals-name" })}${line2Html}</div>`;
+    const block = (line1, line2Html) => `<div class="trade-screen-totals">` +
+      `${ui.bitmapTextHtml(line1, { cls: "trade-screen-totals-name", fitNativeLabel: { host: "parent" } })}${line2Html}</div>`;
     const merchantTotals =
       ui.bitmapTextHtml(f.merchantValue, { cls: "trade-screen-totals-value" }) +
       ui.bitmapTextHtml(f.profit.text, { cls: f.profit.kind === "loss" ? "trade-screen-totals-loss" : "trade-screen-totals-profit" }) +
@@ -393,14 +393,16 @@
         _tsCommitBtn(state, "trade", "Trade", "green") +
         _tsCommitBtn(state, "offer", "Offer as gift", "green");
     }
+    // Each side's totals and mark buttons sit under that side's goods list.
     return `<div class="trade-screen-footer">
-      <div class="trade-screen-footer-row">
-        ${block(f.merchantLine, merchantTotals)}
-        <div class="trade-screen-markalls">${markAll(0, true)}${markAll(0, false)}</div>
-        ${block(f.fortLine, fortTotals)}
-        <div class="trade-screen-markalls">${markAll(1, true)}${markAll(1, false)}</div>
+      <div class="trade-screen-footer-sides">
+        <div class="trade-screen-footer-row">${block(f.merchantLine, merchantTotals)}
+          <div class="trade-screen-markalls">${markAll(0, true)}${markAll(0, false)}</div></div>
+        <div class="trade-screen-footer-row">${block(f.fortLine, fortTotals)}
+          <div class="trade-screen-markalls">${markAll(1, true)}${markAll(1, false)}</div></div>
       </div>
-      <div class="trade-screen-footer-row trade-screen-footer-commits">${center}</div>
+      <div class="trade-screen-footer-commits"><span></span>
+        <div class="trade-screen-footer-center">${center}</div>${hostCloseHtml || "<span></span>"}</div>
     </div>`;
   }
 
@@ -450,7 +452,7 @@
       cls: "trade-screen-window", ariaLabel: "Trade at the depot",
       bodyHtml: `${headHtml}${blockHtml}${errHtml}
         <div class="trade-screen-body">${_tsSideHtml(state, 0)}${_tsSideHtml(state, 1)}</div>`,
-      footerHtml: `${_tsFooterHtml(state)}${hostClose}`,
+      footerHtml: _tsFooterHtml(state, hostClose),
       footerCls: "trade-screen-window-footer",
     });
   }
@@ -481,7 +483,7 @@
       ui.bitmapTextHtml(`Value: ${r.value}${TS_VALUE_GLYPH}`, { cls: "depot-goods-meta-value" });
     const exp = expanded[r.id];
     const row = ui.rowHtml({
-      cls: "depot-goods-row", chassis: "table", selected: r.pending,
+      cls: "depot-goods-row", chassis: "table", selected: r.pending, labelCls: "trade-screen-row-name",
       dataset: { dgRow: r.id },
       title: "Click the name to expand a container inline; click the check tile to mark for trade",
       iconCfg: { item: null, cls: "depot-goods-row-icon", size: 32, alt: r.desc },
@@ -499,7 +501,7 @@
       childHtml = ui.statusHtml({ cls: "depot-goods-child-note", text: "This item contains nothing." });
     } else {
       childHtml = exp.contents.map(c => ui.rowHtml({
-        cls: "depot-goods-child-row", chassis: "table",
+        cls: "depot-goods-child-row", chassis: "table", labelCls: "trade-screen-row-name",
         iconCfg: { item: c.spriteRef || null, cls: "depot-goods-row-icon", size: 32, alt: c.name },
         label: c.name,
       })).join("");
@@ -667,7 +669,7 @@
     }));
     // Per-side searches: client-side filter; re-render keeps caret via preserveKey.
     for (const side of [0, 1]) {
-      const input = clientPanel.querySelector(`[data-ts-search-${side}]`);
+      const input = clientPanel.querySelector(`[data-trade-screen-search-${side}]`);
       if (!input) continue;
       input.addEventListener("keydown", e => e.stopPropagation());
       input.addEventListener("input", () => { s.search[side] = input.value || ""; _tsRender(); });
@@ -737,8 +739,9 @@
     _dgRender();
     try {
       const who = (typeof player !== "undefined" && player) ? player : "";
+      // action=info only reads, but it shares the item-action route, which accepts POST only.
       const info = await _tsFetchJson(
-        `/stock-item-action?player=${encodeURIComponent(who)}&id=${id}&action=info&t=${Date.now()}`);
+        `/stock-item-action?player=${encodeURIComponent(who)}&id=${id}&action=info&t=${Date.now()}`, "POST");
       const contents = Array.isArray(info.contents) ? info.contents.filter(Boolean) : [];
       if (s.goodsExpanded[id]) s.goodsExpanded[id] = { loading: false, contents };
     } catch (err) {
@@ -779,7 +782,7 @@
         if (shown.length) _dgMark(shown.map(r => r.id), 1);
       }
     }));
-    const input = clientPanel.querySelector("[data-dg-search]");
+    const input = clientPanel.querySelector("[data-depot-goods-search]");
     if (input) {
       input.addEventListener("keydown", e => e.stopPropagation());
       input.addEventListener("input", () => { s.goodsSearch = input.value || ""; _dgRender(); });

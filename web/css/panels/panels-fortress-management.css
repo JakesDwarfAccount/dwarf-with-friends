@@ -21,68 +21,60 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.fortress-management {
-  .fort-window .info-window {
-    max-width: calc(64 * var(--dwfui-cell-drawn-w));
+  /* A standalone fort window is 64 cells wide, never past the screen's right margin. The host shrinks
+     to it, so its frame is the only one. */
+  #clientPanel.info-panel.fort-window {
+    right: auto;
+    width: calc(64 * var(--dwfui-cell-drawn-w));
+    max-width: calc(100vw - max(34px, var(--panel-dock-left)) - 34px);
+  }
+  .fort-window .fort-body.pf-fill-chain {
+    display: flex;
+    flex-direction: column;
   }
   .fort-body {
     overflow-y: auto;
   }
+  .fort-body:not(.pf-fill-chain):not(.pf-fill-scroll) {
+    max-height: 60vh;
+  }
   .fort-note {
-    color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    padding: 6px 10px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     line-height: 1.4;
   }
-  .fort-section-title {
-    color: var(--dwfui-text-heading);
-    font:
-      700 11px ui-monospace,
-      Consolas,
-      monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 8px 10px 3px;
-    margin-top: 4px;
+  /* Positions fill the pane and mandates keep at most a third of it; each scrolls whole rows. */
+  .nobles-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
-  .fort-row {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr auto;
-    gap: 8px;
-    align-items: center;
-    padding: 5px 10px;
+  .nobles-mandate-list {
+    max-height: 33%;
+  }
+  .fort-section-title {
+    padding-inline: var(--dwfui-space-m);
   }
   .fort-row-tall {
     grid-template-columns: 1fr;
-    gap: 2px;
-  }
-  .fort-cell-main {
-    font-size: 13px;
-  }
-  .fort-cell-who {
-    color: var(--dwfui-text-row);
-    font-size: 12px;
+    gap: var(--dwfui-space-xs);
   }
   .fort-cell-sub {
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
   }
   .fort-dim {
     color: var(--dwfui-text-disabled);
-    font-size: 11px;
   }
   .fort-vacant {
     font-weight: 700;
-    font-size: 12px;
   }
   .fort-badge {
     display: inline-block;
-    padding: 1px 7px;
-    font:
-      700 10px ui-monospace,
-      monospace;
+    padding: 1px var(--dwfui-space-s);
   }
   .fort-badge-open {
     color: var(--dwfui-text-warning);
@@ -97,13 +89,12 @@
     flex-wrap: wrap;
   }
   .noble-icon-spacer {
-    display: inline-block;
     width: calc(0.75 * var(--dwfui-cell-w));
   }
   .fort-status {
     display: none;
-    margin: 6px 10px;
-    padding: 5px 8px;
+    margin: var(--dwfui-space-s) var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     color: var(--dwfui-text-good);
   }
   .fort-status.fort-status-active {
@@ -115,77 +106,89 @@
   .obligation-row {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 10px;
+    gap: var(--dwfui-space-m);
     align-items: center;
-    padding: 7px 12px;
-    border-bottom: 1px solid var(--dwfui-surface);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-surface);
   }
   .obligation-copy {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--dwfui-space-xs);
     min-width: 0;
   }
   .obligation-trailing {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--dwfui-space-s);
     white-space: nowrap;
   }
 
   .justice-master-detail {
-    margin-top: 6px;
+    margin-top: var(--dwfui-space-s);
     display: flex;
-    gap: 18px;
-    align-items: flex-start;
+    gap: var(--dwfui-space-xl);
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .justice-master-detail > .justice-case-list,
+  .justice-master-detail > .justice-case-detail {
+    flex: 1 1 0;
+    min-width: 0;
   }
   .justice-case-list {
-    padding-right: 4px;
-    flex: 1 1 50%;
-    min-width: 0;
+    padding: 0 var(--dwfui-space-s);
   }
-  .justice-case-detail {
-    flex: 1 1 50%;
-    min-width: 0;
+  /* Native's list button: a full-height slab, its label at the left, rows a hairline apart. */
+  .justice-case-btn,
+  .standing-order-toggle {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: var(--dwfui-height-row-tall);
+    margin: 0;
+    padding: 0 var(--dwfui-space-xl);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-surface);
+    background: var(--dwfui-slab);
+    text-align: left;
+    cursor: pointer;
   }
   .justice-detail-line {
     color: var(--dwfui-text-prose);
-    font-size: 13px;
     line-height: 1.5;
   }
   .justice-guard-summary {
     color: var(--dwfui-text-warning);
-    padding: 8px 10px 6px;
+    padding: var(--dwfui-space-m) var(--dwfui-space-m) var(--dwfui-space-s);
   }
   .justice-row-profession {
-    margin-top: 2px;
+    margin-top: var(--dwfui-space-xs);
   }
   .justice-suspect-actions {
     display: grid;
-    gap: 4px;
-    margin-bottom: 8px;
+    gap: var(--dwfui-space-s);
+    margin-bottom: var(--dwfui-space-m);
   }
   .justice-witness-list,
   .justice-report-body,
   .justice-report-breakdown {
     display: grid;
-    gap: 6px;
-    margin-top: 10px;
+    gap: var(--dwfui-space-s);
+    margin-top: var(--dwfui-space-m);
   }
   .justice-witness-block {
     display: grid;
-    gap: 2px;
-    padding-bottom: 6px;
+    gap: var(--dwfui-space-xs);
+    padding-bottom: var(--dwfui-space-s);
   }
   .justice-report-list {
     display: grid;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
   }
   .justice-report-row {
     width: 100%;
   }
   .justice-report-breakdown {
-    padding-top: 8px;
+    padding-top: var(--dwfui-space-m);
   }
   .justice-breakdown-title {
     color: var(--dwfui-text-title);
@@ -200,39 +203,47 @@
     color: var(--dwfui-text-warning);
   }
   .justice-breakdown-row.headline {
-    padding-left: 8px;
+    padding-left: var(--dwfui-space-m);
     border-left: 2px solid currentColor;
   }
   .justice-report-disabled-actions {
-    margin-top: 10px;
+    margin-top: var(--dwfui-space-m);
   }
 
+  /* Near native's cell anchors: position, [+] at 22, holder at 26, crown at 77, then the room tiles. */
   .fort-row-noble {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) auto minmax(0, 1.9fr) auto minmax(0, 1fr);
-    gap: 8px;
-    align-items: center;
-    padding: 5px 10px;
-    border-bottom: none;
+    grid-template-columns:
+      calc(21 * var(--dwfui-cell-drawn-w)) calc(3 * var(--dwfui-cell-drawn-w))
+      calc(50 * var(--dwfui-cell-drawn-w)) calc(3 * var(--dwfui-cell-drawn-w)) minmax(0, 1fr);
+    column-gap: var(--dwfui-space-m);
+  }
+  .fort-row-noble > * {
+    min-width: 0;
+  }
+  .noble-position-name {
+    color: var(--df-c11);
   }
   .fort-row-noble > .fort-cell-who {
-    justify-self: start;
     overflow: hidden;
   }
-  .fort-cell-regalia {
-    justify-self: center;
+  /* An empty seat's word sits where a holder's name starts, past the portrait. */
+  .fort-cell-who > .fort-seat {
+    padding-left: calc(4 * var(--dwfui-cell-drawn-w) + var(--dwfui-row-icon-gap));
   }
   .fort-candidate-list {
-    margin: 0 10px 6px;
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-s);
     overflow-y: auto;
+  }
+  .fort-candidate-list:not(.pf-fill-scroll) {
+    max-height: 220px;
   }
   .fort-candidate-row {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    padding: 5px 10px;
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     cursor: pointer;
-    font-size: 12px;
   }
   .fort-candidate-vacant {
     color: var(--dwfui-text-warning);
@@ -250,32 +261,29 @@
     display: grid;
     grid-template-columns: minmax(260px, 32%) 1fr;
     min-height: 70vh;
-    padding: 10px;
-    gap: 28px;
+    padding: var(--dwfui-space-m);
+    gap: var(--dwfui-space-2xl);
   }
   .petition-list {
     display: flex;
     flex-direction: column;
   }
   .petition-list-row {
-    min-height: 44px;
-    padding: 8px 16px;
+    min-height: var(--dwfui-height-row-tall);
+    padding: var(--dwfui-space-m) var(--dwfui-space-l);
     cursor: pointer;
   }
   .petition-detail {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
-    font:
-      700 16px ui-monospace,
-      Consolas,
-      monospace;
+    gap: var(--dwfui-space-l);
+    font: var(--dwfui-font);
   }
   .petition-copy {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--dwfui-space-m);
   }
   .petition-person {
     color: var(--dwfui-text-good);
@@ -290,56 +298,98 @@
     color: var(--dwfui-text-disabled);
   }
   .petition-question {
-    margin-top: 8px;
+    margin-top: var(--dwfui-space-m);
   }
   .petition-future {
     min-width: 330px;
   }
   .petition-hint {
-    color: var(--dwfui-text-secondary);
-    margin: 6px 0 0 20px;
+    margin: var(--dwfui-space-s) 0 0 var(--dwfui-space-xl);
   }
   .fort-scroll {
     overflow-y: auto;
   }
+  .fort-scroll:not(.pf-fill-scroll) {
+    max-height: 42vh;
+  }
 
-  .kitchen-scroll {
-    overflow-y: auto;
+  .kitchen-scroll:not(.pf-fill-scroll) {
+    max-height: 46vh;
+  }
+  .info-main.info-main--kitchen-host > .kitchen-scroll {
+    max-height: none;
   }
   .kitchen-search-row {
-    display: grid;
-    grid-template-columns: minmax(220px, 320px) auto;
-    margin-top: 8px;
+    align-self: flex-start;
+    margin-top: var(--dwfui-space-m);
+  }
+  .kitchen-cycler {
+    margin: var(--dwfui-space-l) 0 0 calc(10 * var(--dwfui-cell-drawn-w));
   }
 
-  .kitchen-headbar {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    min-width: 0;
+  /* Rows and the two header strips share native's columns: icon, name, count, cook, brew. The strips
+     span the list's scrollbar too, so they get one more track for it. */
+  .kitchen-headbar,
+  .kitchen-scroll {
+    --kitchen-columns: calc(5 * var(--dwfui-cell-drawn-w)) minmax(0, calc(60 * var(--dwfui-cell-drawn-w)))
+      calc(6 * var(--dwfui-cell-drawn-w)) var(--dwfui-icon-m) var(--dwfui-icon-m);
   }
-  /* 6px is `.dwfui-sort-head`'s own gap, NOT a scaled number: this strip must track the caret row it
-     sits on top of, so deriving it from --dwfui-interface-scale would mis-align it at every scale. */
-  .kitchen-mass {
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
+  .kitchen-item-row,
+  .kitchen-plant-row,
+  .kitchen-mass,
+  .kitchen-sort {
+    display: grid;
+    grid-template-columns: var(--kitchen-columns);
+    column-gap: var(--dwfui-space-s);
+    padding: 0 var(--dwfui-space-m);
+  }
+  .kitchen-mass,
+  .kitchen-sort {
+    grid-template-columns: var(--kitchen-columns) var(--dwfui-sb-w);
+  }
+  .kitchen-count-cell {
+    justify-self: end;
+  }
+  .kitchen-mass > :nth-child(1),
+  .kitchen-sort [data-kitchen-sort="cook"] {
+    grid-column: 4;
+  }
+  .kitchen-mass > :nth-child(2),
+  .kitchen-sort [data-kitchen-sort="brew"] {
+    grid-column: 5;
+  }
+  .kitchen-sort [data-kitchen-sort="type"],
+  .kitchen-sort [data-kitchen-sort="name"] {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    justify-self: start;
+  }
+  /* Type's button is 10 cells wide: Name butts against it, as native packs them. */
+  .kitchen-sort [data-kitchen-sort="name"] {
+    margin-left: calc(10 * var(--dwfui-cell-drawn-w));
+  }
+  .kitchen-sort [data-kitchen-sort="count"] {
+    grid-column: 3;
+    justify-self: end;
+  }
+  .kitchen-sort [data-kitchen-sort="cook"],
+  .kitchen-sort [data-kitchen-sort="brew"] {
+    justify-self: center;
   }
   .standing-order-cat-tabs {
-    margin-bottom: calc(18px * var(--dwfui-interface-scale));
+    margin-bottom: var(--dwfui-space-l);
   }
+  /* Native's 48 cells, but never narrower than the longest order: a clipped label reads as a different order. */
   .standing-order-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    width: 34%;
-    overflow-y: auto;
+    width: calc(48 * var(--dwfui-cell-drawn-w));
+    min-width: max-content;
+    padding: var(--dwfui-space-xs);
   }
-  .standing-order-toggle {
-    min-height: calc(46px * var(--dwfui-interface-scale));
-    text-align: left;
-    justify-content: flex-start;
-    cursor: pointer;
+  .standing-order-list:not(.pf-fill-scroll),
+  .stone-list:not(.pf-fill-scroll) {
+    max-height: 50vh;
   }
   .standing-orders-screen,
   .stone-use-screen {
@@ -362,14 +412,14 @@
   .chores-head {
     align-self: flex-end;
     width: 40%;
-    margin: 0 calc(8px * var(--dwfui-interface-scale)) calc(18px * var(--dwfui-interface-scale)) 0;
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-l) 0;
   }
   .chores-panes {
     display: grid;
     grid-template-columns: 1fr 1fr;
     min-height: 0;
     flex: 1 1 auto;
-    column-gap: calc(42px * var(--dwfui-interface-scale));
+    column-gap: var(--dwfui-space-2xl);
   }
   .chores-children,
   .chores-types {
@@ -380,32 +430,25 @@
     overflow: hidden;
   }
   .chores-children {
-    padding-right: calc(20px * var(--dwfui-interface-scale));
+    padding-right: var(--dwfui-space-xl);
   }
   .chore-child-row,
   .chore-type-row {
     display: grid;
     align-items: center;
-    min-height: calc(46px * var(--dwfui-interface-scale));
+    min-height: var(--dwfui-height-row-tall);
     background: var(--dwfui-row-hatch);
-    border-bottom: 1px solid var(--dwfui-hatch);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-hatch);
     font: var(--dwfui-font);
   }
   .chore-child-row {
-    grid-template-columns: calc(48px * var(--dwfui-interface-scale)) minmax(0, 1fr) calc(
-        36px * var(--dwfui-interface-scale)
-      );
-    gap: calc(12px * var(--dwfui-interface-scale));
+    grid-template-columns: calc(5 * var(--dwfui-cell-drawn-w)) minmax(0, 1fr) var(--dwfui-icon-m);
+    gap: var(--dwfui-space-l);
   }
   .chore-type-row {
-    grid-template-columns: minmax(0, 1fr) calc(36px * var(--dwfui-interface-scale));
-    gap: calc(12px * var(--dwfui-interface-scale));
-    padding-left: calc(24px * var(--dwfui-interface-scale));
-  }
-  .chore-child-portrait {
-    width: calc(44px * var(--dwfui-interface-scale));
-    height: calc(44px * var(--dwfui-interface-scale));
-    margin: 0;
+    grid-template-columns: minmax(0, 1fr) var(--dwfui-icon-m);
+    gap: var(--dwfui-space-l);
+    padding-left: var(--dwfui-space-2xl);
   }
   .chore-child-name {
     color: var(--df-c4);
@@ -433,10 +476,8 @@
     display: grid;
     grid-template-columns: 5% 13% 8% 48% 26%;
     gap: 0;
-    color: var(--dwfui-text-row);
-    padding: 0 calc(8px * var(--dwfui-interface-scale)) calc(8px * var(--dwfui-interface-scale));
+    padding: 0 var(--dwfui-space-m) var(--dwfui-space-m);
     align-items: end;
-    font: var(--dwfui-font);
   }
   .stone-head > span:nth-child(1) {
     grid-column: 1 / 3;
@@ -450,22 +491,15 @@
   .stone-head > span:nth-child(4) {
     grid-column: 5;
   }
-  .stone-list {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-  }
   .stone-row {
     display: grid;
     grid-template-columns: 5% 13% 8% 48% 26%;
     gap: 0;
     align-items: center;
-    min-height: calc(46px * var(--dwfui-interface-scale));
-    padding: 0 calc(8px * var(--dwfui-interface-scale));
-    color: var(--dwfui-text-row);
-    font: var(--dwfui-font);
+    min-height: var(--dwfui-height-row-tall);
+    padding: 0 var(--dwfui-space-m);
     background: var(--dwfui-row-hatch);
-    border-bottom: 1px solid var(--dwfui-hatch);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-hatch);
   }
   .stone-row:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.02);
@@ -478,10 +512,9 @@
   }
   .stone-check {
     justify-self: end;
-    margin-right: calc(8px * var(--dwfui-interface-scale));
+    margin-right: var(--dwfui-space-m);
   }
   .stone-uses {
-    color: var(--dwfui-text-row);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -489,16 +522,37 @@
   /* --pf-vstretch declares that a box is sized by its two vertical edges. JS cannot detect that:
      getComputedStyle resolves top/bottom/height to USED values either way. Read by vDockModeFor. */
   .justice-intel-tabs {
-    margin-bottom: 8px;
+    margin-bottom: var(--dwfui-space-m);
   }
   .justice-suspect-chooser {
     min-width: 0;
   }
   .justice-intel-lock-reason {
-    margin: 0 10px 8px;
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .chores-types-list {
     min-width: 0;
     min-height: 0;
+  }
+  .justice-interview-state.scheduled {
+    color: var(--dwfui-text-numeric);
+  }
+  .justice-interview-state.interviewed {
+    color: var(--dwfui-text-active);
+  }
+  .stone-item {
+    justify-self: start;
+    box-sizing: border-box;
+    background-color: var(--dwfui-plum);
+    border: var(--dwfui-divider) solid var(--dwfui-slab);
+  }
+  .justice-intel-tab.dwfui-tab--disabled .dwfui-tab-label {
+    visibility: visible;
+    color: var(--dwfui-text-secondary);
+  }
+  .chores-types-list > .chores-types {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
   }
 }

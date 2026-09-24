@@ -21,10 +21,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.chat {
-  /* Chat toggle and panel */
   #dfChatPanel {
     position: fixed;
     left: 8px;
@@ -34,24 +33,18 @@
     height: 270px;
     display: none;
     flex-direction: column;
-    font-family: inherit;
     background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-gold);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    border: var(--dwfui-divider) solid var(--dwfui-gold);
     overflow: hidden;
   }
   #dfChatPanel.open {
     display: flex;
   }
   #dfChatPanel .chat-head {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 7px 10px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     background: var(--dwfui-hatch);
-    border-bottom: 1px solid var(--dwfui-gold);
-    font-size: 13px;
-    color: var(--dwfui-text-body);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-gold);
     font-weight: 600;
   }
   #dfChatLog {
@@ -61,16 +54,11 @@
     flex-direction: column;
   }
   #dfChatLog .chat-log {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding: 8px 10px;
-    font-size: 12.5px;
+    padding: var(--dwfui-space-m) var(--dwfui-space-m);
     line-height: 1.45;
-    color: var(--dwfui-text-body);
   }
   .chat-line {
-    margin: 2px 0;
-    word-wrap: break-word;
+    margin: var(--dwfui-space-xs) 0;
     overflow-wrap: anywhere;
   }
   .chat-line .chat-name {
@@ -88,9 +76,7 @@
   }
   .chat-link {
     color: inherit;
-    text-decoration: underline;
     text-underline-offset: 2px;
-    cursor: pointer;
   }
   .chat-link:hover {
     opacity: 0.78;
@@ -98,15 +84,15 @@
   #dfChatEmpty {
     color: var(--dwfui-text-secondary);
     font-style: italic;
-    padding: 4px 0;
+    padding: var(--dwfui-space-s) 0;
   }
   #dfChatFoot {
     position: relative;
     display: flex;
-    gap: 6px;
-    padding: 8px;
+    gap: var(--dwfui-space-s);
+    padding: var(--dwfui-space-m);
     align-items: center;
-    border-top: 1px solid var(--dwfui-gold);
+    border-top: var(--dwfui-divider) solid var(--dwfui-gold);
     background: var(--dwfui-hatch);
   }
   #dfChatFoot .chat-author-actions {
@@ -115,15 +101,22 @@
   #dfChatFoot .chat-send {
     flex: 0 0 auto;
   }
+  #dfChatFoot .chat-author-actions button {
+    width: 30px;
+    height: var(--dwfui-height-row);
+  }
+  #dfChatFoot .chat-author-actions button.active {
+    outline: var(--dwfui-divider) solid var(--dwfui-gold-bright);
+    outline-offset: -1px;
+    background: var(--dwfui-gold);
+  }
   /* Editable inputs deliberately remain real DOM inputs. */
   #dfChatInput {
     flex: 1;
     background: var(--dwfui-surface);
     color: var(--dwfui-text-body);
-    border: 1px solid var(--dwfui-gold);
-    padding: 6px 8px;
-    font-size: 12.5px;
-    font-family: inherit;
+    border: var(--dwfui-divider) solid var(--dwfui-gold);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
   }
   #dfChatInput:disabled {
     opacity: 0.5;
@@ -137,7 +130,7 @@
     max-height: 180px;
     overflow: hidden;
     background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-gold);
+    border: var(--dwfui-divider) solid var(--dwfui-gold);
   }
   #dfChatUnitPicker.show {
     display: flex;
@@ -150,11 +143,11 @@
   #dfChatUnitPicker .chat-unit-option {
     display: block;
     width: 100%;
-    padding: 6px 8px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     background: transparent;
     color: inherit;
     border: 0;
-    border-bottom: 1px solid var(--dwfui-gold);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-gold);
     text-align: left;
     cursor: pointer;
   }
@@ -163,9 +156,8 @@
   }
   #dfChatNote {
     color: var(--dwfui-text-warning);
-    font-size: 11.5px;
-    padding: 6px 10px;
-    border-top: 1px solid var(--dwfui-gold);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    border-top: var(--dwfui-divider) solid var(--dwfui-gold);
     display: none;
   }
   #dfChatNote.show {
@@ -178,8 +170,25 @@
       width: min(340px, calc(100vw - 16px));
     }
     html body #dfChatInput {
-      min-height: 38px;
-      font-size: 16px;
+      min-height: var(--dwfui-height-row-tall);
+      font-size: 16px; /* under 16px, iOS zooms the page when the input takes focus */
+    }
+  }
+  #dfChatPanel .chat-close {
+    line-height: 1;
+    background: none;
+    border: none;
+    padding: 0 var(--dwfui-space-xs);
+  }
+  @media (pointer: coarse) {
+    /* Coarse-pointer floors move with the base family so named-layer precedence cannot defeat them. */
+    html body #dfChatPanel .chat-close {
+      min-width: var(--dwfui-height-row-tall);
+      min-height: var(--dwfui-height-row-tall);
+    }
+    html body #dfChatFoot .chat-send {
+      min-width: 56px;
+      min-height: var(--dwfui-height-row-tall);
     }
   }
 }

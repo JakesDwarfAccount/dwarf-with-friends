@@ -89,20 +89,7 @@
       c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  // ---- LEDGER 0089: THE SQUAD LISTS ARE THE SHARED CONTROL, NOT ELEVEN LISTS -------------------
-  // 0081 R14 recorded the squad and emblem lists as "whole entries, `count - 1` highest index,
-  // entries page size, 3 rows per entry drawn" -- which 0089 R13 shows is the SAME configure call
-  // the stockpile columns and the widget row containers make, with different numbers. So every
-  // squad row list goes through one helper into `DWFUI.listHtml`, and the only thing this helper
-  // adds is the position key: these panels re-render on every model change, and `preserveKey` (what
-  // the browser box used) and `key` (what the control uses) are the same identity, so it is stated
-  // once here rather than twice at eleven call sites.
-  //
-  // NOT ROUTED HERE, deliberately: the candidate list and the create-uniform list (no row selector
-  // -- they use the shared TABLE path), the monthly schedule (a 2-D grid), and the emblem symbol
-  // grid (also 2-D: `.squad-symbol-btn` is a cell, not a row). A 2-D grid is not a list, and giving it
-  // a list's page size would page it by one button. They stay on `scrollHtml` and are named in this
-  // wave's sweep debt.
+  // Every squad row list is one DWFUI list, keyed so a re-render keeps its scroll position.
   function sqListHtml(cfg, inner) {
     return DWFUI.listHtml(Object.assign({ key: cfg.preserveKey }, cfg), inner);
   }
@@ -276,11 +263,6 @@
     return { text: "Multiple orders", tone: "warning" };
   }
 
-  // Text-only view of the same summary, kept because callers and tests address it by name.
-  function sqOrdersSummary(squad) {
-    return sqOrdersSummaryLine(squad).text;
-  }
-
   function sqLeaderPortrait(squad, esc = sqEsc) {
     const members = Array.isArray(squad && squad.members) ? squad.members : [];
     const leader = members.find(m => Number(m && m.idx) === 0 && m && m.filled !== false &&
@@ -304,8 +286,6 @@
     return squads.map(s => {
       const label = s.alias || s.name || ("Squad " + s.id);
       const selected = s.id === selectedId;
-      // Ledger 0055: the summary now folds in every POSITION's orders too, and carries native's
-      // own colour rule (red kill / green other / grey none) instead of one flat orange.
       const orderLine = sqOrdersSummaryLine(s);
       const icons = `<span class="squad-item-icons">${sqEmblemSwatch(s, esc)}${sqLeaderPortrait(s, esc)}` +
         DWFUI.artBtnHtml({
@@ -315,6 +295,9 @@
         DWFUI.artBtnHtml({
           sprite: DWFUI.TOKENS.sprites.quill, cls: "squad-rowtile squad-rowtile-quill",
           dataset: { squadRenameFocus: s.id }, title: "Rename squad", ariaLabel: "Rename squad",
+        }) + DWFUI.checkHtml({
+          checked: selected, cls: "squad-item-check", dataset: { squadSelect: s.id },
+          title: "Select squad", ariaLabel: "Select squad",
         }) + `</span>`;
       return DWFUI.rowHtml({
         tag: "div", cls: "squad-item dwf-cellbox", dataset: { squadId: s.id },
@@ -322,16 +305,12 @@
         labelHtml: DWFUI.bitmapTextHtml(label, { cls: "squad-item-name-text" }),
         sub: [
           { html: DWFUI.bitmapTextHtml(orderLine.text, { cls: "squad-item-orders-text" }),
-            cls: "dwfui-sub squad-item-orders",
+            cls: "squad-item-orders",
             tone: orderLine.tone },
           { html: DWFUI.bitmapTextHtml(`Routine:${s.routineName || "(none)"}`,
               { cls: "squad-item-routine-text" }),
-            cls: "dwfui-sub squad-item-sub" },
+            cls: "squad-item-sub" },
         ],
-        trailing: DWFUI.checkHtml({
-          checked: selected, cls: "squad-item-check", dataset: { squadSelect: s.id },
-          title: "Select squad", ariaLabel: "Select squad",
-        }),
       });
     }).join("");
   }
@@ -342,7 +321,7 @@
     return String(html).replace(/^<(button|input|label|div)\b/, `<$1 id="${id}"`);
   }
 
-  function sqOrderToolbar(squad, opts = {}, esc = sqEsc) {
+  function sqOrderToolbar(squad, opts = {}) {
     const orders = Array.isArray(squad && squad.orders) ? squad.orders : [];
     const picks = opts.memberPicks instanceof Set ? opts.memberPicks : new Set();
     const memberScope = picks.size
@@ -354,13 +333,13 @@
           "squadMemberSelClearBtn") + `</div>`
       : "";
     const orderRows = orders.length
-      ? orders.map(o => `<div class="squad-order-row">
-          <span class="squad-order-type">${DWFUI.bitmapTextHtml(o.type || "")}</span>
-          <span class="squad-order-desc">${DWFUI.bitmapTextHtml(o.description || "")}</span>
-          ${DWFUI.artBtnHtml({ sprite: DWFUI.TOKENS.sprites.squadsCancelOrder,
+      ? orders.map(o => DWFUI.rowHtml({
+          tag: "div", cls: "squad-order-row", chassis: "table",
+          labelHtml: DWFUI.bitmapTextHtml(o.description || o.type || "", { fitNativeLabel: { host: "parent" } }),
+          trailing: DWFUI.artBtnHtml({ sprite: DWFUI.TOKENS.sprites.squadsCancelOrder,
             dataset: { squadOrderCancel: o.index },
-            title: "Cancel this order", ariaLabel: "Cancel this order" })}
-        </div>`).join("")
+            title: "Cancel this order", ariaLabel: "Cancel this order" }),
+        })).join("")
       : `<div class="info-message">${DWFUI.bitmapTextHtml("No current orders.",
           { cls: "squad-no-orders-text" })}</div>`;
     const moveArmed = !!opts.moveArmed;
@@ -418,7 +397,7 @@
       tile("squadOrderCancelAllBtn", DWFUI.TOKENS.sprites.squadsCancelOrder, "Cancel all orders",
         { disabled: !orders.length }),
     ].filter(Boolean), {
-      cls: "dwfui-actions squad-order-toolbar",
+      cls: "squad-order-toolbar",
       btnCls: "squad-order-tile",
       ariaLabel: "Immediate squad orders",
     });
@@ -457,12 +436,11 @@
     });
   }
 
-  function sqSelectedActions(squad, esc = sqEsc, opts = {}) {
-    const displayName = squad.alias || squad.name || ("Squad " + squad.id);
+  function sqSelectedActions(squad, opts = {}) {
     const nav = [
-      DWFUI.plaqueBtnHtml({ label: "Positions", tone: "green", artTone: "neutral", dataset: { squadNav: "positions" } }),
-      DWFUI.plaqueBtnHtml({ label: "Equip", tone: "green", artTone: "neutral", dataset: { squadNav: "equip" } }),
-      DWFUI.plaqueBtnHtml({ label: "Schedule", tone: "green", artTone: "neutral", dataset: { squadNav: "schedule" } }),
+      DWFUI.plaqueBtnHtml({ label: "Positions", tone: "green", artTone: "neutral", cls: "squad-nav-btn", dataset: { squadNav: "positions" } }),
+      DWFUI.plaqueBtnHtml({ label: "Equip", tone: "green", artTone: "neutral", cls: "squad-nav-btn", dataset: { squadNav: "equip" } }),
+      DWFUI.plaqueBtnHtml({ label: "Schedule", tone: "green", artTone: "neutral", cls: "squad-nav-btn", dataset: { squadNav: "schedule" } }),
       opts.suppressDisband ? "" :
       sqWithId(DWFUI.artBtnHtml({ sprite: DWFUI.TOKENS.sprites.squadsDisband,
         cls: "squad-danger" + (sqDisbandPendingFor(squad.id, opts) ? " confirm-armed" : ""),
@@ -476,25 +454,11 @@
     const disbandModal = (!opts.suppressDisband && sqDisbandPendingFor(squad.id, opts))
       ? sqDisbandConfirmHtml(squad) : "";
     return `
-      <div class="squad-sel-head">
-        <div class="squad-sel-name">${DWFUI.bitmapTextHtml(displayName, { cls: "squad-sel-name-text" })}</div>
-        <div class="squad-sel-meta">${DWFUI.bitmapTextHtml(`${squad.memberCount}/${squad.positionCount} members`,
-          { cls: "squad-sel-meta-text" })}</div>
-      </div>
+      <div class="dwfui-text--note squad-sel-meta">${DWFUI.bitmapTextHtml(`${squad.memberCount}/${squad.positionCount} members`)}</div>
       <div id="squadStatus" class="info-message squad-status"></div>
       ${sqOrderToolbar(squad, { moveArmed: squadMoveArmedFor.id === squad.id,
         killArmed: squadKillArmedFor.id === squad.id, killTargets: squadKillArmedFor.targets,
-        memberPicks: opts.memberPicks }, esc)}
-      ${/* ---- LEDGER 0081 R20: NATIVE'S TEXT FIELDS HAVE SPECIFIC, DIFFERENT MAXIMA. ------------
-           Every field in the military family runs the same shared line editor but caps at its own
-           length, and the caps are not interchangeable: squad nickname 17, schedule cell nickname
-           18, ammo amount 18, uniform nickname 19, routine name 23, patrol route name 30. DWF had a
-           uniform 64 (and 80 on the route name), so a player could type a name DF would silently
-           truncate on commit -- the field showed one name, the fortress kept another. The four
-           fields this file owns now carry native's own maximum.
-           The COMMIT TARGET is also confirmed by the same rule and is already correct here: the
-           squad nickname commits into the squad's `alias`, NOT into its language `name` (which
-           belongs to the name generator on a separate screen). */""}
+        memberPicks: opts.memberPicks })}
       <div class="squad-controls squad-rename-row">
         ${DWFUI.textInputHtml({ cls: "squad-input", id: "squadRenameInput", maxLength: 17,
           placeholder: "Rename squad — press Enter", value: squad.alias || "",
@@ -534,20 +498,15 @@
     };
   }
 
-  // ---- create is the small left-docked dialog ----------------------------------------------------
+  // ---- create: pick a squad-leading position, then a uniform -------------------------------------
   function sqCreateView(list, esc = sqEsc) {
     const positions = Array.isArray(list && list.freePositions) ? list.freePositions.slice() : [];
     const creatable = Array.isArray(list && list.creatablePositions) ? list.creatablePositions : [];
     const categoryOrder = { existing: 0, appoint: 1, new: 2 };
     positions.sort((a, b) => (categoryOrder[a.category] ?? 1) - (categoryOrder[b.category] ?? 1));
-    const header = `<div class="squad-back-head">
-      ${window.sqBackPlaque()}
-      <div class="squad-back-title">Create which squad?</div>
-    </div>`;
-    const wrap = body => `${header}${DWFUI.modalHtml({
-      cls: "squad-modal squad-create-modal", prompt: "Create which squad?",
-      ariaLabel: "Create which squad?",
-    }, `<div id="squadStatus" class="info-message squad-status"></div>${body}`)}`;
+    const wrap = body => `<div class="squad-back-head">${window.sqBackPlaque()}</div>
+      <div class="dwfui-text--section squad-section-title">Create which squad?</div>
+      <div id="squadStatus" class="info-message squad-status"></div>${body}`;
     if (!positions.length && !creatable.length) {
       return wrap(`<div class="info-message">No free squad positions are available, and the fort's raws allow no further squad-leading positions.</div>`);
     }
@@ -558,9 +517,9 @@
       // Oracle 8: the create-chooser rows are PLAIN GREY SLABS -- `state:"on"` painted them with
       // the lit-green stockpile fill, a state paint native reserves for on/off toggles.
       return { category, html: DWFUI.rowHtml({
-        tag: "button", cls: "squad-pos-row squad-create-row", chassis: "slab",
+        tag: "button", cls: "squad-pos-row squad-create-row", chassis: "slab", state: "some",
         dataset: { squadCreatePosition: p.assignmentId, createCategory: category },
-        label: p.title || "New squad", labelCls: "squad-pos-role",
+        label: p.title || "New squad", labelCls: "squad-create-title",
         sub: { html: DWFUI.rawHtml("create rows compose the served holder and position count into two cells",
           `<span class="squad-pos-who">${sub}</span><span class="squad-pos-actions">${count} positions</span>`), cls: "squad-create-meta" },
       }) };
@@ -572,8 +531,8 @@
       const cap = Number.isFinite(max) && max >= 0 ? `${held}/${max} held` : `${held} held, unlimited`;
       const count = Number(p.squadSize) || 0;
       return DWFUI.rowHtml({
-        tag: "button", cls: "squad-pos-row squad-create-row squad-create-new-position", chassis: "slab",
-        dataset: { squadCreateNewPosition: p.positionId, createCategory: "new" }, label: title, labelCls: "squad-pos-role",
+        tag: "button", cls: "squad-pos-row squad-create-row squad-create-new-position", chassis: "slab", state: "some",
+        dataset: { squadCreateNewPosition: p.positionId, createCategory: "new" }, label: title, labelCls: "squad-create-title",
         sub: { html: DWFUI.rawHtml("create rows compose the served seat capacity and position count into two cells",
           `<span class="squad-pos-who">${esc(cap)}</span><span class="squad-pos-actions">${count} positions</span>`), cls: "squad-create-meta" },
       });
@@ -592,21 +551,20 @@
     const uniforms = Array.isArray(catalog && catalog.uniforms) ? catalog.uniforms : [];
     const title = pending.title || "new squad";
     const rows = uniforms.map(uniform => DWFUI.rowHtml({
-      tag: "div", role: "button", cls: "squad-create-uniform-row", chassis: "slab",
+      tag: "div", role: "button", cls: "squad-create-uniform-row", chassis: "slab", state: "some",
       dataset: { squadCreateUniform: uniform.id }, label: uniform.name || `Uniform ${uniform.id}`,
       trailing: DWFUI.artBtnHtml({ sprite: DWFUI.TOKENS.sprites.dump,
         dataset: { createUniformDelete: uniform.id }, title: `Delete ${uniform.name || "this uniform"}`,
         ariaLabel: `Delete ${uniform.name || "this uniform"}` }),
     })).join("");
     const none = DWFUI.rowHtml({
-      tag: "button", cls: "squad-create-uniform-row squad-create-no-uniform", chassis: "slab",
+      tag: "button", cls: "squad-create-uniform-row squad-create-no-uniform", chassis: "slab", state: "some",
       dataset: { squadCreateUniform: -1 }, label: "No uniform",
     });
-    return `${window.sqBackHeader({ name: title }, esc)}${DWFUI.modalHtml({
-      cls: "squad-modal squad-create-uniform-modal", prompt: `Choose a uniform for the ${title}.`,
-      ariaLabel: `Choose a uniform for the ${title}.`,
-    }, `<div id="squadStatus" class="info-message squad-status"></div>` +
-      DWFUI.scrollHtml({ cls: "squad-create-uniform-list", preserveKey: "squads:create-uniform" }, rows + none))}`;
+    return `<div class="squad-back-head">${window.sqBackPlaque()}</div>
+      <div class="dwfui-text--section squad-section-title">Choose a uniform for the ${esc(title)}.</div>
+      <div id="squadStatus" class="info-message squad-status"></div>` +
+      DWFUI.scrollHtml({ cls: "squad-create-uniform-list", preserveKey: "squads:create-uniform" }, rows + none);
   }
 
   // `opts` is forwarded verbatim to sqSelectedActions (ledger 0055 memberPicks / 0056
@@ -634,7 +592,7 @@
         ${createBtn}
         ${blockedNote}
         ${opts.contextOnly ? (opts.contextFooter || "") :
-          selected ? sqSelectedActions(selected, esc, opts) : `<div class="info-message squad-footer-note">Select a squad or squad member to give orders, change equipment, and assign schedules.</div>`}
+          selected ? sqSelectedActions(selected, opts) : `<div class="dwfui-text--note info-message squad-footer-note">Select a squad or squad member to give orders, change equipment, and assign schedules.</div>`}
       </div>`;
   }
 
@@ -651,32 +609,21 @@
     const hasFree = !!squadsList.hasFreePosition || creatable.length > 0;
     const detail = model.squadDetail || null;
 
-    // `wide` drives `.squads-wide` on the panel HOST. `dialog` says the BODY is native's small
-    // left-docked `modalHtml` frame (create / patrol / burrow -- the three 1.45 SB x 0.72 VH oracles).
-    //
-    // *** THE HOST STAYS WIDE ON A DIALOG VIEW, AND THAT IS A CSS-BLOCKED RESIDUE, NOT A CHOICE. ***
-    // `.dwfui-modal` is 565px and absolutely positioned; `#clientPanel.squads-sidebar` is 300px with
-    // `overflow:hidden`, so a dialog rendered into the NARROW host would be CLIPPED to half its width
-    // -- strictly worse than the bug it fixes. Native docks the dialog OUTSIDE the sidebar (a 3px
-    // gutter, `right:100%`), which is a POSITIONING property of `.dwfui-modal` and therefore CSS --
-    // and CSS is LOCKED this wave (arch-spec §5/§7.4: migrate STRUCTURE first). So Gate C lands the
-    // correct COMPONENT and the correct 565x72vh FRAME, and the dock offset is handed to the CSS
-    // consolidation wave. Reported, not silently half-done.
+    // `wide`, `equipment` and `contextual` pick the panel host's width tier.
     const sel = {
       uniformPick: model.uniformPick, uitemDrafts: model.uitemDrafts,
       uniformFlags: model.uniformFlagDraft, ammoAdd: model.ammoAddDraft,
       ammoRowDrafts: model.ammoRowDrafts,
     };
-    if (view === "create") return { wide: true, dialog: true, html: sqCreateView(squadsList, esc) };
-    if (view === "create-uniform") return { wide: true, dialog: true,
+    if (view === "create") return { wide: true, html: sqCreateView(squadsList, esc) };
+    if (view === "create-uniform") return { wide: true,
       html: sqCreateUniformView(model.uniformCatalog, model.createPending, esc) };
     if (view === "positions") return { wide: false, html: window.sqPositionsView(detail, esc, { memberPicks: model.memberPicks, blockingAppointments: squadsList.blockingAppointments, disbandPendingId: model.disbandPendingId }) };
     if (view === "candidate") {
-      const currentId = Number(detail?.squad?.id ?? model.squadSelectedId);
       const chooser = window.sqCandidateView(detail, model.squadCandidatePos, {
         sortKey: model.squadCandidateSort, sortDirection: model.squadCandidateSortDirection,
         search: model.squadCandidateSearch, isHost: model.isHost,
-      }, esc);
+      });
       return { wide: true, contextual: true,
         html: `<div class="squad-context-layout squad-candidate-layout"><main class="squad-context-main">${chooser}</main>` +
           `<aside class="squad-equip-context" aria-label="Squad positions">${window.sqPositionsView(detail, esc,
@@ -696,17 +643,17 @@
     if (view === "schedule") return { wide: true, contextual: true,
       html: sqContextLayout(window.sqScheduleView(detail, esc, model.scheduleClipboard), squads, model.squadSelectedId, hasFree, esc, { memberPicks: model.memberPicks, blockingAppointments: squadsList.blockingAppointments, disbandPendingId: model.disbandPendingId }) };
     if (view === "routines") return { wide: true, contextual: true,
-      html: sqContextLayout(window.sqRoutinesView(detail, esc), squads, model.squadSelectedId, hasFree, esc, { memberPicks: model.memberPicks, blockingAppointments: squadsList.blockingAppointments, disbandPendingId: model.disbandPendingId }) };
+      html: sqContextLayout(window.sqRoutinesView(detail), squads, model.squadSelectedId, hasFree, esc, { memberPicks: model.memberPicks, blockingAppointments: squadsList.blockingAppointments, disbandPendingId: model.disbandPendingId }) };
     if (view === "monthly") return { wide: true, contextual: true,
       html: sqContextLayout(window.sqMonthlyView(detail, esc, model.scheduleClipboard), squads, model.squadSelectedId, hasFree, esc, { memberPicks: model.memberPicks, blockingAppointments: squadsList.blockingAppointments, disbandPendingId: model.disbandPendingId }) };
     if (view === "training") return { wide: true, html: window.sqTrainingView(detail, model.trainingSel, esc, model.trainDraft) };
     if (view === "emblem") return { wide: true, html: window.sqEmblemView(detail, model.emblemDraft, esc) };
-    if (view === "burrow") return { wide: true, contextual: true, dialog: true,
+    if (view === "burrow") return { wide: true, contextual: true,
       html: window.sqBurrowDefendView(detail && detail.squad, model.squadBurrows, esc, model.burrowChecked, {
         squads, selectedId: model.squadSelectedId, hasFree,
         blockingAppointments: squadsList.blockingAppointments,
       }) };
-    if (view === "patrol") return { wide: true, dialog: true, html: window.sqPatrolView(detail && detail.squad, model.squadPatrolDraft, esc) };
+    if (view === "patrol") return { wide: true, html: window.sqPatrolView(detail && detail.squad, model.squadPatrolDraft, esc) };
 
     // list (root)
     if (!squads.length && !hasFree) {
@@ -880,8 +827,6 @@
       squadCandidateSearch,
       createPending,
       isHost: squadIsHostClient(),
-      // Ledger 0045 Rule A: which squad's disband question is open, so the pure view functions
-      // draw the modal from the model instead of reaching back into module state.
       disbandPendingId: squadDisbandPendingId,
       uniformPick,
       uitemDrafts,
@@ -890,8 +835,6 @@
       ammoRowDrafts,
       burrowChecked,
       trainDraft,
-      // Ledger 0055: the ticked roster subset, so the pure view functions can paint the
-      // tick-boxes and the order bar's member-scope banner without reading module state.
       memberPicks: squadMemberPicks(squadSelectedId),
     };
     const { wide, equipment, contextual, html } = buildSquadPanel(model, sqEsc);
@@ -996,7 +939,7 @@
     clientPanel.querySelectorAll("[data-squad-create-position]").forEach(button => {
       button.addEventListener("click", () => {
         createPending = { kind: "assignment", id: Number(button.dataset.squadCreatePosition),
-          title: button.querySelector(".squad-pos-role")?.textContent?.trim() || "new squad" };
+          title: button.querySelector(".squad-create-title")?.textContent?.trim() || "new squad" };
         squadView = "create-uniform";
         renderSquadsPanel();
       });
@@ -1005,7 +948,7 @@
     clientPanel.querySelectorAll("[data-squad-create-new-position]").forEach(button => {
       button.addEventListener("click", () => {
         createPending = { kind: "position", id: Number(button.dataset.squadCreateNewPosition),
-          title: button.querySelector(".squad-pos-role")?.textContent?.trim() || "new squad" };
+          title: button.querySelector(".squad-create-title")?.textContent?.trim() || "new squad" };
         squadView = "create-uniform";
         renderSquadsPanel();
       });
@@ -1234,8 +1177,7 @@
     else squadMemberSel.picks.add(key);
   }
   function squadMemberClear() { squadMemberSel.id = -1; squadMemberSel.picks = new Set(); }
-  // The CSV the server parses into position indices. Empty string = whole squad, which is what
-  // every pre-0055 caller sent, so this stays additive.
+  // The CSV the server parses into position indices; empty means the whole squad.
   function squadMemberParam(squadId) {
     return [...squadMemberPicks(squadId)].sort((a, b) => a - b).join(",");
   }
@@ -1485,7 +1427,7 @@
   // tools/harness/squads_view_fixture_test.mjs. Guarded so the browser <script> load is a no-op.
   if (typeof window !== "undefined") {
     window.DFSquadMarkup = {
-      buildSquadPanel, sqListRows, sqOrdersSummary, sqOrdersSummaryLine, sqOrderLine, sqEmblemSwatch, sqOrderToolbar,
+      buildSquadPanel, sqListRows, sqOrdersSummaryLine, sqOrderLine, sqEmblemSwatch, sqOrderToolbar,
       sqPositionsView: window.sqPositionsView, sqPositionRows: window.sqPositionRows, sqCandidateRows: window.sqCandidateRows, sqCandidateView: window.sqCandidateView, sqCandidateSortedRows: window.sqCandidateSortedRows,
       sqCreateView, sqCreateUniformView, sqEquipView: window.sqEquipView,
       sqUniformAssignRows: window.sqUniformAssignRows, sqUniformEditor: window.sqUniformEditor, sqAmmoSection: window.sqAmmoSection, sqScheduleView: window.sqScheduleView, sqBackHeader: window.sqBackHeader,
@@ -1495,12 +1437,10 @@
   }
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-      buildSquadPanel, sqListRows, sqOrdersSummary, sqOrdersSummaryLine, sqOrderLine, sqEmblemSwatch, sqOrderToolbar,
+      buildSquadPanel, sqListRows, sqOrdersSummaryLine, sqOrderLine, sqEmblemSwatch, sqOrderToolbar,
       sqPositionsView: window.sqPositionsView, sqPositionRows: window.sqPositionRows, sqCandidateRows: window.sqCandidateRows, sqCandidateView: window.sqCandidateView, sqCandidateSortedRows: window.sqCandidateSortedRows,
       sqCreateView, sqCreateUniformView, sqEquipView: window.sqEquipView, sqUniformAssignRows: window.sqUniformAssignRows, sqUniformEditor: window.sqUniformEditor,
       sqAmmoSection: window.sqAmmoSection, sqScheduleView: window.sqScheduleView, sqMaterialClassOptions: window.sqMaterialClassOptions, sqBackHeader: window.sqBackHeader, EQUIP_TABS: window.EQUIP_TABS, EQUIP_VIEWS: window.EQUIP_VIEWS, sqRootPane,
-      // the root list's whole-entry fit is arithmetic, so it is exported and tested as
-      // arithmetic instead of as a claim about what the source file says.
       sqRootListRows, sqFitRootList,
       sqEmblemView: window.sqEmblemView, sqBurrowDefendView: window.sqBurrowDefendView, sqPatrolView: window.sqPatrolView, sqRgbToHex, SQUAD_SYMBOL_COUNT, sqEmblemUnassigned,
       sqSuppliesSection: window.sqSuppliesSection, sqEquipmentDetails: window.sqEquipmentDetails, sqEquipmentPickerView: window.sqEquipmentPickerView, sqRoutinesView: window.sqRoutinesView, sqMonthlyView: window.sqMonthlyView, sqTrainingView: window.sqTrainingView,

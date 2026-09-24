@@ -194,7 +194,7 @@
       updateStockButtons();
       publishStockPaintSession();
       renderZoneOverlay();
-    } catch (_) {
+    } catch {
       if (Number(window.DFPlacementController.stockRepaintId) !== Number(id)) return;
       setStockStatus("Stockpile unavailable -- the pile may have been removed.", true);
     }
@@ -329,7 +329,7 @@
       setActiveToolbar(null);
       if (typeof openStockpilePanel === "function")
         openStockpilePanel(Number.isInteger(finalId) && finalId >= 0 ? finalId : id);
-    } catch (_) {
+    } catch {
       setStockStatus("The stockpile-repaint route did not respond -- the host's game may be older than this client.", true);
     } finally {
       clearTimeout(timer);
@@ -637,7 +637,7 @@
       const r = await fetch(url, { method: "POST", cache: "no-store",
         headers: { "Content-Type": "text/plain; charset=utf-8" }, body: shape.extents });
       setStockStatus(r.ok ? "Stockpile trimmed." : "Erase failed.", !r.ok);
-    } catch (_) {
+    } catch {
       setStockStatus("Erase failed.", true);
     }
   }
@@ -652,7 +652,7 @@
       if (!(id >= 0)) { setStockStatus("No stockpile there.", true); return; }
       const r = await fetch(`/stockpile-remove?id=${id}`, { method: "POST", cache: "no-store" });
       setStockStatus(r.ok ? "Stockpile removed." : "Remove failed.", !r.ok);
-    } catch (_) {
+    } catch {
       setStockStatus("Remove failed.", true);
     }
   }

@@ -161,6 +161,7 @@
           cls: `stocks-search-group${open ? "" : " stocks-group-shut"}`,
           dataset: { stockGroup: group.key, stockGroupSize: group.items.length, stockGroupOpen: open ? 1 : 0 },
           header: {
+            cls: "stocks-group-head",
             label: group.key,
             count: group.items.length > 1 ? group.items.length : null,
             actionsHtml: stocksGroupActionCluster(group),
@@ -183,7 +184,7 @@
     const categoryList = ui.scrollHtml({ cls: "stocks-list", rows: ".stocks-row", ariaLabel: "Stock categories" }, categoryRows);
     // A PANE-HEADER search: it spans the top of the list pane it filters, with the magnifier abutting
     // its right edge.
-    const search = ui.searchHtml({ cls: "stocks-search-row", inputCls: "stocks-search-box", buttonCls: "stocks-search-button", dataAttr: "stocks-search", placement: "pane-header", preserveKey: "stocks-search", value: query, placeholder: "Search stocks...", ariaLabel: "Search every stock item", magnifier: true });
+    const search = ui.searchHtml({ cls: "stocks-search-row", inputCls: "stocks-search-box", buttonCls: "stocks-search-button", dataAttr: "stocks-search", placement: "pane-header", preserveKey: "stocks-search", value: query, placeholder: "...", ariaLabel: "Search every stock item", magnifier: true });
     const items = ui.scrollHtml({ cls: "stocks-item-list", rows: ".stocks-item-row", ariaLabel: query ? "Stock search results" : "Items in selected category" }, itemRows);
     const heading = query ? "Search results" : (current ? (current.name || "Stocks") : "Stocks");
     const count = query ? stockItems.length : selectedCount;

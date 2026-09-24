@@ -814,7 +814,10 @@
 
     // Two things can need saying, ranked: what the REQUEST could not have, then what the BUILD left out.
     var note = slabNote || buildNote;
-    if (noteEl) { noteEl.textContent = note; noteEl.hidden = !note; }
+    if (noteEl) {
+      if (root.DWFUI) root.DWFUI.setBitmapText(noteEl, note); else noteEl.textContent = note;
+      noteEl.hidden = !note;
+    }
 
     var fort = fortExtent();
     if (presetEl) {
@@ -1046,7 +1049,7 @@
       });
     }
     return '<span class="world3d-slab">' +
-      '<span class="world3d-slab-lbl">Z-range</span>' +
+      '<span class="world3d-slab-lbl">' + C.bitmapTextHtml("Z-range") + '</span>' +
       stepBtn("base", -1, "−", "Lower the bottom of the window by one z-level") +
       stepBtn("base", 1, "+", "Raise the bottom of the window by one z-level") +
       '<span class="world3d-zslider">' +
@@ -1081,7 +1084,7 @@
       });
     }).join("");
     return '<span class="world3d-zpresets">' +
-      '<span class="world3d-slab-lbl">Show</span>' + chips + "</span>";
+      '<span class="world3d-slab-lbl">' + C.bitmapTextHtml("Show") + '</span>' + chips + "</span>";
   }
 
   function bgToolsHtml(C) {
@@ -1093,7 +1096,7 @@
       });
     }).join("");
     return '<span class="world3d-bg">' +
-      '<span class="world3d-slab-lbl">Background</span>' + chips + "</span>";
+      '<span class="world3d-slab-lbl">' + C.bitmapTextHtml("Background") + '</span>' + chips + "</span>";
   }
 
   function headHtml() {
@@ -1131,10 +1134,11 @@
   function readoutHtml(C) {
     // No DWFUI means no readouts: copying `.dwfui-status` markup is exactly the drift the guard stops.
     if (!C || !C.statusHtml || !C.rawHtml) return '<div class="world3d-readout-line">' + NOTE_HTML + "</div>";
+    var note = '<span class="world3d-slab-note" data-world3d-znote hidden>' + C.bitmapTextHtml("") + "</span>";
     return '<div class="world3d-readout-line">' + C.statusHtml({
       cls: "world3d-status", dataset: { world3dStatus: "" }, live: "polite",
       textHtml: root.DWFUI.rawHtml(LIVE_TEXT, ""),
-    }) + NOTE_HTML + "</div>" + C.statusHtml({
+    }) + note + "</div>" + C.statusHtml({
       cls: "world3d-hint", tone: "dim", dataset: { world3dHint: "" },
       textHtml: root.DWFUI.rawHtml(LIVE_TEXT, ""),
     });

@@ -21,19 +21,13 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.alerts {
   .alert-button {
-    width: calc(32px * var(--dwfui-interface-scale));
-    height: calc(32px * var(--dwfui-interface-scale));
     display: grid;
     place-items: center;
     line-height: 0;
-    padding: 0;
-    border: 0;
-    background-color: transparent;
-    cursor: pointer;
   }
   .alert-button:hover,
   .alert-button.pinned {
@@ -41,15 +35,19 @@
   }
   .alert-help {
     color: var(--dwfui-text-prose);
-    margin-bottom: 8px;
+    margin-bottom: var(--dwfui-space-m);
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--dwfui-space-m);
+  }
+  .alert-help > span {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   /* Legacy fixture-only alert-card controls. The shipping rail mounts only the decoded viewer. */
   .alert-line {
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 700;
@@ -57,11 +55,11 @@
   .alert-popup-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     align-items: center;
   }
   .alert-popup-row + .alert-popup-row {
-    margin-top: 3px;
+    margin-top: var(--dwfui-space-xs);
   }
   .alert-unit-line {
     color: var(--dwfui-text-row);
@@ -72,18 +70,13 @@
   #clientPanel.alertbox-panel > .pf-head {
     display: none;
   }
-  .alert-viewer-window,
-  .alert-viewer-window.dwfui-window {
-    position: relative;
-    box-sizing: border-box;
+  .alert-viewer-window {
     width: 100%;
-    height: 100%;
-    min-height: 0;
   }
   .alert-popup-window {
     width: 100%;
     box-sizing: border-box;
-    padding: calc(2 * var(--dwfui-cell-drawn-h)) calc(2 * var(--dwfui-cell-drawn-w));
+    padding: var(--dwfui-space-2xl) var(--dwfui-space-xl);
     color: var(--dwfui-text-body);
   }
   .alert-viewer-instruction {
@@ -100,7 +93,11 @@
     right: calc(3 * var(--dwfui-cell-drawn-w));
     top: var(--dwfui-cell-drawn-h);
     width: calc(3 * var(--dwfui-cell-drawn-w));
-    height: calc(3 * var(--dwfui-cell-drawn-h));
+    height: var(--dwfui-height-row-tall);
+  }
+  .alert-viewer-open-all-host > .alert-viewer-open-all {
+    width: calc(3 * var(--dwfui-cell-drawn-w));
+    height: var(--dwfui-height-row-tall);
   }
   /* EXPRESSED AS top+bottom, NOT top+height: the framework stamps `height: auto !important` on
      whatever it designates, which collapses a top+height box to its content and kills scrolling. */
@@ -110,7 +107,6 @@
     right: calc(3 * var(--dwfui-cell-drawn-w));
     top: calc(4 * var(--dwfui-cell-drawn-h));
     bottom: calc(2 * var(--dwfui-cell-drawn-h));
-    min-height: 0;
   }
   .alert-viewer-rows {
     width: 100%;
@@ -120,8 +116,6 @@
     overflow-x: hidden;
   }
   .alert-viewer-row {
-    position: relative;
-    box-sizing: border-box;
     width: 100%;
     border: 0;
     color: inherit;
@@ -133,7 +127,7 @@
   }
   .alert-viewer-row .alert-line {
     grid-column: 1;
-    min-width: 0;
+    white-space: normal;
     line-height: var(--dwfui-cell-drawn-h);
     width: calc(80 * var(--dwfui-cell-drawn-w));
     max-width: 100%;
@@ -142,7 +136,14 @@
   .alert-viewer-row > .dwfui-copy > .dwfui-label {
     display: contents;
   }
-  .alert-viewer-row .alert-line.dwfui-status--prose {
-    white-space: normal;
+  .alert-viewer-narration-action {
+    display: block;
+    width: calc(80 * var(--dwfui-cell-drawn-w));
+    max-width: calc(100% - 3 * var(--dwfui-cell-drawn-w));
+    height: auto;
+    min-height: 100%;
+    border: 0;
+    color: inherit;
+    text-align: left;
   }
 }

@@ -25,12 +25,7 @@
   "use strict";
 
   // ---- atlas geometry mirror (must match dwf-gl-atlas.js exactly) -------------------
-  var CELLS_PER_ROW = 60;
-  var CELLS_PER_PAGE = 3600;
-  var CELL_PITCH = 34;
   var CELL_SIZE = 32;
-  var GUTTER = 1;
-  var PAGE_SIZE = 2048;
   var SOLID_CELL = 0xFFFF;     // sentinel atlasCell: shader emits the tint as a flat colour
   var PENDING = 0;             // reserved transparent cell (== atlas PENDING)
 
@@ -306,7 +301,7 @@
     var c = (1 - Math.abs(2 * l - 1)) * s;
     var hp = h / 60;
     var x = c * (1 - Math.abs((hp % 2) - 1));
-    var r1 = 0, g1 = 0, b1 = 0;
+    var r1, g1, b1;
     if (hp < 1) { r1 = c; g1 = x; b1 = 0; }
     else if (hp < 2) { r1 = x; g1 = c; b1 = 0; }
     else if (hp < 3) { r1 = 0; g1 = c; b1 = x; }
@@ -324,7 +319,7 @@
         if (q) return q;
       }
       if (typeof localStorage !== "undefined") return localStorage.getItem("dwf.player");
-    } catch (_) { /* non-browser/sandboxed context */ }
+    } catch { /* non-browser/sandboxed context */ }
     return null;
   }
 
@@ -383,11 +378,6 @@
     if (!tier || !tier.rgb) return null;
     // The same 0.25 source-over wash as TINT_COLORS.grassSummer, not a hard recolour.
     return [tier.rgb[0], tier.rgb[1], tier.rgb[2], 0.25];
-  }
-
-  function isStairOrRamp(shape) {
-    return shape === "STAIR_UP" || shape === "STAIR_DOWN" || shape === "STAIR_UPDOWN" ||
-      shape === "RAMP" || shape === "RAMP_TOP";
   }
 
   // ---- sparse-layer tables (mirrored from dwf-tiles.js) ---------------------------
@@ -531,7 +521,7 @@
     }
     if (rest === "Branch") return { family: "TREE_BRANCH", altFamily: "TREE_HEAVY_BRANCH", variant: "_", dead: dead };
     if (rest === "CapPillar") return { family: "TREE_CAP", variant: "PILLAR", dead: dead };
-    if ((m = /^CapPillar[NSEW]{1,4}$/.exec(rest))) return { family: "TREE_CAP", variant: "PILLAR", dead: dead };
+    if (/^CapPillar[NSEW]{1,4}$/.test(rest)) return { family: "TREE_CAP", variant: "PILLAR", dead: dead };
     if ((m = /^TrunkBranch([NSEW])$/.exec(rest))) return { family: "TREE_BASE", variant: "TRUNK_" + m[1], dead: dead };
     if ((m = /^TrunkThick([NSEW]{1,2})$/.exec(rest))) return { family: "TREE_TRUNK_THICK", variant: canonicalDirs(m[1]), dead: dead };
     if ((m = /^CapWallThick([NSEW]{1,2})$/.exec(rest))) return { family: "TREE_CAP", variant: "WALL_THICK_" + canonicalDirs(m[1]), dead: dead };
@@ -575,8 +565,8 @@
   function cacheHasMultiZ(cacheReader, z, wx, wy) {
     if (!cacheReader || typeof cacheReader.getChunk !== "function" ||
       typeof cacheReader.chunkKeyFor !== "function") return false;
-    var chunk = null;
-    try { chunk = cacheReader.getChunk(z, cacheReader.chunkKeyFor(wx, wy)); } catch (_) { chunk = null; }
+    var chunk;
+    try { chunk = cacheReader.getChunk(z, cacheReader.chunkKeyFor(wx, wy)); } catch { chunk = null; }
     return !!(chunk && chunk.baked === false);
   }
 
@@ -711,7 +701,7 @@
   function unitMapFlash(st, nowMs) {
     st = st | 0;
     if (typeof nowMs !== "number" || !isFinite(nowMs)) nowMs = Date.now();
-    var period = 0, onWindow = 0, rgb = null;
+    var period, onWindow, rgb = null;
     if ((st & USTAT_SLEEPING) && (st & USTAT_UNCONSCIOUS)) { period = 1000; onWindow = 500; }
     else if (st & USTAT_UNCONSCIOUS) { period = 500; onWindow = 100; }
     else if (st & USTAT_PARALYZED) { period = 500; onWindow = 100; rgb = FLASH_CYAN_RGB; }
@@ -1603,9 +1593,9 @@
       var B = (typeof window !== "undefined") && window.DwfOverlayBoxes;
       if (!B || typeof B.stockpileLayerIndex !== "function") return;
       if (!Array.isArray(buildings) || !buildings.length) return;
-      try { spLayerIndex = B.stockpileLayerIndex(buildings, oz); } catch (_) { spLayerIndex = null; }
+      try { spLayerIndex = B.stockpileLayerIndex(buildings, oz); } catch { spLayerIndex = null; }
     }
-    function stockpileTileAtGL(t, gx, gy) {
+    function stockpileTileAtGL(t) {
       if (!spLayerIndex || !spLayerIndex.size) return null;
       if (typeof t.x !== "number" || typeof t.y !== "number") return null;
       return spLayerIndex.get(t.x + "," + t.y) || null;
@@ -1622,11 +1612,11 @@
       }
     }
     function emitStockpileFloor(t, gx, gy, attr) {
-      var e = stockpileTileAtGL(t, gx, gy);
+      var e = stockpileTileAtGL(t);
       if (e) emitStockpilePieces(e.floor, gx, gy, attr);
     }
     function emitStockpileRope(t, gx, gy, attr) {
-      var e = stockpileTileAtGL(t, gx, gy);
+      var e = stockpileTileAtGL(t);
       if (e) emitStockpilePieces(e.rope, gx, gy, attr);
     }
 
@@ -1730,14 +1720,14 @@
     // ---- spatter decals + item-spatter litter -------------------
     function resolveSpatterFullKey(fam, gx, gy, lookupTile, wx, wy, wz) {
       if (!Adj || !lookupTile) return "FULL_ISOLATED";
-      var mask4 = 0;
+      var mask4;
       try {
         var mask8 = Adj.computeMask8(lookupTile, gx, gy, function (nt) {
           var nsp = nt && ((nt.spatters && nt.spatters[0]) || nt.spatter);
           return !!nt && spatterVisible(nsp && nsp.amount) && spatterFamilyForCtx(spatterMap, nsp) === fam;
         });
         mask4 = mask8 & Adj.CARDINAL_BITS;
-      } catch (_) { mask4 = 0; }
+      } catch { mask4 = 0; }
       var suf = "";
       if (mask4 & Adj.BIT.N) suf += "N";
       if (mask4 & Adj.BIT.S) suf += "S";
@@ -2131,7 +2121,6 @@
 
     // Stage-correct siege art, mirroring canvas2d's siegeEngineEntry() exactly -- same token table and
     // the same built/stage gating. Do not re-derive the mechanism here.
-    var CATAPULT_CONST_FRAMES_GL = ["CATAPULT_CONST_0", "CATAPULT_CONST_1", "CATAPULT_CONST_2", "CATAPULT_CONST_3"];
     var SIEGE_DIR_GL = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     var SIEGE_KIND_GL = ["CATAPULT", "BALLISTA", "BOLT_THROWER"];
     function siegeEngineTokenGL(b) {
@@ -2716,10 +2705,10 @@
       var byKey = chunkCacheByZ.get(z);
       if (!byKey) { byKey = new Map(); chunkCacheByZ.set(z, byKey); }
       var key;
-      try { key = cacheReader.chunkKeyFor(wx, wy); } catch (_) { return null; }
+      try { key = cacheReader.chunkKeyFor(wx, wy); } catch { return null; }
       if (byKey.has(key)) return byKey.get(key);
-      var c = null;
-      try { c = cacheReader.getChunk(z, key) || null; } catch (_) { c = null; }
+      var c;
+      try { c = cacheReader.getChunk(z, key) || null; } catch { c = null; }
       byKey.set(key, c);
       return c;
     }
@@ -2805,7 +2794,7 @@
 
     function edgeOvergrowthPlanGL(gx, gy, lookupTile) {
       var Edge = root.DwfEdgeOvergrowth;
-      return Edge ? Edge.plan(lookupTile, gx, gy, materialMap) : null;
+      return Edge ? Edge.plan(lookupTile, gx, gy) : null;
     }
 
     function emitEdgeOvergrowth(t, gx, gy, lookupTile, attr) {
@@ -2838,8 +2827,6 @@
         }
       }
       var seeDownAttr = seeDownDepth ? ((seeDownDepth & ATTR_SEEDOWN_MASK) << ATTR_SEEDOWN_SHIFT) : 0;
-
-      var tt = (typeof t.tt === "number") ? t.tt : -1;
 
       var liquidCell = resolveLiquidCell(t);
       var hasLiquid = liquidCell > 0;
@@ -3026,7 +3013,7 @@
     function resolveMapDims() {
       if (ctx.mapDims !== undefined) return ctx.mapDims;
       if (cacheReader && typeof cacheReader.mapDims === "function") {
-        try { return cacheReader.mapDims(); } catch (_) { return null; }
+        try { return cacheReader.mapDims(); } catch { return null; }
       }
       return null;
     }
@@ -3174,7 +3161,7 @@
               if (t && t.hidden) segmentHiddenTiles++;
               if (!t) continue;
               if (typeof t.tt === "number" && t.tt >= 0) segmentSourceTiles++;
-              try { buildTile(t, gx, gy, gw, gh, wallGrid, hg, camZ, lookupTile, openGrid); } catch (_e) { /* one bad tile never blanks the map */ }
+              try { buildTile(t, gx, gy, gw, gh, wallGrid, hg, camZ, lookupTile, openGrid); } catch { /* one bad tile never blanks the map */ }
             }
           }
           terrainOrder.push(rememberTerrainSegment(bx, by, camZ, segmentStart, k,
@@ -3189,7 +3176,7 @@
       function lookupBuildingTile(wx, wy) { return lookupTile(wx - ox, wy - oy); }
       paintFarmLayers(function () {
         for (var bi = 0; bi < buildings.length; bi++) {
-          try { emitBuilding(buildings[bi], ox, oy, camZ, lookupBuildingTile); } catch (_e2) { /* one bad building never blanks the map */ }
+          try { emitBuilding(buildings[bi], ox, oy, camZ, lookupBuildingTile); } catch { /* one bad building never blanks the map */ }
         }
         buildingCount = k - buildingStart;
         cropStart = k;
@@ -3223,9 +3210,9 @@
             djobKind: dj.k, djobWorker: !!dj.w, djobActive: djOnTile });
         }
       }
-      try { emitDesignationOverlay(desigList, (typeof view.designationNowMs === "number") ? view.designationNowMs : 0); } catch (_e3) { /* overlay guarded */ }
-      try { emitMiningIndicators(tiles, gw, gh); } catch (_e3b) { /* overlay guarded */ }
-      try { emitPresence(players, ox, oy, camZ, ownPlayerName); } catch (_e4) { /* overlay guarded */ }
+      try { emitDesignationOverlay(desigList, (typeof view.designationNowMs === "number") ? view.designationNowMs : 0); } catch { /* overlay guarded */ }
+      try { emitMiningIndicators(tiles, gw, gh); } catch { /* overlay guarded */ }
+      try { emitPresence(players, ox, oy, camZ, ownPlayerName); } catch { /* overlay guarded */ }
       overlayCount = k - overlayStart;
       staticCount = k; // checkpoint: units append/overwrite ONLY past this index
       lastBuildView = view;
@@ -3280,7 +3267,7 @@
           if (typeof sourceTile.tt === "number" && sourceTile.tt >= 0) sourceTiles++;
           try { buildTile(sourceTile, gx, gy, gw, gh, wallGrid,
             haveHidden ? hiddenGrid : null,
-            camZ, lookupTile, openGrid); } catch (_e) { /* one bad tile never blanks a chunk */ }
+            camZ, lookupTile, openGrid); } catch { /* one bad tile never blanks a chunk */ }
         }
       }
       return rememberTerrainSegment(patch.bx, patch.by, patch.z, 0, k,
@@ -3376,7 +3363,7 @@
       }
       paintFarmLayers(function () {
         for (var bi = 0; bi < buildings.length; bi++) {
-          try { emitBuilding(buildings[bi], emitOriginX, emitOriginY, camZ, lookupBuildingTile); } catch (_e) { /* one bad building never blanks the map */ }
+          try { emitBuilding(buildings[bi], emitOriginX, emitOriginY, camZ, lookupBuildingTile); } catch { /* one bad building never blanks the map */ }
         }
         buildingCount = k - buildingStart;
         cropStart = k;
@@ -3448,10 +3435,10 @@
       // plus gw*gh worst case: at most one mining indicator per tile in the window
       ensureCapacity(overlayStart + desigList.length * 4 + (toolStateOverlayVisibleGL("mining") ? gw * gh : 0)
                      + presenceBudget(view.players || []) + dynamicCount + 16);
-      try { emitDesignationOverlay(desigList, (typeof view.designationNowMs === "number") ? view.designationNowMs : 0); } catch (_e2) { /* guarded */ }
-      try { emitMiningIndicators(tiles, gw, gh); } catch (_e2b) { /* guarded */ }
+      try { emitDesignationOverlay(desigList, (typeof view.designationNowMs === "number") ? view.designationNowMs : 0); } catch { /* guarded */ }
+      try { emitMiningIndicators(tiles, gw, gh); } catch { /* guarded */ }
       var camZ = (view.origin && typeof view.origin.z === "number") ? view.origin.z : null;
-      try { emitPresence(view.players || [], emitOriginX, emitOriginY, camZ, ownPlayerName); } catch (_e3) { /* guarded */ }
+      try { emitPresence(view.players || [], emitOriginX, emitOriginY, camZ, ownPlayerName); } catch { /* guarded */ }
       overlayCount = k - overlayStart;
       staticCount = k;
       if (dynamic) new Uint8Array(buf, staticCount * INSTANCE_BYTES, dynamic.byteLength).set(dynamic);
@@ -3560,7 +3547,7 @@
             var frgb = uflash.rgb || [255, 255, 255];
             emitSolid(gx, gy, frgb, Math.round(alpha255 * 0.35), 0);
           }
-        } catch (_e3) { /* one bad unit never blanks the map */ }
+        } catch { /* one bad unit never blanks the map */ }
       }
       return { count: k - staticCount, bytes: (k - staticCount) * INSTANCE_BYTES };
     }
@@ -3669,7 +3656,7 @@
           if (sc > 0) emit(gx, gy, sc, 255, 255, 255, pAlpha255, 0);
           else emitSolid(gx, gy, p.vehicle ? VEHICLE_RGB : PROJ_RGB,
                          Math.round(245 * pAlpha255 / 255), 0);  // legacy/mock-atlas fallback
-        } catch (_ep) { /* one bad proj never blanks the map */ }
+        } catch { /* one bad proj never blanks the map */ }
       }
       return { count: k - staticCount, bytes: (k - staticCount) * INSTANCE_BYTES };
     }
@@ -3717,7 +3704,7 @@
           if (sc > 0) emit(gx, gy, sc, plan.rgb[0], plan.rgb[1], plan.rgb[2], a255, 0);
           // A solid quad has no radial falloff, so halve the alpha to keep coverage in the same class.
           else emitSolid(gx, gy, plan.rgb, Math.round(a255 * 0.55), 0);
-        } catch (_ef) { /* one bad flow never blanks the map */ }
+        } catch { /* one bad flow never blanks the map */ }
       }
       return { count: k - staticCount, bytes: (k - staticCount) * INSTANCE_BYTES };
     }
@@ -3865,7 +3852,7 @@
     try {
       var c = (typeof window !== "undefined") && window.DFAnimClock;
       if (c && typeof c.offset === "function") return c.offset(wallMs) || 0;
-    } catch (_e) { /* inert-graceful */ }
+    } catch { /* inert-graceful */ }
     return 0;
   }
   // A wall-rate clock (perf.now or Date.now epoch) with paused spans removed.
@@ -4009,7 +3996,6 @@
 
   function create(gl, opts) {
     opts = opts || {};
-    var warn = opts.warn || (typeof console !== "undefined" ? function (m) { console.warn(m); } : function () {});
     var builder = createSceneBuilder(opts);
 
     var glResources = null;   // {program, vao, vbo, ubo, locs} -- recreated on context restore
@@ -4049,7 +4035,7 @@
     // builtRect is world-space, half-open, and aligned to 16x16 cache chunks with one chunk of margin.
     var builtRect = null;
     var builtRectVersion = null;
-    var builtZ = null, builtViewportW = 0, builtViewportH = 0;
+    var builtZ = null;
     var firstSceneInput = null, firstBuiltRect = null;
     var lastCameraOrigin = null;
     var lastBuiltSceneView = null;
@@ -4338,7 +4324,7 @@
       try {
         if (typeof window !== "undefined" && window.DwfPaintSession)
           h = hashNum(h, window.DwfPaintSession.revision());
-      } catch (_) { /* no session module -> committed shapes only */ }
+      } catch { /* no session module -> committed shapes only */ }
       return h;
     }
     function stockpileChunkKeys(buildings, z) {
@@ -4346,7 +4332,7 @@
       var B = (typeof window !== "undefined") && window.DwfOverlayBoxes;
       if (!B || typeof B.stockpileLayerIndex !== "function") return keys;
       var idx;
-      try { idx = B.stockpileLayerIndex(buildings || [], z); } catch (_) { return keys; }
+      try { idx = B.stockpileLayerIndex(buildings || [], z); } catch { return keys; }
       var seen = new Set();
       for (var e of idx.values()) {
         var bx = Math.floor(e.wx / 16), by = Math.floor(e.wy / 16), k = bx + ":" + by;
@@ -4485,7 +4471,6 @@
         lastBuiltSceneView = shiftedView;
         builtRect = nextRect;
         builtRectVersion = rectVersion(nextRect, o.z, view.contentVersion);
-        builtViewportW = view.width | 0; builtViewportH = view.height | 0;
         stats.panReuseCount++;
         stats.chunkBuildCount += entering.length;
         var shiftedBfp = buildingFingerprint(view.buildings);
@@ -4518,7 +4503,7 @@
       lastMachineAnimPhase = mstep.phase;
       builtRect = nextRect;
       builtRectVersion = rectVersion(nextRect, o.z, view.contentVersion);
-      builtZ = o.z; builtViewportW = view.width | 0; builtViewportH = view.height | 0;
+      builtZ = o.z;
       if (!firstBuiltRect) {
         firstBuiltRect = {
           x0: nextRect.x0, y0: nextRect.y0, x1: nextRect.x1, y1: nextRect.y1, z: o.z,
@@ -4973,14 +4958,14 @@
     }
 
     function dispose() {
-      if (unsubscribeDirty) { try { unsubscribeDirty(); } catch (_) {} unsubscribeDirty = null; }
+      if (unsubscribeDirty) { try { unsubscribeDirty(); } catch {} unsubscribeDirty = null; }
       if (!glResources) return;
       try {
         gl.deleteBuffer(glResources.vbo);
         gl.deleteBuffer(glResources.ubo);
         gl.deleteVertexArray(glResources.vao);
         gl.deleteProgram(glResources.program);
-      } catch (_) { /* context may already be gone */ }
+      } catch { /* context may already be gone */ }
       glResources = null;
     }
 
@@ -5090,6 +5075,6 @@
     _miningIndicatorCellForTest: miningIndicatorCell,
   };
 
-  try { root.DwfGL = DwfGL; } catch (_) { /* non-browser context */ }
+  try { root.DwfGL = DwfGL; } catch { /* non-browser context */ }
   if (typeof module === "object" && module && module.exports) module.exports = DwfGL;
 })(typeof self !== "undefined" ? self : this);

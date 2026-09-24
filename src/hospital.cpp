@@ -637,7 +637,6 @@ void register_hospital_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hospital-supply", supply_handler);
     server.Post("/hospital-supply", supply_handler);
 }
 

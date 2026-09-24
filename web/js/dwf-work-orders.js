@@ -220,6 +220,11 @@
     }
   }
 
+  function woMessageWindowHtml(message) {
+    return DWFUI.windowHtml({ primaryTabs: infoTabRowHtml("workorders"),
+      bodyHtml: `<div class="info-body"><div class="info-message">${escapeHtml(message)}</div></div>` });
+  }
+
   async function openWorkOrdersPanel() {
     setActiveToolbar("workorders");
     clearBuildPlacement(false);
@@ -227,23 +232,18 @@
     woMode = "list";   // always open on the base orders screen
     clientPanel.className = "visible info-panel";
     if (!WORK_ORDERS_ENABLED) {
-      panelContent(clientPanel).innerHTML = `
-        <div class="info-window">
-          <div class="info-body">
-            <div class="info-message">Work Orders are temporarily disabled while the hang is isolated.</div>
-          </div>
-        </div>`;
+      panelContent(clientPanel).innerHTML = woMessageWindowHtml("Work Orders are temporarily disabled while the hang is isolated.");
       return;
     }
     if (!clientPanel.querySelector(".work-order-cols")) {
-      panelContent(clientPanel).innerHTML = `<div class="info-window">${infoTabRowHtml("workorders")}<div class="info-body"><div class="info-message">Loading work orders...</div></div></div>`;
+      panelContent(clientPanel).innerHTML = woMessageWindowHtml("Loading work orders...");
       wireInfoTabRow(clientPanel);
     }
     try {
       await refreshWorkOrders();
       loadWorkOrderAuxData();
     } catch {
-      panelContent(clientPanel).innerHTML = `<div class="info-window">${infoTabRowHtml("workorders")}<div class="info-body"><div class="info-message">Work order data unavailable.</div></div></div>`;
+      panelContent(clientPanel).innerHTML = woMessageWindowHtml("Work order data unavailable.");
       wireInfoTabRow(clientPanel);
     }
   }
@@ -268,15 +268,14 @@
   }
 
   // ---- Base "list" screen: every order with inline quantity + reorder + conditions. ----
-  // A reorder arrow at a list extreme is OMITTED, never blanked and never disabled in place.
+  // An arrow at a list extreme is omitted; its slot stays empty so the columns after it stay put.
   function woReorderHtml(o, index, total) {
     const items = [];
     if (index > 0) items.push({ action: "priorityUp", sprite: "WORK_ORDERS_PRIORITY_UP",
       title: "Move up", dataset: { woMove: o.id, dir: -1 } });
     if (index < total - 1) items.push({ action: "priorityDown", sprite: "WORK_ORDERS_PRIORITY_DOWN",
       title: "Move down", dataset: { woMove: o.id, dir: 1 } });
-    if (!items.length) return "";
-    return DWFUI.actionButtonsHtml(items, { cls: "dwfui-actions work-order-reorder", ariaLabel: "Order priority" });
+    return DWFUI.actionButtonsHtml(items, { cls: "work-order-reorder", ariaLabel: "Order priority" });
   }
   // ---- the list has no standalone amount column -------------------------------------------------
   let woAmtEditId = null;
@@ -304,7 +303,7 @@
           dataset: { woAmtInc: o.id } },
         { action: "amtDec", sprite: "WORK_ORDERS_DECREASE_AMOUNT", title: "Decrease quantity",
           dataset: { woAmtDec: o.id } },
-      ], { cls: "dwfui-actions work-order-qty-steps", ariaLabel: "Quantity" }) + `</div>`;
+      ], { cls: "work-order-qty-steps", ariaLabel: "Quantity" }) + `</div>`;
   }
   // The max-shops cell has five presentations: unlimited, singular, plural, editing, editing+hint.
   // Both editing states are keyed on woMaxEditId identity, so only the row under edit shows them.
@@ -324,9 +323,11 @@
     const p = woMaxShopsPresentation(o, woMaxEditId, woMaxEditBuffer);
     if (!p) return "";
     const steps = DWFUI.actionButtonsHtml([
+      { action: "maxEdit", sprite: "WORK_ORDERS_ENTER_AMOUNT", title: "Type the most workshops that may run this order",
+        dataset: { woMaxEdit: o.id } },
       { action: "maxInc", sprite: "WORK_ORDERS_INCREASE_AMOUNT", title: "More workshops", dataset: { woMaxInc: o.id } },
       { action: "maxDec", sprite: "WORK_ORDERS_DECREASE_AMOUNT", title: "Fewer workshops", dataset: { woMaxDec: o.id } },
-    ], { cls: "dwfui-actions work-order-maxshops-steps", ariaLabel: "Max workshops" });
+    ], { cls: "work-order-maxshops-steps", ariaLabel: "Max workshops" });
     // The cursor is a character in the buffer blinking on a WALL CLOCK, so it keeps blinking while the
     // game is paused; the keystrokes come from a visually-suppressed <input>, the editable exception.
     const value = p.state === "editing"
@@ -340,10 +341,10 @@
       : `<span class="work-order-maxval">${DWFUI.bitmapTextHtml(p.text)}</span>`;
     // The hint is the row's THIRD GRID LINE and exists ONLY while editing.
     const hint = p.state === "editing"
-      ? `<div class="work-order-maxshops-hint">${DWFUI.bitmapTextHtml("Zero means any number of workshops may run this order.")}</div>`
+      ? `<div class="dwfui-text--note work-order-maxshops-hint">${DWFUI.bitmapTextHtml("Zero means any number of workshops may run this order.")}</div>`
       : "";
     return `<div class="work-order-maxshops" data-wo-max-state="${p.state}" title="Max workshops that may run this order at once (0 = any)">` +
-      `${value}<span class="work-order-hash" data-wo-max-edit="${o.id}">#</span>${steps}${hint}</div>`;
+      `${value}${steps}${hint}</div>`;
   }
   // R17 again: one shared ticker for every blinking text cursor currently mounted. Wall clock, not
   // game ticks -- there is deliberately no pause check here.
@@ -403,14 +404,14 @@
         cells: [
           validation ? { cls: "work-order-validation-cell", html: validation } : null,
           { cls: "work-order-qty-cell", html: woQtyStepperHtml(o, amtEditId) },
-          reorder ? { cls: "work-order-reorder-cell", html: reorder } : null,
+          { cls: "work-order-reorder-cell", html: reorder },
           { cls: "work-order-cond-cell", html: condBtn },
           { cls: "work-order-shop-col", html: escapeHtml(woWorkshopLabel(o)) },
           maxShops ? { cls: "work-order-maxshops-cell", html: maxShops } : null,
         ],
         trailing: removeBtn,
       });
-    }).join("") : `<div class="work-order-empty">No work orders yet. Click "New work order" to add one.</div>`;
+    }).join("") : `<div class="dwfui-text--empty work-order-empty">No work orders yet. Click "New work order" to add one.</div>`;
     const newBtn = DWFUI.artBtnHtml({
       sprite: "WORK_ORDERS_CREATE_NEW", cls: "work-order-new-btn",
       dataset: { woNewscreen: "" }, title: "New work order", ariaLabel: "New work order",
@@ -437,7 +438,7 @@
   }
   function woNewTasksHtml() {
     const tasks = woNewTaskList();
-    if (!tasks.length) return `<div class="work-order-empty">No tasks here.</div>`;
+    if (!tasks.length) return `<div class="dwfui-text--empty work-order-empty">No tasks here.</div>`;
     // The catalog is large (per-metal forge rows + every raws reaction); cap the DOM and let the
     // DF-style search narrow it.
     const CAP = 300;
@@ -447,7 +448,7 @@
       dataset: { woTask: it.key }, label: it.label,
     })).join("");
     return tasks.length > shown.length
-      ? rows + `<div class="work-order-empty">Showing ${shown.length} of ${tasks.length} &mdash; type to narrow (e.g. "iron cage").</div>`
+      ? rows + `<div class="dwfui-text--empty work-order-empty">Showing ${shown.length} of ${tasks.length} &mdash; type to narrow (e.g. "iron cage").</div>`
       : rows;
   }
 
@@ -480,7 +481,7 @@
       <div class="work-order-screen">
         <div class="work-order-screen-head">
           ${woBackButtonHtml()}
-          <div class="work-order-section-title">New work order</div>
+          <div class="dwfui-text--section work-order-section-title">New work order</div>
         </div>
         <div class="work-order-newpick">
           ${DWFUI.scrollHtml({ cls: "work-order-shoplist", rows: ".work-order-shop", preserveKey: "work-order-shops" }, shopBtns)}
@@ -595,7 +596,7 @@
               dataset: { woCondTab: "mat", idx } },
             { action: "condAdj", sprite: "WORK_ORDERS_CHANGE_ADJ", title: "Change adjective",
               dataset: { woCondTab: "adj", idx } },
-          ], { cls: "dwfui-actions work-order-cond-tabs", ariaLabel: "Condition target" }) },
+          ], { cls: "work-order-cond-tabs", ariaLabel: "Condition target" }) },
       ];
     }
     // R25: the annotation is a CELL ON THE SAME LINE, immediately right of the sentence -- never a
@@ -654,7 +655,7 @@
         }) : null,
       });
     }).join("");
-    const body = rows || `<div class="work-order-empty work-order-suggestions-empty">${DWFUI.bitmapTextHtml("No suggested conditions.")}</div>`;
+    const body = rows || `<div class="dwfui-text--empty work-order-empty work-order-suggestions-empty">${DWFUI.bitmapTextHtml("No suggested conditions.")}</div>`;
     return `<div class="work-order-field work-order-suggest work-order-suggestions">` +
       `<div class="work-order-field-title">${DWFUI.bitmapTextHtml("Suggested conditions")}</div>` +
       `<div class="work-order-cond-list">${body}</div></div>`;
@@ -699,7 +700,7 @@
       ? rows.map(c => woConditionRowHtml(c, { orderId: selected.id, kind }) +
           (kind === "item" && woCondPicker && Number(woCondPicker.idx) === Number(c.idx)
             ? woCondPickerHtml(woCondPicker.tab, c) : "")).join("")
-      : `<div class="work-order-empty">${DWFUI.bitmapTextHtml("None")}</div>`;
+      : `<div class="dwfui-text--empty work-order-empty">${DWFUI.bitmapTextHtml("None")}</div>`;
     const o = opts || {};
     // R19: all five frequencies get a sentence, and the narrow layout gets the short set.
     const frequencyDescription = woFrequencySentence(selected.frequency,
@@ -713,7 +714,7 @@
         title: "New condition", dataset: { woAddItemCond: "" } },
       { action: "addOrderCond", sprite: "WORK_ORDERS_ADD_ORDER_CONDITION", active: woOrderCondAdd,
         title: "New order condition (after another order)", dataset: { woAddOrderCondOpen: "" } },
-    ], { cls: "dwfui-actions work-order-cond-tools", ariaLabel: "Add condition" });
+    ], { cls: "work-order-cond-tools", ariaLabel: "Add condition" });
     // The "new order condition" chooser: pick the other order; Completed/Activated are DF's only
     // two workquota_order_condition_type values (df.workquota.xml:37).
     let orderCondChooser = "";
@@ -724,7 +725,7 @@
       const otherRows = others.length ? others.map(x => DWFUI.rowHtml({
         cls: "work-order-cond-pick", label: woOrderTitle(x), dataset: { woAddOrderCond: x.id },
         icon: DWFUI.workOrderBadgeHtml(x, o.now === undefined ? woNow : o.now),
-      })).join("") : `<div class="work-order-empty">${DWFUI.bitmapTextHtml("No other orders")}</div>`;
+      })).join("") : `<div class="dwfui-text--empty work-order-empty">${DWFUI.bitmapTextHtml("No other orders")}</div>`;
       orderCondChooser = `<div class="work-order-cond-picker work-order-ordercond-picker">` +
         DWFUI.segmentedHtml({ dataAttr: "work-order-order-cond-type", active: woOrderCondType,
           ariaLabel: "Condition type", options: [
@@ -793,10 +794,12 @@
     // Native work orders has NO search box -- never re-add infoSearchBoxHtml to this footer.
     // The footer is state 3 of three exclusive bottom states; woBottomState evaluates the refusal first.
     const bottom = woBottomState(data);
-    const footer = bottom === "footer"
-      ? `<div class="info-footer work-order-manager-note" data-wo-bottom="footer"><div>All work orders must be validated<br>by the manager before they become<br>active.</div></div>`
-      : "";
-    return `<div class="info-window" data-wo-bottom-state="${bottom}">${infoTabRowHtml("workorders")}<div class="info-body${hasManager ? "" : " work-order-empty-body"}">${body}</div>${footer}</div>`;
+    return DWFUI.windowHtml({
+      ariaLabel: "Work orders", primaryTabs: infoTabRowHtml("workorders"),
+      bodyHtml: `<div class="info-body${hasManager ? "" : " work-order-empty-body"}">${body}</div>`,
+      ...(bottom === "footer" ? { footerCls: "work-order-manager-note",
+        footerHtml: "<div>All work orders must be validated<br>by the manager before they become<br>active.</div>" } : {}),
+    });
   }
 
   // Right-click pops exactly one level (chooser -> conditions -> list); activeInfoPanel guards it.
@@ -1127,9 +1130,9 @@
       e.preventDefault(); e.stopPropagation();
       woOrderCondAdd = !woOrderCondAdd; renderWorkOrders();
     });
-    clientPanel.querySelectorAll("[data-wo-order-cond-type]").forEach(b => b.addEventListener("click", e => {
+    clientPanel.querySelectorAll("[data-work-order-order-cond-type]").forEach(b => b.addEventListener("click", e => {
       e.preventDefault(); e.stopPropagation();
-      woOrderCondType = b.dataset.woOrderCondType || "Completed"; renderWorkOrders();
+      woOrderCondType = b.dataset.workOrderOrderCondType || "Completed"; renderWorkOrders();
     }));
     clientPanel.querySelectorAll("[data-wo-add-order-cond]").forEach(b => b.addEventListener("click", async e => {
       e.preventDefault(); e.stopPropagation();

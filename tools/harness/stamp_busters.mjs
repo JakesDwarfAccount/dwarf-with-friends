@@ -26,6 +26,7 @@ const STAMPED_SCRIPTS = [{ dir: "web/js", root: "web" }, { dir: "web/css", root:
 const STAMPED_PAGES = [
   { file: "web/index.html", root: "web" },
   { file: "web/tiles.html", root: "web" },
+  { file: "tools/ui-lab/index.html", root: "tools/ui-lab" },
 ];
 
 // `pending` holds the stamped-but-not-yet-written bytes of files earlier in the same run, so a

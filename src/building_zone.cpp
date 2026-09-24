@@ -2644,7 +2644,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_content("{\"ok\":true,\"id\":" + std::to_string(id) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/zone-repaint", zone_repaint_handler);
     server.Post("/zone-repaint", zone_repaint_handler);
 
     server.Get("/zones", [](const httplib::Request& req, httplib::Response& res) {
@@ -2710,7 +2709,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/building-action", building_action_handler);
     server.Post("/building-action", building_action_handler);
 
     server.Get("/building-cage", [](const httplib::Request& req, httplib::Response& res) {
@@ -2753,7 +2751,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/building-cage-action", building_cage_action_handler);
     server.Post("/building-cage-action", building_cage_action_handler);
 
     server.Get("/building-restraint", [](const httplib::Request& req, httplib::Response& res) {
@@ -2796,7 +2793,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/building-restraint-action", building_restraint_action_handler);
     server.Post("/building-restraint-action", building_restraint_action_handler);
 
     server.Get("/farm-plot", [](const httplib::Request& req, httplib::Response& res) {
@@ -2897,7 +2893,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/burial-coffin-action", burial_coffin_action_handler);
     server.Post("/burial-coffin-action", burial_coffin_action_handler);
 
     auto memorial_slab_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -2918,7 +2913,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/memorial-slab", memorial_slab_handler);
     server.Post("/memorial-slab", memorial_slab_handler);
 
     auto workshop_rename_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -2940,10 +2934,8 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_content("{\"ok\":true,\"name\":" + json_string(name) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/workshop-rename", workshop_rename_handler);
     server.Post("/workshop-rename", workshop_rename_handler);
     // /zone-rename is an alias: civzones use the same df::building::name field.
-    server.Get("/zone-rename", workshop_rename_handler);
     server.Post("/zone-rename", workshop_rename_handler);
 
     server.Get("/workshop-info", [](const httplib::Request& req, httplib::Response& res) {
@@ -2987,7 +2979,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/workshop-add-job", workshop_add_job_handler);
     server.Post("/workshop-add-job", workshop_add_job_handler);
 
     auto workshop_job_action_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3009,7 +3000,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/workshop-job-action", workshop_job_action_handler);
     server.Post("/workshop-job-action", workshop_job_action_handler);
 
     auto workshop_worker_action_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3032,7 +3022,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/workshop-worker-action", workshop_worker_action_handler);
     server.Post("/workshop-worker-action", workshop_worker_action_handler);
 
     auto workshop_workers_clear_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3052,7 +3041,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/workshop-workers-clear", workshop_workers_clear_handler);
     server.Post("/workshop-workers-clear", workshop_workers_clear_handler);
 
     auto workshop_profile_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3074,7 +3062,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/workshop-profile", workshop_profile_handler);
     server.Post("/workshop-profile", workshop_profile_handler);
 
     server.Get("/zone-info", [](const httplib::Request& req, httplib::Response& res) {
@@ -3113,7 +3100,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/zone-action", zone_action_handler);
     server.Post("/zone-action", zone_action_handler);
 
     server.Get("/zone-squads", [](const httplib::Request& req, httplib::Response& res) {
@@ -3155,7 +3141,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/zone-squad-action", zone_squad_action_handler);
     server.Post("/zone-squad-action", zone_squad_action_handler);
 
     server.Get("/zone-units", [](const httplib::Request& req, httplib::Response& res) {
@@ -3197,7 +3182,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/zone-unit-action", zone_unit_action_handler);
     server.Post("/zone-unit-action", zone_unit_action_handler);
 
     server.Get("/zone-owners", [](const httplib::Request& req, httplib::Response& res) {
@@ -3237,7 +3221,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/zone-owner-action", zone_owner_action_handler);
     server.Post("/zone-owner-action", zone_owner_action_handler);
 
     server.Get("/zone-locations", [](const httplib::Request& req, httplib::Response& res) {
@@ -3279,7 +3262,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/zone-location-action", zone_location_action_handler);
     server.Post("/zone-location-action", zone_location_action_handler);
 
     // These take a LOCATION id (df::abstract_building::id, site-local), never a zone id.
@@ -3352,7 +3334,6 @@ void register_building_zone_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/location-action", location_action_handler);
     server.Post("/location-action", location_action_handler);
 }
 

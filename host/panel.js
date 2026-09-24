@@ -34,7 +34,6 @@ async function loadStatus() {
 }
 
 // ---------------- HOSTING + FRIEND LINK ----------------
-let lastHosting = { phase: "idle" };
 let lastStopConfirmed = false;   // set ONLY when the server proves the tunnel process exited
 
 function paintFriendLink({ url, stopped }) {
@@ -60,7 +59,6 @@ function paintFriendLink({ url, stopped }) {
 
 async function loadHosting() {
   const [h, l] = await Promise.all([api.get("/api/hosting"), api.get("/api/links")]);
-  lastHosting = h;
   const button = $("#start-hosting");
   const working = !["idle", "error", "ready", "stopped", "link-stuck"].includes(h.phase);
   button.disabled = working || h.phase === "ready";

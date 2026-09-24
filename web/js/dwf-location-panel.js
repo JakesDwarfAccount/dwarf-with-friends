@@ -316,12 +316,12 @@
       return '<div class="location-cand' + (c.unitId === row.unitId ? " current" : "") + '"' +
         ' data-loc-pick="' + c.unitId + '" data-loc-slot="' + _locEsc(row.key) + '">' +
         locationCandidateNameHtml(c) +
-        (c.profession ? ' <span class="location-dim">' + _locEsc(c.profession) + '</span>' : "") +
-        (c.held ? ' <span class="location-dim">(' + _locEsc(c.held) + ')</span>' : "") +
+        (c.profession ? ' <span class="location-dim">' + DWFUI.bitmapTextHtml(c.profession) + '</span>' : "") +
+        (c.held ? ' <span class="location-dim">' + DWFUI.bitmapTextHtml("(" + c.held + ")") + '</span>' : "") +
         '</div>';
     }));
     var body = cands.length ? rows.join("")
-      : rows[0] + '<div class="building-note">No eligible living citizens.</div>';
+      : rows[0] + '<div class="dwfui-text--note building-note">No eligible living citizens.</div>';
     return DWFUI.searchHtml({ cls: "location-cand-search", dataAttr: "location-search", value: state.search,
       placeholder: "Search citizens" }) +
       DWFUI.scrollHtml({ cls: "location-cand-list" }, body);
@@ -346,17 +346,17 @@
     var s = state || {};
     var t = deityRows(data);
     if (!t) return "";
-    var html = '<div class="zone-section-label">Dedication</div>';
+    var html = '<div class="dwfui-text--section zone-section-label">Dedication</div>';
     if (t.dedicated) {
-      return html + '<div class="building-note">Dedicated to ' +
+      return html + '<div class="dwfui-text--note building-note">Dedicated to ' +
         _locEsc(t.name || "an unknown power") + '.</div>' +
-        '<div class="building-note location-dim">Dwarf Fortress has no re-dedication: retire this temple and make a new one to change it.</div>';
+        '<div class="dwfui-text--note building-note location-dim">Dwarf Fortress has no re-dedication: retire this temple and make a new one to change it.</div>';
     }
     if (!t.options.length) {
       return html +
-        '<div class="building-note">A generic temple. Nobody in the fort worships anyone yet, so there is nothing to dedicate it to.</div>';
+        '<div class="dwfui-text--note building-note">A generic temple. Nobody in the fort worships anyone yet, so there is nothing to dedicate it to.</div>';
     }
-    html += '<div class="building-note">A generic temple — any worshipper may use it. Dedicating it is permanent.</div>' +
+    html += '<div class="dwfui-text--note building-note">A generic temple — any worshipper may use it. Dedicating it is permanent.</div>' +
       DWFUI.plaqueBtnHtml({ cls: "building-btn", tone: s.deityOpen ? "green" : "gold",
         dataset: { locAct: "deity-toggle" },
         label: s.deityOpen ? "Close" : "Dedicate to a deity or religion" });
@@ -365,8 +365,8 @@
         t.options.map(function (o) {
           return '<div class="location-cand" data-loc-deity="' + _locEsc(o.spec) + '">' +
             '<span class="location-cand-name">' + _locEsc(o.name) + '</span>' +
-            ' <span class="location-dim">' + _locEsc(o.kind) + " · " + o.worshippers +
-            " worshipper" + (o.worshippers === 1 ? "" : "s") + '</span></div>';
+            ' <span class="location-dim">' + DWFUI.bitmapTextHtml(o.kind + " · " + o.worshippers +
+            " worshipper" + (o.worshippers === 1 ? "" : "s")) + '</span></div>';
         }).join(""));
     }
     return html;
@@ -404,9 +404,9 @@
     // Occupants.
     var zonesKnown = Array.isArray(d.zones);
     var zones = zonesKnown ? d.zones : [];
-    var occHtml = '<div class="zone-section-label">Occupants</div>' +
-      '<div class="building-note">' + _locEsc(occupancyText(d)) + '</div>' +
-      '<div class="building-note location-dim">' +
+    var occHtml = '<div class="dwfui-text--section zone-section-label">Occupants</div>' +
+      '<div class="dwfui-text--note building-note">' + _locEsc(occupancyText(d)) + '</div>' +
+      '<div class="dwfui-text--note building-note location-dim">' +
         (!zonesKnown ? "Zone information unavailable."
         : zones.length ? _locEsc(zones.length + " zone" + (zones.length === 1 ? "" : "s") + ": " +
           zones.map(function (z) { return z.name || z.type; }).join(", "))
@@ -415,7 +415,7 @@
     // Occupations + citizen picker.
     var occupationsKnown = Array.isArray(d.occupations);
     var rows = occupationRows(d);
-    var occListHtml = !occupationsKnown ? '<div class="building-note">Occupation information unavailable.</div>'
+    var occListHtml = !occupationsKnown ? '<div class="dwfui-text--note building-note">Occupation information unavailable.</div>'
       : rows.length ? rows.map(function (r) {
       var right = r.guarded
         ? DWFUI.plaqueBtnHtml({ cls: "zone-mini-btn", tone: "grey", disabled: true,
@@ -428,8 +428,8 @@
           : '<span class="location-occ-holder"><em>open</em></span>') +
         right + '</div>' +
         (s.pickerFor === r.key ? '<div class="location-picker">' + _locPickerHtml(s, r) + '</div>' : "");
-    }).join("") : '<div class="building-note">This kind of location has no staff positions.</div>';
-    var occupationsHtml = '<div class="zone-section-label">Occupations</div>' + occListHtml;
+    }).join("") : '<div class="dwfui-text--note building-note">This kind of location has no staff positions.</div>';
+    var occupationsHtml = '<div class="dwfui-text--section zone-section-label">Occupations</div>' + occListHtml;
 
     // Temple deity (kept for defensive partial payloads whose kind is not normalized yet).
     var templeHtml = locationDedicationHtml(d, s);
@@ -438,11 +438,11 @@
     var guildHtml = "";
     var g = guildRows(d);
     if (g) {
-      guildHtml = '<div class="zone-section-label">Guild</div>';
+      guildHtml = '<div class="dwfui-text--section zone-section-label">Guild</div>';
       if (g.dedicated) {
-        guildHtml += '<div class="building-note">Serves the ' + _locEsc(g.key) + ' guild.</div>';
+        guildHtml += '<div class="dwfui-text--note building-note">Serves the ' + _locEsc(g.key) + ' guild.</div>';
       } else if (!g.options.length) {
-        guildHtml += '<div class="building-note">No guild has formed in this fort yet. Guilds petition you once enough citizens share a craft.</div>';
+        guildHtml += '<div class="dwfui-text--note building-note">No guild has formed in this fort yet. Guilds petition you once enough citizens share a craft.</div>';
       } else {
         guildHtml += DWFUI.plaqueBtnHtml({ cls: "building-btn", tone: s.guildOpen ? "green" : "gold",
           dataset: { locAct: "guild-toggle" }, label: s.guildOpen ? "Close" : "Assign this hall to a guild" });
@@ -465,24 +465,24 @@
       // Native shows an inline "Rented rooms (Total): <rented> (<total>)" count (LEVER-LINK-2). We
       // keep the richer per-room list below it, but honor the native header count when rooms are known.
       var rentedNow = rm.roomsKnown ? rm.rooms.filter(function (m) { return m.rented; }).length : 0;
-      roomsHtml = '<div class="zone-section-label">' +
+      roomsHtml = '<div class="dwfui-text--section zone-section-label">' +
         (rm.roomsKnown ? 'Rented rooms (Total): ' + rentedNow + ' (' + rm.rooms.length + ')' : 'Rented rooms') +
         '</div>';
-      roomsHtml += !rm.roomsKnown ? '<div class="building-note">Rented-room information unavailable.</div>'
+      roomsHtml += !rm.roomsKnown ? '<div class="dwfui-text--note building-note">Rented-room information unavailable.</div>'
         : rm.rooms.length ? rm.rooms.map(function (m) {
         var renterHtml = m.rented
           ? locationColoredNameHtml({ professionColor: m.renterProfessionColor }, m.renter || "someone", "location-room-renter") +
             '<span class="location-dim">' + _locEsc(m.owed > 0 ? " - owes " + m.owed : " - paid up") + '</span>'
           : '<span class="location-dim">vacant</span>';
         return '<div class="location-room"><span class="location-occ-label">' + _locEsc(m.label) + '</span>' + renterHtml + '</div>';
-      }).join("") : '<div class="building-note">No rentable rooms. DF makes one when a bedroom zone belongs to this tavern and a guest pays for it.</div>';
+      }).join("") : '<div class="dwfui-text--note building-note">No rentable rooms. DF makes one when a bedroom zone belongs to this tavern and a guest pays for it.</div>';
       if (!rm.canWrite)
-        roomsHtml += '<div class="building-note location-dim">Rooms are read-only here (B229 probe 4).</div>';
+        roomsHtml += '<div class="dwfui-text--note building-note location-dim">Rooms are read-only here (B229 probe 4).</div>';
     }
 
     // Appointed positions.
     var pos = positionRows(d);
-    var posHtml = pos.length ? '<div class="zone-section-label">Appointed positions</div>' +
+    var posHtml = pos.length ? '<div class="dwfui-text--section zone-section-label">Appointed positions</div>' +
       pos.map(function (p) {
         return '<div class="location-occ"><span class="location-occ-label">' + _locEsc(p.name) + '</span>' +
           (p.vacant ? '<span class="location-occ-holder"><em>vacant</em></span>'
@@ -569,7 +569,7 @@
   function _locWire() {
     if (typeof selection === "undefined") return;
     var s = _locState;
-    var close = selection.querySelector("[data-loc-close]");
+    var close = selection.querySelector("[data-location-close]");
     if (close) close.addEventListener("click", function (e) {
       e.stopPropagation();
       if (typeof closeSelection === "function") closeSelection();
@@ -647,16 +647,11 @@
       });
     });
 
-    var search = selection.querySelector("[data-loc-search]");
+    var search = selection.querySelector("[data-location-search]");
     if (search) search.addEventListener("input", function () {
       s.search = search.value || "";
-      var list = selection.querySelector(".location-picker");
-      if (!list) return;
-      var row = occupationRows(s.data).find(function (r) { return r.key === s.pickerFor; });
-      if (!row) return;
-      list.innerHTML = _locPickerHtml(s, row);
-      _locWire();
-      var next = selection.querySelector("[data-loc-search]");
+      _locRender();
+      var next = selection.querySelector("[data-location-search]");
       if (next) { next.focus(); try { next.setSelectionRange(next.value.length, next.value.length); } catch { globalThis.DwfErr?.count("location-panel.search-caret"); } }
     });
   }

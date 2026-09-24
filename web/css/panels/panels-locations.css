@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.locations {
   .building-panel .location-occ,
@@ -29,12 +29,9 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     align-items: center;
-    gap: 6px;
-    margin: 3px 10px;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
+    gap: var(--dwfui-space-s);
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m);
+    font: var(--dwfui-font);
   }
   .building-panel .location-occ-label {
     color: var(--dwfui-text-heading);
@@ -53,23 +50,19 @@
   }
   .building-panel .location-dim {
     color: var(--dwfui-text-secondary);
-    font-size: 10px;
   }
   .building-panel .location-picker {
-    margin: 2px 10px 8px;
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .building-panel .location-cand-list {
     max-height: 13rem;
-    margin: 2px 0 4px;
+    margin: var(--dwfui-space-xs) 0 var(--dwfui-space-s);
   }
   .building-panel .location-cand {
-    padding: 3px 6px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-s);
     cursor: pointer;
     border-radius: 2px;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     color: var(--dwfui-text-row);
   }
   .building-panel .location-cand:hover {
@@ -84,17 +77,24 @@
     font-weight: 700;
   }
   .building-panel .location-cand-search {
-    margin: 2px 0;
+    margin: var(--dwfui-space-xs) 0;
   }
   .building-panel .location-access {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0;
-    margin: 6px 10px 10px;
+    margin: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .building-panel .location-temple-head {
     align-items: flex-start;
+  }
+  .building-panel .location-temple-head .dwfui-head-title-line {
+    display: block;
+  }
+  .building-panel .location-temple-head .dwfui-head-title-line-1,
+  .building-panel .location-temple-head .dwfui-head-title-line-2 {
+    color: var(--dwfui-text-heading);
   }
   .building-panel .location-temple-head-copy {
     display: grid;
@@ -103,10 +103,10 @@
   .building-panel .location-temple-mechanics {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px 24px;
-    margin: 8px 10px 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--dwfui-surface);
+    gap: var(--dwfui-space-m) 24px;
+    margin: var(--dwfui-space-m) var(--dwfui-space-m) var(--dwfui-space-m);
+    padding-bottom: var(--dwfui-space-m);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-surface);
   }
   .building-panel .location-temple-mechanics .location-worshippers {
     justify-self: end;
@@ -121,8 +121,22 @@
   .building-panel .location-temple-mechanics .location-performer {
     grid-column: 1 / -1;
   }
+  .building-panel .location-temple-mechanics .location-mechanic {
+    margin: 0;
+    color: var(--dwfui-text-row);
+  }
+  .building-panel .location-temple-mechanics .location-tier {
+    color: var(--dwfui-text-active);
+  }
   .building-panel .location-access .location-access-guard {
     flex: 1 0 100%;
-    margin: 4px 0 0;
+    margin: var(--dwfui-space-s) 0 0;
+  }
+  .building-panel .location-access .location-access-state {
+    margin-left: var(--dwfui-space-m);
+    color: var(--dwfui-text-good);
+  }
+  .building-panel .location-access .location-access-state.dim {
+    color: var(--dwfui-text-secondary);
   }
 }

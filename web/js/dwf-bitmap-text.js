@@ -30,7 +30,7 @@
   // 0 = pure nearest, 1 = pure bilinear. The only taste number in this file.
   const SOFTEN = 0.5;
   const SCALED_ATLAS_LIMIT = 4;   // one per live interface scale; a resize churns at most a few
-  const MAX_LIVE_CANVASES = 50;
+  const MAX_LIVE_CANVASES = 200;   // a full panel shows 60+ labels; each canvas is about 5 KB
   const MAX_DIRTY_ROOTS_PER_FRAME = 25;
   const PREFETCH_MARGIN = 96;
   // A 1px fully transparent gutter per cell, so the pitch is 10x14: bakeAtlas's soften pass reads with
@@ -302,8 +302,7 @@
   function stateFor(doc) {
     let state = documentStates.get(doc);
     if (!state) {
-      state = { maxLive: MAX_LIVE_CANVASES, live: new Map(), observer: null,
-        pending: new Set(), frame: 0, waiters: [], scale: null };
+      state = { live: new Map(), observer: null, pending: new Set(), frame: 0, waiters: [], scale: null };
       documentStates.set(doc, state);
     }
     return state;
@@ -317,6 +316,9 @@
     if (node && node.hasAttribute && node.hasAttribute("data-dwfui-bitmap-eager")) return true;
     if (!node || typeof node.getBoundingClientRect !== "function") return true;
     const rect = node.getBoundingClientRect();
+    // A hidden subtree reports a 0x0 rect at the origin; counting it as near let hidden panels hold
+    // every canvas slot while visible labels fell back to the plain font.
+    if (!rect.width && !rect.height) return false;
     const view = (doc && doc.defaultView) || root;
     const width = Number(view && view.innerWidth) || Number(doc && doc.documentElement && doc.documentElement.clientWidth) || 0;
     const height = Number(view && view.innerHeight) || Number(doc && doc.documentElement && doc.documentElement.clientHeight) || 0;
@@ -349,21 +351,21 @@
     markFallback(node, reason);
   }
 
-  function prune(state, doc) {
+  function prune(state, doc, keepOffscreen) {
     for (const [node] of state.live) {
       if (!isConnected(node)) noteCanvasRemoved(node, state, null);
       else if (!node.querySelector("canvas.dwfui-bitmap-canvas")) state.live.delete(node);
-      else if (!isNearViewport(node, doc)) noteCanvasRemoved(node, state, "offscreen-deferred");
+      else if (!keepOffscreen && !isNearViewport(node, doc)) noteCanvasRemoved(node, state, "offscreen-deferred");
     }
   }
 
-  function reserve(node, state, doc) {
+  function reserve(node, state, doc, limit) {
     if (state.live.has(node)) {
       state.live.delete(node); state.live.set(node, true);
       return true;
     }
-    const ceiling = state.maxLive;
-    prune(state, doc);
+    const ceiling = limit == null ? MAX_LIVE_CANVASES : limit;
+    prune(state, doc, ceiling === Infinity);
     if (state.live.size >= ceiling) {
       for (const [candidate] of state.live) {
         if (!isNearViewport(candidate, doc)) {
@@ -412,7 +414,7 @@
       (rootNode && rootNode.nodeType === 9 ? rootNode : root.document);
   }
 
-  function paintNow(doc, nodes, state) {
+  function paintNow(doc, nodes, state, unbounded) {
     reportStatus(doc, true);
     // ONCE per paint pass, not per label: a document has one interface scale, exactly as DF does.
     const iface = interfaceScale(doc);
@@ -421,7 +423,7 @@
     let painted = 0;
     for (const node of nodes) {
       if (!isConnected(node)) continue;
-      if (!isNearViewport(node, doc)) {
+      if (!unbounded && !isNearViewport(node, doc)) {
         noteCanvasRemoved(node, state, "offscreen-deferred");
         continue;
       }
@@ -439,10 +441,10 @@
       const key = `${scale}\u0000${color}\u0000${text}`;
       if (node.__dwfuiBitmapKey === key && node.querySelector("canvas.dwfui-bitmap-canvas")) {
         unchangedSkips++;
-        reserve(node, state, doc);
+        reserve(node, state, doc, unbounded ? Infinity : null);
         continue;
       }
-      if (!reserve(node, state, doc)) continue;
+      if (!reserve(node, state, doc, unbounded ? Infinity : null)) continue;
       const source = render(doc, text, color, mul, raster);
       if (!source) continue;
       let target = node.querySelector("canvas.dwfui-bitmap-canvas");
@@ -480,17 +482,28 @@
     return painted;
   }
 
-  function paint(rootNode) {
+  function paint(rootNode, options) {
     const doc = docFor(rootNode);
     const nodes = nodesWithin(rootNode || doc);
     if (!nodes.length) return Promise.resolve(0);
     const state = stateFor(doc);
-    observeNodes(nodes, state, doc);
-    return load(doc).then(() => paintNow(doc, nodes, state)).catch(error => {
+    const unbounded = !!(options && options.unboundedBenchmark);
+    if (!unbounded) observeNodes(nodes, state, doc);
+    return load(doc).then(() => paintNow(doc, nodes, state, unbounded)).catch(error => {
       reportStatus(doc, false, error);
       nodes.forEach(node => markFallback(node, "atlas-unavailable"));   // IDEMPOTENT
       return 0;
     });
+  }
+
+  // Unbounded painting only on the benchmark stage page, never on a production page.
+  function paintBenchmark(rootNode) {
+    const doc = rootNode && rootNode.ownerDocument;
+    const pathname = String(doc && doc.location && doc.location.pathname || "");
+    const isStage = rootNode && rootNode.hasAttribute && rootNode.hasAttribute("data-fnd-benchmark-stage");
+    if (!isStage || !/\/tools\/ui-lab\//.test(pathname))
+      return Promise.reject(new Error("unbounded bitmap painting is restricted to the Parity Studio benchmark stage"));
+    return paint(rootNode, { unboundedBenchmark: true });
   }
 
   // Coalesce DOM mutation bursts into one paint pass per frame; production DWFUI uses schedule().
@@ -523,7 +536,7 @@
         try {
           if (batches.length) {
             await load(doc);
-            for (const nodes of batches) count += paintNow(doc, nodes, state);
+            for (const nodes of batches) count += paintNow(doc, nodes, state, false);
           }
         } catch (error) {
           reportStatus(doc, false, error);
@@ -540,24 +553,19 @@
     });
   }
 
+  // An explicit interface scale, or `null` to drop the memo and re-measure the art next pass.
   function configure(doc, options) {
     const state = stateFor(doc);
-    const requested = Number(options && options.maxLiveCanvases);
-    state.maxLive = Number.isFinite(requested) ? Math.max(1, Math.min(MAX_LIVE_CANVASES, Math.floor(requested))) : MAX_LIVE_CANVASES;
-    // An explicit interface scale, or `null` to drop the memo and re-measure the art next pass.
     if (options && "interfaceScale" in options)
       state.scale = options.interfaceScale == null ? null : clampScale(options.interfaceScale);
-    prune(state, doc);
-    return state.maxLive;
+    prune(state, doc, false);
   }
 
   function stats(doc) {
     const d = doc || (root && root.document);
-    const documentState = d ? stateFor(d) : null;
     return { loaded: !!atlas, error: loadError && loadError.message, loadMilliseconds,
       cacheSize: cache.size, cacheLimit: CACHE_LIMIT, cacheHits, cacheMisses,
-      maxLiveCanvases: documentState ? documentState.maxLive : MAX_LIVE_CANVASES,
-      productionMaxLiveCanvases: MAX_LIVE_CANVASES, liveCanvases, liveCanvasBytes,
+      maxLiveCanvases: MAX_LIVE_CANVASES, liveCanvases, liveCanvasBytes,
       budgetDeferrals, canvasEvictions, scheduledBatches, unchangedSkips,
       soften: SOFTEN, atlasBakes, atlasBakeMilliseconds,
       scaledAtlases: [...scaledAtlases.values()].map(a => `${a.scale}:${a.cw}x${a.ch}`),
@@ -581,7 +589,7 @@
   }
   const api = { CELL_W, CELL_H, CACHE_LIMIT, MAX_LIVE_CANVASES, MAX_DIRTY_ROOTS_PER_FRAME,
     PREFETCH_MARGIN, ATLAS_URL, PAD, PITCH_W, PITCH_H, MIN_SCALE, MAX_SCALE, SOFTEN,
-    CP437, cellsFor, load, render, paint, schedule, configure, benchmark, stats,
+    CP437, cellsFor, load, render, paint, paintBenchmark, schedule, configure, benchmark, stats,
     clearCache, interfaceScale, measureSpriteScale, zoomFor, bakeAtlas,
     cellPx, glyphCell, measure, cellsInPx };
   root.DFBitmapText = api;

@@ -49,11 +49,6 @@
 
   // ---- render (pure) -------------------------------------------------------------------------
 
-  // A hotkey badge is a SHORT native-style token ("Ctrl+Z") -> bitmap text, like every other label.
-  function keyBadge(control) {
-    return '<span class="help-ref-key">' + DWFUI.bitmapTextHtml(String(control == null ? "" : control)) + "</span>";
-  }
-
   // A DECLARED bypass: bitmap text is a single-run label, so multi-paragraph guide copy pushed through
   // it would produce one unwrappable run per paragraph. rawHtml() refuses to emit without a reason.
   function guideHtml(entry) {
@@ -63,19 +58,25 @@
       '<div class="help-guide"><h4>' + DWFUI.esc(entry.title) + "</h4>" + paras + "</div>");
   }
 
+  // The body is two columns of HELP_COL_CELLS text cells; a row's text wraps to what its key badge leaves.
+  var HELP_COL_CELLS = 38;
+
   function entryRowHtml(surface, entry, note) {
     if (surface.kind === "guides") return guideHtml(entry);
 
+    // Hotkeys: the control IS the key, a badge before the description; elsewhere the hotkey trails.
     var isHotkey = surface.kind === "hotkeys";
-    // Hotkeys: the control IS the key -> render it as a badge; the text is the description.
-    var icon = isHotkey ? keyBadge(entry.control) : "";
-    var trailing = (!isHotkey && entry.hotkey)
-      ? '<span class="help-ref-hotkey">' + DWFUI.esc(entry.hotkey) + "</span>" : "";
-    var sub = note ? { text: note, cls: "help-ref-note" } : null;
-    var label = isHotkey ? entry.text : (entry.text || entry.control);
+    var key = String((isHotkey ? entry.control : entry.hotkey) || "");
+    var cols = HELP_COL_CELLS - (key ? key.length + 3 : 0);
+    var badge = key ? '<span class="' + (isHotkey ? "help-ref-key" : "help-ref-hotkey") + '">' +
+      DWFUI.bitmapTextHtml(key) + "</span>" : "";
     return DWFUI.rowHtml({
-      cls: "help-ref-row" + (isHotkey ? " hk" : ""),
-      icon: icon, label: label, sub: sub, trailing: trailing,
+      cls: "help-ref-row" + (isHotkey ? " hk" : ""), copyCls: "help-ref-copy",
+      icon: isHotkey ? badge : "", trailing: isHotkey ? "" : badge,
+      labelHtml: DWFUI.bitmapProseHtml(isHotkey ? entry.text : (entry.text || entry.control), cols),
+      sub: note ? DWFUI.wrapToColumns(note, cols).map(function (text) {
+        return { text: text, cls: "help-ref-note" };
+      }) : null,
     });
   }
 
@@ -95,7 +96,7 @@
       if (!groups.length) return "";
       return groups.map(function (g) {
         var rows = byGroup[g].map(function (e) { return entryRowHtml(surface, e, ""); }).join("");
-        return (g ? '<div class="help-ref-group">' + DWFUI.esc(g) + "</div>" : "") + rows;
+        return (g ? '<div class="help-ref-group">' + DWFUI.bitmapTextHtml(g) + "</div>" : "") + rows;
       }).join("");
     }
     var out = surface.entries.map(function (e) {
@@ -121,7 +122,7 @@
       return '<section class="help-ref-section" data-surface="' + DWFUI.esc(surface.id) + '">' +
         "<h3>" + DWFUI.esc(surface.label) + "</h3>" + inner + "</section>";
     }).join("");
-    if (!sections) sections = '<div class="help-ref-empty">No tooltips match &ldquo;' + DWFUI.esc(query) + "&rdquo;.</div>";
+    if (!sections) sections = '<div class="dwfui-text--empty help-ref-empty">No tooltips match &ldquo;' + DWFUI.esc(query) + "&rdquo;.</div>";
     return { html: sections, count: count };
   }
 
@@ -131,7 +132,7 @@
     var body = renderBody(corpus, curated, query);
     var header = DWFUI.headerHtml({
       cls: "hotkey-head help-ref-head",
-      titleTag: "h2", title: "Help — all tooltips",
+      titleTag: "h2", title: "Help: all tooltips",
       tools: '<span class="help-ref-count">' + body.count + " entries</span>",
       close: { cls: "hotkey-close", data: "help-close", title: "Close" },
     });

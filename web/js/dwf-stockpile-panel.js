@@ -63,17 +63,6 @@
       window.setStockpilePanel(`<h1>Stockpile unavailable</h1>`);
     }
   }
-  function linkListHtml(items) {
-    items = Array.isArray(items) ? items : [];
-    if (!items.length) return `<span class="stockpile-pill">None</span>`;
-    return items.map(item => `<span class="stockpile-pill" title="${escapeHtml(item.name || "")}">${escapeHtml(item.name || `#${item.id}`)}</span>`).join("");
-  }
-  function flatStockpileLinks(info, key) {
-    const links = info.links || {};
-    if (key === "give")
-      return [...(Array.isArray(links.give) ? links.give : []), ...(Array.isArray(links.giveWorkshops) ? links.giveWorkshops : [])];
-    return [...(Array.isArray(links.take) ? links.take : []), ...(Array.isArray(links.takeWorkshops) ? links.takeWorkshops : [])];
-  }
   async function postStockpile(url) {
     try {
       const r = await fetch(url, { method: "POST", cache: "no-store" });
@@ -121,16 +110,17 @@
     const tile = (sprite, extraCls, dataset, title) => DWFUI.artBtnHtml({
       sprite, cls: `stockpile-panel-stile${extraCls ? " " + extraCls : ""}`, dataset, title, ariaLabel: title,
     });
-    return SP_STORAGE_FIELDS.map(([key, label]) => `<div class="stockpile-storage-row">
-        <span class="stockpile-storage-label">${label}</span>
-        <span class="stockpile-panel-storval">${spClampStorage(s[key])}</span>
-        ${DWFUI.numberEntryHtml({ cls: "stockpile-num-entry", inputCls: "stockpile-num", editing: true,
-          value: spClampStorage(s[key]), text: String(spClampStorage(s[key])), min: 0, max: 3000,
-          maxLength: 4, ariaLabel: label, dataset: { spStorage: key } })}
-        ${tile(S.stepHash, "", { spnHash: key }, `Set ${label.toLowerCase()}`)}
-        ${tile(S.stepPlus, "stockpile-step", { spStep: key, delta: 1 }, `Increase ${label.toLowerCase()}`)}
-        ${tile(S.stepMinus, "stockpile-step", { spStep: key, delta: -1 }, `Decrease ${label.toLowerCase()}`)}
-      </div>`).join("");
+    return SP_STORAGE_FIELDS.map(([key, label]) => DWFUI.rowHtml({
+      cls: "stockpile-storage-row", copyCls: "stockpile-storage-copy", label,
+      cells: [{ numeric: true, cls: "stockpile-storage-value",
+        html: `<span class="stockpile-panel-storval">${spClampStorage(s[key])}</span>` +
+          DWFUI.numberEntryHtml({ cls: "stockpile-num-entry", inputCls: "stockpile-num", editing: true,
+            value: spClampStorage(s[key]), text: String(spClampStorage(s[key])), min: 0, max: 3000,
+            maxLength: 4, ariaLabel: label, dataset: { spStorage: key } }) }],
+      trailing: tile(S.stepHash, "", { spnHash: key }, `Set ${label.toLowerCase()}`) +
+        tile(S.stepPlus, "stockpile-step", { spStep: key, delta: 1 }, `Increase ${label.toLowerCase()}`) +
+        tile(S.stepMinus, "stockpile-step", { spStep: key, delta: -1 }, `Decrease ${label.toLowerCase()}`),
+    })).join("");
   }
   function spDisplayName(name) {
     const s = String(name || "");
@@ -156,6 +146,8 @@
     ["Sheets", "sheets", 14], ["Stone", "stone", 15], ["Weapons", "weapons", 16], ["Wood", "wood", 17],
     ["None", "none", 0], ["Custom", "custom", 18]
   ];
+  // Native wraps a type label to the nine cells between its icon and the next column.
+  const SPN_TYPE_LABEL_COLS = 9;
   // ---- the 20 type tiles ---------------------------------------------------------------------
   function spnTypeGridHtml(groups) {
     const preset = activePresetFromGroups(groups);
@@ -163,14 +155,14 @@
       const active = key === "custom" ? preset === "" : stockCatIsActive(groups, key);
       return DWFUI.rowHtml({
         tag: "button",
-        chassis: "slab", selected: active, cls: "stockpile-panel-type",
+        layout: "icon", selected: active, cls: "stockpile-panel-type",
         dataset: { spCat: key },
         title: label,
         icon: `<span class="stockpile-panel-ticon">` +
           DWFUI.iconHtml({ spriteCrop: DWFUI.stockpileIconCrop(iconRow, { signless: true }) }) +
           `</span>`,
-        label,
-        labelCls: "stockpile-panel-tlab",
+        labelHtml: DWFUI.bitmapProseHtml(label, SPN_TYPE_LABEL_COLS),
+        copyCls: "stockpile-panel-tcopy", labelCls: "stockpile-panel-tlab",
       });
     }).join("");
   }
@@ -244,8 +236,6 @@
   }
 
   // ================================================================================================
-  const SPN_SIDE_COLUMNS = 41;      // panel_left+86 - (panel_left+46) = 40, i.e. 41 inclusive
-  const SPN_SIDE_TOP_ROW = 4;       // both windows' top y
   const SPN_SIDE_ROWS = { storage: 18, links: 38, linksAdding: 13 };
   // Native's linking window loses 25 rows the moment "adding new link" is armed, and the back-out
   // ordering agrees: cancel the add first, close the window second.
@@ -276,6 +266,13 @@
     spnStorageId = null;
     try { if (window.DFPanelFrame) window.DFPanelFrame.syncOpenState("spStorage", false); } catch { globalThis.DwfErr?.count("stockpile-panel.storage-close-state"); }
   }
+  function spnStorageWinHtml(rowsHtml = "") {
+    return DWFUI.sideWindowHtml({
+      cls: "stockpile-panel-sidewin-inner", ariaLabel: "Storage and tools",
+      tools: `<span class="stockpile-panel-storagetitle">Storage and tools</span>`,
+      done: { cls: "stockpile-panel-done", dataset: { spnStorageDone: "" }, title: "Done" },
+    }, `<div class="stockpile-panel-storrows">${rowsHtml}</div>`);
+  }
   function spnEnsureStorageWin() {
     let win = spnStorageWin();
     if (win) return win;
@@ -284,15 +281,7 @@
     // An occupant of the shared side slot, so it carries the slot class and declares its own row count.
     win.className = "stockpile-panel-storagewin stockpile-panel-sidewin";
     win.dataset.spnSideRows = String(spnSideRows("storage", false));
-    win.classList.remove("stockpile-panel-sidewin-open");
-    // NOT `sideWindowHtml`: that emits its OWN red Done inside a bar with no cls hook, and would rename
-    // the head away from `.stockpile-panel-storagehead`, which this window's PanelFrame registration pins as headSel.
-    win.innerHTML = `<div class="stockpile-panel-storagehead"><span class="stockpile-panel-storagetitle">Storage and tools</span>` +
-      DWFUI.plaqueBtnHtml({
-        label: "Done", tone: "red", cls: "stockpile-panel-done",
-        dataset: { spnStorageDone: "" }, title: "Done",
-      }) + `</div>` +
-      `<div class="stockpile-panel-storrows"></div>`;
+    win.innerHTML = spnStorageWinHtml();
     document.body.appendChild(win);
     // Native's close control eats the left button UNCONDITIONALLY, before any hit test, so this listener
     // consumes the event first and never conditions on anything.
@@ -303,7 +292,7 @@
     });
     if (window.DFPanelFrame) window.DFPanelFrame.register({
       key: "spStorage", el: () => spnStorageWin(), title: "Storage and tools",
-      headSel: ".stockpile-panel-storagehead", closable: false, escClosable: true, persistOpen: false, menu: false,
+      headSel: ".dwfui-sidewin-bar", closable: false, escClosable: true, persistOpen: false, menu: false,
       isOpen: () => { const n = spnStorageWin(); return !!n && n.classList.contains("stockpile-panel-sidewin-open"); },
       close: () => spnCloseStorage(),
     });
@@ -378,7 +367,6 @@
     });
     return rows;
   }
-  function spLinkRowCount(info) { return spFlatLinkRows(info).length; }
   function spLinkRowHtml(row) {
     const label = row.name || `#${row.id}`;
     const verb = row.direction === "give" ? "Gives to" : "Takes from";
@@ -420,7 +408,6 @@
     win.id = "spLinksPanel";
     win.className = "stockpile-panel-linkswin stockpile-panel-sidewin";
     win.dataset.spnSideRows = String(spnSideRows("links", false));
-    win.classList.remove("stockpile-panel-sidewin-open");
     document.body.appendChild(win);
     win.addEventListener("click", async event => {
       const done = event.target.closest("[data-dwfui-sidewin-done]");
@@ -460,7 +447,7 @@
     win.dataset.spnSideRows = String(spnSideRows("links", spnLinksAdding));
     win.classList.toggle("adding", !!spnLinksAdding);
     win.innerHTML = DWFUI.sideWindowHtml({
-      cls: "stockpile-panel-linkswin-inner", ariaLabel: "Stockpile links",
+      cls: "stockpile-panel-sidewin-inner", ariaLabel: "Stockpile links",
       tools: spnLinksAdding ? "" : DWFUI.plaqueBtnHtml({
         label: "Add link", cls: "stockpile-link-add-button",
         dataset: { spLinkAdd: "" }, title: "Add a give/take link",
@@ -514,7 +501,7 @@
     const takes = takeIds.has(tid);
     const meta = `${target.kind || "building"} ${target.pos ? `${target.pos.x},${target.pos.y},${target.pos.z}` : ""}`;
     const modeBtn = (mode, label, on) => DWFUI.plaqueBtnHtml({
-      label, tone: on ? "green" : undefined,
+      label, size: "compact", on,
       cls: "stockpile-link-button" + (on ? " active" : ""),
       dataset: { spLinkMode: mode, spLinkTarget: tid, on: on ? 0 : 1 },
     });
@@ -531,8 +518,6 @@
     const id = info.id;
     const groups = info.groups || {};
     const display = info.displayName || `Stockpile #${info.number || 0}`;
-    const sz = info.size || { w: 1, h: 1 };
-    const pos = info.pos || { x: 0, y: 0, z: 0 };
     const storage = info.storage || { barrels: 0, bins: 0, wheelbarrows: 0 };
     // The "Ordered by" line, merged from /attrib by stockpile id; openStockpilePanel warms the cache.
     const spOrderedByChip = (typeof attribRowHtml === "function") ? attribRowHtml("stockpile", id) : "";
@@ -650,4 +635,4 @@
 
 
   if (typeof window !== "undefined") Object.assign(window, { openStockpilePanel, postStockpile, refreshStockpileSummary, spDisplayName, stockGroupForPreset, stockpileMutationSucceeded });
-  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { activePresetFromGroups, stockGroupForPreset, stockCatIsActive, openStockpilePanel, linkListHtml, flatStockpileLinks, postStockpile, stockpileMutationSucceeded, SP_STORAGE_FIELDS, spTileCount, spClampStorage, spStorageClampedToTiles, spStorageUrl, spStorageRowsHtml, spDisplayName, refreshStockpileSummary, SPN_TYPES, spnTypeGridHtml, spnRemoveKey, spnRemoveArmedFor, spnRemovePress, spnToolsHtml, spModeRowHtml, SPN_SIDE_COLUMNS, SPN_SIDE_TOP_ROW, SPN_SIDE_ROWS, spnSideRows, spnDockSideWindow, spnStorageWin, spnCloseStorage, spnEnsureStorageWin, spnRenderStorage, spnOpenStorage, SP_LINK_KINDS, spFlatLinkRows, spLinkRowCount, spLinkRowHtml, spLinkListHtml, spnLinksWin, spnCloseLinks, spnLinksBackOut, spnEnsureLinksWin, spnLinksBodyHtml, spnRenderLinks, spnOpenLinks, spnTitlebarHtml, spLinkTargetRowHtml, renderStockpilePanel });
+  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { activePresetFromGroups, stockGroupForPreset, stockCatIsActive, openStockpilePanel, postStockpile, stockpileMutationSucceeded, SP_STORAGE_FIELDS, spTileCount, spClampStorage, spStorageClampedToTiles, spStorageUrl, spStorageRowsHtml, spDisplayName, refreshStockpileSummary, SPN_TYPES, spnTypeGridHtml, spnRemoveKey, spnRemoveArmedFor, spnRemovePress, spnToolsHtml, spModeRowHtml, SPN_SIDE_ROWS, spnSideRows, spnDockSideWindow, spnStorageWin, spnStorageWinHtml, spnCloseStorage, spnEnsureStorageWin, spnRenderStorage, spnOpenStorage, SP_LINK_KINDS, spFlatLinkRows, spLinkRowHtml, spLinkListHtml, spnLinksWin, spnCloseLinks, spnLinksBackOut, spnEnsureLinksWin, spnLinksBodyHtml, spnRenderLinks, spnOpenLinks, spnTitlebarHtml, spLinkTargetRowHtml, renderStockpilePanel });

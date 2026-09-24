@@ -165,39 +165,41 @@ void register_write_guard_routes(httplib::Server& server) {
         res.set_content(body.str(), "application/json; charset=utf-8");
     });
 
-    // ---- GET|POST /console-config[?enabled=on|off] ------------------------------------------------
+    // ---- GET /console-config reads; POST /console-config?enabled=on|off writes ---------------------
     // dfhack_console is the only key any route may write, and only from the host tab.
-    auto console_config_handler = [](const httplib::Request& req, httplib::Response& res) {
-        res.set_header("Cache-Control", "no-store");
-        const bool host = request_is_host_tab(req);
-        if (req.has_param("enabled")) {
-            if (!host) {
-                diagnostics_log("write-guards: non-host tried to set dfhack_console from " +
-                                req.remote_addr);
-                res.status = 403;
-                res.set_content("{\"ok\":false,\"err\":\"only the host tab may change this "
-                                "setting\"}\n", "application/json; charset=utf-8");
-                return;
+    auto console_config_handler = [](bool may_write) {
+        return [may_write](const httplib::Request& req, httplib::Response& res) {
+            res.set_header("Cache-Control", "no-store");
+            const bool host = request_is_host_tab(req);
+            if (may_write && req.has_param("enabled")) {
+                if (!host) {
+                    diagnostics_log("write-guards: non-host tried to set dfhack_console from " +
+                                    req.remote_addr);
+                    res.status = 403;
+                    res.set_content("{\"ok\":false,\"err\":\"only the host tab may change this "
+                                    "setting\"}\n", "application/json; charset=utf-8");
+                    return;
+                }
+                const std::string v = req.get_param_value("enabled");
+                const bool on = (v == "on" || v == "true" || v == "1");
+                if (!write_allowed_flag(kConsoleFlag, on)) {
+                    res.status = 500;
+                    res.set_content("{\"ok\":false,\"err\":\"could not write "
+                                    "dfcapture-hostwrites.json\"}\n",
+                                    "application/json; charset=utf-8");
+                    return;
+                }
+                diagnostics_log(std::string("write-guards: host set dfhack_console=") +
+                                (on ? "on" : "off"));
             }
-            const std::string v = req.get_param_value("enabled");
-            const bool on = (v == "on" || v == "true" || v == "1");
-            if (!write_allowed_flag(kConsoleFlag, on)) {
-                res.status = 500;
-                res.set_content("{\"ok\":false,\"err\":\"could not write "
-                                "dfcapture-hostwrites.json\"}\n",
-                                "application/json; charset=utf-8");
-                return;
-            }
-            diagnostics_log(std::string("write-guards: host set dfhack_console=") +
-                            (on ? "on" : "off"));
-        }
-        res.set_content(std::string("{\"ok\":true,\"enabled\":") +
-                            (hostwrite_enabled(kConsoleFlag) ? "true" : "false") +
-                            ",\"host\":" + (host ? "true" : "false") + "}\n",
-                        "application/json; charset=utf-8");
+            res.set_content(std::string("{\"ok\":true,\"enabled\":") +
+                                (hostwrite_enabled(kConsoleFlag) ? "true" : "false") +
+                                ",\"host\":" + (host ? "true" : "false") + "}\n",
+                            "application/json; charset=utf-8");
+        };
     };
-    server.Get("/console-config", console_config_handler);
-    server.Post("/console-config", console_config_handler);
+    server.Get("/console-config", console_config_handler(false));
+    server.Post("/console-config", console_config_handler(true));
 }
 
 } // namespace guards

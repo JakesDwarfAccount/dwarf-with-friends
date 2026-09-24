@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.build-information {
   .vermin-sheet-body,
@@ -47,8 +47,6 @@
   .vermin-portrait-slot .unit-portrait-fallback-art {
     width: 100%;
     height: 100%;
-    display: grid;
-    place-items: center;
   }
   .vermin-species-caption {
     position: absolute;
@@ -87,5 +85,20 @@
     height: calc(3 * var(--absent-sheet-cell-h));
     display: grid;
     place-items: center;
+    color: var(--dwfui-text-body);
+  }
+  /* ---- Rows 96/99: vermin + planned-engraving view sheets ------------------------------- */
+  .vermin-sheet-window,
+  .planned-engraving-window {
+    --absent-sheet-cell-w: var(--dwfui-cell-drawn-w);
+    --absent-sheet-cell-h: var(--dwfui-cell-drawn-h);
+    width: calc(60 * var(--absent-sheet-cell-w));
+    min-height: calc(22 * var(--absent-sheet-cell-h));
+  }
+  .vermin-portrait-frame {
+    grid-area: 1 / 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
   }
 }

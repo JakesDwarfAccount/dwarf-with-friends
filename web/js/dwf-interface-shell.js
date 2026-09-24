@@ -74,6 +74,7 @@
 
   function topbarMarkup(state) {
     const s = state || {};
+    const text = value => root.DWFUI.bitmapTextHtml(value);
     const moods = Array.isArray(s.moods) ? s.moods.slice(0, 7) : [];
     while (moods.length < 7) moods.push(0);
     const stocks = s.stocks || {};
@@ -81,14 +82,14 @@
     // BUTTON_STRESS_0..6 -- the seven real DF mood faces, painted by DWFUI instead of stamped over
     // the markup by the controller at boot.
     const moodCells = moods.map((count, index) =>
-      `<span class="mood-cell">${root.DWFUI.iconHtml({ sprite: `BUTTON_STRESS_${index}`, size: 20, cls: "mood-icon", dataset: { moodIcon: index }, alt: `Stress level ${index}` })}<span class="mood-n">${n(count, 0)}</span></span>`).join("");
+      `<span class="mood-cell">${root.DWFUI.iconHtml({ sprite: `BUTTON_STRESS_${index}`, size: 20, cls: "mood-icon", dataset: { moodIcon: index }, alt: `Stress level ${index}` })}<span class="mood-n">${text(n(count, 0))}</span></span>`).join("");
     return `
-      <div class="fort-lines top-status-identity" data-dwf-status-zone="identity"><div id="fortName" data-dwf-row="0">${root.DWFUI.esc(s.fortName || "Fortress")}</div><div id="siteName" data-dwf-row="1">${root.DWFUI.esc(s.siteName || "Site")}</div><div id="rankName" data-dwf-row="2">${root.DWFUI.esc(s.rankName || "Outpost")}</div></div>
-      <div class="status-group top-status-population" id="popGroup" data-dwf-status-zone="population"><span class="mood-cell pop-cell"><span class="label">Pop</span><span id="population" class="mood-n">${n(s.population, 0)}</span></span><div class="moods" id="moods">${moodCells}</div></div>
+      <div class="fort-lines top-status-identity" data-dwf-status-zone="identity"><div id="fortName" data-dwf-row="0">${text(s.fortName || "Fortress")}</div><div id="siteName" data-dwf-row="1">${text(s.siteName || "Site")}</div><div id="rankName" data-dwf-row="2">${text(s.rankName || "Outpost")}</div></div>
+      <div class="status-group top-status-population" id="popGroup" data-dwf-status-zone="population"><span class="mood-cell pop-cell"><span class="label">${text("Pop")}</span><span id="population" class="mood-n">${text(n(s.population, 0))}</span></span><div class="moods" id="moods">${moodCells}</div></div>
       ${root.DWFUI.plaqueBtnHtml({ cls: "top-button", dataset: { panel: "stocks", dwfRow: 1, dwfStatusZone: "stocks-label" }, label: "Stocks", title: "Stock levels and item management.\nHotkey: k" })}
-      <div class="stock-counts" data-dwf-status-zone="resources">${TOP_STOCKS.map(([key, label]) => `<div class="status-group top-stock-cell" data-dwf-stock="${key}"><span class="label stock-${key}" data-dwf-row="0">${label}</span><span id="${key}" class="stock-val" data-dwf-row="2">${root.DWFUI.esc(stockCountText(stocks[key]))}</span></div>`).join("")}</div>
+      <div class="stock-counts" data-dwf-status-zone="resources">${TOP_STOCKS.map(([key, label]) => `<div class="status-group top-stock-cell" data-dwf-stock="${key}"><span class="label stock-${key}" data-dwf-row="0">${text(label)}</span><span id="${key}" class="stock-val" data-dwf-row="2">${text(stockCountText(stocks[key]))}</span></div>`).join("")}</div>
       <div class="moon top-status-weather" id="moon" data-dwf-status-zone="weather" data-dwf-cols="4" data-dwf-rows="3" title="Weather" aria-label="${root.DWFUI.esc(s.weather || "Weather")}"></div>
-      <div class="fort-lines top-status-date" data-dwf-status-zone="date"><div data-dwf-row="0">${root.DWFUI.bitmapTextHtml(date.day || "1st", { id: "dateDay" })} ${root.DWFUI.bitmapTextHtml(date.month || "Granite", { id: "dateMonth" })}</div><div data-dwf-row="1">${root.DWFUI.bitmapTextHtml(date.season || "Early Spring", { id: "dateSeason" })}</div><div data-dwf-row="2">${root.DWFUI.bitmapTextHtml(`Year ${n(date.year, 0)}`, { id: "dateYear" })}</div></div>
+      <div class="fort-lines top-status-date" data-dwf-status-zone="date"><div data-dwf-row="0">${root.DWFUI.bitmapTextHtml(date.day || "1st", { id: "dateDay" })}${root.DWFUI.bitmapTextHtml(date.month || "Granite", { id: "dateMonth" })}</div><div data-dwf-row="1">${root.DWFUI.bitmapTextHtml(date.season || "Early Spring", { id: "dateSeason" })}</div><div data-dwf-row="2">${root.DWFUI.bitmapTextHtml(`Year ${n(date.year, 0)}`, { id: "dateYear" })}</div></div>
       <div class="topbar-controls" data-dwf-status-zone="controls">
         ${sqArt({ dataset: { action: "pause" }, sprite: "BUTTON_PAUSE_INACTIVE", title: "Pause", ariaLabel: "Pause" })}
         ${sqArt({ dataset: { action: "play" }, sprite: "BUTTON_PLAY_ACTIVE", title: "Play", ariaLabel: "Play" })}
@@ -225,17 +226,23 @@
     return `<div class="mode-label-plate${label ? " visible" : ""}" aria-live="polite">${root.DWFUI.esc(label || "")}</div>`;
   }
 
-  function fortressChromeMarkup(state) {
-    const s = state || {};
-    return `<div class="fortress-chrome-preview"><div id="leftBadges"><button type="button" class="badge alert-badge" aria-label="Announcements"><span class="alert-badge-text" aria-hidden="true">ALERT</span></button></div>${toolModeMarkup(s.toolMode || "")}<div id="topbar" class="df-panel">${topbarMarkup(s)}</div><div id="rightHud">${minimapMarkup(s)}</div><div id="zScrollbar">${zScrollbarMarkup(s)}</div></div>`;
+  function alertBadgeMarkup() {
+    return `<span class="alert-badge-text" aria-hidden="true">${root.DWFUI.bitmapTextHtml("ALERT")}</span>`;
   }
 
-  // RULE: a control declared in index.html under #topbar / #rightHud / #zScrollbar MUST also be emitted
-  // here. hydrate() overwrites their innerHTML, and a guard cannot reveal an element that was never emitted.
+  function fortressChromeMarkup(state) {
+    const s = state || {};
+    return `<div class="fortress-chrome-preview"><div id="leftBadges"><button type="button" class="badge alert-badge" aria-label="Announcements">${alertBadgeMarkup()}</button></div>${toolModeMarkup(s.toolMode || "")}<div id="topbar" class="df-panel">${topbarMarkup(s)}</div><div id="rightHud">${minimapMarkup(s)}</div><div id="zScrollbar">${zScrollbarMarkup(s)}</div></div>`;
+  }
+
+  // RULE: a control declared in index.html under #topbar / #rightHud / #zScrollbar / the ALERT badge MUST
+  // also be emitted here. hydrate() overwrites their innerHTML; a guard cannot reveal what was never emitted.
   function hydrate() {
     const topbar = root.document?.getElementById("topbar");
     const rightHud = root.document?.getElementById("rightHud");
     const zScrollbar = root.document?.getElementById("zScrollbar");
+    const alertBadge = root.document?.querySelector("#leftBadges .alert-badge");
+    if (alertBadge) alertBadge.innerHTML = alertBadgeMarkup();
     if (topbar) topbar.innerHTML = topbarMarkup({});
     if (rightHud) rightHud.innerHTML = minimapMarkup({});
     if (zScrollbar) zScrollbar.innerHTML = zScrollbarMarkup({});

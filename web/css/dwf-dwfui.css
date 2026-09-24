@@ -22,7 +22,7 @@
  */
 
 /* Reusable DWFUI components and shared component behavior. */
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer preboot {
   /* The hidden attribute is application state. It must beat every author display rule. */
@@ -31,9 +31,50 @@
   }
 }
 
-@layer dwfui {
+/* PanelFrame state: the frame's runtime classes beat the styles of the panel inside it. */
+@layer overrides {
   [style*="--pf-z-index"] {
     z-index: var(--pf-z-index);
+  }
+  /* Leave the NE resize target clear without sacrificing the close button. */
+  .pf-resizable .pf-handle .pf-x,
+  .pf-resizable .pf-handle [data-pf-close],
+  .pf-resizable .pf-handle .chat-close,
+  .pf-resizable .pf-handle .chat-x,
+  .pf-resizable .pf-handle .hotkey-x {
+    margin-right: 22px !important;
+  }
+  html.pf-dragging,
+  html.pf-dragging * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: move !important;
+  }
+  .pf-resizable .pf-content .building-x,
+  .pf-resizable .pf-content .build-close,
+  .pf-resizable .pf-content .info-close {
+    position: relative;
+    z-index: 5;
+  }
+  .pf-fill-scroll {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow-y: auto !important;
+  }
+  /* A row-declaring list keeps the whole-row height cap DWFUI writes inline; no other cap applies. */
+  .pf-fill-scroll:not([data-dwfui-rows]) {
+    max-height: none !important;
+  }
+}
+
+@layer dwfui {
+  .pf-fill-host,
+  .pf-fill-chain {
+    min-height: 0;
+  }
+  .pf-fill-chain {
+    flex: 1 1 auto;
   }
   .dwfui-cell-measure-probe {
     position: absolute;
@@ -52,7 +93,7 @@
     border-bottom: 1px solid #d89b27;
     background: #151515;
     color: var(--dwfui-text-heading);
-    font: 12px ui-monospace, Consolas, monospace;
+    font: 12px var(--dwfui-font-face);
     cursor: move;
     user-select: none;
   }
@@ -61,7 +102,7 @@
     border: 0;
     background: none;
     color: var(--dwfui-text-heading);
-    font: 700 18px/1 ui-monospace, monospace;
+    font: 700 18px/1 var(--dwfui-font-face);
     cursor: pointer;
   }
   .pf-edge-e,
@@ -133,56 +174,6 @@
     border-right: 2px solid var(--dwfui-gold);
     border-bottom: 2px solid var(--dwfui-gold);
   }
-  .pf-menu {
-    border-top: 1px solid var(--dwfui-gold-bevel-mid);
-    margin-top: 6px;
-    padding-top: 4px;
-  }
-  /* Leave the NE resize target clear without sacrificing the close button. */
-  .pf-resizable .pf-handle .pf-x,
-  .pf-resizable .pf-handle [data-pf-close],
-  .pf-resizable .pf-handle .chat-close,
-  .pf-resizable .pf-handle .chat-x,
-  .pf-resizable .pf-handle .hotkey-x {
-    margin-right: 22px !important;
-  }
-  html.pf-dragging,
-  html.pf-dragging * {
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    cursor: move !important;
-  }
-  .pf-resizable .pf-content .building-x,
-  .pf-resizable .pf-content .build-close,
-  .pf-resizable .pf-content .info-close {
-    position: relative;
-    z-index: 5;
-  }
-  .dwfui-sort-head.info-sort-head-row {
-    display: grid;
-    align-items: center;
-    gap: 0;
-    margin: 4px 0 6px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .pf-fill-host,
-  .pf-fill-chain {
-    min-height: 0;
-  }
-  .pf-fill-chain {
-    flex: 1 1 auto;
-  }
-  .pf-fill-scroll {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow-y: auto !important;
-  }
-  .dwfui-crisp-text {
-    filter: var(--dwfui-text-crisp);
-  }
   :is(.dwfui-row--slab, .dwfui-row--table) :is(.dwfui-label, .dwfui-sub),
   .dwfui-group-label,
   .dwfui-group-count {
@@ -207,11 +198,8 @@
     display: inline-grid;
     place-items: center;
     flex: 0 0 auto;
-    width: auto;
-    height: auto;
     margin: 0;
     padding: 0;
-    overflow: visible;
     color: inherit;
     background: none;
     border: 0;
@@ -225,7 +213,6 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 1 auto;
     min-width: 0;
     min-height: calc(12px * var(--dwfui-interface-scale));
     padding: 0 calc(6px * var(--dwfui-interface-scale));
@@ -254,9 +241,7 @@
     background-repeat: no-repeat, no-repeat, repeat-x;
   }
   .dwfui-cycler-label {
-    position: relative;
     z-index: 1;
-    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -271,10 +256,7 @@
     color: var(--dwfui-text-body);
     background: var(--dwfui-surface);
     border: 2px solid var(--dwfui-gold);
-    font:
-      800 16px/1 ui-monospace,
-      Consolas,
-      monospace;
+    font: 800 16px/1 var(--dwfui-font-face);
   }
   .dwfui-actions button:hover {
     color: var(--dwfui-text-selected);
@@ -321,38 +303,52 @@
     min-height: 0;
     overflow-y: auto;
   }
+  /* The whole-row code's tail: room below the last row so the last page can start on a row. */
+  .dwfui-scroll--tail::after {
+    content: "";
+    display: block;
+    flex: none;
+    grid-column: 1 / -1;
+    width: 100%;
+    height: var(--dwfui-scroll-tail);
+  }
+  /* Head above, viewport below, and the bar beside the viewport only. */
   .dwfui-list {
-    display: flex;
+    display: grid;
+    grid-template: auto minmax(0, 1fr) / minmax(0, 1fr) auto;
     flex: 1 1 auto;
-    align-items: stretch;
     min-height: 0;
     min-width: 0;
   }
-  .dwfui-list > .dwfui-scroll {
-    flex: 1 1 auto;
-    min-width: 0;
+  .dwfui-list-head {
+    grid-area: 1 / 1;
   }
-  /* The controller owns the position: no browser wheel, and no scroll-snap competing with it. */
+  .dwfui-list > .dwfui-scroll {
+    grid-area: 2 / 1;
+  }
+  /* The controller owns the position: no browser wheel, and no scroll-snap competing with it.
+     !important because a later-layer overflow rule on the viewport would draw a second scrollbar. */
   .dwfui-list[data-dwfui-list-mounted] > .dwfui-scroll {
-    overflow-y: hidden;
+    overflow-y: hidden !important;
     scroll-snap-type: none;
+  }
+  .dwfui-list[data-dwfui-list-mounted] [data-dwfui-list-unshown],
+  .dwfui-list[data-dwfui-list-mounted] [data-dwfui-list-unshown] * {
+    visibility: hidden !important;
   }
   .dwfui-list-bar {
     display: none;
-    flex: 0 0 auto;
+    grid-area: 2 / 2;
     width: calc(2 * var(--dwfui-cell-drawn-w));
   }
   .dwfui-list--overflow > .dwfui-list-bar {
     display: block;
   }
-  .dwfui-list[data-dwfui-list-gutter="outside"] {
-    position: relative;
-  }
-  .dwfui-list[data-dwfui-list-gutter="outside"] > .dwfui-list-bar {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    bottom: 0;
+  /* Set by the list control when the viewport is a grid: the head's labels sit over its columns. */
+  .dwfui-list--columns > .dwfui-list-head > * {
+    grid-template-columns: var(--dwfui-list-columns);
+    column-gap: var(--dwfui-list-column-gap);
+    padding-inline: var(--dwfui-list-inset);
   }
 
   .dwfui-list-band {
@@ -532,9 +528,6 @@
     cursor: pointer;
   }
   .dwfui-occupant-tab .info-place-icon {
-    display: block;
-    width: 32px;
-    height: 32px;
     flex: 0 0 auto;
   }
   .dwfui-occupant-tab + .dwfui-occupant-tab {
@@ -549,7 +542,7 @@
   .dwfui-occupant-tab.active {
     outline: 0;
     border-color: var(--dwfui-gold-bright);
-    box-shadow: none;
+    box-shadow: none; /* cancels the hover outline; the left edge blends into the panel */
     border-left-width: 0;
     margin-left: -1px; /* merge into the panel where the cell's edge was */
   }
@@ -583,26 +576,6 @@
   .dwfui-window > .info-body {
     flex: 1 1 auto;
     min-height: 0;
-  }
-  .dwfui-window--sidepanel {
-    --dwfui-sb-width: 390px;
-    box-sizing: border-box;
-    width: calc(var(--dwfui-sb-width) * 1.4);
-    height: 100%;
-    padding: 12px;
-    color: var(--dwfui-text-body);
-    background: var(--dwfui-surface);
-    border: 0;
-  }
-  .dwfui-window--sidepanel > .info-body {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .dwfui-window--sidepanel > .info-body > .info-main {
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0;
   }
   .dwfui-stepper {
     display: flex;
@@ -769,12 +742,16 @@
     flex-direction: column;
     min-width: 0;
   }
+  .dwfui-switch-label,
+  .dwfui-switch-sub {
+    display: grid;
+    justify-items: start;
+  }
   .dwfui-switch-label {
     color: var(--dwfui-text-body);
   }
   .dwfui-switch-sub {
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
   }
 
   /* ---- F10 iconHtml: the ONE sprite/art/letter resolver ---------------------------------------- */
@@ -818,14 +795,12 @@
     border: 1px dashed var(--dwfui-text-warning);
   }
   .dwfui-icon--item {
-    background-repeat: no-repeat;
     image-rendering: pixelated;
     line-height: 0;
     overflow: hidden;
   }
   .dwfui-icon--item > canvas {
     display: block;
-    image-rendering: pixelated;
   }
   .dwfui-icon--empty {
     background: var(--dwfui-plum);
@@ -857,7 +832,6 @@
     position: absolute;
     width: 1px;
     height: 1px;
-    padding: 0;
     margin: -1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
@@ -873,7 +847,6 @@
     min-width: 0;
     background: var(--dwfui-grid-cell-bg, var(--dwfui-surface));
     border: 0;
-    box-shadow: none;
   }
   .dwfui-grid > .dwfui-cell--wide {
     grid-column: 1 / -1;
@@ -889,6 +862,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   } /* colour: INHERITS */
+  .dwfui-label > .dwfui-bitmap-line {
+    display: block; /* a wrapped label (labelHtml: bitmapProseHtml) stacks its lines */
+  }
   .dwfui-cell {
     flex: 0 0 auto;
     width: var(--dwfui-cell-w-override, auto);
@@ -911,6 +887,10 @@
   :is(.dwfui-row--slab, .dwfui-row--table) .dwfui-sub {
     color: var(--dwfui-text-secondary);
   }
+  .dwfui-row--toned,
+  .dwfui-row--toned :is(.dwfui-label, .dwfui-sub) {
+    color: var(--dwfui-row-tone);
+  }
 
   .dwfui-row--icon {
     display: grid;
@@ -924,11 +904,6 @@
     flex-direction: column;
     min-width: 0;
   }
-  .dwfui-row--icon .dwfui-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 
   .dwfui-row--announce {
     position: relative;
@@ -937,8 +912,6 @@
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
     min-height: calc(3 * var(--dwfui-cell-drawn-h));
-    padding: 0;
-    overflow: visible;
   }
   .dwfui-row--announce.dwfui-row--announce-line {
     min-height: var(--dwfui-cell-drawn-h);
@@ -958,13 +931,11 @@
     right: 0;
     top: 0;
     display: flex;
-    flex-direction: row;
     align-items: flex-start;
     justify-content: flex-end;
     width: max-content;
     max-width: 100%;
     height: calc(3 * var(--dwfui-cell-drawn-h));
-    overflow: visible;
     z-index: 1;
   }
   .dwfui-row--announce .dwfui-announce-actions[data-dwfui-action-clipped] {
@@ -1015,29 +986,35 @@
     padding: 0 8px;
     background-color: transparent;
     background-image: var(--dwfui-row-hatch);
+    border: 0;
     border-bottom: 1px solid var(--dwfui-hatch);
   }
+  /* Three or more text lines outgrow the row's min-height; the margin keeps such rows from touching. */
+  .dwfui-row--table:not(.dwfui-row--stacked):has(> .dwfui-copy > .dwfui-sub + .dwfui-sub) > .dwfui-copy {
+    margin-block: var(--dwfui-space-xs);
+  }
 
-  /* rowHtml's `copyCls` REPLACES `.dwfui-copy` rather than adding to it, so the pin may not depend
-   on the copy cell: the row's LAST cell takes an auto left margin and the slack lands before it. */
-  :is(.dwfui-row--slab, .dwfui-row--table) > :last-child:not(.dwfui-copy):not(.dwfui-cell) {
+  /* The row's LAST cell takes an auto left margin and the slack lands before it. */
+  :is(.dwfui-row--slab, .dwfui-row--table) > :last-child:not(.dwfui-copy, .dwfui-cell) {
     margin-left: auto;
     flex: 0 0 auto; /* the column is FIXED; it never shrinks or grows */
   }
 
   .dwfui-row--stacked {
     flex-wrap: wrap;
-    align-items: center;
     align-content: center;
-    --dwf-cell-rows: 10.5;
+    --dwf-cell-rows: 6; /* a three-cell control strip over three text lines */
     --dwf-cell-pad-y: 0;
     min-height: calc(var(--dwf-cell-rows) * var(--dwfui-cell-drawn-h));
-    row-gap: calc(0.5 * var(--dwfui-cell-drawn-h));
+    row-gap: 0;
   }
   .dwfui-row--stacked > .dwfui-copy {
     order: 2; /* band 2: BENEATH the control strip ... */
     flex: 1 0 100%; /* ... spanning the row's full width */
-    gap: 2px;
+    gap: 0;
+  }
+  .dwfui-row--stacked > .dwfui-copy .dwfui-bitmap-text {
+    vertical-align: top; /* one text line is one cell tall, not a baseline box */
   }
   /* Every non-copy cell stays in band 1, in author order. */
   .dwfui-row--stacked > :not(.dwfui-copy) {
@@ -1169,16 +1146,12 @@
   .dwfui-tab--disabled .dwfui-tab-label {
     visibility: hidden;
   }
-  /* ledger 0040: a list moves by WHOLE rows. `mandatory`, not `proximity`, because native has no
-   in-between position; the last row is end-aligned so the end of the list is a snap point. */
+  /* A list moves by whole rows: `mandatory`, because native has no in-between position. */
   [data-dwfui-rows] {
     scroll-snap-type: y mandatory;
   }
   .dwfui-row-snap {
     scroll-snap-align: start;
-  }
-  .dwfui-row-snap--last {
-    scroll-snap-align: end;
   }
   .dwfui-tabs--wrap {
     flex-wrap: wrap;
@@ -1189,10 +1162,8 @@
     grid-template-rows: repeat(var(--dwfui-tab-grid-rows), var(--dwfui-cell-drawn-h));
     align-items: stretch;
     column-gap: 0;
-    row-gap: 0;
     width: min(calc(var(--dwfui-tab-grid-cols) * var(--dwfui-cell-drawn-w)), 100%);
     height: calc(var(--dwfui-tab-grid-rows) * var(--dwfui-cell-drawn-h));
-    max-width: 100%;
   }
   .dwfui-tabs--cell-grid > .dwfui-tab,
   [data-dwfui-tabs="native"] .dwfui-tabs--cell-grid > .dwfui-tab[class*="dwfui-tab--"] {
@@ -1379,6 +1350,10 @@
     border-radius: 2px;
     font: var(--dwfui-font);
   }
+  .dwfui-search-input:focus {
+    outline: none;
+    border-color: var(--dwfui-text-numeric);
+  }
   .dwfui-search-btn {
     flex: 0 0 auto;
     width: auto;
@@ -1520,15 +1495,11 @@
     box-sizing: border-box;
     width: calc(var(--dwfui-messagebox-cols) * var(--dwfui-cell-drawn-w));
     height: calc(var(--dwfui-messagebox-rows) * var(--dwfui-cell-drawn-h));
-    padding: 0;
     border: 0;
     outline: 0;
     background: #000;
     color: var(--dwfui-text-title);
     overflow: hidden;
-  }
-  .dwfui-messagebox-frame {
-    z-index: 0;
   }
   .dwfui-messagebox-text {
     position: absolute;
@@ -1562,7 +1533,6 @@
     box-sizing: border-box;
     width: calc(8 * var(--dwfui-cell-drawn-w));
     height: calc(3 * var(--dwfui-cell-drawn-h));
-    padding: 0;
     border: 0;
     background: transparent;
   }
@@ -1571,7 +1541,6 @@
     pointer-events: none;
   }
   .dwfui-messagebox-ack-label {
-    position: relative;
     z-index: 4;
     color: var(--dwfui-text-title);
   }
@@ -1625,13 +1594,6 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
-  .dwfui-multifilter {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: calc(16px * var(--dwfui-interface-scale));
-    min-width: 0;
-  }
   .dwfui-window-prompt {
     color: var(--dwfui-text-title);
     padding: 8px 10px;
@@ -1649,7 +1611,6 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0;
     border: 0;
   }
   .dwfui-head-tools-row {
@@ -1657,9 +1618,8 @@
     align-items: center;
     gap: 0;
   }
-  .dwfui-head--unit {
+  .dwfui-head.dwfui-head--unit {
     align-items: flex-start;
-    gap: 0;
   }
   [data-dwfui-glyphbox] {
     --dwfui-gb-edge: max(2px, calc(0.2 * var(--dwfui-cell-drawn-h)));
@@ -1762,15 +1722,15 @@
   .dwfui-sort-head {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0;
     min-width: 0;
   }
   .dwfui-sort-col {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 0;
     min-width: 0;
-    padding: 1px 4px;
+    padding: 0;
     cursor: pointer;
     color: var(--dwfui-text-secondary);
     background: transparent;
@@ -1778,21 +1738,37 @@
     font: var(--dwfui-font);
   }
   .dwfui-sort-col.active {
-    color: var(--dwfui-text-numeric);
-    background: var(--dwfui-slab);
-  }
-  .dwfui-sort-col--bare {
-    padding: 1px;
+    color: var(--dwfui-text-selected);
   }
   .dwfui-sort-col:disabled {
     opacity: 0.55;
     cursor: not-allowed;
   }
+  /* The caption plaque: SORT_TEXT's 8|8|8 cells once mountCyclerArt has them, a flat plaque until then. */
   .dwfui-sort-label {
     min-width: 0;
+    height: var(--dwfui-height-line);
+    padding: 0 var(--dwfui-space-m);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    background: var(--dwfui-plum);
+    box-shadow: inset 0 0 0 calc(1px * var(--dwfui-interface-scale)) var(--dwfui-gold);
+  }
+  .dwfui-sort-col.active .dwfui-sort-label {
+    background-color: var(--dwfui-gold);
+  }
+  [data-dwfui-cycler="native"] .dwfui-sort-label {
+    box-shadow: none;
+    background-image: var(--dwfui-sort-text-off-left), var(--dwfui-sort-text-off-right),
+      var(--dwfui-sort-text-off-middle);
+    background-position: left center, right center, center center;
+    background-size: calc(8px * var(--dwfui-interface-scale)) 100%;
+    background-repeat: no-repeat, no-repeat, repeat-x;
+  }
+  [data-dwfui-cycler="native"] .dwfui-sort-col.active .dwfui-sort-label {
+    background-image: var(--dwfui-sort-text-on-left), var(--dwfui-sort-text-on-right),
+      var(--dwfui-sort-text-on-middle);
   }
   .dwfui-status {
     display: inline-flex;
@@ -1817,6 +1793,28 @@
   .dwfui-bitmap-line {
     min-width: 0;
     line-height: calc(var(--dwfui-font-size, 12px) * 1.3);
+  }
+  /* Text roles, a class hook each: a section's heading, a help or status line, an empty list. */
+  .dwfui-text--section,
+  .dwfui-text--note,
+  .dwfui-text--empty {
+    font: var(--dwfui-font);
+  }
+  .dwfui-text--section {
+    margin: var(--dwfui-space-m) 0 var(--dwfui-space-s);
+    color: var(--dwfui-text-heading);
+  }
+  .dwfui-text--note {
+    color: var(--dwfui-text-secondary);
+  }
+  .dwfui-text--empty {
+    padding: var(--dwfui-space-m) 0;
+    color: var(--dwfui-text-disabled);
+  }
+  /* A numeric column: right-aligned, never wrapped or squeezed. */
+  .dwfui-cell--num {
+    text-align: right;
+    white-space: nowrap;
   }
   .dwfui-status.dim {
     color: var(--dwfui-text-secondary);
@@ -1882,21 +1880,41 @@
     opacity: 0.55;
   }
   .dwfui-plaque-label {
-    position: relative;
     z-index: 2;
+  }
+  /* lightPlaqueHtml: the tiled canvas is the whole face, and the label sits centred over it. */
+  .dwfui-lightplaque {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    line-height: 0;
+  }
+  .dwfui-lightplaque-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    font: var(--dwfui-font);
   }
   [data-dwfui-plaques="native"] .dwfui-plaque {
     --dwfui-plaque-left: var(--dwfui-plaque-neutral-left);
     --dwfui-plaque-middle: var(--dwfui-plaque-neutral-middle);
     --dwfui-plaque-right: var(--dwfui-plaque-neutral-right);
     background: transparent;
-    border: 0;
-    outline: 0;
   }
   [data-dwfui-plaques="native"] .dwfui-plaque.green {
     --dwfui-plaque-left: var(--dwfui-plaque-confirm-left);
     --dwfui-plaque-middle: var(--dwfui-plaque-confirm-middle);
     --dwfui-plaque-right: var(--dwfui-plaque-confirm-right);
+  }
+  /* Native prints white on its green face; green text belongs on the grey face and the flat fallback. */
+  [data-dwfui-plaques="native"] .dwfui-plaque.green:not(.dwfui-plaque--art-neutral, .dwfui-plaque--slab, .dwfui-plaque--compact):is(*, :hover, :active, :focus) {
+    color: var(--dwfui-text-row);
   }
   [data-dwfui-plaques="native"] .dwfui-plaque.red {
     --dwfui-plaque-left: var(--dwfui-plaque-destructive-left);
@@ -2135,8 +2153,7 @@
     border-radius: 3px;
   }
   .dwfui-stat-value {
-    font: var(--dwfui-font);
-    font-size: calc(var(--dwfui-font-size) * 2);
+    font: var(--dwfui-font-double);
     line-height: calc(var(--dwfui-font-size) * 2);
     color: var(--dwfui-text-body);
     overflow-wrap: anywhere;
@@ -2152,6 +2169,9 @@
     color: var(--dwfui-text-secondary);
   }
   .dwfui-stat-tile.gold .dwfui-stat-value {
+    color: var(--dwfui-text-numeric);
+  }
+  .gold {
     color: var(--dwfui-text-numeric);
   }
   .dwfui-stat-tile.green .dwfui-stat-value {
@@ -2296,20 +2316,30 @@
   .dwfui-window--native-framed {
     border: 0;
     outline: 0;
-    box-shadow: none;
   }
-  .dwfui-list[data-dwfui-list-mounted] > .dwfui-scroll.pf-fill-scroll {
-    overflow-y: hidden !important;
+  .confirm-armed,
+  .dwfui-art-btn.confirm-armed,
+  button[data-dwfui-native-art="true"][data-dwfui-self-framed="true"].confirm-armed {
+    box-shadow:
+      0 0 0 2px var(--dwfui-destructive),
+      0 0 6px 2px rgba(217, 52, 43, 0.45);
+    background-color: rgba(217, 52, 43, 0.22);
+    outline-offset: 0;
   }
-  .dwfui-sort-head.creature-sort-head-row {
-    grid-template-columns:
-      calc(40px * var(--dwfui-interface-scale, 1))
-      minmax(0, 1.1fr)
-      calc(24px * var(--dwfui-interface-scale, 1))
-      max-content
-      minmax(0, 0.5fr)
-      minmax(0, 0.7fr)
-      minmax(0, 1.1fr);
-    column-gap: calc(6px * var(--dwfui-interface-scale, 1));
+  .dwfui-status.warning .dwfui-status-copy {
+    color: var(--dwfui-text-warning);
+  }
+  /* THE CELL-BOX DISCIPLINE. A box that says "N cells tall" is N cells tall: `--dwf-cell-rows` is the
+   TOTAL in cells and `--dwf-cell-pad-y` is padding taken OUT of it. Enforced by ui_drift_guard R10. */
+  .dwf-cellbox {
+    --dwf-cell-rows: 1;
+    --dwf-cell-pad-y: 0;
+    --dwf-cellbox-h: calc((var(--dwf-cell-rows) - 2 * var(--dwf-cell-pad-y)) * var(--dwfui-cell-drawn-h));
+    padding-block: calc(var(--dwf-cell-pad-y) * var(--dwfui-cell-drawn-h));
+    height: var(--dwf-cellbox-h);
+    min-height: var(--dwf-cellbox-h);
+    max-height: var(--dwf-cellbox-h);
+    line-height: var(--dwfui-cell-drawn-h);
+    overflow: hidden;
   }
 }

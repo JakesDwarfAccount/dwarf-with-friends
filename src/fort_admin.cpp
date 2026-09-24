@@ -1250,7 +1250,6 @@ void register_fort_admin_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/noble-assign", noble_assign_handler);
     server.Post("/noble-assign", noble_assign_handler);
 
     // POST /position-create?position= -> one new vacant seat, bounded by entity_position.number.
@@ -1264,7 +1263,6 @@ void register_fort_admin_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"assignmentId\":" + std::to_string(assignment_id) + "}\n");
     };
-    server.Get("/position-create", position_create_handler);
     server.Post("/position-create", position_create_handler);
 
     // POST /noble-precision?level=0..4 -> the bookkeeper's record-precision goal.
@@ -1276,7 +1274,6 @@ void register_fort_admin_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/noble-precision", noble_precision_handler);
     server.Post("/noble-precision", noble_precision_handler);
 
     // GET /justice[?mode=] -> one of DF's 6 Justice sub-tabs; no mode = the legacy crimes list.
@@ -1300,12 +1297,11 @@ void register_fort_admin_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"commuted\":" + std::to_string(commuted) + "}\n");
     };
-    server.Get("/justice-pardon", pardon_handler);
     server.Post("/justice-pardon", pardon_handler);
 
-    // /justice-convict + /justice-interrogate are driven through DF's NATIVE justice UI via Lua;
-    // the plugin never hand-writes crime.punishment, plotinfo.punishments or the history events.
-    server.Get("/justice-convict", [](const httplib::Request& req, httplib::Response& res) {
+    // GET /justice-state -> read-only: the host's convict/interrogate unlock flags and the native
+    // justice screen's state; ?widgets=justice|info dumps that widget tree for host probe P-J1.
+    server.Get("/justice-state", [](const httplib::Request& req, httplib::Response& res) {
         std::string err;
         std::string json = req.has_param("widgets")
             ? hostwrites_widgets_json_via_lua(req.get_param_value("widgets"), &err)
@@ -1313,6 +1309,9 @@ void register_fort_admin_routes(httplib::Server& server) {
         if (json.empty()) { json_error(res, 503, err.empty() ? "justice state unavailable" : err); return; }
         set_no_store_json(res, json);
     });
+
+    // POST /justice-convict + /justice-interrogate drive DF's NATIVE justice UI via Lua; the plugin
+    // never hand-writes crime.punishment, plotinfo.punishments or the history events.
     auto justice_drive_handler = [](const char* action) {
         return [action](const httplib::Request& req, httplib::Response& res) {
             int crime = -1, unit = -1;
@@ -1334,13 +1333,6 @@ void register_fort_admin_routes(httplib::Server& server) {
     };
     server.Post("/justice-convict", justice_drive_handler("convict"));
     server.Post("/justice-interrogate", justice_drive_handler("interrogate"));
-    server.Get("/justice-interrogate", [](const httplib::Request& req, httplib::Response& res) {
-        (void)req;
-        std::string err;
-        std::string json = justice_state_json_via_lua(&err);
-        if (json.empty()) { json_error(res, 503, err.empty() ? "justice state unavailable" : err); return; }
-        set_no_store_json(res, json);
-    });
 
     // GET /petitions -> pending + accepted agreements.
     server.Get("/petitions", [](const httplib::Request& req, httplib::Response& res) {
@@ -1363,9 +1355,7 @@ void register_fort_admin_routes(httplib::Server& server) {
                             json_string(kPetitionNativeOnlyReason) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/petition-accept", native_only_handler);
     server.Post("/petition-accept", native_only_handler);
-    server.Get("/petition-deny", native_only_handler);
     server.Post("/petition-deny", native_only_handler);
 
     // POST /petition-policy?id=&value=0|1|2 -> prompt/accept/reject for this petition category.
@@ -1401,7 +1391,6 @@ void register_fort_admin_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/hotkey-action", hotkey_action_handler);
     server.Post("/hotkey-action", hotkey_action_handler);
 }
 
