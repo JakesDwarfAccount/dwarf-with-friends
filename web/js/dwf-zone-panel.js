@@ -31,13 +31,6 @@
     };
   }
 
-  function zoneAnimalSexGlyphHtml(row) {
-    const sex = String(row && row.sex || "").toLowerCase();
-    if (sex === "female") return `<span class="zone-animal-sex" title="Female">&#9792;</span>`;
-    if (sex === "male") return `<span class="zone-animal-sex" title="Male">&#9794;</span>`;
-    return "";
-  }
-
   // [wire, bitKey, meta-label, icon token, column title]. The title is per-icon because native
   // shows a column name only on hover -- there is no always-on header row.
   const ZONE_SQUAD_MODES = [
@@ -83,8 +76,10 @@
         icon: emblemHtml,
         copyCls: "zone-squad-copy", labelCls: "zone-squad-name",
         label: String(name),
-        sub: { cls: "zone-squad-meta",
-          text: assigned ? modes.map(spec => spec[2]).join(", ") : "Not assigned" },
+        // one label per mode, so a long list wraps between modes instead of running under the latches
+        sub: { cls: "zone-squad-meta", html: assigned
+          ? modes.map((spec, i) => DWFUI.bitmapTextHtml(spec[2] + (i < modes.length - 1 ? "," : ""))).join(" ")
+          : DWFUI.bitmapTextHtml("Not assigned") },
         trailing: latches,
       });
     }).join("");
@@ -369,7 +364,7 @@
     // The "Ordered by" line, merged from /attrib by zone id; an unknown id renders nothing.
     try { if (typeof attribRefresh === "function") await attribRefresh(); } catch { globalThis.DwfErr?.count("zone-panel.attribution"); }
     const orderedByChip = (typeof attribRowHtml === "function") ? attribRowHtml("zone", info.id) : "";
-    const orderedByLine = orderedByChip ? `<div class="building-note building-attrib">Ordered by ${orderedByChip}</div>` : "";
+    const orderedByLine = orderedByChip ? `<div class="dwfui-text--note building-note building-attrib">Ordered by ${orderedByChip}</div>` : "";
     // Superset: overlap cycling walks the stack of zones under the clicked tile client-side. `cycle` is
     // read by the [data-zone-cycle] handler, so it stays here; its markup lives in zonePanelMarkup.
     const cycle = window.dfZoneCycle;
@@ -464,7 +459,7 @@
     });
     // The zone panel has no X; ESC and map clicks close it. Optional-chained so a stray close button
     // in a future skin still binds without throwing.
-    selection.querySelector("[data-bld-close]")?.addEventListener("click", event => {
+    selection.querySelector("[data-building-close]")?.addEventListener("click", event => {
       event.stopPropagation(); closeSelection(); focusPage();
     });
   }
@@ -484,7 +479,7 @@
         back: { dataset: { zoneBack: "" }, title: "Back to zone" },
         title: squadRoomName(data.name, data.type), titleCls: "building-name" })}
       ${rows.length ? `<div class="zone-squad-list">${zoneSquadRowsHtml(rows, escapeHtml)}</div>`
-        : `<div class="zone-note">No squads are available in this fortress.</div>`}
+        : `<div class="dwfui-text--note zone-note">No squads are available in this fortress.</div>`}
     `);
     paintZoneSquadIcons(selection);
     selection.querySelector("[data-zone-back]").addEventListener("click", event => {
@@ -508,13 +503,13 @@
       loadZones();
       focusPage();
     }));
-    selection.querySelector("[data-bld-close]")?.addEventListener("click", event => {
+    selection.querySelector("[data-building-close]")?.addEventListener("click", event => {
       event.stopPropagation(); closeSelection(); focusPage();
     });
   }
 
-  // The sort bar is a RADIOGROUP over columns with exactly one active key, and the `sort:` per column
-  // is REQUIRED: native carries asc and desc in two DIFFERENT sprites, so direction cannot default.
+  // The sort bar is a RADIOGROUP over columns with exactly one active key. Each column's arrow defaults
+  // to descending, so pass `sort: "asc"` where the column sorts (or would sort) ascending.
   const ZONE_ANIMAL_SORT_COLUMNS = [["name", "Name"], ["category", "Cat"], ["profession", "Prof"]];
   function zoneAnimalSortBarHtml(sortKey, sortDirection) {
     return DWFUI.sortHeaderHtml({
@@ -592,7 +587,7 @@
           dataAttr: "zone-animal-search", type: "search", value: o.search || "",
           preserveKey: "zone-animals", ariaLabel: "Search animals",
         })
-      : `<div class="zone-note">No assignable animals found.</div>`;
+      : `<div class="dwfui-text--note zone-note">No assignable animals found.</div>`;
     return `${DWFUI.headerHtml({ cls:"building-head zone-sub-head", close:false,
       back: { dataset: { zoneBack: "" }, title: "Back to zone" },
       title:zoneDisplayName(data?.name, typeLabel), titleCls:"building-name" })}${body}`;
@@ -668,7 +663,7 @@
         centerAndFlashMapPos(pos);
       focusPage();
     }));
-    selection.querySelector("[data-bld-close]")?.addEventListener("click", event => {
+    selection.querySelector("[data-building-close]")?.addEventListener("click", event => {
       event.stopPropagation(); closeSelection(); focusPage();
     });
   }
@@ -690,7 +685,6 @@
     if (u.profession) flags.push(u.profession);
     if (u.dead) flags.push("deceased");
     if (Number(u.sameTypeRooms) > 0) flags.push(`${u.sameTypeRooms} other ${typeLabel}`);
-    const glyph = `<div class="portrait-glyph">${escapeHtml(String(name).trim().slice(0, 1).toUpperCase() || "?")}</div>`;
     const portrait = typeof unitPortraitMarkup === "function"
       ? unitPortraitMarkup(u, "info-portrait-small")
       : `<span class="zone-animal-item-glyph" aria-hidden="true" data-df-identity-missing="portrait:zone-owner">${escapeHtml(String(name).slice(0, 1).toUpperCase() || "?")}</span>`;
@@ -735,7 +729,7 @@
     const listBody = rows.length || clearRow
       ? DWFUI.scrollHtml({ cls: "zone-unit-list zone-owner-list", rows: ".zone-unit-row" },
         clearRow + rows.map(u => zoneOwnerRowHtml(u, typeLabel)).join(""))
-      : `<div class="zone-note">No assignable citizens found.</div>`;
+      : `<div class="dwfui-text--note zone-note">No assignable citizens found.</div>`;
     return `
       ${DWFUI.headerHtml({ cls:"building-head zone-sub-head", close:false,
         back: { dataset: { zoneBack: "" }, title: "Back to zone" },
@@ -807,7 +801,7 @@
       openZoneOwnersPanel(data.id);
       focusPage();
     }));
-    selection.querySelector("[data-bld-close]")?.addEventListener("click", event => {
+    selection.querySelector("[data-building-close]")?.addEventListener("click", event => {
       event.stopPropagation(); closeSelection(); focusPage();
     });
   }
@@ -835,11 +829,11 @@
         back: { dataset: { zoneBack: "" }, title: "Back to zone" },
         title:zoneDisplayName(data.name, typeLabel), titleCls:"building-name" })}
       ${Number(data.locationId) >= 0 ? DWFUI.plaqueBtnHtml({ cls: "building-btn danger", tone: "red", dataset: { zoneLocationClear: "" }, label: "Remove current location assignment" }) : ""}
-      ${createTypes.length ? `<div class="zone-section-label">Create New Location</div>
+      ${createTypes.length ? `<div class="dwfui-text--section zone-section-label">Create New Location</div>
         <div class="zone-location-create-grid">
           ${createTypes.map(t => DWFUI.plaqueBtnHtml({ cls: "zone-mini-btn", size: "compact", dataset: { zoneLocationCreate: t.kind }, label: `New ${t.label}` })).join("")}
         </div>` : ""}
-      <div class="zone-section-label">Existing Locations</div>
+      <div class="dwfui-text--section zone-section-label">Existing Locations</div>
       ${window.zoneUnitListHtml(locations.map(loc => {
         const flags = [];
         if (loc.label) flags.push(loc.label);
@@ -860,7 +854,7 @@
         const occs = Array.isArray(current.occupations) ? current.occupations : [];
         const details = currentDetails || current;
         return `
-      <div class="zone-section-label">${escapeHtml(current.name || current.label || "Location")} &middot; details</div>
+      <div class="dwfui-text--section zone-section-label">${escapeHtml(current.name || current.label || "Location")} &middot; details</div>
       <div class="zone-loc-rename">
         ${DWFUI.textInputHtml({ cls: "zone-loc-name-input", maxLength: 48, value: current.name || "", placeholder: "Location name" })}
         ${DWFUI.plaqueBtnHtml({ cls: "zone-mini-btn", size: "compact", dataset: { zoneLocationRename: "" }, label: "Rename" })}
@@ -870,8 +864,8 @@
           ? window.DFLocationMarkup.locationAccessHtml(details) : ""}
       </div>
       <div class="zone-loc-occs"><span class="zone-loc-access-label">Occupations</span>
-        ${occs.length ? occs.map(o => `<div class="zone-unit-meta">${escapeHtml(o.type)}: ${o.assigned ? escapeHtml(o.holder || "assigned") : "<em>open</em>"}</div>`).join("")
-          : `<div class="zone-note">No occupations assigned yet.</div>`}
+        ${occs.length ? occs.map(o => `<div class="zone-unit-meta">${DWFUI.bitmapTextHtml(`${o.type}: ${o.assigned ? o.holder || "assigned" : "open"}`)}</div>`).join("")
+          : `<div class="dwfui-text--note zone-note">No occupations assigned yet.</div>`}
       </div>
       ${DWFUI.plaqueBtnHtml({ cls: "building-btn", tone: "gold",
         dataset: { zoneLocationDetails: Number(current.id) },
@@ -955,7 +949,7 @@
       openZoneLocationsPanel(data.id);
       focusPage();
     });
-    selection.querySelector("[data-bld-close]")?.addEventListener("click", event => {
+    selection.querySelector("[data-building-close]")?.addEventListener("click", event => {
       event.stopPropagation(); closeSelection(); focusPage();
     });
   }
@@ -965,4 +959,4 @@
   if (typeof window !== "undefined") Object.assign(window.DFBuildingOperationsMarkup ||= {}, { zonePanelMarkup, zoneAnimalsPanelMarkup, zoneOwnersPanelMarkup });
 
   if (typeof window !== "undefined") Object.assign(window, { openZoneOwnersPanel, openZonePanel, zoneAnimalNativeLabel, zoneAnimalSortBarHtml, zoneAnimalSortedRows, zoneCreaturePortraitHtml, zoneProfessionNameHtml });
-  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { zoneAnimalAssignmentState, zoneAnimalSexGlyphHtml, ZONE_SQUAD_MODES, zoneSquadModeState, zoneSquadRgb, zoneSquadRowsHtml, paintZoneSquadIcons, zoneAnimalNativeLabel, zoneAnimalSortedRows, ZONE_TYPE_LABEL, ZONE_TYPE_SPRITE, ZONE_UNNAMED, zoneUnnamedLabel, LOCATION_TYPE_SPRITE, zoneLocationSprite, ZONE_TIP_LOCATION_ASSIGN, ZONE_TIP_LOCATION_DETAILS, ZONE_TIP_GATHER_TREES, ZONE_TIP_GATHER_SHRUBS, ZONE_TIP_GATHER_FALLEN, zoneIsAutoNamed, zoneDisplayName, zoneAcceptsSquads, squadRoomName, zoneLatch, zonePanelMarkup, zoneOwnerPortraitHtml, openZonePanel, openZoneSquadsPanel, ZONE_ANIMAL_SORT_COLUMNS, zoneAnimalSortBarHtml, zoneProfessionNameHtml, zoneCreaturePortraitHtml, zoneAnimalRowHtml, zoneAnimalsPanelMarkup, warmUnitSpriteSnapshot, openZoneUnitsPanel, zoneOwnerSortedRows, zoneOwnerRowHtml, zoneOwnersPanelMarkup, openZoneOwnersPanel, openZoneLocationsPanel });
+  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { zoneAnimalAssignmentState, ZONE_SQUAD_MODES, zoneSquadModeState, zoneSquadRgb, zoneSquadRowsHtml, paintZoneSquadIcons, zoneAnimalNativeLabel, zoneAnimalSortedRows, ZONE_TYPE_LABEL, ZONE_TYPE_SPRITE, ZONE_UNNAMED, zoneUnnamedLabel, LOCATION_TYPE_SPRITE, zoneLocationSprite, ZONE_TIP_LOCATION_ASSIGN, ZONE_TIP_LOCATION_DETAILS, ZONE_TIP_GATHER_TREES, ZONE_TIP_GATHER_SHRUBS, ZONE_TIP_GATHER_FALLEN, zoneIsAutoNamed, zoneDisplayName, zoneAcceptsSquads, squadRoomName, zoneLatch, zonePanelMarkup, zoneOwnerPortraitHtml, openZonePanel, openZoneSquadsPanel, ZONE_ANIMAL_SORT_COLUMNS, zoneAnimalSortBarHtml, zoneProfessionNameHtml, zoneCreaturePortraitHtml, zoneAnimalRowHtml, zoneAnimalsPanelMarkup, warmUnitSpriteSnapshot, openZoneUnitsPanel, zoneOwnerSortedRows, zoneOwnerRowHtml, zoneOwnersPanelMarkup, openZoneOwnersPanel, openZoneLocationsPanel });

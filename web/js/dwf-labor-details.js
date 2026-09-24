@@ -61,7 +61,8 @@
     activeInfoPanel = "labor";
     clientPanel.className = "visible info-panel";
     if (!clientPanel.querySelector(".labor-grid, .labor-task-panel")) {
-      panelContent(clientPanel).innerHTML = `<div class="info-window">${infoTabRowHtml("labor")}<div class="info-body"><div class="info-message">Loading labor...</div></div></div>`;
+      panelContent(clientPanel).innerHTML = DWFUI.windowHtml({ primaryTabs: infoTabRowHtml("labor"),
+        bodyHtml: `<div class="info-body"><div class="info-message">Loading labor...</div></div>` });
       wireInfoTabRow(clientPanel);
     }
     try {
@@ -69,7 +70,8 @@
       if (!r.ok) throw new Error("labor failed");
       renderLaborPanel(await r.json());
     } catch {
-      panelContent(clientPanel).innerHTML = `<div class="info-window">${infoTabRowHtml("labor")}<div class="info-body"><div class="info-message">Labor data unavailable.</div></div></div>`;
+      panelContent(clientPanel).innerHTML = DWFUI.windowHtml({ primaryTabs: infoTabRowHtml("labor"),
+        bodyHtml: `<div class="info-body"><div class="info-message">Labor data unavailable.</div></div>` });
       wireInfoTabRow(clientPanel);
     }
   }
@@ -126,7 +128,7 @@
 
   function laborSearchHtml(value) {
     return DWFUI.searchHtml({
-      cls: "info-search labor-search", inputCls: "dwfui-search-input info-search-input",
+      cls: "info-search labor-search", inputCls: "info-search-input",
       placement: "footer", magnifier: true, type: "search", dataAttr: "labor-search",
       value: value || "", ariaLabel: "Search citizens in this work detail",
       preserveKey: "labor-work-detail-units",
@@ -210,7 +212,7 @@
           "info-portrait-small")
       : `<span class="info-portrait-small" aria-hidden="true">${escapeHtml(String(r.name || "?").charAt(0))}</span>`;
     return DWFUI.rowHtml({
-      cls: "labor-row",
+      cls: "labor-row", copyCls: "labor-copy",
       icon: portrait,
       labelHtml: `<span class="labor-name" data-unit-id="${escapeHtml(r.id)}"${laborProfessionColorStyle(r)}>${DWFUI.bitmapTextHtml(r.name || "")}</span>`,
       sub: r.assignedTo
@@ -238,12 +240,15 @@
     const tasks = Array.isArray(data?.tasks) ? data.tasks : [];
     const editingTasks = !!options.editingTasks && !!sel;
     const sectionTabs = laborSectionTabsHtml("Work Details");
-    const sideList = `<div class="info-side-list">${laborAddDetailButtonHtml()}${details.map(d => `
-      <div class="info-side-item labor-wd${d.index === selected ? " selected" : ""}" data-labor-detail="${d.index}">${DWFUI.workDetailIconHtml(d.iconKey, { cls: "labor-wd-icon", alt: d.name || "Work detail" }) || `<span></span>`}<strong class="labor-wd-name">${escapeHtml(d.name)}</strong></div>`).join("")}</div>`;
+    const detailRows = details.map(d => `
+      <div class="info-side-item labor-wd${d.index === selected ? " selected dwfui-focus-brackets" : ""}" data-labor-detail="${d.index}">${DWFUI.workDetailIconHtml(d.iconKey, { cls: "labor-wd-icon", alt: d.name || "Work detail" }) || `<span></span>`}<strong class="labor-wd-name">${escapeHtml(d.name)}</strong></div>`).join("");
+    const sideList = `<div class="info-side-list labor-side">${laborAddDetailButtonHtml()}${DWFUI.scrollHtml({
+      cls: "labor-wd-list", rows: ".labor-wd", preserveKey: "labor-work-details", ariaLabel: "Work details",
+    }, detailRows)}</div>`;
     const modeRow = sel ? laborModeRowHtml(mode) : "";
     const grid = mountedRows.map(r => laborRowHtml(r, onlySel)).join("") ||
       (String(options.search || "").trim()
-      ? `<div class="labor-empty">${DWFUI.bitmapTextHtml("No matches.")}</div>` : "");
+      ? `<div class="dwfui-text--empty labor-empty">${DWFUI.bitmapTextHtml("No matches.")}</div>` : "");
     let lastTaskCat = "";
     const taskRows = tasks.map(t => {
       const cat = t.category || "Other";
@@ -254,7 +259,7 @@
       const heading = cat !== lastTaskCat ? `<div class="labor-task-cat"${colorStyle}>${escapeHtml(cat)}</div>` : "";
       lastTaskCat = cat;
       return `${heading}<div class="labor-task-row"${colorStyle}><div class="labor-task-name">${escapeHtml(t.name || t.key || `Labor ${t.id}`)}</div><div class="labor-task-meta">${escapeHtml(t.skillName || t.key || "")}</div><div class="labor-task-native">${DWFUI.workDetailIconHtml(t.iconKey, { alt: t.name || t.key || "Labor" })}</div>${laborTaskCheckHtml(t)}</div>`;
-    }).join("") || `<div class="labor-empty">No tasks available.</div>`;
+    }).join("") || `<div class="dwfui-text--empty labor-empty">No tasks available.</div>`;
     const header = sel ? `<div class="labor-detail-head"><div class="labor-name-wrap">${DWFUI.textInputHtml({ cls: "labor-name-input", id: "laborNameInput", value: sel.name, maxLength: 64, ariaLabel: "Work detail name", disabled: !!sel.noModify })}${sel.skillName ? `<span class="labor-detail-skill">${escapeHtml(sel.skillName)}</span>` : ""}</div>${laborHeadActionsHtml(sel, editingTasks)}</div>` : `<div class="info-message">Select a work detail.</div>`;
     const tasksDone = DWFUI.plaqueBtnHtml({
       label: "Done", tone: "red", cls: "labor-tasks-done",
@@ -267,16 +272,15 @@
     const sortHeader = sel ? DWFUI.sortHeaderHtml({
       cls: "labor-grid-head", active: sortKey, dataAttr: "labor-sort", ariaLabel: "Sort citizens",
       columns: [
-        { key: "name", label: "Name", sort: "text" },
-        { key: "skill", label: "Skills", sort: "desc" },
+        { key: "name", label: "Name" },
+        { key: "skill", title: "Sort by skill" },
       ],
     }) : "";
-    // Never add `dwfuiTableFlex` here: a `1fr` name track cannot yield, which pushes the trailing
-    // skill/latch/check tracks off a narrow pane. laborApplyColumns() caps the name track instead.
+    // The name track (column 1) yields on a narrow pane, so skill, latch and check stay in view.
     const assignmentPanel = modeRow + sortHeader + DWFUI.scrollHtml({
       cls: "labor-grid", rows: ".labor-row", ariaLabel: "Citizens in this work detail",
       dataset: {
-        dwfuiTable: ".labor-row",
+        dwfuiTable: ".labor-row", dwfuiTableYield: 1, dwfuiTableHead: ".labor-grid-head",
         laborRowsTotal: sortedRows.length, laborRowsMounted: mountedRows.length,
       },
       preserveKey: `labor-detail-${selected}`,
@@ -292,27 +296,12 @@
     });
   }
 
-  // ---- the name track is the only one allowed to yield -----------------------------------------
-  const LABOR_NAME_COL = 1;   // portrait, NAME, skill, specialist latch, assignment check
-  function laborCapNameTrack(template) {
-    const tracks = String(template || "").trim().split(/\s+/).filter(Boolean);
-    if (tracks.length < 3 || !tracks.every(t => /^\d+(?:\.\d+)?px$/.test(t))) return "";
-    const px = tracks.map(t => parseFloat(t));
-    const reserved = px.reduce((sum, w, i) => i === LABOR_NAME_COL ? sum : sum + w, 0);
-    return px.map((w, i) => i === LABOR_NAME_COL
-      ? `minmax(0, min(${w}px, calc(100% - ${Math.ceil(reserved)}px)))`
-      : `${w}px`).join(" ");
-  }
   // mountTableColumns is handed the grid's PARENT: its querySelectorAll cannot match the host node.
+  // Paint first: an unpainted latch/check measures ~8px and the measured template sticks.
   function laborApplyColumns(grid) {
     if (!grid || !grid.isConnected) return;
+    try { DWFUI.paintSprites(grid); } catch { globalThis.DwfErr?.count("labor-details.sprite-paint"); }
     try { DWFUI.mountTableColumns(grid.parentElement || clientPanel); } catch { globalThis.DwfErr?.count("labor-details.table-columns"); }
-    const template = laborCapNameTrack(grid.style.gridTemplateColumns);
-    if (!template) return;
-    grid.style.gridTemplateColumns = template;
-    grid.querySelectorAll(".labor-row").forEach(row => {
-      if (row.style.gridTemplateColumns !== template) row.style.gridTemplateColumns = template;
-    });
   }
 
   function appendLaborRosterBatches(data, options, token) {
@@ -604,6 +593,5 @@
     Object.assign(module.exports, {
       laborPanelMarkup, laborCreateDetailHtml, laborFilterRows, laborSearchHtml,
       laborSortedRows, laborRowHtml, LABOR_INITIAL_ROWS, LABOR_APPEND_ROWS,
-      laborCapNameTrack, LABOR_NAME_COL,
     });
   }

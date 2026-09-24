@@ -27,7 +27,7 @@
   var UI = root.DWFUI || (typeof DWFUI !== "undefined" ? DWFUI : null);
   if (UI && typeof UI.require === "function")
     UI.require("missions", ["headerHtml", "rowHtml", "scrollHtml", "statusHtml",
-      "checkHtml", "plaqueBtnHtml", "rowGroupHtml"]);
+      "checkHtml", "plaqueBtnHtml", "rowGroupHtml", "wrapToColumns"]);
 
   const REASONS = {
     "native-verdict-unavailable": "The game has not exposed enough state to confirm this option.",
@@ -49,6 +49,14 @@
     "already-trading": "Trade is already established.",
     "no-civilization-military-leader": "Their civilization has no military representative.",
   };
+
+  // Every list row is a DWFUI table row; a long sub line wraps at SUB_COLS instead of running off the edge.
+  const SUB_COLS = 40;
+  function tableRow(cfg) {
+    const subs = [].concat(cfg.sub || []).flatMap(line =>
+      UI.wrapToColumns(line.text, SUB_COLS).map(text => ({ ...line, text })));
+    return UI.rowHtml({ ...cfg, chassis: "table", sub: subs });
+  }
 
   const ACTIONS = [
     ["Attack", "attack"],
@@ -119,18 +127,13 @@
 
   function siteTooltipHtml(site) {
     if (!site) return "";
+    const fact = (key, value) => UI.rowHtml({ label: `${key}: ${value}` });
     const rows = [UI.rowHtml({ label: site.name || "Unknown site" })];
-    if (site.hasGovernment)
-      rows.push(UI.rowHtml({ label: "Government", trailing: UI.statusHtml({ tag: "span", text: site.govName || "Unknown" }) }));
-    rows.push(UI.rowHtml({
-      label: "Population",
-      trailing: UI.statusHtml({ tag: "span", text: site.hasGovernment && site.populationBand
-        ? site.populationBand.advertised : "No settled population is recorded" }),
-    }));
-    if (site.civName)
-      rows.push(UI.rowHtml({ label: "Civilization", trailing: UI.statusHtml({ tag: "span", text: site.civName }) }));
-    if (!site.isOwnFortress && travelText(site))
-      rows.push(UI.rowHtml({ label: "Travel", trailing: UI.statusHtml({ tag: "span", text: travelText(site) }) }));
+    if (site.hasGovernment) rows.push(fact("Government", site.govName || "Unknown"));
+    rows.push(fact("Population", site.hasGovernment && site.populationBand
+      ? site.populationBand.advertised : "No settled population is recorded"));
+    if (site.civName) rows.push(fact("Civilization", site.civName));
+    if (!site.isOwnFortress && travelText(site)) rows.push(fact("Travel", travelText(site)));
     const verdicts = site.verdicts || {};
     const available = ACTIONS.map(([label, key]) => {
       const text = verdictText(verdicts[key]);
@@ -152,7 +155,7 @@
     const actions = ACTIONS.map(([label, key]) => {
       const verdict = verdicts[key];
       if (!verdict || Number(verdict.code) === 1) return "";
-      return UI.rowHtml({
+      return tableRow({
         cls: "world-mission-eligibility" + (verdict.enabled ? "" : " disabled"),
         label,
         sub: { text: verdictText(verdict) },
@@ -165,7 +168,7 @@
     }).join("");
     const topics = (Array.isArray(site?.diplomacyTopics) ? site.diplomacyTopics : [])
       .filter(topic => Number(topic.code) !== 1)
-      .map(topic => UI.rowHtml({
+      .map(topic => tableRow({
         cls: "world-mission-eligibility diplomacy-topic" + (topic.enabled ? "" : " disabled"),
         label: pretty(topic.labelKey),
         sub: { text: verdictText(topic) },
@@ -187,7 +190,7 @@
       // Verdict 1 is not a disabled row: it is absent and consumes no list pitch.
       if (!verdict || Number(verdict.code) === 1) return "";
       const reason = verdictText(verdict);
-      return UI.rowHtml({
+      return tableRow({
         tag: verdict.enabled ? "button" : "div",
         cls: "world-mission-goal-row" + (verdict.enabled ? "" : " disabled"),
         dataset: verdict.enabled ? { missionNewGoal: goal.goal } : {},
@@ -215,7 +218,8 @@
       })}</div>`;
     if (!site)
       return `<div class="world-civs-panel world-missions-panel world-new-mission-panel">${head}${UI.statusHtml({
-        cls: "world-mission-note", tone: "danger", text: "The game did not provide expedition verdicts for this site.", role: "alert",
+        cls: "world-mission-note", tone: "danger", columns: 42, role: "alert",
+        text: "The game did not provide expedition verdicts for this site.",
       })}</div>`;
 
     const kind = typeof opts.siteKind === "function" ? opts.siteKind(site) : pretty(site.subtypeKey || site.type);
@@ -253,12 +257,13 @@
       refusal = p.busy ? "Expedition not created. Checking the native creation boundary..." : "Expedition not created.";
     }
     const refusalHtml = UI.statusHtml({
-      cls: "world-mission-note world-mission-not-created", tone: "warn", role: "status", text: refusal,
+      cls: "world-mission-note world-mission-not-created", tone: "warn", role: "status", columns: 42, text: refusal,
     });
     const squads = Array.isArray(data?.squads) ? data.squads : [];
     const picked = new Set((Array.isArray(p.squadIds) ? p.squadIds : []).map(Number));
-    const rows = squads.length ? squads.map(squad => UI.rowHtml({
-      cls: "world-mission-roster" + (squad.busy ? " other-mission disabled" : " free"),
+    const rows = squads.length ? squads.map(squad => tableRow({
+      cls: squad.busy ? "disabled" : "",
+      tone: squad.busy ? "disabled" : null,
       label: squad.name || `Squad ${squad.id}`,
       sub: { text: squad.busy ? (squad.busyReason || "Unavailable") : `${Number(squad.memberCount) || 0} members` },
       trailing: UI.checkHtml({
@@ -269,7 +274,7 @@
       }),
     })).join("") : UI.statusHtml({ cls: "info-message", text: "No squads are available to stage." });
     const staged = UI.statusHtml({
-      cls: "world-mission-footer", tone: picked.size ? "info" : "muted",
+      cls: "world-mission-footer", tone: picked.size ? "info" : "muted", columns: 42,
       text: picked.size ? `${picked.size} squad assignment${picked.size === 1 ? "" : "s"} staged locally; nothing has been sent.`
         : "Choose squads to stage assignments. Nothing will be sent from this pending screen.",
     });
@@ -288,7 +293,7 @@
       cls: "world-mission-site",
       header: { label: site.name || `Site ${site.id}` },
       rows: [
-        UI.rowHtml({
+        tableRow({
           label: site.hasGovernment && site.populationBand
             ? `Population ${site.populationBand.advertised}` : "No settled population is recorded",
           sub: { text: [site.govName, site.civName, travelText(site)].filter(Boolean).join(" · ") },
@@ -309,18 +314,19 @@
     return UI.scrollHtml({ cls: "world-civs-list", rows: ".world-mission-row", ariaLabel: "Recorded missions" }, missions.map(mission => {
       const role = mission.roleNoun === "messenger" ? "messenger" : "commander";
       const counts = `${Number(mission.presentCount) || 0} present · ${Number(mission.travellingCount) || 0} away`;
-      return UI.rowHtml({
+      const total = (Number(mission.presentCount) || 0) + (Number(mission.travellingCount) || 0);
+      return tableRow({
         tag: mission.alterable ? "button" : "div",
         cls: "world-mission-row" + (mission.alterable ? "" : " disabled"),
         dataset: mission.alterable ? { missionDetail: mission.id } : {},
+        title: `${counts}, ${role} roster`,
         label: mission.targetSiteName || mission.targetSite || "Unknown destination",
-        sub: { text: mission.alterable
-          ? `${pretty(mission.goalKey || mission.goal)} · Year ${Number(mission.year) || 0}`
-          : "Every assigned member is away, so this mission cannot currently be changed." },
-        trailing: UI.statusHtml({
-          tag: "span", text: `${counts} ${role}${(Number(mission.presentCount) || 0) + (Number(mission.travellingCount) || 0) === 1 ? "" : "s"}`,
-          title: `${counts}, ${role} roster`,
-        }),
+        sub: [
+          { text: mission.alterable
+            ? `${pretty(mission.goalKey || mission.goal)} · Year ${Number(mission.year) || 0}`
+            : "Every assigned member is away, so this mission cannot currently be changed." },
+          { text: `${counts} ${role}${total === 1 ? "" : "s"}` },
+        ],
       });
     }).join(""));
   }
@@ -341,8 +347,8 @@
       const indicator = entry.lockedIn
         ? UI.statusHtml({ tag: "span", tone: "warn", text: "Locked", title: "Native has locked this assignment." })
         : UI.checkHtml({ checked: assignedHere, disabled: true, ariaLabel: `${entry.name || "Roster entry"} assignment` });
-      return UI.rowHtml({
-        cls: `world-mission-roster ${entry.assignment || "free"}`,
+      return tableRow({
+        tone: assignedHere ? "numeric" : entry.assignment === "other-mission" ? "disabled" : null,
         label: entry.name || "Unnamed assignment",
         sub: { text: status },
         trailing: indicator,
@@ -372,7 +378,7 @@
     });
     const sections =
       UI.rowGroupHtml({ cls: "world-mission-group", header: { label: mission.targetSiteName || mission.targetSite || "Unknown destination" },
-        rows: [UI.rowHtml({ label: `Year ${Number(mission.year) || 0}`, sub: { text: summary } })] }) +
+        rows: [tableRow({ label: `Year ${Number(mission.year) || 0}`, sub: { text: summary } })] }) +
       (count ? UI.rowGroupHtml({ cls: "world-mission-group", header: { label: messengerModeLabel(mission) }, rows: [rosterHtml(mission)] }) : "") +
       UI.statusHtml({ cls: "world-mission-footer", tone: anyAssigned ? "good" : "muted", text: footer }) +
       UI.statusHtml({ cls: "world-mission-readonly", tone: "warn", columns: 42,
@@ -396,10 +402,11 @@
     });
     if (!data)
       return `<div class="world-civs-panel world-missions-panel stale">${head}${[1, 2, 3].map(i =>
-        UI.rowHtml({ cls: "world-mission-skeleton", label: `Loading mission ${i}`, sub: { text: "Reading current world state…" } })).join("")}</div>`;
+        tableRow({ cls: "world-mission-skeleton", label: `Loading mission ${i}`, sub: { text: "Reading current world state..." } })).join("")}</div>`;
     if (data.error)
       return `<div class="world-civs-panel world-missions-panel">${head}${UI.statusHtml({
-        cls: "world-mission-note", tone: "danger", text: `Missions could not be loaded: ${data.error}`, role: "alert",
+        cls: "world-mission-note", tone: "danger", columns: 42, role: "alert",
+        text: `Missions could not be loaded: ${data.error}`,
       })}${UI.plaqueBtnHtml({ label: "Retry", tone: "green", dataset: { missionRetry: "" }, title: "Fetch the read-only mission list again." })}</div>`;
     const selected = sortedMissions(data).find(m => Number(m.id) === Number(selectedId));
     if (selected) return missionDetailHtml(selected);

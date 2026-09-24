@@ -19,50 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-  // ================================================================================================
-
-  // All three columns share a top, a first row, a 3-row pitch and one visible-row count; the pitch is
-  // exactly the height the control art is authored at.
-  const SPE_COLUMN_KEYS = ["main_mode", "sub_mode", "spec_item"];
-  const SPE_ROW_PITCH = 3;
-  const SPE_FIRST_ROW_Y = 9;
-  const SPE_COLUMN_TOP_Y = 4;
-  const SPE_SCROLLBAR_GUTTER = 2;      // columns, and it shrinks the HIT rect -- not just the paint
-  function spePageRows(G) {
-    const rows = Math.floor((Number(G) - 16) / SPE_ROW_PITCH);
-    return rows > 0 ? rows : 0;
-  }
-  function speColumnBottomY(G) { return Number(G) - 4; }
-  function speRowY(row) { return SPE_FIRST_ROW_Y + Number(row) * SPE_ROW_PITCH; }
-  // The WHEEL-HOVER rect is the whole column, header included: wheeling over the header still scrolls
-  // that column, and the handler CONSUMES the input.
-  function speColumnRect(index, X, R) {
-    if (index === 0) return { x0: X, x1: X + 37 };
-    if (index === 1) return { x0: X + 39, x1: X + 72 };
-    return { x0: X + 74, x1: R };
-  }
-  // The ROW HIT rect is inset from the column and loses two more columns to the scrollbar gutter, which
-  // is CONDITIONAL: it appears only when that column's list is longer than the visible row count.
-  function speRowHitRect(index, X, R, overflow) {
-    const base = index === 0 ? { x0: X + 2, x1: X + 36 }
-      : index === 1 ? { x0: X + 40, x1: X + 71 }
-      : { x0: X + 75, x1: R - 2 };
-    return overflow ? { x0: base.x0, x1: base.x1 - SPE_SCROLLBAR_GUTTER } : base;
-  }
-  function speColumnOverflows(len, G) { return Number(len) > spePageRows(G); }
-  function speScrollbarTrack(G) {
-    return { y0: SPE_FIRST_ROW_Y + 1, y1: SPE_FIRST_ROW_Y + spePageRows(G) * SPE_ROW_PITCH - 2 };
-  }
-  // Each column's scroll position is clamped against its OWN list length; for column 3 that length is
-  // the FILTERED row count, never the raw vector size.
-  function speClampScroll(pos, len, G) {
-    const max = Math.max(0, Number(len) - spePageRows(G));
-    const p = Number(pos) || 0;
-    return p < 0 ? 0 : p > max ? max : p;
-  }
-
-  // Three calls to the ONE shared list control: the independent scroll positions, the consuming wheel
-  // and the conditional gutter are what it does for every caller, not anything stockpile-specific.
+  // Three stockpile columns, each its own DWFUI list with its own scroll position.
   function speColumnListHtml(cls, id, column) {
     return DWFUI.listHtml({
       cls: `stockpile-editor-list ${cls}`,
@@ -74,19 +31,7 @@
     }, "");
   }
 
-  // ---- R5: THE TOGGLE LAW ----------------------------------------------------------------------
-  // Every click is `1 - current`. This is the one function all three columns' write paths go
-  // through, so there is exactly one place a three-state cycle could ever be introduced -- and the
-  // suites pin that this function's output is always 0 or 1 across the WHOLE input space, PARTIAL
-  // included.
-  //
-  // `current` is the CALLER'S underlying boolean, deliberately: native's four write sites each flip
-  // one specific byte, and each of this client's three superset controls has its own answer to
-  // "which byte am I summarising?" -- a category summarises its FLAG (so a dashed category is
-  // currently on, and flips off), a sub-group summarises its ITEM BITS (so a dashed group is not
-  // fully on, and flips on), an item is itself. Passing the derived tri-state straight in would
-  // silently pick one of those for all three. What the law owns is the ARITHMETIC: `1 - current`,
-  // output always in {0,1}, no third value reachable from any input.
+  // Every settings click stores 0 or 1, never a third "partial" value.
   function speBinaryToggle(current) {
     const on = current === true || current === 1 || current === "1" || current === "all";
     return 1 - (on ? 1 : 0);
@@ -95,7 +40,6 @@
   // ---- the tri-state art -----------------------------------------------------------------------
   const SPE_TRI_SPRITE = { all: "STOCKPILE_ON", some: "STOCKPILE_PARTIAL", none: "STOCKPILE_OFF" };
   const SPE_TRI_CLASS = { all: "check", some: "dash", none: "x" };
-  const SPE_TRI_CELL = { w: 4, h: 3 };
   function speDataAttrs(dataset) {
     if (!dataset) return "";
     return Object.keys(dataset).map(key =>
@@ -111,55 +55,11 @@
       `</span>`;
   }
 
-  // ---- R4 correction: `on` is the FILTER-MATCH flag, and column 3 scrolls FILTERED rows ---------
-  // The ledger's loudest correction: `custom_stockpile_itemst.on` is NOT the enabled state -- it is
-  // the filter-match / visible flag, and the row loop skips entries with `on` clear BEFORE they
-  // consume a display slot. The enabled state lives behind `set_pointer`, and
-  // `counted_cur_spec_item_sz` (the count of entries that pass the filter) is what drives the
-  // scrollbar and the clamp. "A client that scrolls column 3 by raw index will drift as soon as a
-  // filter is typed."
-  //
-  // AUDITED AGAINST THE DWF WIRE, and the two concepts are already separate here -- but they are
-  // separated DIFFERENTLY, so the mapping is written down rather than assumed:
-  //   * native `custom_stockpile_itemst.on`  ==  the lua `g.include(raw, i)` predicate in
-  //     sp_item_list_on (dwf.lua). Entries that fail it are never put on the wire at all, so the
-  //     client's list is ALREADY the filtered list -- there is no client-side equivalent of `on`.
-  //   * native `*set_pointer`                ==  the wire's `items[].on`, written by sp_group_get /
-  //     stockpile_toggle_item. THIS is the enabled state, and it is what speItemRowHtml paints and
-  //     what the toggle flips. The name collision is real and is the trap the ledger warns about.
-  //   * `counted_cur_spec_item_sz`           ==  speFilteredItems().length below: the wire list
-  //     narrowed by the client's own text filter. Column 3's scroll space is THAT list, which is
-  //     why typing in the filter resets the column to its top rather than keeping a raw offset.
+  // The wire already drops items the pile's filter excludes; `on` on an item is its enabled bit.
   function speFilteredItems(items, search) {
     const q = (search || "").trim();
     return spSortItems(q ? (items || []).filter(it => dfTokenMatch(it.name, q)) : items);
   }
-  function speCountedSpecItems(items, search) { return speFilteredItems(items, search).length; }
-
-  // SELECT-CAN-ENABLE is a WIRE GAP, recorded rather than faked (DEF-027): native's category select can
-  // turn the category on, and no DWF route does that without also rewriting the item bits.
-  const SPE_WIRE_GAPS = [
-    {
-      id: "select-enables-category",
-      ledger: "0076 R3",
-      predicate: "select_category_can_enable_it",
-      nativeBehaviour: "0x14035e7f0(custom_stockpile*, mode, flag): for a category value, sets " +
-        "cur_main_mode/cur_main_mode_flag; then IF the category's bit is clear in the pile's " +
-        "settings AND flag != 0, sets the bit (0x14030cb20) and initialises that category's " +
-        "parameter block (settings+0x08 / +0x28 / +0x1f8 / ... one per flag bit).",
-      clientToday: "category selection is a pure cursor move and issues no request",
-      requirement: "A new route POST /stockpile-select-category?id=<pile>&cat=<key> (and the " +
-        "hauling-stop twin /hauling-stop-select-category?route=&stop=&cat=) that mirrors the " +
-        "primitive EXACTLY: set the category flag ONLY when it is currently clear, then " +
-        "initialise that category's parameter block to DF's defaults -- and do NOT import the " +
-        "preset library, which /stockpile-set mode=enable does and the native primitive does not. " +
-        "It must answer with the same shape as /stockpile-settings-snapshot so the client can " +
-        "repaint from one response. The 'additional options' category (stockpile_list 109) has no " +
-        "group-set bit and must be a no-op.",
-      doNotFake: "Never route selection through /stockpile-set mode=enable: that rewrites the " +
-        "category's item bits, which native's selection path does not touch.",
-    },
-  ];
 
   // ---- custom stockpile settings editor ------------------------------------------------------
   const SP_EDIT_CATS = [
@@ -294,7 +194,7 @@
   }
   // Every row's state comes straight from the aggregate map: known rows paint final, unknown stateless.
   function speGroupsListHtml(cat, groups, aggByKey, selectedKey) {
-    if (!groups || !groups.length) return `<div class="stockpile-note">Loading...</div>`;
+    if (!groups || !groups.length) return `<div class="dwfui-text--note stockpile-note">Loading...</div>`;
     return speVisibleGroups(groups, aggByKey).map(g => {
       const agg = aggByKey && aggByKey[g.key];
       return speGroupRowHtml(spGroupLabel(cat, g.key, g.label), g.key,
@@ -330,7 +230,7 @@
     const q = (search || "").trim();
     const visible = speFilteredItems(items, search);
     return visible.length ? visible.map(speItemRowHtml).join("")
-      : `<div class="stockpile-note">${q ? "No matches." : "No items."}</div>`;
+      : `<div class="dwfui-text--note stockpile-note">${q ? "No matches." : "No items."}</div>`;
   }
 
   let spEditId = null, spEditCat = null, spEditGroup = null;
@@ -689,7 +589,7 @@
   async function speLoadSelectedItems(seq) {
     const el = document.getElementById("speItems");
     if (el && !speItemsByGroup[speAggKey(spEditCat, spEditGroup)])
-      el.innerHTML = `<div class="stockpile-note">Loading...</div>`;
+      el.innerHTML = `<div class="dwfui-text--note stockpile-note">Loading...</div>`;
     const items = await speFetchGroupItems(spEditCat, spEditGroup, seq);
     if (seq !== speSeq || items == null) return;
     spItemsCache = items;
@@ -731,12 +631,7 @@
   // Direction follows the DISPLAYED derived state: clicking the X on a flag-on-but-all-off category must
   // ALLOW. /stockpile-set imports the preset library, so its caches are dropped and refetched.
   async function toggleSpeCategory(key) {
-    // 0076 R5: the two lines below ARE `1 - current`, written out. A category's underlying boolean
-    // is its FLAG, and X is the only displayed state meaning "this flag stores nothing" -- so
-    // `!flag` and `state === "none"` are each exactly speBinaryToggle(current) === 1 for their
-    // respective `current`. The pair must stay adjacent and verbatim (b151_parity_test pins the
-    // exact text); stockpile_family_0076_test pins them EQUAL to the law across the whole input
-    // space, so the shipped expression and the law cannot drift apart silently.
+    // Same flip as speBinaryToggle: a category's current value is its flag, and only X means "off".
     const state = speCatDerivedState(speFlagsCache ? speCatFlag(speFlagsCache, key) : null, speCatAggs(key));
     const enable = state == null ? !speCatFlag(speFlagsCache, key) : state === "none";
     await window.postStockpile(speUrl("preset", `preset=${encodeURIComponent(key)}&mode=${enable ? "enable" : "disable"}`));
@@ -837,4 +732,4 @@
 
 
   if (typeof window !== "undefined") Object.assign(window, { openSpEditor });
-  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { SPE_COLUMN_KEYS, SPE_ROW_PITCH, SPE_FIRST_ROW_Y, SPE_COLUMN_TOP_Y, SPE_SCROLLBAR_GUTTER, spePageRows, speColumnBottomY, speRowY, speColumnRect, speRowHitRect, speColumnOverflows, speScrollbarTrack, speClampScroll, speColumnListHtml, speBinaryToggle, SPE_TRI_SPRITE, SPE_TRI_CLASS, SPE_TRI_CELL, speDataAttrs, speTriMarkHtml, speFilteredItems, speCountedSpecItems, SPE_WIRE_GAPS, SP_EDIT_CATS, SP_NATIVE_GROUP_LABELS, spGroupLabel, speCatFlag, speDefaultCat, speStateFor, speCatDerivedState, speVisibleGroups, speDefaultGroup, spSortItems, speStateClass, speCatRowHtml, speGroupRowHtml, speGroupsListHtml, SPE_NATIVE, SPE_BASE, speDefaultPanelSize, speZoomFor, speItemRowHtml, speItemsHtml, speIsStop, speTargetQuery, speUrl, speRefreshSubject, speAggKey, spePanel, speBackOutSurface, speSelectionBackOutLevel, speRegisterSelectionBackOut, speColumnPlaqueHtml, wireSpeColumnPlaque, closeSpEditor, speSurfaceUnavailable, speEnsureShell, speSetSearch, openSpEditorFor, openSpEditor, openSpEditorForHaulingStop, speFetchSnapshot, speFetchFlags, speFetchGroupItems, speLoadSelectedItems, loadSpGroups, spToggleAllUrl, speDropCatCaches, speAfterMutation, toggleSpeCategory, toggleSpeGroup, toggleSpEditorColumn, speCatAggs, renderSpeCats, renderSpeGroups, renderSpeItems, renderSpeAll });
+  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { speColumnListHtml, speBinaryToggle, SPE_TRI_SPRITE, SPE_TRI_CLASS, speDataAttrs, speTriMarkHtml, speFilteredItems, SP_EDIT_CATS, SP_NATIVE_GROUP_LABELS, spGroupLabel, speCatFlag, speDefaultCat, speStateFor, speCatDerivedState, speVisibleGroups, speDefaultGroup, spSortItems, speStateClass, speCatRowHtml, speGroupRowHtml, speGroupsListHtml, SPE_NATIVE, SPE_BASE, speDefaultPanelSize, speZoomFor, speItemRowHtml, speItemsHtml, speIsStop, speTargetQuery, speUrl, speRefreshSubject, speAggKey, spePanel, speBackOutSurface, speSelectionBackOutLevel, speRegisterSelectionBackOut, speColumnPlaqueHtml, wireSpeColumnPlaque, closeSpEditor, speSurfaceUnavailable, speEnsureShell, speSetSearch, openSpEditorFor, openSpEditor, openSpEditorForHaulingStop, speFetchSnapshot, speFetchFlags, speFetchGroupItems, speLoadSelectedItems, loadSpGroups, spToggleAllUrl, speDropCatCaches, speAfterMutation, toggleSpeCategory, toggleSpeGroup, toggleSpEditorColumn, speCatAggs, renderSpeCats, renderSpeGroups, renderSpeItems, renderSpeAll });

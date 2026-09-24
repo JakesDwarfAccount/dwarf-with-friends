@@ -201,7 +201,6 @@ void register_session_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(camera_json(player, camera), "application/json; charset=utf-8");
     };
-    server.Get("/reset", reset_handler);
     server.Post("/reset", reset_handler);
 
     server.Get("/camera", [](const httplib::Request& req, httplib::Response& res) {
@@ -288,7 +287,6 @@ void register_session_routes(httplib::Server& server) {
                         ",\"wireBatch\":" + json_string(kWireBatchMarker) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/follow", follow_handler);
     server.Post("/follow", follow_handler);
 
     auto zoom_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -306,7 +304,6 @@ void register_session_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(camera_json(player, camera), "application/json; charset=utf-8");
     };
-    server.Get("/zoom", zoom_handler);
     server.Post("/zoom", zoom_handler);
 
     // GET /attrib -> the AttributionRegistry. Pure plugin memory, no core access.
@@ -339,7 +336,6 @@ void register_session_routes(httplib::Server& server) {
             << ",\"by\":" << json_string(d.by) << "}\n";
         res.set_content(out.str(), "application/json; charset=utf-8");
     };
-    server.Get("/action", action_handler);
     server.Post("/action", action_handler);
 
     // POST /save requests a DF quicksave without exiting; there is deliberately no load counterpart.

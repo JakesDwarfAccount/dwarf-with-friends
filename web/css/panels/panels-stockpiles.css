@@ -21,23 +21,16 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.stockpiles {
   .stockpile-native,
-  .stockpile-panel-storagewin,
   .stockpile-editor-panel {
-    font:
-      700 15px Consolas,
-      "Lucida Console",
-      ui-monospace,
-      monospace;
-    letter-spacing: 1px;
+    font: var(--dwfui-font);
     image-rendering: pixelated;
   }
 
   .stockpile-native {
-    display: block;
     position: relative;
     box-sizing: border-box;
     width: 100%;
@@ -45,26 +38,16 @@
     overflow: auto;
     padding: 0;
   }
-  .stockpile-native .unit-close-button {
-    top: 2px;
-    right: 2px;
-    z-index: 3;
-  }
   .stockpile-panel-titlebar {
-    display: flex;
     gap: 0;
     align-items: stretch;
-    margin: 0;
-    padding-right: 0;
   }
   .stockpile-panel-titlebox {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: calc(3 * var(--dwfui-cell-drawn-h));
+    height: var(--dwfui-height-row-tall);
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 var(--dwfui-space-m);
   }
   .stockpile-panel-title {
     min-width: 0;
@@ -75,12 +58,7 @@
   .stockpile-panel-name {
     display: none;
     flex: 1 1 auto;
-    min-width: 0;
-    height: auto;
     padding: 0;
-    margin: 0;
-    font: inherit;
-    letter-spacing: inherit;
   }
   .stockpile-panel-titlebar.renaming .stockpile-panel-title {
     display: none;
@@ -89,113 +67,127 @@
     display: block;
   }
   .stockpile-panel-quill {
-    flex: 0 0 calc(4 * var(--dwfui-cell-drawn-w));
-    width: calc(4 * var(--dwfui-cell-drawn-w));
-    height: calc(3 * var(--dwfui-cell-drawn-h));
-    padding: 0;
-    cursor: pointer;
+    flex: 0 0 var(--dwfui-icon-m);
   }
-  /* type grid: 2 columns x 10 rows, column-major like native */
+  /* Type grid: 2 columns x 10 rows, column-major like native. A tile is a 4x3-cell icon, a one-cell
+     gap and its label, whose last line sits on the tile's middle row. */
+  .stockpile-panel-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(10, var(--dwfui-height-row-tall));
+    grid-template-columns: repeat(2, calc(14 * var(--dwfui-cell-drawn-w)));
+  }
   .stockpile-panel-type {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+    --dwfui-row-icon-gap: var(--dwfui-cell-drawn-w);
     padding: 0;
-    font: inherit;
-    letter-spacing: inherit;
+    border: 0;
+    background: none;
     text-align: left;
     cursor: pointer;
+  }
+  .stockpile-panel-tcopy {
+    align-self: end;
+    margin-bottom: var(--dwfui-space-l);
+  }
+  .stockpile-panel-type.selected .stockpile-panel-ticon {
+    background: var(--dwfui-selected-tile);
   }
   .stockpile-panel-ticon {
     display: grid;
     place-items: start;
-    flex: 0 0 calc(4 * var(--dwfui-cell-drawn-w));
-    width: calc(4 * var(--dwfui-cell-drawn-w));
-    height: calc(3 * var(--dwfui-cell-drawn-h));
+    flex: 0 0 var(--dwfui-icon-m);
+    width: var(--dwfui-icon-m);
+    height: var(--dwfui-height-row-tall);
     box-sizing: border-box;
   }
-  .stockpile-panel-tlab {
-    min-width: 0;
-    overflow: hidden;
-    line-height: 1.12;
+  .stockpile-panel-tlab .dwfui-bitmap-line {
+    display: flex;
   }
-  /* tool tile cluster (paint+ / remove / take-from-anywhere / add-link / spacer / barrel) */
-  .stockpile-panel-tool {
-    width: calc(4 * var(--dwfui-cell-drawn-w));
-    height: calc(3 * var(--dwfui-cell-drawn-h));
-    padding: 0;
-    cursor: pointer;
+  .stockpile-panel-gridwrap {
+    position: relative;
+    isolation: isolate;
+  }
+  .stockpile-panel-tools {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(2, var(--dwfui-icon-m));
+    grid-auto-rows: var(--dwfui-height-row-tall);
+  }
+  .stockpile-panel-tools > .stockpile-panel-tool,
+  .stockpile-panel-tools > .stockpile-panel-tool-spacer {
+    position: relative;
+    z-index: 1;
   }
   .stockpile-panel-caption {
-    margin: 10px 2px 0;
+    margin: var(--dwfui-space-m) var(--dwfui-space-xs) 0;
+  }
+  .stockpile-panel-remove-confirm {
+    color: var(--dwfui-text-danger);
   }
   .stockpile-native .stockpile-attrib {
-    margin: 4px 2px 0;
+    margin: var(--dwfui-space-s) var(--dwfui-space-xs) 0;
+  }
+  /* UI-DIV-004: the pile shell remains surface-draggable, but native owns no framework title/X. */
+  #selection.stockpile-panel > .pf-head {
+    display: none;
   }
 
-  .stockpile-panel-storagewin {
+  /* The storage and links windows share one 41-column slot beside the pile; each fills it with a
+     DWFUI side window. */
+  .stockpile-panel-sidewin {
+    display: none;
     position: fixed;
     z-index: 76;
-    width: 376px;
     box-sizing: border-box;
+    width: calc(41 * var(--dwfui-cell-drawn-w));
   }
-  .stockpile-panel-storagehead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 2px 8px;
-    cursor: move;
-    user-select: none;
-  }
-  .stockpile-panel-done {
-    width: 130px;
-    height: 37px;
-    padding: 0;
-    cursor: pointer;
-  }
-  .stockpile-panel-storrows {
+  .stockpile-panel-sidewin.stockpile-panel-sidewin-open {
     display: block;
-    padding: 0 2px 4px;
+  }
+  .stockpile-panel-sidewin[data-spn-side-rows="18"] {
+    height: calc(18 * var(--dwfui-cell-drawn-h));
+  }
+  .stockpile-panel-sidewin[data-spn-side-rows="38"] {
+    height: calc(38 * var(--dwfui-cell-drawn-h));
+  }
+  .stockpile-panel-sidewin[data-spn-side-rows="13"] {
+    height: calc(13 * var(--dwfui-cell-drawn-h));
+  }
+  .stockpile-panel-sidewin-inner {
+    inset: 0;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+    box-shadow: none;
+  }
+  .stockpile-panel-sidewin-inner > .dwfui-sidewin-bar {
+    align-items: center;
   }
   .stockpile-storage-row {
-    display: grid;
-    grid-template-columns: 1fr auto 32px 32px 32px;
-    gap: 6px;
+    display: flex;
     align-items: center;
-    height: 39px;
+    gap: var(--dwfui-space-s);
+    height: var(--dwfui-height-row-tall);
   }
-  .stockpile-storage-label {
-    color: var(--dwfui-text-row);
-    font: inherit;
-  }
-  .stockpile-panel-storval {
-    text-align: right;
-    padding-right: 2px;
+  .stockpile-storage-copy {
+    flex: 1 1 auto;
   }
   .stockpile-num-entry {
     display: none;
-    width: 64px;
   }
   .stockpile-num {
-    width: 100%;
-    height: 28px;
+    height: var(--dwfui-height-row);
     box-sizing: border-box;
-    padding: 0 6px;
-    font: inherit;
-    letter-spacing: inherit;
+    padding: 0 var(--dwfui-space-s);
   }
   .stockpile-storage-row.editing .stockpile-num-entry {
     display: inline-flex;
   }
   .stockpile-storage-row.editing .stockpile-panel-storval {
     display: none;
-  }
-  .stockpile-panel-stile {
-    width: 32px;
-    height: 36px;
-    padding: 0;
-    cursor: pointer;
   }
 
   .stockpile-editor-panel {
@@ -214,192 +206,78 @@
     min-height: 0;
     display: flex;
   }
+  /* Column widths are native's 370/343 px scaled to a 39px row (SPE_BASE in dwf-stockpile-settings.js). */
   .stockpile-editor-cols {
     flex: 1 1 auto;
     min-height: 0;
     min-width: 0;
     display: grid;
-    grid-template-columns: 283px 262px minmax(240px, 1fr);
-    grid-template-rows: 46px minmax(0, 1fr);
-    column-gap: 24px;
-    padding: 0 2px;
+    grid-template-columns: 283px 262px minmax(0, 1fr);
+    grid-template-rows: var(--dwfui-height-row-tall) minmax(0, 1fr);
+    column-gap: var(--dwfui-space-xl);
+    padding: 0 var(--dwfui-space-xs);
   }
   .stockpile-editor-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--dwfui-space-m);
     min-width: 0;
   }
   .stockpile-editor-plaque {
-    padding: 0;
-    cursor: pointer;
     flex: 0 0 auto;
-  }
-  .stockpile-editor-plaque-all {
-    width: 45px;
-    height: 28px;
-  }
-  .stockpile-editor-plaque-none {
-    width: 54px;
-    height: 28px;
   }
   .stockpile-editor-orgtiles {
     margin-left: auto;
     display: flex;
-    gap: 12px;
+    gap: var(--dwfui-space-m);
   }
   .stockpile-editor-search-box {
     flex: 1 1 auto;
-    min-width: 60px;
-    margin-left: 2px;
+    margin-left: var(--dwfui-space-xs);
   }
   .stockpile-editor-search {
     flex: 1 1 auto;
-    min-width: 60px;
-    height: 38px;
-    box-sizing: border-box;
-    padding: 0 10px;
-    font: inherit;
-    letter-spacing: inherit;
   }
   .stockpile-editor-search::placeholder {
     opacity: 0.9;
   }
   .stockpile-editor-list {
-    min-height: 0;
     overflow: hidden;
   }
-  .stockpile-editor-items {
-    overflow-y: auto;
-  }
+  /* Every row is one native 3-cell pitch: the slab plus the gap under it. */
   .stockpile-editor-row {
-    position: relative;
-    display: block;
     width: 100%;
-    height: 39px;
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0 34px 2px 2px;
-    font: inherit;
-    letter-spacing: inherit;
+    height: calc(var(--dwfui-height-row-tall) - var(--dwfui-space-xs));
+    margin-bottom: var(--dwfui-space-xs);
+    padding-right: 0;
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
   }
-  .stockpile-editor-row .stockpile-editor-lab {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 21px;
-  }
   .stockpile-editor-row.sel {
     overflow: visible;
   }
-  .stockpile-editor-row.sel::after {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    pointer-events: none;
-  }
-  .stockpile-editor-cicon {
-    position: absolute;
-    left: -4px;
-    top: -4px;
-  }
-  .stockpile-editor-state {
-    position: absolute;
-    right: 8px;
-  }
-
-  .stockpile-editor-cats,
-  .stockpile-editor-groups {
-    overflow-y: auto;
-  }
-
-  .stockpile-editor-row .stockpile-editor-state.stockpile-editor-tri {
-    top: 50%;
-    transform: translateY(-50%);
-    width: calc(4 * var(--dwfui-cell-drawn-w, 8px));
-    height: calc(3 * var(--dwfui-cell-drawn-h, 12px));
-    display: block;
-  }
-  .stockpile-panel-sidewin {
-    display: none;
-    position: fixed;
-    z-index: 76;
-    box-sizing: border-box;
-    width: calc(41 * var(--dwfui-cell-drawn-w, 8px));
-  }
-  .stockpile-panel-sidewin.stockpile-panel-sidewin-open {
-    display: block;
-  }
-  .stockpile-panel-sidewin[data-spn-side-rows="18"] {
-    height: calc(18 * var(--dwfui-cell-drawn-h, 12px));
-  }
-  .stockpile-panel-sidewin[data-spn-side-rows="38"] {
-    height: calc(38 * var(--dwfui-cell-drawn-h, 12px));
-  }
-  .stockpile-panel-sidewin[data-spn-side-rows="13"] {
-    height: calc(13 * var(--dwfui-cell-drawn-h, 12px));
-  }
-  .stockpile-panel-storagewin.stockpile-panel-sidewin {
-    width: calc(41 * var(--dwfui-cell-drawn-w, 8px));
-    min-width: 300px;
-  }
-  .stockpile-panel-linkswin .stockpile-link-meta {
-    opacity: 0.75;
-  }
-
-  .stockpile-panel-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(10, calc(3 * var(--dwfui-cell-drawn-h)));
-    grid-template-columns: calc(17 * var(--dwfui-cell-drawn-w)) minmax(0, 1fr);
-  }
   .stockpile-editor-cat {
-    padding-left: 34px;
-    padding-right: calc(4 * var(--dwfui-cell-drawn-w) + 12px);
+    gap: var(--dwfui-space-s);
+    padding-left: var(--dwfui-space-xs);
   }
-  .stockpile-editor-row .stockpile-editor-copy {
-    min-width: 0;
-    overflow: hidden;
+  .stockpile-editor-tri {
+    width: var(--dwfui-icon-m);
+    height: 100%;
   }
-  .stockpile-panel-type:nth-child(n + 11):nth-child(-n + 13) {
-    box-sizing: border-box;
-    margin-right: calc(8 * var(--dwfui-cell-drawn-w));
-    padding-right: 0;
-  }
-  .stockpile-panel-gridwrap {
-    position: relative;
-    isolation: isolate;
-  }
-  .stockpile-panel-tools {
-    position: absolute;
-    top: 0;
-    right: 0;
-    display: grid;
-    grid-template-columns: repeat(2, calc(4 * var(--dwfui-cell-drawn-w)));
-    grid-auto-rows: calc(3 * var(--dwfui-cell-drawn-h));
-    z-index: 20;
-  }
-  .stockpile-panel-tools > .stockpile-panel-tool,
-  .stockpile-panel-tools > .stockpile-panel-tool-spacer {
-    position: relative;
-    z-index: 1;
-  }
-
-  .stockpile-panel-remove-confirm {
-    color: var(--dwfui-text-danger);
+  .stockpile-editor-tri-art {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .stock-remove-confirm {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: calc(2 * var(--dwfui-cell-drawn-w));
-    margin-top: calc(1 * var(--dwfui-cell-drawn-h));
+    gap: var(--dwfui-space-xl);
+    margin-top: var(--dwfui-space-l);
   }
   .stock-remove-confirm[hidden] {
     display: none;
@@ -411,7 +289,7 @@
   .stock-remove-confirm-actions {
     display: flex;
     align-items: center;
-    gap: var(--dwfui-cell-drawn-w);
+    gap: var(--dwfui-space-m);
     flex: 0 0 auto;
   }
 }

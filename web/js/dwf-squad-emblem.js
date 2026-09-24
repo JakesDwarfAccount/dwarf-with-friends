@@ -55,11 +55,11 @@
           cls: "squad-emblem-art", alt: "Emblem preview" })}</span>
         <span>Choose a symbol for the squad.</span>
       </div>
-      <div class="squad-section-title">Symbol</div>
+      <div class="dwfui-text--section squad-section-title">Symbol</div>
       ${DWFUI.scrollHtml({ cls: "squad-symbol-grid", rows: ".squad-symbol-btn",
         preserveKey: "squads:emblem-symbols" },
         `<div class="squad-emblem-grid" data-emblem-rows="${rows}">${grid}</div>`)}
-      <div class="squad-section-title">Colours</div>
+      <div class="dwfui-text--section squad-section-title">Colours</div>
       <div class="squad-controls squad-emblem-palette">
         ${/* WIRED SUPERSET, NO BUILDER EXISTS, AND NOW ALSO AN EVIDENCE GAP. Native's picker is a
              36 x 10 RGB swatch block whose selected cell is found by RGB EQUALITY (0081 R10) -- but

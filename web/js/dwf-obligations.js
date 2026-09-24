@@ -117,7 +117,7 @@
   function mandateRowHtml(m) {
     const progress = m.progressText ? `<span class="fort-dim">${oblEsc(m.progressText)}</span>` : "";
     const trailing = `<span class="obligation-trailing">${progress}` +
-      `<span class="fort-badge ${m.ongoing ? "fort-badge-open" : "fort-badge-open"}">${oblEsc(m.deadlineText)}</span></span>`;
+      `<span class="fort-badge fort-badge-open">${DWFUI.bitmapTextHtml(m.deadlineText)}</span></span>`;
     const subHtml = `${oblEsc(m.kind)} &middot; By ${oblUnitRef(m.unitId, m.by)}` +
       (m.punishMultiple ? ` &middot; multiple offenders punished` : "");
     return DWFUI.rowHtml({
@@ -131,7 +131,7 @@
 
   function locationRowHtml(item) {
     const badge = item.pending ? "fort-badge-open" : "fort-badge-done";
-    const trailing = `<span class="obligation-trailing"><span class="fort-badge ${badge}">${oblEsc(item.stateLabel)}</span></span>`;
+    const trailing = `<span class="obligation-trailing"><span class="fort-badge ${badge}">${DWFUI.bitmapTextHtml(item.stateLabel)}</span></span>`;
     const subParts = [];
     if (item.purposeText) subParts.push(oblEsc(item.purposeText));
     if (item.petitioner && item.primary !== item.petitioner) subParts.push(`Requested by ${oblEsc(item.petitioner)}`);
@@ -169,9 +169,9 @@
 
     return `<div id="obligationsRoot">
       <div id="fortStatus" class="info-message fort-status"></div>
-      <div class="fort-note">Standing fort obligations, kept current while this panel is open: demands and mandates from your nobles, plus guild hall and temple agreements requested by petitioning groups.</div>
-      <div class="fort-section-title">Noble mandates</div>${mandateRows}
-      <div class="fort-section-title">Guild halls &amp; temples</div>${locRows}
+      <div class="dwfui-text--note fort-note">Standing fort obligations, kept current while this panel is open: demands and mandates from your nobles, plus guild hall and temple agreements requested by petitioning groups.</div>
+      <div class="dwfui-text--section fort-section-title">Noble mandates</div>${mandateRows}
+      <div class="dwfui-text--section fort-section-title">Guild halls &amp; temples</div>${locRows}
     </div>`;
   }
 

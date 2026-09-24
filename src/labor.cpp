@@ -706,7 +706,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/labor-toggle", labor_toggle_handler);
     server.Post("/labor-toggle", labor_toggle_handler);
 
     auto labor_mode_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -722,7 +721,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/labor-mode", labor_mode_handler);
     server.Post("/labor-mode", labor_mode_handler);
 
     auto labor_specialist_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -738,7 +736,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/labor-specialist", labor_specialist_handler);
     server.Post("/labor-specialist", labor_specialist_handler);
 
     auto labor_create_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -749,7 +746,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_content("{\"ok\":true,\"index\":" + std::to_string(result.value) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/labor-create", labor_create_handler);
     server.Post("/labor-create", labor_create_handler);
 
     auto labor_rename_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -764,7 +760,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/labor-rename", labor_rename_handler);
     server.Post("/labor-rename", labor_rename_handler);
 
     auto labor_delete_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -779,7 +774,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/labor-delete", labor_delete_handler);
     server.Post("/labor-delete", labor_delete_handler);
 
     auto labor_task_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -797,7 +791,6 @@ void register_labor_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/labor-task-toggle", labor_task_handler);
     server.Post("/labor-task-toggle", labor_task_handler);
 
     // GET /labor-list -> full assignable unit_labor enum for the Workers-tab checkboxes

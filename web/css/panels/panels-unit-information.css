@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.unit-information {
   .unit-sheet {
@@ -30,25 +30,14 @@
     --unit-row-pitch: calc(3 * var(--unit-cell-h)); /* the 3-row list pitch */
     --unit-art-w: calc(5 * var(--unit-cell-w)); /* the standard 5x3 art tile */
     --unit-art-h: calc(3 * var(--unit-cell-h));
-    --unit-tool-w: calc(4 * var(--unit-cell-w)); /* the 4x3 tool tile */
-    --unit-tool-h: calc(3 * var(--unit-cell-h));
     --unit-portrait-w: calc(12 * var(--unit-cell-w)); /* the 12x8 portrait box */
     --unit-portrait-h: calc(8 * var(--unit-cell-h));
-    box-sizing: border-box;
-    isolation: isolate;
     overflow: hidden;
-    padding: 0;
-    height: 100%;
-    min-height: 430px;
-    display: flex;
-    flex-direction: column;
   }
   .unit-sheet-header {
-    position: relative;
-    min-height: calc(8 * var(--unit-cell-h));
     height: calc(8 * var(--unit-cell-h));
-    padding: 0;
   }
+  /* The vermin sheet borrows this box outside the unit sheet, hence the fallback. */
   .unit-portrait {
     position: relative;
     width: var(--unit-portrait-w, 120px);
@@ -59,16 +48,23 @@
   }
   .unit-portrait-slot {
     position: relative;
-    width: var(--unit-portrait-w, 120px);
-    height: var(--unit-portrait-h, 120px);
+    width: var(--unit-portrait-w);
+    height: var(--unit-portrait-h);
   }
   .unit-portrait-slot > .unit-portrait {
     z-index: 3;
   }
+  .unit-portrait-slot > .unit-portrait-frame {
+    inset: 0 auto auto 0;
+    width: var(--unit-portrait-w);
+    height: calc(6 * var(--unit-cell-h));
+    z-index: 1;
+  }
+  .unit-portrait-clickable {
+    cursor: pointer;
+  }
   .unit-portrait > .unit-portrait-fallback-art {
     grid-area: 1 / 1;
-    width: var(--unit-art-w, 50px);
-    height: var(--unit-art-h, 45px);
     display: grid;
     place-items: center;
     overflow: hidden;
@@ -86,12 +82,8 @@
     grid-area: 1 / 1;
     width: 100%;
     height: 100%;
-    object-fit: contain;
     display: none;
     image-rendering: auto;
-  }
-  .has-native-portrait .native-portrait-img.portrait-image-pending {
-    display: none;
   }
   .authored-portrait-svg {
     object-fit: fill;
@@ -99,6 +91,7 @@
   .has-native-portrait .native-portrait-img {
     display: block;
   }
+  .has-native-portrait .native-portrait-img.portrait-image-pending,
   .has-native-portrait .portrait-glyph {
     display: none;
   }
@@ -108,81 +101,55 @@
     height: 62px;
     display: grid;
     place-items: center;
-    font-size: 34px;
-    font-weight: 900;
   }
+  .unit-portrait .portrait-glyph {
+    font: var(--dwfui-font-double);
+  }
+
   .unit-name-line {
-    padding-top: 12px;
-    font-size: 14px;
+    padding-top: var(--dwfui-space-m);
     font-weight: 700;
     line-height: 1.2;
   }
   .unit-nickname-line {
-    margin-top: 3px;
-    font-size: 13px;
-  }
-  .unit-meta-line {
-    margin-top: 8px;
-    color: var(--dwfui-text-secondary);
-    font-size: 12px;
+    margin-top: var(--dwfui-space-xs);
   }
   /* ledger 0087: the job line is index 11 LCYAN, not gold. */
   .unit-job-line {
-    margin-top: 10px;
+    margin-top: var(--dwfui-space-m);
     color: var(--dwfui-text-active);
-    font-size: 12px;
     font-weight: 700;
   }
+  /* Customizing swaps the identity lines for the editor, in place. */
+  .unit-sheet-header:has(.unit-nickname-editor) :is(.unit-nickname-line, .unit-job-line) {
+    display: none;
+  }
   .unit-nickname-editor {
-    grid-column: 2 / 4;
     display: grid;
-    grid-template-columns: minmax(180px, 1fr) auto auto;
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: var(--dwfui-space-s);
     align-items: end;
-    padding: 7px 0 8px;
+    padding: var(--dwfui-space-s) 0 var(--dwfui-space-m);
   }
   .unit-nickname-label {
     display: grid;
-    gap: 3px;
-    font-size: 11px;
+    gap: var(--dwfui-space-xs);
     font-weight: 700;
   }
-  .unit-nickname-label:nth-of-type(1) {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .unit-nickname-label:nth-of-type(2) {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  .unit-nickname-save {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-  .unit-nickname-cancel {
-    grid-column: 3;
-    grid-row: 1 / span 2;
+  .unit-nickname-input {
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
   }
   .unit-nickname-status {
     grid-column: 1 / -1;
-    min-height: 16px;
-    font-size: 11px;
+    min-height: var(--dwfui-height-line);
   }
-  .unit-portrait-clickable {
-    cursor: pointer;
-  }
-  .stock-item-weight {
-    color: var(--dwfui-text-numeric);
-  }
+
   /* The profile body is a `.dwfui-grid`: it states ONLY its template. The dividers, the borderless
      cells and the "no frame of my own" rule all come from the chassis. */
   .unit-grid {
-    position: relative;
     flex: 1;
-    margin: 0 0 10px;
-    /* `.dwfui-grid` owns `gap` later in this sheet. Override its INPUT here, not `gap` itself, or the
-     later chassis rule wins and quietly restores the default on some tracks. */
-    --dwfui-divider: calc(2px * var(--dwfui-interface-scale));
+    margin: 0 0 var(--dwfui-space-m);
+    gap: calc(2 * var(--dwfui-divider)); /* the profile's dividers are two native pixels */
     grid-template-columns: 1fr 1fr;
     grid-template-rows: calc(10.3 * var(--unit-cell-h)) repeat(3, calc(7 * var(--unit-cell-h))) minmax(
         calc(8 * var(--unit-cell-h)),
@@ -191,46 +158,28 @@
     min-height: 390px;
   }
   .unit-cell {
-    padding: 5px 7px;
+    padding: var(--dwfui-space-s);
     overflow: hidden;
   }
   .unit-cell.wide {
     overflow-y: auto;
-    overflow-x: hidden;
   }
   .unit-cell-line {
     white-space: pre-wrap;
   }
-  .unit-cell-line.condition {
-    color: var(--dwfui-text-warning);
-    font-weight: 700;
-  }
-  .unit-cell-line.positive {
-    color: var(--dwfui-text-active);
-    font-weight: 700;
-  }
-  .unit-cell.status {
-    color: var(--dwfui-text-good);
-    font-weight: 700;
-  }
-  .unit-cell.status .condition {
-    color: var(--dwfui-text-warning);
-  }
-  .unit-cell.status .healthy {
-    color: var(--dwfui-text-good);
-  }
-  /* DF-style color coding for unit text: an unmet need is gold. */
-  .unit-need-line {
-    color: var(--dwfui-text-warning);
-    font-weight: 700;
-  }
-  .unit-need-line-inherit,
-  .unit-profession-color-inherit {
-    color: inherit;
-  }
   .unit-cell .subtle {
     color: var(--dwfui-text-secondary);
   }
+  .unit-overview-quote {
+    margin-bottom: var(--unit-cell-h);
+  }
+  .unit-need-line {
+    font-weight: 700;
+  }
+  .unit-profession-color-inherit {
+    color: inherit;
+  }
+
   /* NO `background` AND NO `border` MAY EVER BE ADDED TO THIS RULE. The framework stretches this
      host to the panel, so anything it paints is a full-height slab by construction. */
   .unit-tab-scroll {
@@ -240,51 +189,60 @@
   .unit-tab-scroll > .unit-list-grid,
   .unit-tab-scroll > .unit-wd-list {
     flex: 0 0 auto;
-    overflow: visible;
   }
   .unit-list-grid {
-    flex: 0 1 auto;
     min-height: 0;
-    margin: 0 10px 10px;
+    gap: 0; /* native lists these lines with no rule between them */
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-m);
     grid-template-columns: 1fr;
-    grid-auto-rows: minmax(34px, auto);
+    grid-auto-rows: var(--unit-row-pitch);
     align-content: start;
-    overflow: auto;
   }
   .unit-list-row {
-    padding: 6px 8px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
   }
-  .unit-list-row.condition {
-    color: var(--dwfui-text-warning);
-    font-weight: 700;
+  .unit-sheet :is(.unit-list-row, .unit-structured-row, .unit-skill-row, .unit-knowledge-row, .unit-wd-row) {
+    box-sizing: border-box;
+    height: var(--unit-row-pitch);
+    min-height: var(--unit-row-pitch);
+    max-height: var(--unit-row-pitch);
+    overflow: hidden;
   }
-  .unit-list-row.positive {
-    color: var(--dwfui-text-good);
+  .unit-sheet .unit-wd-row {
+    padding-block: 0;
   }
-  .unit-structured-list {
+
+  /* Plain lines: an empty tab, Health status and the description, one blank line under the tabs. */
+  .unit-text-block {
     flex: 1;
-    margin: 0 10px 10px;
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-m);
+    padding-top: var(--dwfui-space-l);
     overflow: auto;
+    line-height: 1.18;
+  }
+  .unit-text-line {
+    margin: 0 0 var(--dwfui-space-m);
+    white-space: pre-wrap;
+  }
+
+  .unit-structured-list,
+  .unit-skill-list,
+  .unit-knowledge-list {
+    margin: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .unit-structured-line,
-  .unit-group-name,
   .unit-inventory-name {
     line-height: 1.15;
   }
   .unit-structured-subline,
   .unit-inventory-location {
-    margin-top: 3px;
-    font-size: 12px;
+    margin-top: var(--dwfui-space-xs);
     line-height: 1.1;
   }
-  .unit-structured-empty {
-    padding: 7px 8px;
-    color: var(--dwfui-text-disabled);
-  }
   .unit-structured-portrait {
-    width: var(--unit-art-w, 50px);
-    height: var(--unit-art-h, 45px);
-    flex: 0 0 var(--unit-art-w, 50px);
+    width: var(--unit-art-w);
+    height: var(--unit-art-h);
+    flex: 0 0 var(--unit-art-w);
   }
   .unit-relation-portrait {
     width: 100%;
@@ -294,62 +252,53 @@
     overflow: hidden;
   }
   .unit-relation-portrait .native-portrait-img {
-    width: 100%;
-    height: 100%;
     object-fit: contain;
   }
   .unit-relation-portrait .portrait-glyph {
-    width: calc(2 * var(--unit-cell-w, 10px));
-    height: calc(2 * var(--unit-cell-h, 15px));
-    font-size: 17px;
+    width: calc(2 * var(--unit-cell-w));
+    height: calc(2 * var(--unit-cell-h));
   }
-  .unit-group-name {
+  .unit-inventory-name {
+    color: var(--df-c14);
+  }
+  .unit-inventory-location {
     color: var(--dwfui-text-active);
   }
-  .unit-group-status {
-    margin-top: 3px;
-    color: var(--dwfui-text-secondary);
-    font-size: 12px;
+  .unit-group-label {
+    display: flex;
+    gap: var(--dwfui-space-m);
+  }
+  .unit-group-name {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--dwfui-text-active);
   }
   .unit-group-category {
-    max-width: 42%;
-    margin-left: auto;
-    color: var(--dwfui-text-warning);
-    text-align: right;
-    white-space: nowrap;
+    flex: none;
+    color: var(--df-c14);
   }
-  .unit-room-row {
-    min-height: var(--unit-row-pitch, 45px);
-  }
-  .unit-room-row.assigned .unit-room-name {
-    color: var(--dwfui-text-warning);
+  .unit-group-status {
+    margin-top: var(--dwfui-space-xs);
+    color: var(--dwfui-text-body);
   }
   .unit-room-row.clickable {
     cursor: pointer;
   }
   .unit-room-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
     flex: 0 0 auto;
     margin-left: auto;
-  }
-  .unit-inventory-name {
-    color: var(--dwfui-text-warning);
-  }
-  .unit-inventory-row {
-    min-height: var(--unit-row-pitch, 45px);
   }
   .unit-labor-animal-state {
     margin-left: auto;
     color: var(--dwfui-text-active);
-    font-size: 12px;
   }
   .unit-labor-animal-row.assigned .unit-labor-animal-state {
     color: var(--df-c14);
   }
   .unit-labor-animal-action {
-    margin-left: 8px;
+    margin-left: var(--dwfui-space-m);
     display: flex;
     align-items: center;
   }
@@ -358,7 +307,6 @@
   }
   .unit-labor-animal-blocked {
     color: var(--dwfui-text-disabled);
-    font-size: 12px;
     cursor: help;
   }
   .unit-labor-animal-row.blocked {
@@ -366,43 +314,21 @@
   }
   .unit-labor-animal-status {
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    padding: 4px 8px;
-    min-height: 14px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    min-height: var(--dwfui-height-line);
   }
-  .unit-text-block {
-    flex: 1;
-    margin: 0 10px 10px;
-    padding: 9px 10px;
-    overflow: auto;
-    line-height: 1.18;
-  }
-  .unit-text-line {
-    margin: 0 0 11px;
-    white-space: pre-wrap;
-  }
-  .unit-text-line.positive {
-    color: var(--dwfui-text-good);
-  }
-  .unit-text-line.condition {
-    color: var(--dwfui-text-danger);
-  }
-  .unit-prose-block,
-  .unit-skill-list,
-  .unit-knowledge-list {
+
+  .unit-prose-block {
     flex: 1;
     min-height: 0;
-    margin: 0 10px 10px;
+    margin: 0 var(--dwfui-space-m) var(--dwfui-space-m);
+    padding: var(--dwfui-space-l) 0 var(--dwfui-space-s);
     overflow: auto;
     color: var(--dwfui-text-prose);
-  }
-  .unit-prose-block {
-    padding: 6px 0;
     line-height: 1.12;
   }
   .unit-prose-paragraph {
-    margin: 0 0 13px;
-    white-space: normal;
+    margin: 0 0 var(--dwfui-space-l);
   }
   .unit-prose-positive,
   .unit-prose-personal-positive,
@@ -411,9 +337,7 @@
   }
   .unit-prose-negative,
   .unit-prose-personal-negative,
-  .unit-prose-emotion-negative {
-    color: var(--df-c12);
-  }
+  .unit-prose-emotion-negative,
   .unit-prose-warning {
     color: var(--df-c12);
   }
@@ -429,55 +353,14 @@
   .unit-prose-form {
     color: var(--dwfui-text-active);
   }
-  .unit-skill-row,
-  .unit-knowledge-row {
-    min-height: 35px;
-    box-sizing: border-box;
-  }
-  .unit-skill-row {
-    padding: 7px 4px;
-  }
-  .unit-skill-row.unit-skill-accent {
+  .unit-skill-accent {
     color: var(--dwfui-text-active);
   }
-  .unit-skill-row.unit-skill-attention {
-    color: var(--df-c14);
-  }
-  .unit-skill-row.unit-skill-warning {
-    color: var(--df-c12);
-  }
+  .unit-skill-attention,
   .unit-skill-rust {
     color: var(--df-c14);
   }
-  .unit-knowledge-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px 4px 2px;
-  }
-  .unit-knowledge-copy {
-    min-width: 0;
-    flex: 1;
-  }
-  .unit-knowledge-title {
-    color: var(--dwfui-text-row);
-    line-height: 1.05;
-  }
-  .unit-knowledge-subtype {
-    margin-top: 2px;
-    line-height: 1.05;
-  }
-  .unit-list-empty {
-    color: var(--dwfui-text-disabled);
-  }
-  .unit-sheet .unit-list-grid {
-    grid-auto-rows: var(--unit-row-pitch);
-  }
-  .unit-sheet .unit-wd-row {
-    padding-block: 0;
-  }
-
-  .unit-overview-quote {
-    margin-bottom: var(--unit-cell-h);
+  .unit-skill-warning {
+    color: var(--df-c12);
   }
 }

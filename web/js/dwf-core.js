@@ -23,7 +23,7 @@
   function normalizeStoredName(v) {
     if (typeof v !== "string" || !v) return v;
     if (!/%[0-9A-Fa-f]{2}/.test(v)) return v;   // no escape sequence -> already raw
-    try { return decodeURIComponent(v); } catch (_) { return v; }
+    try { return decodeURIComponent(v); } catch { return v; }
   }
   const stored = normalizeStoredName(window.DwfUtil.lsGet("dwf.player", err => { throw err; }));
   const fresh = (crypto.randomUUID ? crypto.randomUUID() :
@@ -39,17 +39,17 @@
     if (player) return player;
     if (mode === "unitcycle") {
       try { if (window.DFPlayerKey) return window.DFPlayerKey; }
-      catch (_) { /* an inaccessible legacy key falls through to stored identity */ }
+      catch { /* an inaccessible legacy key falls through to stored identity */ }
     }
     if (mode === "hotkeys" || mode === "unitcycle") {
       try {
         const urlPlayer = new URLSearchParams(location.search).get("player");
         if (urlPlayer) return urlPlayer;
-      } catch (_) { return ""; }
+      } catch { return ""; }
       return window.DwfUtil.lsGet("dwf.player") || "";
     }
     if (mode === "chat") {
-      try { return window.playerName || ""; } catch (_) { return ""; }
+      try { return window.playerName || ""; } catch { return ""; }
     }
     return "";
   }
@@ -175,7 +175,6 @@
   let notificationState = { alerts: [], recent: [] };
   let currentZones = [];
   let zoneSnapshotCamera = null;
-  let zoneSnapshotViewport = null;
   let zoneOverlayEnabled = false;
   let instantDesignate = true;
   { const v = window.DwfUtil.lsGet("dfplex.instantDesignate"); if (v !== null) instantDesignate = v === "1"; }
@@ -192,7 +191,6 @@
   unitImagesEnabled = window.DwfUtil.lsGet("dfplex.unitImages") !== "0";
   let predictedCam = null;          // where the camera "should" be from local input {x,y,z}
   let frameCam = null;              // camera the currently shown frame was rendered at {x,y,z}
-  let lastPanInputAt = 0;
   const panOffset = { x: 0, y: 0 }; // px the #view is currently translated by
   const PAN_CAP_TILES = 16;         // bound the lead so a desync can't slide the frame far off
 
@@ -239,7 +237,6 @@
     if (!predictedCam) return;       // wait for the first frame to seed predictedCam
     predictedCam.x += dx; predictedCam.y += dy; predictedCam.z += dz;
     clampPredicted();
-    lastPanInputAt = performance.now();
     applyPanPrediction();
   }
   let pinnedAlertKey = null;
@@ -295,9 +292,6 @@
   function refreshMap() {
     if (tileRenderer && typeof tileRenderer.refresh === "function") tileRenderer.refresh();
   }
-  // Back-compat shim: a few call sites used to nudge the JPEG loop via scheduleFrame(0). They
-  // now just kick an immediate map refetch. (The predictive-JPEG path is gone.)
-  function scheduleFrame() { refreshMap(); }
   const step = 10;         // d_init.horizontal/vertical_scroll_speed default -- one pan key = 10 tiles
   const PAN_FAST_MULT = 2; // *_scroll_speed_fast default 20 => exactly 2x (was a client-only 3x)
   const zstep = 1;         // CURSOR_UP_Z / CURSOR_DOWN_Z
@@ -320,7 +314,7 @@
   }
 
   function queueMove(dx, dy, dz, opts) {
-    if (!opts || opts.followBreak !== false) stopPlayerFollow("manual");
+    if (!opts || opts.followBreak !== false) stopPlayerFollow();
     notePanInput(dx, dy, dz);   // instant predictive shift before the server round-trip
     // on protocol v1, re-window the canvas from the world cache at the new position
     // IMMEDIATELY (no wire wait) -- a no-op under legacy (unchanged, server-push-driven).
@@ -343,7 +337,7 @@
       const cam = (tileRenderer && typeof tileRenderer.getDesiredCam === "function") ? tileRenderer.getDesiredCam() : null;
       if (!cam) return false;
       return !!DwfWS.send({ type: "cam", x: cam.x | 0, y: cam.y | 0, z: cam.z | 0 });
-    } catch (_) { return false; }
+    } catch { return false; }
   }
 
   // An order the player gave that never reached the game is not telemetry: they must be told, on the
@@ -359,7 +353,7 @@
         lostToastMessage = message;
         lostToast = DwfPause.toast(message);
       }
-    } catch (_) { DwfErr.count("order-lost.toast"); }
+    } catch { DwfErr.count("order-lost.toast"); }
   }
   // `fetch` rejects only on a NETWORK failure, so a catch alone lets an HTTP 500 read as success.
   // The contract's one test is non-2xx OR ok:false; this is the status half, shared by every camera write.
@@ -371,10 +365,10 @@
         if (window.DwfAuth && typeof DwfAuth.onAuthFail === "function") DwfAuth.onAuthFail();
         else if (window.DwfJoin && typeof DwfJoin.onAuthFail === "function") DwfJoin.onAuthFail();
       }
-    } catch (_) { DwfErr.count("camera.surface-failed"); }
+    } catch { DwfErr.count("camera.surface-failed"); }
   }
   try { window.DwfOrder = { lost: noteOrderLost, cameraHttpResult: noteCameraHttpResult }; }
-  catch (_) { /* non-browser context */ }
+  catch { /* non-browser context */ }
 
   function noteCameraHttpError(err, label) {
     DwfErr.report(`camera.${label}`, err);
@@ -423,7 +417,7 @@
   }
 
   async function resetToHost() {
-    stopPlayerFollow("manual");
+    stopPlayerFollow();
     resetPanPrediction();
     try {
       const r = await fetch(`/reset?player=${encodeURIComponent(player)}`, { method: "POST", cache: "no-store" });
@@ -486,7 +480,7 @@
       stop.textContent = "Stop";
       stop.addEventListener("click", event => {
         event.preventDefault();
-        stopPlayerFollow("manual");
+        stopPlayerFollow();
         focusPage();
       });
       playerFollowIndicator.appendChild(text);
@@ -509,7 +503,7 @@
         const r = hv.getBoundingClientRect();
         if (r.height > 0) top = Math.max(top, Math.ceil((r.bottom + 8) / zoom));
       }
-    } catch (_) { DwfErr.count("presence.follow-indicator-place"); }
+    } catch { DwfErr.count("presence.follow-indicator-place"); }
     el.style.setProperty("--follow-indicator-top", top + "px");
   }
 
@@ -580,7 +574,7 @@
     if (!p || p.self) return false;
     const cam = playerCameraFromPresence(p);
     if (!cam) return false;
-    stopPlayerFollow("jump");
+    stopPlayerFollow();
     return setOwnCameraAbsolute(cam);
   }
 
@@ -589,7 +583,7 @@
     if (!p || p.self) return false;
     const cam = playerCameraFromPresence(p);
     if (!cam) return false;
-    stopPlayerFollow("replace");
+    stopPlayerFollow();
     const rawFollowName = String(p.name || name);
     const followLabel = (window.DwfLobby && typeof DwfLobby.displayName === "function")
       ? DwfLobby.displayName(rawFollowName).text : rawFollowName;
@@ -607,7 +601,7 @@
     return true;
   }
 
-  function stopPlayerFollow(_reason) {
+  function stopPlayerFollow() {
     if (!playerFollow) return false;
     if (playerFollow.timer) window.clearInterval(playerFollow.timer);
     playerFollow = null;
@@ -617,7 +611,7 @@
   }
 
   function togglePresenceFollow(name) {
-    if (playerFollow && playerFollow.name === String(name || "")) return stopPlayerFollow("toggle");
+    if (playerFollow && playerFollow.name === String(name || "")) return stopPlayerFollow();
     return followPresencePlayer(name);
   }
 
@@ -710,7 +704,7 @@
     _navBaseline = null; // next pan/zoom/zmove call starts a fresh gesture window
     return out;
   }
-  try { window.__wa_nav = { pan: _navPan, zoom: _navZoom, zmove: _navZmove, stats: _navStats }; } catch (_) { /* non-browser context */ }
+  try { window.__wa_nav = { pan: _navPan, zoom: _navZoom, zmove: _navZmove, stats: _navStats }; } catch { /* non-browser context */ }
 
   // ---- Camera hooks for the touch-gesture layer (dwf-touch.js). ----
   function zoomViewToPx(px) {
@@ -725,7 +719,7 @@
     try {
       const z = (tileRenderer && typeof tileRenderer.getZoom === "function") ? tileRenderer.getZoom() : null;
       return z ? z.px : 24;
-    } catch (_) { return 24; }
+    } catch { return 24; }
   }
   try {
     window.DFTouchNav = {
@@ -738,10 +732,10 @@
         return (rr && rr.cell > 0) ? rr.cell : 24;
       },
     };
-  } catch (_) { /* non-browser context */ }
+  } catch { /* non-browser context */ }
 
   function centerOnCursor(clientX, clientY) {
-    stopPlayerFollow("manual");
+    stopPlayerFollow();
     if (!tileRenderer || typeof tileRenderer.screenToGrid !== "function") return;
     const g = tileRenderer.screenToGrid(clientX, clientY, true);
     const rr = tileRenderer.getRenderRect ? tileRenderer.getRenderRect() : null;
@@ -769,7 +763,7 @@
   // while the 3D viewer is open; a listener on the overlay cannot fix it, because capture runs first.
   function world3DOwnsInput() {
     try { return !!(window.DFWorld3D && window.DFWorld3D.isOpen && window.DFWorld3D.isOpen()); }
-    catch (_) { return false; }
+    catch { return false; }
   }
 
   function helpModalOwnsInput() {
@@ -789,7 +783,7 @@
     return true;
   }
   // Exported so the parity harness can drive the gate without a rAF-bearing DOM.
-  try { window.__dwfWheelPumpAllows = wheelPumpAllows; } catch (_) { /* non-browser context */ }
+  try { window.__dwfWheelPumpAllows = wheelPumpAllows; } catch { /* non-browser context */ }
 
   function handleCameraKey(event) {
     if (!event || isTextEditingTarget(event.target)) return false;
@@ -873,7 +867,7 @@
       try {
         if (typeof window.DFDesignationRangeWheel === "function" &&
             window.DFDesignationRangeWheel(event, dz)) return;
-      } catch (_) { DwfErr.count("camera.designation-wheel"); }
+      } catch { DwfErr.count("camera.designation-wheel"); }
       queueMove(0, 0, dz);
     }, { passive: false, capture: true });
 
@@ -882,7 +876,7 @@
     view.addEventListener("pointerdown", event => {
       if (event.button !== 1 && event.button !== 2) return;
       panDrag = { x: event.clientX, y: event.clientY, moved: 0, button: event.button, id: event.pointerId };
-      try { view.setPointerCapture(event.pointerId); } catch (_) { /* pan continues from window events without capture */ }
+      try { view.setPointerCapture(event.pointerId); } catch { /* pan continues from window events without capture */ }
       event.preventDefault();
     });
     view.addEventListener("pointermove", event => {
@@ -903,7 +897,7 @@
       const wasMiddleClick = panDrag.button === 1 && panDrag.moved < 6;
       // A right press that did not move is a right CLICK: it pops exactly ONE rung of the shared mode stack.
       const wasRightClick = panDrag.button === 2 && panDrag.moved < 6;
-      try { view.releasePointerCapture(event.pointerId); } catch (_) { /* release is harmless after lost capture */ }
+      try { view.releasePointerCapture(event.pointerId); } catch { /* release is harmless after lost capture */ }
       panDrag = null;
       if (wasMiddleClick) centerOnCursor(event.clientX, event.clientY);
       else if (wasRightClick) {
@@ -926,8 +920,8 @@
         manageCamera: false,
         managePoll: true,
         onDraw: () => {
-          try { renderZoneOverlay(); } catch (_) { DwfErr.count("render.zone-overlay-frame"); }
-          try { _navRecordFrame(); } catch (_) { DwfErr.count("render.nav-frame-record"); }
+          try { renderZoneOverlay(); } catch { DwfErr.count("render.zone-overlay-frame"); }
+          try { _navRecordFrame(); } catch { DwfErr.count("render.nav-frame-record"); }
         },
       });
     }
@@ -1142,9 +1136,9 @@
     const R = Math.round(sx + sw) - 1, B = Math.round(sy + sh) - 1;
     ctx.strokeStyle = visual.border;
     ctx.lineWidth = 2;
-    try { ctx.setLineDash(visual.dash || []); } catch (_) { DwfErr.count("render.build-dash-set"); }
+    try { ctx.setLineDash(visual.dash || []); } catch { DwfErr.count("render.build-dash-set"); }
     ctx.strokeRect(L, T, R - L, B - T);
-    try { ctx.setLineDash([]); } catch (_) { DwfErr.count("render.build-dash-reset"); }
+    try { ctx.setLineDash([]); } catch { DwfErr.count("render.build-dash-reset"); }
     const c = Math.max(3, Math.min(10, (R - L) / 2, (B - T) / 2));
     ctx.strokeStyle = visual.corner;
     ctx.beginPath();
@@ -1211,11 +1205,11 @@
       x2: Math.max(values[0], values[2]), y2: Math.max(values[1], values[3]) };
   }
 
-  function czPreset() { try { return zonePreset; } catch (_) { return null; } }
-  function czRepaintId() { try { return zoneRepaintId; } catch (_) { return null; } }
-  function czEraseArmed() { try { return zoneEraseArmed; } catch (_) { return false; } }
-  function czRemoveArmed() { try { return zoneRemoveArmed; } catch (_) { return false; } }
-  function czPaintPreview() { try { return zonePaintPreview; } catch (_) { return null; } }
+  function czPreset() { try { return zonePreset; } catch { return null; } }
+  function czRepaintId() { try { return zoneRepaintId; } catch { return null; } }
+  function czEraseArmed() { try { return zoneEraseArmed; } catch { return false; } }
+  function czRemoveArmed() { try { return zoneRemoveArmed; } catch { return false; } }
+  function czPaintPreview() { try { return zonePaintPreview; } catch { return null; } }
 
   function drawZonePaintPreview(ctx) {
     // Only NEW-zone creation paints here; an existing-zone repaint is drawn by the zone overlay instead.
@@ -1252,9 +1246,9 @@
     }
     ctx.strokeStyle = visual.border;
     ctx.lineWidth = 2;
-    try { ctx.setLineDash(visual.dash || []); } catch (_) { DwfErr.count("render.zone-dash-set"); }
+    try { ctx.setLineDash(visual.dash || []); } catch { DwfErr.count("render.zone-dash-set"); }
     ctx.strokeRect(Math.round(sx) + 1, Math.round(sy) + 1, Math.max(1, Math.round(sw) - 2), Math.max(1, Math.round(sh) - 2));
-    try { ctx.setLineDash([]); } catch (_) { DwfErr.count("render.zone-dash-reset"); }
+    try { ctx.setLineDash([]); } catch { DwfErr.count("render.zone-dash-reset"); }
     // C1: the retained selection keeps its size legible, so "how big is the zone I am about to
     // Accept" is answerable without releasing and re-painting.
     if (model) {
@@ -1274,19 +1268,19 @@
   }
 
   function paintedZoneShape(zone) {
-    let shape = null;
+    let shape;
     try {
       if (!window.DwfPaintSession || !zone || zone.id == null) return zone;
       shape = window.DwfPaintSession.shapeFor("zone", zone.id);
-    } catch (_) { return zone; }
+    } catch { return zone; }
     if (!shape) return zone;
     return { ...zone, x: shape.x1, y: shape.y1, z: shape.z,
       w: shape.x2 - shape.x1 + 1, h: shape.y2 - shape.y1 + 1, extents: shape.extents };
   }
 
   function drawPaintModeWash(ctx) {
-    let open = false;
-    try { open = !!(window.DwfPaintSession && window.DwfPaintSession.modeOpen()); } catch (_) { return; }
+    let open;
+    try { open = !!(window.DwfPaintSession && window.DwfPaintSession.modeOpen()); } catch { return; }
     if (!open) return;
     const rendered = renderedImageRect();
     if (!rendered) return;
@@ -1303,7 +1297,7 @@
     try {
       if (window.DFPlacementCursor && typeof window.DFPlacementCursor.paint === "function")
         window.DFPlacementCursor.paint(ctx, rendered);
-    } catch (_) { /* an overlay must never take the map down */ }
+    } catch { /* an overlay must never take the map down */ }
   }
 
   function drawLeverLinkTargets(ctx) {
@@ -1311,7 +1305,7 @@
     try {
       if (window.DFLeverLink && typeof window.DFLeverLink.overlayTargets === "function")
         targets = window.DFLeverLink.overlayTargets();
-    } catch (_) { targets = []; }
+    } catch { targets = []; }
     if (!Array.isArray(targets) || !targets.length) return;
     const rendered = renderedImageRect();
     if (!rendered) return;
@@ -1408,7 +1402,6 @@
     if (!zoneOverlayEnabled) {
       currentZones = [];
       zoneSnapshotCamera = null;
-      zoneSnapshotViewport = null;
       renderZoneOverlay();
       return;
     }
@@ -1421,9 +1414,8 @@
       const data = await response.json();
       currentZones = Array.isArray(data.zones) ? data.zones : [];
       zoneSnapshotCamera = data.camera || currentHud?.camera || null;
-      zoneSnapshotViewport = data.viewport || currentHud?.viewport || null;
       renderZoneOverlay();
-    } catch (_) { DwfErr.count("render.zone-overlay-refresh"); }
+    } catch { DwfErr.count("render.zone-overlay-refresh"); }
   }
   addEventListener("resize", renderZoneOverlay);
   view.addEventListener("load", renderZoneOverlay);
@@ -1528,7 +1520,7 @@
     if (!window.DFPanelFrame || !window.DFPanelFrame.register) return;
     const PV = window.DFPanelFrame._pure.primaryVariant;
     const CLIENT_VARIANTS = ["build-panel", "squads-sidebar", "reports-window", "alertbox-panel", "fort-window", "info-panel"];
-    const SELECTION_VARIANTS = ["tile-list-panel", "occupant-list-panel", "stock-item-panel", "unit-sheet-panel", "stockpile-panel",
+    const SELECTION_VARIANTS = ["occupant-list-panel", "stock-item-panel", "unit-sheet-panel", "stockpile-panel",
       "zone-panel", "farm-panel", "workshop-panel", "trade-depot-depot-panel", "hospital-panel", "building-panel",
       "vermin-sheet-panel", "planned-engraving-panel"];
     // ---- the close-less (ESC-only) selection variants -------------------------------------------
@@ -1548,25 +1540,26 @@
       ];
       if (variant === "reports-window") return ".reports-list";
       if (variant === "alertbox-panel") return ".alert-viewer-rows";
+      // The list scrolls, not the whole main area: headers and sort bars stay put, rows snap whole.
+      // Only when the list is LAST: content after it (Nobles' mandates) would squeeze the list to nothing.
       if (variant === "info-panel") return [
-        ".work-order-tasks", ".work-order-screen", ".work-order-list", ".info-main", ".stocks-detail", ".stocks-list", ".info-body"
+        ".work-order-tasks", ".work-order-screen", ".work-order-list",
+        ".info-main > .dwfui-scroll[data-dwfui-rows]:last-child",
+        ".info-main", ".stocks-detail", ".stocks-list", ".info-body"
       ];
       return null;
     };
     const selectionFillSel = el => {
       const variant = PV(el.className, SELECTION_VARIANTS);
-      if (variant === "tile-list-panel") return ".pf-content";
       if (variant === "stock-item-panel") return ".stock-item-body";
       if (variant === "unit-sheet-panel") return [
         ".unit-tab-scroll",
         ".unit-grid,.unit-list-grid,.unit-structured-list,.unit-text-block,.unit-prose-block,.unit-skill-list,.unit-knowledge-list",
       ];
-      if (variant === "stockpile-panel") return ".stockpile-targets";
-      if (variant === "zone-panel") return ".zone-unit-list,.stockpile-targets";
+      if (variant === "zone-panel") return ".zone-unit-list";
       if (variant === "farm-panel") return ".farm-seed-stock";
       if (variant === "workshop-panel") return [".workshop-task-grid", ".workshop-task-list", ".workshop-list.compact", ".workshop-body"];
-      if (variant === "trade-depot-depot-panel") return [".trade-depot-goods-list", ".pf-content"];
-      if (variant === "hospital-panel") return [".pf-content"];
+      if (variant === "trade-depot-depot-panel" || variant === "hospital-panel") return ".pf-content";
       if (variant === "building-panel") return ".pf-content";
       return null;
     };

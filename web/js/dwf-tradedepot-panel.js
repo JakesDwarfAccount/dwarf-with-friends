@@ -70,11 +70,6 @@
     return "No broker appointed — assign one in Nobles before trading.";
   }
 
-  // C1-C10: normalise a /depot-goods payload into display rows (defensive against malformed).
-  function goodsRows(goods) {
-    return globalThis.DwfTradeModel.depotGoodsRows(goods);
-  }
-
   // E1/E2: native trade-session status line.
   function tradeStatusText(st) {
     if (!st || st.ok === false) return "";
@@ -85,44 +80,9 @@
       `${Number(st.caravanGoods || 0)} caravan goods on the table. Complete the barter at the depot (host).`;
   }
 
-  // ---- barter-session shapers (node-testable) --------------------------------------------
-
-  // NATIVE bin-following semantics: an item inside a selected container counts even when its own bit is
-  // off. Rows must stay in native table order, which is the order hw_trade_state emits them.
-  function barterTotals(trade) {
-    const totals = {};
-    for (const side of [0, 1]) {
-      let count = 0, value = 0, inSelectedBin = false;
-      for (const r of window.DwfTradeModel.barterRows(trade, side, { detail: false })) {
-        if (!r.contained) inSelectedBin = r.selected;
-        if (r.selected || inSelectedBin) { count += 1; value += r.value; }
-      }
-      totals[side === 0 ? "caravan" : "fort"] = { count, value };
-    }
-    return totals;
-  }
-
-  // Why the barter can't be committed right now (empty string = it can). Pure, testable.
-  function barterBlockText(trade) {
-    if (!trade || trade.ok === false) return "Trade session state unavailable.";
-    if (!trade.open) return "No trade session is open.";
-    if (trade.choosingMerchant) return "Merchant selection is open on the host screen.";
-    if (Number(trade.stillUnloading) !== 0) return "The merchants are still unloading their goods.";
-    if (Number(trade.haveTalker) !== 1) return "No merchant negotiator is at the depot yet.";
-    return "";
-  }
-
-  // Plain-English text for a hostwrites 501 {"guarded":true} response. The server's error field
-  // already says exactly why (which probe flag, what to do); this only adds a fallback.
-  function hostwriteGuardText(resp) {
-    if (resp && resp.error) return String(resp.error);
-    return "This action is implemented but still locked behind a host-side verification probe.";
-  }
-
   // ---- rendering (browser only) ---------------------------------------------------------
 
-  let _tdState = { id: -1, info: null, goods: null, tradeStatus: null, trade: null, tradeError: "",
-                   armed: "", goodsOpen: false, goodsSearch: "", busy: false };
+  let _tdState = { id: -1, info: null, tradeStatus: null, trade: null };
 
   function _tdHeader(name) {
     return DWFUI.headerHtml({ cls: "building-head", title: name || "Trade Depot", titleCls: "building-name",
@@ -142,8 +102,7 @@
   }
 
   async function openTradeDepotPanel(id, buildingInfo) {
-    _tdState = { id, info: null, goods: null, tradeStatus: null, trade: null, tradeError: "",
-                 armed: "", goodsOpen: false, goodsSearch: "", busy: false };
+    _tdState = { id, info: null, tradeStatus: null, trade: null };
     if (typeof selection !== "undefined") {
       selection.className = "visible building-panel";
       panelContent(selection).innerHTML = `${_tdHeader((buildingInfo && buildingInfo.name) || "Trade Depot")}${DWFUI.statusHtml({ cls: "building-status", tone: "dim", text: "Loading depot…" })}`;
@@ -162,8 +121,6 @@
     catch (err) { _tdState.trade = { ok: false, error: err.message || "unavailable" }; }
     _tdRender();
   }
-
-  function _tdBadge(text, cls) { return `<span class="trade-depot-badge${cls ? " " + cls : ""}">${_tdEsc(text)}</span>`; }
 
   // ---- the barter entry -------------------------------------------------------------------
   function barterEntryState(trade, info) {
@@ -184,19 +141,17 @@
   function _tdBarterHtml(s) {
     const entry = barterEntryState(s.trade, s.info);
     const live = !!(s.trade && s.trade.ok !== false && s.trade.open);
-    const err = s.tradeError
-      ? DWFUI.statusHtml({ cls: "building-status err trade-depot-barter-error", tone: "alert", text: s.tradeError }) : "";
     return `<div class="trade-depot-section trade-depot-barter">
       ${DWFUI.plaqueBtnHtml({
         cls: "building-btn", tone: entry.enabled ? (live ? "green" : "gold") : "grey",
         dataset: { tdAct: "barter-screen" }, disabled: !entry.enabled,
-        label: live ? "Barter at the depot (session open)" : "Barter at the depot",
+        label: live ? "Barter (session open)" : "Barter at the depot",
         title: entry.enabled
           ? "Opens the trade screen. Every write is performed by Dwarf Fortress natively on the host."
           : entry.reason,
       })}
-      ${entry.enabled ? "" : `<div class="building-note">${_tdEsc(entry.reason)}</div>`}
-      ${err}</div>`;
+      ${entry.enabled ? "" : `<div class="dwfui-text--note building-note">${_tdEsc(entry.reason)}</div>`}
+      </div>`;
   }
 
   function tradeDepotPanelMarkup(state) {
@@ -210,26 +165,23 @@
     // Caravans block.
     const cars = caravanRows(info);
     const carsHtml = cars.length ? cars.map(c => {
-      const badges = [
-        c.atDepot ? _tdBadge("At depot", "ok") : (c.active ? _tdBadge("Approaching", "ok") : _tdBadge(c.state)),
-        c.tribute ? _tdBadge("Tribute", "warn") : "",
-        ...c.flags.map(f => _tdBadge(f, "warn")),
-      ].filter(Boolean).join(" ");
+      const where = c.atDepot ? "At depot" : (c.active ? "Approaching" : c.state);
+      const warnings = [c.tribute ? "Tribute" : "", ...c.flags].filter(Boolean).join(", ");
       return DWFUI.rowHtml({
-        cls: "trade-depot-caravan", label: c.origin, labelCls: "trade-depot-caravan-name",
-        sub: { cls: "trade-depot-caravan-meta", html: DWFUI.rawHtml(
-          "Caravan metadata combines escaped timing copy with DWFUI-built status badges.",
-          _tdEsc(c.daysText) + " " + badges) },
+        cls: "trade-depot-caravan", copyCls: "trade-depot-caravan-copy", label: c.origin,
+        sub: [{ text: where, tone: c.atDepot || c.active ? "good" : "secondary" },
+              warnings ? { text: warnings, tone: "warning" } : null].filter(Boolean),
+        cells: [{ html: DWFUI.bitmapTextHtml(c.daysText), numeric: true }],
       });
-    }).join("") : `<div class="building-note">No caravans on the map.</div>`;
+    }).join("") : `<div class="dwfui-text--note building-note">No caravans on the map.</div>`;
 
     // Broker + flag toggles.
     const req = !!info.traderRequested;
     const anyone = !!info.anyoneCanTrade;
-    const brokerHtml = `<div class="building-note">${_tdEsc(brokerText(info))}</div>` +
+    const brokerHtml = `<div class="dwfui-text--note building-note">${_tdEsc(brokerText(info))}</div>` +
       DWFUI.plaqueBtnHtml({ cls: `building-btn${req ? " active" : ""}`, tone: req ? "green" : "gold",
         dataset: { tdAct: "broker", tdVal: req ? 0 : 1 },
-        label: req ? "Recall trader (cancel request)" : "Request trader at depot" }) +
+        label: req ? "Cancel trader request" : "Request trader at depot" }) +
       DWFUI.plaqueBtnHtml({ cls: `building-btn${anyone ? " active" : ""}`, tone: anyone ? "green" : "gold",
         dataset: { tdAct: "anyone", tdVal: anyone ? 0 : 1 }, label: `Anyone can trade: ${anyone ? "On" : "Off"}` });
 
@@ -238,7 +190,7 @@
     const barterHtml = _tdBarterHtml(s);
     const barterLive = !!(s.trade && s.trade.ok !== false && s.trade.open);
     const tradeTxt = barterLive ? "" : tradeStatusText(s.tradeStatus);
-    const tradeHtml = tradeTxt ? `<div class="building-note trade-depot-trade-status">${_tdEsc(tradeTxt)}</div>` : "";
+    const tradeHtml = tradeTxt ? `<div class="dwfui-text--note building-note trade-depot-trade-status">${_tdEsc(tradeTxt)}</div>` : "";
 
     // Goods: the full bring-goods screen lives in
     // dwf-tradescreen.js; this plaque is its doorway.
@@ -248,7 +200,8 @@
 
     return `
       ${_tdHeader(info.name || "Trade Depot")}
-      ${DWFUI.statusHtml({ cls: `building-status${!info.accessible && info.built ? " suspended" : ""}`, text: depotStatusText(info) })}
+      ${DWFUI.statusHtml({ cls: `building-status${!info.accessible && info.built ? " suspended" : ""}`,
+        columns: 34, text: depotStatusText(info) })}
       ${DWFUI.scrollHtml({
         cls: "trade-depot-section trade-depot-caravans", rows: ".trade-depot-caravan",
         preserveKey: "trade-depot-caravans", ariaLabel: "Caravans",
@@ -311,8 +264,7 @@
 
   // Browser-safe node export for the offline fixture test.
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { depotStatusText, caravanRows, brokerText, goodsRows, tradeStatusText,
-                       tradeDepotPanelMarkup, barterRows: globalThis.DwfTradeModel.barterRows, barterTotals, barterBlockText,
-                       barterEntryState, hostwriteGuardText };
+    module.exports = { depotStatusText, caravanRows, brokerText, tradeStatusText,
+                       tradeDepotPanelMarkup, barterEntryState };
   }
   if (typeof window !== "undefined") window.DFTradeDepotMarkup = { tradeDepotPanelMarkup };

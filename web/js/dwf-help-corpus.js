@@ -761,11 +761,6 @@
           },
           {
             "control": "",
-            "text": "Assign a specific trainer",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Cancel job",
             "hotkey": ""
           },
@@ -777,6 +772,11 @@
           {
             "control": "",
             "text": "Center and flash",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Choose this animal's trainer",
             "hotkey": ""
           },
           {
@@ -913,7 +913,7 @@
         "entries": [
           {
             "control": "",
-            "text": "[label]: [words] on screen",
+            "text": "[label]: [...] on screen",
             "hotkey": ""
           },
           {
@@ -1008,11 +1008,6 @@
           },
           {
             "control": "",
-            "text": "Female",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Gather fallen fruit in this zone.",
             "hotkey": ""
           },
@@ -1068,11 +1063,6 @@
           },
           {
             "control": "",
-            "text": "Male",
-            "hotkey": ""
-          },
-          {
-            "control": "",
             "text": "Name this zone",
             "hotkey": ""
           },
@@ -1099,11 +1089,6 @@
           {
             "control": "",
             "text": "Next zone on this tile",
-            "hotkey": ""
-          },
-          {
-            "control": "",
-            "text": "Park facing [...] on screen",
             "hotkey": ""
           },
           {
@@ -1631,6 +1616,16 @@
           {
             "control": "",
             "text": "Select to use in non-economic jobs",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Sort by skill",
+            "hotkey": ""
+          },
+          {
+            "control": "",
+            "text": "Type the most workshops that may run this order",
             "hotkey": ""
           }
         ]
@@ -2166,43 +2161,8 @@
             "hotkey": ""
           },
           {
-            "control": "reset",
-            "text": "Reset camera to host view",
-            "hotkey": ""
-          },
-          {
-            "control": "setInstantDig",
-            "text": "Toggle how dig/zone/stockpile selections are drawn while you drag",
-            "hotkey": ""
-          },
-          {
-            "control": "setPredictivePan",
-            "text": "Hide camera-pan latency by shifting the current frame immediately while the server catches up",
-            "hotkey": ""
-          },
-          {
-            "control": "setShowAttribution",
-            "text": "Show which player ordered a building or work order",
-            "hotkey": ""
-          },
-          {
             "control": "settingsBtn",
             "text": "Settings",
-            "hotkey": ""
-          },
-          {
-            "control": "setUiScaleRow",
-            "text": "UI scale: size of the game interface (replaces browser page zoom)",
-            "hotkey": ""
-          },
-          {
-            "control": "setUnitImages",
-            "text": "Toggle native unit portrait/body image requests",
-            "hotkey": ""
-          },
-          {
-            "control": "setZoomRow",
-            "text": "Map zoom: how much of the map fills the screen",
             "hotkey": ""
           },
           {
@@ -2211,38 +2171,8 @@
             "hotkey": "k"
           },
           {
-            "control": "uiScaleInBtn",
-            "text": "Larger UI",
-            "hotkey": ""
-          },
-          {
-            "control": "uiScaleOutBtn",
-            "text": "Smaller UI",
-            "hotkey": ""
-          },
-          {
-            "control": "uiScaleResetBtn",
-            "text": "Reset UI scale",
-            "hotkey": ""
-          },
-          {
             "control": "world3dBtn",
             "text": "3D world viewer (Shift+V)",
-            "hotkey": ""
-          },
-          {
-            "control": "zoomInBtn",
-            "text": "Zoom in ([)",
-            "hotkey": ""
-          },
-          {
-            "control": "zoomOutBtn",
-            "text": "Zoom out (])",
-            "hotkey": ""
-          },
-          {
-            "control": "zoomResetBtn",
-            "text": "Reset zoom",
             "hotkey": ""
           },
           {

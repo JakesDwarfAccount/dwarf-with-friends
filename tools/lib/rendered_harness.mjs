@@ -18,6 +18,9 @@ const HOST_GLOBALS = [
   "Headers", "Request", "Response", "fetch", "atob", "btoa", "crypto", "performance",
   "setTimeout", "clearTimeout", "setInterval", "clearInterval", "queueMicrotask", "Date",
 ];
+// Node 25+ ships its own localStorage; browser modules must see only the stubs a test installs.
+delete globalThis.localStorage;
+delete globalThis.sessionStorage;
 const DEFAULT_SAFE = vm.runInNewContext("({Object,Function,Array})");
 const hostToSafe = new WeakMap();
 const safeToHost = new WeakMap();

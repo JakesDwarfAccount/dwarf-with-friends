@@ -22,7 +22,7 @@
  */
 
 /* Permanent game shell: map, rails, bars, docks, overlays, and world framing. */
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer chrome {
   .dwf-filter-defs {
@@ -45,15 +45,12 @@
     background: var(--dwfui-surface);
     overflow: hidden;
     outline: none;
-    font:
-      14px/1.15 ui-monospace,
-      Consolas,
-      monospace;
+    font: 14px/1.15 var(--dwfui-font-face);
   }
   body {
     --zone-palette-left: 42px;
     --zone-palette-top: 64px;
-    --zone-palette-width: 326px;
+    --zone-palette-width: calc(55 * var(--dwfui-cell-drawn-w));
     --zone-panel-gap: 8px;
     touch-action: none;
     color: var(--dwfui-text-body);
@@ -137,10 +134,7 @@
     padding: 4px 14px;
     border: 2px solid var(--dwfui-gold);
     background: rgba(14, 14, 13, 0.96);
-    font:
-      13px/1.4 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     text-align: left;
     white-space: normal;
     overflow-wrap: break-word;
@@ -195,7 +189,7 @@
   #topbar {
     position: absolute;
     top: 0;
-    left: 38px;
+    left: calc(var(--dwf-alert-badge-w) + 6px);
     right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
     /* content-box, deliberately: the four declared rows are the native BAND and this element's own
      2px ring is ours, outside them. Under border-box the ring eats a row and row 4 overflows. */
@@ -210,7 +204,6 @@
     align-items: start;
     column-gap: var(--dwfui-cell-drawn-w);
     padding: 0 var(--dwfui-cell-drawn-w);
-    overflow: visible;
     pointer-events: auto;
   }
   #leftBadges {
@@ -221,39 +214,30 @@
     gap: 3px;
     padding: 3px;
   }
-  .badge {
-    width: 28px;
-    height: 32px;
-    pointer-events: auto;
+  .alert-badge {
+    box-sizing: border-box;
+    width: var(--dwf-alert-badge-w);
+    height: calc(2 * var(--dwfui-cell-drawn-h) + 8px);
+    padding: 0;
     display: grid;
     place-items: center;
-    color: var(--dwfui-text-body);
-    background: var(--dwfui-silver);
-    border: 2px solid var(--dwfui-gold);
-    font-weight: 900;
-    line-height: 0.9;
-  }
-  .badge.alert-badge {
-    width: 34px;
-    padding: 0;
+    pointer-events: auto;
     background: var(--dwfui-destructive);
+    border: 2px solid var(--dwfui-gold);
   }
   .alert-badge-text {
-    display: block;
-    font:
-      900 8px/1 ui-monospace,
-      Consolas,
-      monospace;
-    letter-spacing: 0.5px;
+    display: flex;
     color: var(--dwfui-text-numeric);
-    text-shadow: 1px 1px 0 #000;
   }
   .fort-lines {
     min-width: 0;
-    font-weight: 700;
     color: var(--dwfui-text-body);
   }
+  /* Every top-bar readout is a DF bitmap label; a flex host drops the inline line box under it, and a
+     one-cell gap is exactly the bitmap font's own space ("1st Granite"). */
   .fort-lines div {
+    display: flex;
+    gap: var(--dwfui-cell-drawn-w);
     height: var(--dwfui-cell-drawn-h);
     white-space: nowrap;
   }
@@ -273,25 +257,30 @@
     grid-row: 1 / span 3;
     align-self: start;
   }
-  /* Every rule below is CONTAINER-SCOPED so it beats `.status-group`, declared lower in this file at
-     equal specificity, by weight rather than by source order. Unscope it and the bar silently breaks. */
+  /* CONTAINER-SCOPED to beat the later same-specificity `.status-group`. Readouts step x += 7 cells ("~12345"
+     plus a gap), and one that does not fit wraps onto a hidden line, so only whole readouts drop off the tail. */
   .stock-counts {
     grid-column: 4;
     grid-row: 1 / span 3;
-    display: grid;
-    grid-template-columns: repeat(7, minmax(min-content, calc(7 * var(--dwfui-cell-drawn-w))));
-    justify-content: start;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    column-gap: var(--dwfui-cell-drawn-w);
+    height: calc(3 * var(--dwfui-cell-drawn-h));
     min-width: 0;
     overflow: hidden;
   }
   .stock-counts .top-stock-cell {
     display: grid;
     grid-template-rows: repeat(3, var(--dwfui-cell-drawn-h));
-    width: auto;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: calc(6 * var(--dwfui-cell-drawn-w));
     gap: 0;
     align-items: start;
     justify-items: start;
+  }
+  .stock-counts .top-stock-cell > [data-dwf-row] {
+    display: flex;
   }
   .stock-counts .top-stock-cell > [data-dwf-row="0"] {
     grid-row: 1;
@@ -310,13 +299,12 @@
   }
   .status-group {
     display: flex;
-    align-items: center;
     gap: 7px;
     white-space: nowrap;
   }
   .label {
+    display: flex;
     color: var(--dwfui-text-row);
-    font-weight: 700;
   }
   /* The ID selector is LOAD-BEARING: `.status-group` is declared just above at the same specificity,
      so a `.top-status-population` rule would lose on source order. */
@@ -341,10 +329,8 @@
     opacity: 0.3;
   }
   .mood-n {
-    font-size: 10px;
-    font-weight: 700;
+    display: flex;
     color: var(--dwfui-text-numeric);
-    margin-top: 1px;
   }
   .stock-food {
     color: #fff;
@@ -381,7 +367,7 @@
   /* Browser-only controls are preserved as a separate rail below the four-row native status frame. */
   .topbar-controls {
     display: flex;
-    gap: 2px;
+    gap: var(--dwfui-space-xs);
     position: absolute;
     top: calc(var(--dwf-status-height) + 4px);
     right: 0;
@@ -393,8 +379,6 @@
     right: 0;
     width: var(--dwf-right-chrome-width);
     height: var(--dwf-right-chrome-height);
-    display: block;
-    overflow: visible;
     pointer-events: auto;
   }
   .right-chrome-frame-art {
@@ -413,10 +397,7 @@
     color: var(--dwfui-text-body);
     background: var(--dwfui-surface);
     border: 2px solid var(--dwfui-gold);
-    font:
-      700 14px/1 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     cursor: pointer;
     display: inline-grid;
     place-items: center;
@@ -441,28 +422,6 @@
     background: var(--dwfui-gold);
     box-shadow: 0 0 0 1px var(--dwfui-gold-bright) inset;
   }
-  /* Settings cog popover (instant-vs-aesthetic designation toggle). */
-  #settingsMenu {
-    position: absolute;
-    top: 52px;
-    right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
-    width: 236px;
-    background: var(--dwfui-surface);
-    border: 2px solid var(--dwfui-gold);
-    padding: 8px;
-    display: none;
-    z-index: 85;
-    pointer-events: auto;
-    font:
-      12px/1.35 ui-monospace,
-      Consolas,
-      monospace;
-    color: var(--dwfui-text-body);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
-  }
-  #settingsMenu.open {
-    display: block;
-  }
   #lobbyPanel {
     position: absolute;
     top: 52px;
@@ -471,16 +430,12 @@
     max-height: min(60vh, 520px);
     background: var(--dwfui-surface);
     border: 2px solid var(--dwfui-gold);
-    padding: 8px;
+    padding: var(--dwfui-space-m);
     display: none;
     flex-direction: column;
     z-index: 86;
     pointer-events: auto;
-    font:
-      12px/1.35 ui-monospace,
-      Consolas,
-      monospace;
-    color: var(--dwfui-text-body);
+    font: var(--dwfui-font);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
   }
   #lobbyPanel.open {
@@ -488,22 +443,13 @@
   }
   #lobbyPanel h3 {
     margin: 0 0 6px;
-    font-size: 12px;
     color: var(--dwfui-text-numeric);
-    font-weight: 700;
     border-bottom: 1px solid var(--dwfui-gold-bevel-mid);
-    padding-bottom: 4px;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    padding-bottom: var(--dwfui-space-s);
     flex: 0 0 auto;
   }
   #lobbyPanel h3.pf-handle {
     cursor: move;
-  }
-  .lobby-count {
-    flex: 1 1 auto;
   }
   .lobby-status {
     display: flex;
@@ -511,7 +457,6 @@
     gap: 6px;
     flex: 0 0 auto;
     margin: 0 0 6px;
-    font-size: 11px;
     color: var(--dwfui-text-secondary);
   }
   .lobby-status-dot {
@@ -536,7 +481,7 @@
   .lobby-rows {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--dwfui-space-xs);
     overflow-x: hidden;
   }
   .lobby-row.lobby-idle {
@@ -551,21 +496,6 @@
   .lobby-row.lobby-no-camera {
     cursor: default;
   }
-  .lobby-row .lobby-copy {
-    display: none;
-  }
-  .lobby-row .lobby-swatch-cell {
-    flex: 0 0 auto;
-    display: flex;
-  }
-  .lobby-row .lobby-name-cell {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    align-items: baseline;
-    gap: 5px;
-    overflow: hidden;
-  }
   .lobby-swatch {
     background: attr(data-lobby-color type(<color>), transparent);
     flex: 0 0 auto;
@@ -577,136 +507,28 @@
   }
   .lobby-name {
     color: attr(data-lobby-color type(<color>), var(--dwfui-text-body));
-    flex: 0 1 auto;
     min-width: 0;
-    font-weight: 700;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
   .lobby-anon {
-    font-style: italic;
     opacity: 0.8;
   }
-  /* Tags never shrink: a long name gives way (ellipsis) before "(you)" or HOST does. */
+  /* Tags never shrink: a long name gives way (clipped) before "(you)" or HOST does. */
   .lobby-you {
     flex: 0 0 auto;
     color: var(--dwfui-text-secondary);
-    font-weight: 400;
-    font-size: 11px;
   }
   .lobby-host {
     flex: 0 0 auto;
     color: var(--dwfui-text-numeric);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
     border: 1px solid var(--dwfui-gold-bevel-mid);
     padding: 0 3px;
     border-radius: 2px;
   }
   .lobby-empty {
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    padding: 4px 2px;
-  }
-  #settingsMenu h3 {
-    margin: 0 0 6px;
-    font-size: 12px;
-    color: var(--dwfui-text-numeric);
-    font-weight: 700;
-    border-bottom: 1px solid var(--dwfui-gold-bevel-mid);
-    padding-bottom: 4px;
-    letter-spacing: 0.5px;
-  }
-  .set-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    cursor: pointer;
-    padding: 5px 3px;
-  }
-  .set-row:hover {
-    background: var(--dwfui-surface);
-  }
-  .set-toggle {
-    flex: 0 0 auto;
-    width: 34px;
-    height: 18px;
-    border: 1px solid var(--dwfui-gold);
-    background: var(--dwfui-hatch);
-    border-radius: 9px;
-    position: relative;
-    margin-top: 1px;
-  }
-  .set-toggle::after {
-    content: "";
-    position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 14px;
-    height: 14px;
-    background: var(--dwfui-slab);
-    border-radius: 50%;
-    transition:
-      left 0.12s ease,
-      background 0.12s ease;
-  }
-  .set-row.on .set-toggle {
-    background: var(--dwfui-gold-bevel-mid);
-  }
-  .set-row.on .set-toggle::after {
-    left: 17px;
-    background: var(--dwfui-gold-bright);
-  }
-  .set-label b {
-    color: var(--dwfui-text-numeric);
-    font-weight: 700;
-  }
-  .set-label span {
-    display: block;
-    color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    margin-top: 3px;
-  }
-  .set-row-zoom {
-    cursor: default;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .zoom-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-  }
-  .zoom-controls button {
-    flex: 0 0 auto;
-    min-width: 26px;
-    height: 22px;
-    padding: 0 7px;
-    cursor: pointer;
-    border: 1px solid var(--dwfui-gold);
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-numeric);
-    border-radius: 4px;
-    font-size: 13px;
-    line-height: 1;
-    font-weight: 700;
-  }
-  .zoom-controls button:hover {
-    background: var(--dwfui-slab);
-  }
-  .zoom-controls button:active {
-    background: var(--dwfui-slab);
-  }
-  #zoomReadout {
-    flex: 1 1 auto;
-    text-align: center;
-    color: var(--dwfui-text-numeric);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    min-width: 44px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-xs);
   }
   #minimap {
     position: absolute;
@@ -714,8 +536,6 @@
     top: 0;
     width: calc(24 * var(--dwfui-cell-drawn-w));
     height: calc(18 * var(--dwfui-cell-drawn-h));
-    margin: 0;
-    padding: 0;
     border: 0;
     box-shadow: none;
     background: transparent;
@@ -748,14 +568,8 @@
     min-height: 0;
     background: transparent;
     border: 0;
-    padding: 0;
     display: block;
     line-height: 0;
-  }
-  /* `[hidden]` must actually hide: this button carries an author `display` above, and an author rule
-   beats the UA's `[hidden]{display:none}` -- without this the dead control stays on screen. */
-  #minimapToolCol .square-button[hidden] {
-    display: none;
   }
   .right-chrome-supersets {
     width: calc(4 * var(--dwfui-cell-drawn-w));
@@ -785,9 +599,6 @@
     font: var(--dwfui-font);
     white-space: pre-wrap;
     pointer-events: none;
-  }
-  #minimapToolHover[hidden] {
-    display: none;
   }
   #zScrollbar {
     position: absolute;
@@ -869,7 +680,6 @@
   }
   #centerTools {
     left: max(calc(40 * var(--dwfui-cell-drawn-w)), calc(50% - 24 * var(--dwfui-cell-drawn-w)));
-    transform: none;
     gap: var(--dwfui-cell-drawn-w);
   }
   .tool-subgroup {
@@ -898,8 +708,6 @@
     width: calc(var(--dwf-pal-cols, 48) * var(--dwfui-cell-drawn-w));
     height: calc(3 * var(--dwfui-cell-drawn-h));
     display: none;
-    overflow: visible;
-    pointer-events: auto;
   }
   #digSubmenu.visible,
   #plantSubmenu.visible,
@@ -919,7 +727,6 @@
     display: none;
     gap: 3px;
     align-items: center;
-    pointer-events: auto;
   }
   #stockSubmenu.visible,
   #zoneSubmenu.visible {
@@ -939,6 +746,34 @@
     width: calc(4 * var(--dwfui-cell-drawn-w));
     height: calc(3 * var(--dwfui-cell-drawn-h));
     margin: 0;
+  }
+  #digSubmenu .tool-subgroup,
+  #plantSubmenu .tool-subgroup,
+  #smoothSubmenu .tool-subgroup,
+  #itemDesigSubmenu .tool-subgroup,
+  #eraseSubmenu .tool-subgroup,
+  #trafficSubmenu .tool-subgroup {
+    width: 0;
+    height: 0;
+    background: none;
+    box-shadow: none;
+  }
+  #digSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #plantSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #smoothSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #itemDesigSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #eraseSubmenu .tool-subgroup[data-dwf-cols]::before,
+  #trafficSubmenu .tool-subgroup[data-dwf-cols]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: calc(var(--dwf-group-col) * var(--dwfui-cell-drawn-w));
+    width: calc(var(--dwf-group-cols) * var(--dwfui-cell-drawn-w));
+    height: calc(3 * var(--dwfui-cell-drawn-h));
+    /* sampled from the native dig capture: frame #ffbf01, cell bed #1c1c1c */
+    background: #1c1c1c;
+    box-shadow: 0 0 0 1px #ffbf01;
+    pointer-events: none;
   }
   /* `display:contents` on the bookkeeping wrappers, so their children position against the palette
      host rather than against a wrapper -- ledger 0085 knows nothing of the nesting index.html has. */
@@ -963,7 +798,6 @@
       calc(26 * var(--dwfui-cell-drawn-w))
       calc(6 * var(--dwfui-cell-drawn-w));
     align-items: center;
-    margin: 0;
   }
   .traffic-band > .tool-button {
     position: static;
@@ -998,9 +832,7 @@
     border: calc(2px * var(--dwfui-interface-scale)) solid var(--dwfui-gold);
     background: var(--dwfui-surface);
     box-shadow: 0 0 0 calc(1px * var(--dwfui-interface-scale)) var(--dwfui-gold-bevel-mid) inset;
-    color: var(--dwfui-text-body);
     font: var(--dwfui-font);
-    font-weight: 700;
     pointer-events: none;
     z-index: 40;
   }
@@ -1031,11 +863,7 @@
     gap: 10px;
   }
   .stock-paint-text {
-    color: var(--dwfui-text-body);
-    font:
-      700 12px/1.3 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   #zonePalette {
     position: fixed;
@@ -1046,40 +874,20 @@
     min-width: min(var(--zone-palette-width), calc(100vw - 84px));
     pointer-events: auto;
   }
-  #zonePalette:has(> .pf-head) {
-    border: 2px solid var(--dwfui-gold);
-    background: var(--dwfui-surface);
-    box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
-    box-sizing: border-box;
-    overflow: auto;
-  }
-  #zonePalette > .pf-head {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-  }
-  #zonePalette:has(> .pf-head) .zone-plate,
-  #zonePalette:has(> .pf-head) .zone-type-panel {
-    border: 0;
-    box-shadow: none;
-  }
-  #zonePalette:has(> .pf-head) .zone-plate {
-    min-height: 0;
-    margin-bottom: 0;
-    padding: 10px 12px 6px;
+  #zonePalette.pf-fill-host {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   .zone-plate {
-    min-height: 104px;
-    margin-bottom: 10px;
-    padding: 14px 12px;
+    box-sizing: border-box;
+    min-height: calc(9 * var(--dwfui-cell-drawn-h));
+    margin-bottom: var(--dwfui-cell-drawn-h);
+    padding: var(--dwfui-cell-drawn-h) var(--dwfui-cell-drawn-w);
     border: 2px solid var(--dwfui-gold);
     background: var(--dwfui-surface);
     box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
-    color: var(--dwfui-text-body);
-    font:
-      700 13px/1.35 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .zone-type-panel {
     padding: 10px 8px 8px;
@@ -1088,18 +896,14 @@
     box-shadow: 0 0 0 1px var(--dwfui-gold-bevel-mid) inset;
   }
   .zone-type-title {
-    margin: 0 0 8px;
-    color: var(--dwfui-text-body);
-    font:
-      700 13px/1.35 ui-monospace,
-      Consolas,
-      monospace;
+    margin: 0 0 var(--dwfui-cell-drawn-h);
+    font: var(--dwfui-font);
   }
   .zone-type-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    column-gap: 12px;
-    row-gap: 4px;
+    column-gap: var(--dwfui-space-l);
+    row-gap: 0;
   }
   .zone-type-btn {
     min-height: 40px;
@@ -1117,12 +921,8 @@
     background: rgba(74, 58, 24, 0.62);
   }
   .zone-icon {
-    width: 32px;
-    height: 32px;
     flex: 0 0 32px;
     background-image: url(/asset/activity_zones.png);
-    background-size: 224px 512px;
-    background-repeat: no-repeat;
     image-rendering: pixelated;
   }
   #zonePaintFloat {
@@ -1141,13 +941,10 @@
   .stock-repaint-summary {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     margin: 7px 0 5px;
     color: var(--dwfui-text-heading);
-    font:
-      700 14px/1.3 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .zone-repaint-summary-icon {
     display: inline-flex;
@@ -1165,30 +962,15 @@
   .stock-repaint-tools {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--dwfui-space-xs);
     margin-top: 3px;
   }
-  .zone-repaint-tools[hidden],
-  .zone-repaint-summary[hidden],
-  .stock-repaint-tools[hidden],
-  .stock-repaint-summary[hidden] {
-    display: none;
-  }
   .burrow-tool {
-    width: 34px;
-    height: 38px; /* fits paintSprite's 32x36 sprite canvas */
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: var(--dwfui-text-body);
-    background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-gold-bevel-mid);
-    cursor: pointer;
-    font:
-      700 13px ui-monospace,
-      Consolas,
-      monospace;
-    padding: 0;
+    font: var(--dwfui-font);
   }
   .burrow-tool:hover {
     border-color: var(--dwfui-text-numeric);
@@ -1213,10 +995,7 @@
     color: var(--dwfui-text-body);
     background: transparent;
     border: 0;
-    font:
-      700 16px/1 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     cursor: pointer;
     overflow: hidden;
     position: relative;
@@ -1230,7 +1009,6 @@
   }
   .tool-button > .df-chrome-icon {
     display: block;
-    margin: 0;
   }
   /* NO HOVER ART -- ledger 0085 R9 is a negative finding: native has no hover sprite at all, and a
      third hover state is UI native does not have. Keyboard focus is a browser affordance and stays. */
@@ -1263,11 +1041,7 @@
     box-sizing: border-box;
     border: 2px solid var(--dwfui-gold);
     background: var(--dwfui-surface);
-    color: var(--dwfui-text-body);
-    font:
-      14px/1.35 ui-monospace,
-      Consolas,
-      monospace;
+    font: 14px/1.35 var(--dwfui-font-face);
     padding: 10px 12px;
     display: none;
     pointer-events: auto;
@@ -1284,10 +1058,6 @@
   #selection.zone-panel {
     z-index: 75;
   } /* placed-zone editor sits above the open zone palette */
-  #selection.tile-list-panel {
-    bottom: 90px;
-    z-index: 8990;
-  }
   #selection.visible {
     display: block;
   }
@@ -1317,39 +1087,34 @@
     width: auto;
     max-height: none;
     overflow: hidden;
-    padding: 6px;
-    border-width: 3px;
+    padding: 0;
+    border: 0; /* the window inside draws the one native frame */
     background: var(--dwfui-surface);
   }
   #selection h1,
   #clientPanel h1 {
-    font-size: 15px;
+    font: var(--dwfui-font);
     line-height: 1.25;
-    margin: 0 0 8px;
+    margin: 0 0 var(--dwfui-space-m);
     color: var(--dwfui-text-heading);
   }
   #selection .kind,
   #clientPanel .kind {
     color: var(--dwfui-text-secondary);
     text-transform: uppercase;
-    font-size: 11px;
-    margin-bottom: 4px;
+    font: var(--dwfui-font);
+    margin-bottom: var(--dwfui-space-s);
   }
   #selection .line,
   #clientPanel .line {
     margin-top: 3px;
   }
   #selection.unit-sheet-panel {
-    left: auto;
     right: calc(36 * var(--dwfui-cell-drawn-w));
     top: calc(4 * var(--dwfui-cell-drawn-h));
-    bottom: calc(4 * var(--dwfui-cell-drawn-h));
     width: calc(61 * var(--dwfui-cell-drawn-w));
-    max-height: none;
     overflow: hidden;
-    padding: 0;
     border: 0;
-    background: transparent;
   }
   #selection.stockpile-panel {
     left: max(var(--dwfui-cell-drawn-w), var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
@@ -1359,7 +1124,6 @@
     height: min(calc(38 * var(--dwfui-cell-drawn-h)), calc(100vh - 8 * var(--dwfui-cell-drawn-h)));
     max-height: none;
     overflow: hidden;
-    padding: 0;
     border: 0;
     background: transparent;
   }
@@ -1377,17 +1141,6 @@
   }
   #selection.building-panel.farm-panel {
     top: 6px;
-    bottom: 6px;
-    width: min(600px, calc(100vw - 12px));
-    max-height: none;
-    padding: 4px;
-    overflow: hidden;
-    border-width: 3px;
-    border-color: var(--dwfui-gold-bevel-mid);
-    background: var(--dwfui-surface);
-    box-shadow:
-      0 0 0 1px var(--dwfui-gold-bevel-mid) inset,
-      0 0 0 2px var(--dwfui-hatch);
   }
   #selection.building-panel.zone-panel {
     left: max(
@@ -1395,7 +1148,6 @@
       var(--panel-dock-left)
     );
     top: var(--zone-palette-top);
-    bottom: auto;
     width: min(
       420px,
       calc(100vw - var(--zone-palette-left) - var(--zone-palette-width) - var(--zone-panel-gap) - 12px)
@@ -1408,10 +1160,6 @@
   #selection.building-panel.zone-panel .building-head {
     flex: 0 0 auto;
   }
-  #selection.building-panel.zone-panel .zone-info-body {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
   #selection.building-panel.zone-panel.zone-wide {
     width: min(
       620px,
@@ -1419,12 +1167,7 @@
     );
   }
   #selection.building-panel.workshop-panel {
-    left: max(18px, var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
     top: 58px;
-    bottom: 50px;
-    width: min(650px, calc(100vw - 36px));
-    max-height: none;
-    overflow: hidden;
   }
   /* Trade-depot panel */
   #selection.building-panel.trade-depot-depot-panel {
@@ -1445,30 +1188,6 @@
       width: auto;
     }
   }
-  /* ---- SIEGE ENGINES: THE MEASURED SHEET ---- */
-  #selection.building-panel.zone-panel.zone-wide.siege-panel,
-  .building-panel.zone-panel.zone-wide.siege-panel,
-  .building-panel.siege-panel {
-    --siege-cell: 12px; /* DF's glyph advance in the captures */
-    --siege-interior: 718px; /* panel width inside the frame */
-    --siege-ink: var(--dwfui-silver); /* the sheet's plain text */
-    --siege-ground: #1c1c1c; /* sampled: rgb(28,28,28), the whole interior */
-    --siege-active: var(--dwfui-gold-bright); /* sampled: rgb(95,172,20), DF's selected cell face */
-    --siege-gold: var(--dwfui-gold-bright); /* sampled: rgb(255,196,4), the section rule */
-    width: 732px;
-    max-width: 732px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 0;
-    padding: 7px;
-    background-color: var(--siege-ground);
-    box-shadow:
-      inset 0 0 0 1px var(--dwfui-gold-bevel-mid),
-      inset 0 0 0 2px var(--dwfui-gold-bevel-mid),
-      inset 0 0 0 4px var(--dwfui-gold-bright),
-      inset 0 0 0 5px var(--dwfui-gold-bevel-mid),
-      inset 0 0 0 7px var(--dwfui-gold-bevel-mid);
-  }
   #selection.building-panel.zone-animal-panel {
     display: flex;
     flex-direction: column;
@@ -1481,7 +1200,6 @@
     /* alert-rail floor -- see --panel-dock-left. */
     left: max(6px, var(--panel-dock-left, 6px));
     right: auto;
-    top: auto;
     bottom: calc(4 * 12px * var(--dwfui-interface-scale, 1));
     width: calc(100vw - max(6px, var(--panel-dock-left, 6px)) - 6px);
     max-width: calc(100vw - max(6px, var(--panel-dock-left, 6px)) - 6px);
@@ -1500,20 +1218,16 @@
     bottom: auto;
     width: calc(56 * 8px * var(--dwfui-interface-scale, 1));
     max-width: calc(100vw - max(6px, var(--panel-dock-left, 6px)) - 6px);
-    height: auto;
-    max-height: calc(100vh - 96px);
   }
   #clientPanel.build-panel.build-panel-mode-2 {
     --pf-vdock-bottom: 0;
     left: calc(var(--build-picker-left-cells, 4) * 8px * var(--dwfui-interface-scale, 1));
-    right: auto;
     top: calc(var(--build-picker-top-cells, 4) * 12px * var(--dwfui-interface-scale, 1));
     bottom: auto;
     width: calc(var(--build-picker-cells, 56) * 8px * var(--dwfui-interface-scale, 1));
     max-width: calc(100vw - 6px);
     /* "full-height column" is the ROW COUNT, not 100vh: [4, grid_y-4] is grid_y-8 rows tall. */
     height: calc(var(--build-picker-rows, 30) * 12px * var(--dwfui-interface-scale, 1));
-    max-height: calc(100vh - 96px);
   }
   @media (max-width: 740px) {
     #clientPanel.build-panel {
@@ -1525,15 +1239,7 @@
     }
   }
   #selection.stock-item-panel {
-    left: max(12px, var(--panel-dock-left)); /* alert-rail floor -- see --panel-dock-left */
     top: 58px;
-    bottom: 52px;
-    width: min(500px, calc(100vw - 24px));
-    max-height: none;
-    overflow: hidden;
-    padding: 5px;
-    border-width: 3px;
-    background: var(--dwfui-surface);
   }
   #alertStack {
     position: fixed;
@@ -1563,10 +1269,7 @@
     max-height: calc(100vh - 66px);
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 0;
     border: 0;
-    background: transparent;
-    box-shadow: none;
     pointer-events: auto;
   }
   #alertPopup:not(.pinned) {
@@ -1584,7 +1287,6 @@
   }
   #clientPanel.alertbox-panel,
   .lab-info-shell.alertbox-panel {
-    box-sizing: border-box;
     padding: 0;
     font: var(--dwfui-font);
   }
@@ -1592,7 +1294,6 @@
   #alertPopup.native-alert-viewer {
     display: block;
     visibility: visible;
-    box-sizing: border-box;
     left: calc(4 * var(--dwfui-cell-drawn-w));
     top: calc(4 * var(--dwfui-cell-drawn-h));
     width: min(calc(94 * var(--dwfui-cell-drawn-w)), calc(100vw - 8 * var(--dwfui-cell-drawn-w)));
@@ -1601,12 +1302,10 @@
     max-width: none;
     max-height: none;
     overflow: hidden;
-    padding: 0;
     font: var(--dwfui-font);
   }
   @media (max-width: 1280px) {
     #topbar {
-      font-size: 12px;
       z-index: 2;
     }
     #rightHud {
@@ -1646,10 +1345,8 @@
     }
   }
   #clientPanel.squads-sidebar {
-    left: auto;
     right: 0;
     top: 236px;
-    bottom: 52px;
     width: 300px;
     max-height: none;
     overflow: hidden;
@@ -1682,7 +1379,6 @@
     padding: 0;
     border: 0;
     border-image: none;
-    box-shadow: none;
     background: #000;
   }
   #clientPanel.reports-window {
@@ -1726,11 +1422,7 @@
     box-shadow:
       0 0 0 1px var(--dwfui-gold-bevel-mid) inset,
       0 4px 14px rgba(0, 0, 0, 0.5);
-    color: var(--dwfui-text-body);
-    font:
-      12px/1.4 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     pointer-events: none;
     left: var(--df-tooltip-left, 0);
     top: var(--df-tooltip-top, 0);
@@ -1750,7 +1442,6 @@
   }
   .df-tt-hotkey {
     color: var(--df-c10);
-    font-weight: 700;
     margin-top: 3px;
     white-space: pre-wrap;
   }
@@ -1771,17 +1462,9 @@
     position: relative;
     width: min(560px, 90vw);
     max-height: 82vh;
-    overflow: visible;
     margin-left: 56px; /* room for the icon box that overlaps the left edge */
     box-sizing: border-box;
-    background: var(--dwfui-surface);
-    border: 3px solid var(--dwfui-silver);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-    color: var(--dwfui-text-body);
-    font:
-      13px/1.5 ui-monospace,
-      Consolas,
-      monospace;
     text-align: center;
   }
   .df-help-scroll {
@@ -1798,10 +1481,7 @@
     height: 60px;
     display: grid;
     place-items: center;
-    font:
-      800 26px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font-double);
     color: var(--dwfui-text-body);
     background: var(--dwfui-hatch);
     border: 3px solid var(--dwfui-gold);
@@ -1812,22 +1492,13 @@
     top: -14px;
     right: 8px;
     display: flex;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
   }
   .df-help-controls button {
     width: 24px;
-    height: 20px;
-    display: grid;
     place-items: center;
     background: var(--dwfui-surface);
     border: 2px solid var(--dwfui-silver);
-    color: var(--dwfui-text-body);
-    cursor: pointer;
-    font:
-      700 11px ui-monospace,
-      Consolas,
-      monospace;
-    line-height: 1;
   }
   .df-help-x {
     border-color: var(--dwfui-destructive) !important;
@@ -1838,19 +1509,15 @@
   }
   .df-help-title {
     margin: 4px 0 14px;
-    font-size: 16px;
+    font: var(--dwfui-font);
     color: var(--dwfui-text-title);
   }
   .df-help-body {
     text-align: left;
   }
   .df-help-body p {
-    margin: 0 0 12px;
+    margin: 0 0 var(--dwfui-space-l);
     color: var(--dwfui-text-prose);
-  }
-  .df-help-kw {
-    color: var(--dwfui-text-active);
-    font-weight: 700;
   }
   .df-help-kw-inline {
     color: inherit;
@@ -1859,8 +1526,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin: 4px 0 16px;
+    gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-s) 0 var(--dwfui-space-xl);
     color: var(--dwfui-text-body);
     cursor: pointer;
   }
@@ -1871,17 +1538,9 @@
     cursor: pointer;
   }
   .df-help-okay {
-    display: block;
     margin: 0 auto;
-    padding: 6px 26px;
     background: var(--dwfui-slate);
     border: 2px solid var(--dwfui-text-good);
-    color: var(--dwfui-text-good);
-    font:
-      800 12px ui-monospace,
-      Consolas,
-      monospace;
-    cursor: pointer;
   }
   .df-help-okay:hover {
     background: var(--dwfui-slate);
@@ -1916,19 +1575,12 @@
   }
   .world-hover-card {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: min(464px, 46vw); /* 58 cells x 8px */
-    max-height: 372px; /* 31 rows x 12px */
     overflow: hidden;
-    padding: 6px 12px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     border: 2px solid var(--dwfui-gold);
     background: rgba(14, 14, 13, 0.94);
     color: var(--dwfui-text-body);
-    font:
-      13px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     pointer-events: none; /* the card is a readout; it must never eat a map click */
   }
   .world-hover-region-name {
@@ -1941,29 +1593,10 @@
   .world-hover-diplomacy {
     color: var(--dwfui-text-secondary);
   }
-  .world-reports-panel {
-    width: min(472px, 48vw);
-  }
   .world-btn-stack {
     position: absolute;
-    right: 12px;
-    bottom: 12px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    width: 190px;
-  }
-  .world-btn {
-    padding: 6px 10px;
-    border: 2px solid var(--dwfui-slate);
-    background: var(--dwfui-slate);
-    color: var(--dwfui-text-good);
-    font:
-      700 12px ui-monospace,
-      Consolas,
-      monospace;
-    cursor: pointer;
-    text-align: center;
   }
   #world3dScreen {
     position: fixed;
@@ -2029,31 +1662,21 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
     padding: 0 6px;
     border-left: 1px solid var(--dwfui-gold-bevel-mid);
     border-right: 1px solid var(--dwfui-gold-bevel-mid);
   }
   .world3d-slab-lbl {
     color: var(--dwfui-text-row);
-    font:
-      700 11px "Josefin Sans",
-      ui-monospace,
-      Consolas,
-      monospace;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    margin-left: 4px;
+    margin-left: var(--dwfui-space-s);
   }
   .world3d-slab-n {
     min-width: 2ch;
     text-align: center;
     white-space: nowrap;
     color: var(--dwfui-text-body);
-    font:
-      700 12px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     font-variant-numeric: tabular-nums;
   }
   .world3d-step {
@@ -2068,7 +1691,7 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
     padding: 0 6px;
     border-left: 1px solid var(--dwfui-gold-bevel-mid);
     border-right: 1px solid var(--dwfui-gold-bevel-mid);
@@ -2148,18 +1771,13 @@
   .world3d-readout-line {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     min-width: 0;
     max-width: 100%;
   }
   .world3d-slab-note {
     flex: 0 0 auto;
     color: var(--dwfui-text-secondary);
-    font:
-      700 11px "Josefin Sans",
-      ui-monospace,
-      Consolas,
-      monospace;
     white-space: nowrap;
   }
   .world3d-slab-note[hidden] {
@@ -2169,7 +1787,7 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
     padding: 0 6px;
     border-left: 1px solid var(--dwfui-gold-bevel-mid);
     border-right: 1px solid var(--dwfui-gold-bevel-mid);
@@ -2178,7 +1796,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: var(--dwfui-space-xs);
     min-width: 0;
     padding: 5px 8px 7px;
     border-top: 1px solid var(--dwfui-gold-bevel-mid);
@@ -2188,13 +1806,10 @@
     inset: 0;
     display: grid;
     place-items: center;
-    padding: 24px;
+    padding: var(--dwfui-space-2xl);
     text-align: center;
     color: var(--dwfui-text-danger);
-    font:
-      13px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   /* `[hidden]` must actually hide: the rule above sets an author `display`, which beats the UA's
    `[hidden]{display:none}` -- otherwise this is an invisible pane over the canvas eating every click. */
@@ -2202,77 +1817,40 @@
     display: none;
   }
 
-  .world-btn:hover:not(:disabled) {
-    background: var(--dwfui-slate);
-  }
-  .world-btn-disabled,
-  .world-btn:disabled {
-    background: var(--dwfui-hatch);
-    border-color: var(--dwfui-slate);
-    color: var(--dwfui-text-disabled);
-    cursor: not-allowed;
-  }
   .world-civs-panel {
     position: absolute;
-    right: calc(var(--dwf-right-chrome-width) + var(--dwfui-cell-drawn-w));
-    bottom: 12px;
-    width: min(340px, 40vw);
-    max-height: 60vh;
-    overflow: auto;
     border: 2px solid var(--dwfui-gold);
     background: var(--dwfui-surface);
     color: var(--dwfui-text-body);
-    font:
-      13px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .world-civs-head {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
+    padding: var(--dwfui-space-m);
     border-bottom: 1px solid var(--dwfui-gold-bevel-mid);
     color: var(--dwfui-text-numeric);
-    font-weight: 700;
-  }
-  .world-civs-close {
-    background: none;
-    border: none;
-    color: var(--dwfui-text-body);
-    font-size: 16px;
-    cursor: pointer;
-    line-height: 1;
   }
   .world-civ-row {
     display: flex;
     width: 100%;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 7px 10px;
+    gap: var(--dwfui-space-xl);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     border: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    color: inherit;
     background: transparent;
-    font: inherit;
     text-align: left;
     cursor: pointer;
   }
   .world-civ-row:hover {
     background: rgba(216, 155, 39, 0.13);
   }
-  .world-civ-row > span:last-child {
-    color: var(--dwfui-text-secondary);
-    font-size: 11px;
-  }
-  .world-civ-fact,
-  .world-mission-row,
-  .world-news-row {
+  .world-civ-fact {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
   .world-missions-panel > .info-message {
-    margin: 8px;
+    margin: var(--dwfui-space-m);
     color: var(--dwfui-text-prose);
   }
 
@@ -2286,23 +1864,14 @@
   .world-civ-agreement-pending {
     background: rgba(216, 155, 39, 0.12);
   }
-  /* ---- LEDGER 0084 R8/R9: uncomposed news, and a report that MOVES --------------------------- */
-  .world-news-uncomposed > :last-child {
-    color: var(--dwfui-text-danger);
-    font-size: 10px;
-  }
   .world-report-line {
-    padding: 2px 8px;
+    padding: 0 var(--dwfui-space-m);
     color: var(--dwfui-text-prose);
-    font-size: 11px;
-    line-height: 1.45;
   }
   .world-report-line-fading {
     opacity: 0.55;
   }
   .world-btn-active {
-    outline: 1px solid rgba(255, 213, 79, 0.85);
-    outline-offset: -3px;
     filter: brightness(1.18);
   }
 
@@ -2310,19 +1879,11 @@
     cursor: grabbing;
   }
 
-  .world-missions-panel {
-    width: min(420px, 46vw);
-    max-height: 72vh;
-  }
   .world-mission-group {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
   .world-missions-panel.stale {
     opacity: 0.72;
-  }
-  .world-mission-row.disabled,
-  .world-mission-eligibility.disabled {
-    opacity: 0.58;
   }
   .world-mission-targets {
     max-height: 34vh;
@@ -2330,12 +1891,6 @@
   }
   .world-mission-site {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .world-mission-roster.this-mission {
-    color: var(--dwfui-text-numeric);
-  }
-  .world-mission-roster.other-mission {
-    color: var(--dwfui-text-disabled);
   }
   .world-mission-readonly {
     margin: 7px 8px;
@@ -2354,30 +1909,11 @@
     inset: 0;
     z-index: 130;
     display: none;
-    align-items: center;
-    justify-content: center;
+    place-content: center;
     background: rgba(0, 0, 0, 0.55);
   }
   #escMenu.open {
-    display: flex;
-  }
-  .esc-panel {
-    width: min(420px, 90vw);
-    box-sizing: border-box;
-  }
-  .esc-panel h2 {
-    margin: 0 0 12px;
-    text-align: center;
-    color: var(--dwfui-text-body);
-    font:
-      700 15px ui-monospace,
-      Consolas,
-      monospace;
-  }
-  .esc-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
   }
   #clientPanel.visible.pf-fill-host,
   #selection.visible.pf-fill-host {
@@ -2396,7 +1932,6 @@
   }
   * {
     /* NO scrollbar-color / scrollbar-width HERE, EVER. They silently disable everything below. */
-    scrollbar-gutter: auto;
   }
   *::-webkit-scrollbar {
     width: var(--dwfui-sb-w);
@@ -2467,10 +2002,23 @@
   *::-webkit-scrollbar-button:single-button:horizontal {
     display: none;
   }
+  /* The thumb art is vertical: a sideways thumb would draw its chevrons as stray arrows. */
+  *::-webkit-scrollbar-thumb:horizontal,
+  *::-webkit-scrollbar-thumb:horizontal:hover {
+    background-image: none;
+  }
+  *::-webkit-scrollbar-corner {
+    background-color: var(--dwfui-surface);
+  }
   #selection.occupant-list-panel {
     width: min(calc(60 * var(--dwfui-cell-drawn-w)), calc(100vw - 24px));
     height: min(calc(54 * var(--dwfui-cell-drawn-h)), calc(100vh - 24px));
     min-height: calc(13 * var(--dwfui-cell-drawn-h));
+    overflow: hidden;
+  }
+  #selection.occupant-list-panel .pf-content {
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
   }
   /* ledger 0086 R17: the rail is 4 columns wide with a 3-row cell and pitch, hanging off the panel's
@@ -2481,14 +2029,6 @@
     right: calc(-4 * var(--dwfui-cell-drawn-w));
     z-index: 20;
   }
-  #selection#selection > .occupant-tabs-wrap {
-    position: absolute;
-    z-index: 20;
-  }
-  #selection#selection.has-occupant-rail {
-    overflow: visible;
-    max-width: calc(100vw - 24px - 4 * var(--dwfui-cell-drawn-w) - 2px);
-  }
   /* The rail's four columns are a TRANSPARENT RIGHT BORDER, so every PanelFrame clamp sees them via
    getBoundingClientRect(). `overflow:visible` is required: overflow clips to the padding box. */
   #selection#selection.view-sheet-panel.has-occupant-rail {
@@ -2496,9 +2036,6 @@
     width: calc(65 * var(--dwfui-cell-drawn-w)); /* 61 sheet + 4 rail */
     right: calc(32 * var(--dwfui-cell-drawn-w)); /* so the FRAME still ends at 36 */
     border-right: calc(4 * var(--dwfui-cell-drawn-w)) solid transparent;
-  }
-  #selection.unit-sheet-panel.has-occupant-rail {
-    right: calc(12px + 4 * var(--dwfui-cell-drawn-w));
   }
   /* Coarse-pointer usability floor: ONE shared layer, gated on (pointer: coarse) so a desktop never
      matches. Sizing only -- every colour still comes from the component layer and the tokens. */
@@ -2552,15 +2089,12 @@
     top: calc(4 * var(--dwfui-cell-drawn-h));
     bottom: calc(4 * var(--dwfui-cell-drawn-h));
     width: calc(61 * var(--dwfui-cell-drawn-w));
-    height: auto;
-    max-width: none;
     max-height: none;
     overflow: hidden;
     padding: 0;
     border: 0;
     outline: 0;
     background: transparent;
-    box-shadow: none;
   }
   #selection.view-sheet-panel .stockpile-native {
     border: 0;
@@ -2580,6 +2114,18 @@
       width: calc(100vw - max(9px, var(--panel-dock-left)) - 9px - 4 * var(--dwfui-cell-drawn-w));
     }
   }
+  #selection.view-sheet-panel > .pf-content > :not(.dwfui-view-sheet-frame-owner) {
+    z-index: 1;
+  }
+  /* The `:not()` chain must keep naming PanelFrame's grips and edge strips and `.occupant-tabs-wrap`:
+   they are direct children of the host that position themselves absolutely, and lifting them breaks. */
+  #selection.view-sheet-panel
+    > :not(.pf-head):not(.pf-content):not(.dwfui-view-sheet-frame-owner):not(.pf-grip):not(.pf-edge-e):not(
+      .pf-edge-s
+    ):not(.occupant-tabs-wrap) {
+    position: relative;
+    z-index: 1;
+  }
   #stockPalette [data-stock-cancel] {
     display: inline-flex !important;
   }
@@ -2590,7 +2136,7 @@
     z-index: 12000;
     max-width: min(520px, calc(100vw - 32px));
     transform: translateX(-50%);
-    padding: 8px 12px;
+    padding: var(--dwfui-space-m) var(--dwfui-space-l);
     border: 1px solid var(--dwfui-gold);
     background: var(--dwfui-surface);
     box-shadow: 0 5px 18px rgba(0, 0, 0, 0.62);
@@ -2601,7 +2147,6 @@
     color: var(--dwfui-text-good);
   }
   #dwfConnectionBanner .dwf-connection-copy {
-    display: block;
     text-align: center;
   }
   /* The RTT wire is DEF-500, so spend that dead column's budget on distinguishable player names. */
@@ -2649,17 +2194,14 @@
     z-index: 57;
     display: none;
     align-items: center;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     max-width: min(420px, calc(100vw - 48px));
     padding: 5px 9px;
     border: 1px solid var(--dwfui-gold);
     background: rgba(14, 14, 13, 0.94);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
     color: var(--dwfui-text-body);
-    font:
-      12px/1.35 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     pointer-events: auto;
     white-space: nowrap;
   }
@@ -2674,10 +2216,7 @@
     border: 1px solid var(--dwfui-gold-bevel-mid);
     background: var(--dwfui-surface);
     color: var(--dwfui-text-numeric);
-    font:
-      11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     padding: 2px 6px;
     cursor: pointer;
   }
@@ -2707,7 +2246,6 @@
     border-radius: 6px;
     padding: calc(0.4 * var(--dwfui-cell-drawn-h)) calc(1.4 * var(--dwfui-cell-drawn-w));
     font-size: calc(0.875 * var(--dwfui-cell-drawn-h));
-    letter-spacing: 0.02em;
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -2728,9 +2266,7 @@
     border: 1px solid var(--dwfui-gold-bevel-mid);
     border-radius: 7px;
     padding: 8px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font: var(--dwfui-font);
     box-shadow: 0 3px 14px rgba(0, 0, 0, 0.55);
     font-family: inherit;
     animation: dfBusyPulse 1.4s ease-in-out infinite;
@@ -2753,8 +2289,7 @@
     color: var(--hbb-text);
     background: rgba(21, 21, 21, 0.94);
     box-shadow: 0 0 0 2px #d89b27 inset, 0 4px 18px rgba(0, 0, 0, 0.5);
-    font: 700 calc(1.1667 * var(--dwfui-cell-drawn-h)) ui-monospace, Consolas, monospace;
-    letter-spacing: 0.2px;
+    font: var(--dwfui-font);
     pointer-events: none;
   }
   .host-busy-banner.is-visible {
@@ -2775,7 +2310,7 @@
     top: 8px;
     right: 8px;
     z-index: 60;
-    font: 11px/1.45 monospace;
+    font: var(--dwfui-font);
     background: rgba(0, 0, 0, 0.72);
     color: var(--dwfui-text-good);
     padding: 6px 9px;
@@ -2814,19 +2349,20 @@
     position: fixed;
     left: 8px;
     bottom: calc(52px + var(--dfvv-kb-inset, 0px));
-    z-index: 8980;
-    font-family: inherit;
+    /* Under every panel (#clientPanel is 30): a panel docked bottom-left covers the toggle, never the reverse. */
+    z-index: 29;
     background: var(--dwfui-surface);
-    color: var(--dwfui-text-body);
-    border: 1px solid var(--dwfui-gold);
-    padding: 6px 12px;
-    font-size: 13px;
+    border: var(--dwfui-divider) solid var(--dwfui-gold);
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m);
+    font: var(--dwfui-font);
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: var(--dwfui-space-s);
     user-select: none;
+  }
+  body:has(#worldScreen.open, #world3dScreen.open) #dfChatToggle {
+    z-index: 123; /* above both full-screen world views (120, 122), which have no panels to cover */
   }
   #dfChatToggle:hover {
     border-color: var(--dwfui-text-numeric);
@@ -2837,12 +2373,8 @@
   #dfChatToggle .chat-badge {
     background: var(--dwfui-destructive);
     color: var(--dwfui-text-title);
-    border-radius: 9px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    font-size: 11px;
-    line-height: 16px;
+    min-width: var(--dwfui-cell-drawn-w);
+    padding: 0 var(--dwfui-space-xs);
     text-align: center;
     display: none;
   }

@@ -569,7 +569,7 @@
         let pixel = null;
         try {
           if (typeof imagePixelFromEvent === "function") pixel = imagePixelFromEvent(event);
-        } catch (_) { DwfErr.count("control-shell.stockpile-pixel"); }
+        } catch { DwfErr.count("control-shell.stockpile-pixel"); }
         if (!pixel) return;
         const who = typeof player !== "undefined" ? player : "";
         try {
@@ -595,7 +595,7 @@
           host.innerHTML = stockRemoveConfirmMarkup(choice.label);
           host.hidden = false;
           try { root.DWFUI.mountDom(host); } catch (err) { DwfErr.report("control-shell.guard-mount", err); }
-        } catch (_) {
+        } catch {
           const status = doc.querySelector("#stockPalette [data-stock-status]");
           if (status) status.textContent = "Could not inspect that stockpile.";
         }
@@ -702,9 +702,9 @@
       active: s.sort === "profession" || s.sort === "membership" ? s.sort : "name",
       ariaLabel: "Sort citizens",
       columns: [
-        { key: "name", label: "Name", sort: "text" },
-        { key: "profession", label: "Profession", sort: "text" },
-        { key: "membership", label: "Member", sort: "desc" },
+        { key: "name", label: "Name" },
+        { key: "profession", label: "Profession" },
+        { key: "membership", label: "Member" },
       ],
     });
     const unavailable = militaryKnown ? "" : root.DWFUI.statusHtml({
@@ -724,7 +724,6 @@
     const b = burrow || {}, s = state || {}, id = Number(b.id);
     const armed = id === Number(s.paintId);
     const renaming = id === Number(s.renamingId);
-    const name = root.DWFUI.esc(b.name || `Burrow ${id}`);
     // Editable text remains a DOM input, but DWFUI owns its shared field structure while the
     // existing class and data hook retain the burrow controller's styling and behaviour.
     const nameCell = renaming
@@ -804,11 +803,11 @@
         <div class="burrow-cit-title">${root.DWFUI.esc(burrow.name || `Burrow ${id}`)}: symbol</div>
       </div>
       <div class="burrow-symbol-body">
-        <div class="burrow-section-title">Symbol</div>
+        <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Symbol")}</div>
         <div class="burrow-symbol-grid">${symbols}</div>
-        <div class="burrow-section-title">Colour</div>
+        <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Colour")}</div>
         <div class="burrow-swatch-grid">${swatches("fg", curFg)}</div>
-        <div class="burrow-section-title">Background</div>
+        <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Background")}</div>
         <div class="burrow-swatch-grid">${swatches("bg", curBg)}</div>
       </div>
       <div class="stock-palette-status${s.statusError ? " err" : ""}" data-burrow-status>${root.DWFUI.esc(s.status || "")}</div>`;
@@ -819,7 +818,7 @@
     const painting = Number(s.paintId) >= 0;
     const armed = rows.find(row => Number(row.id) === Number(s.paintId));
     const paintBar = painting ? `<div class="burrow-paint-bar"><div class="burrow-paint-label">Painting: ${root.DWFUI.esc(armed?.name || `Burrow ${s.paintId}`)}</div><div class="burrow-paint-tools">${paintPair(s.paintMode)}${subgroup("burrow-tools", tile({ burrowErase:"" }, "Erase burrow tiles", "burrowErase", !!s.erase))}${plaque("burrow-done", { burrowPaintDone:"" }, "Done painting", "Stop painting this burrow", "red")}</div></div>` : "";
-    return `<div class="burrow-head">${plaque("burrow-add", { burrowAdd:"" }, "Add new burrow", "Create a new burrow", "green")}</div>${paintBar}<div class="burrow-list">${rows.length ? rows.map(row => burrowRowMarkup(row, s)).join("") : '<div class="burrow-empty"></div>'}</div><div class="stock-palette-status${s.statusError ? " err" : ""}" data-burrow-status>${root.DWFUI.esc(s.status || "")}</div>`;
+    return `<div class="burrow-head">${plaque("burrow-add", { burrowAdd:"" }, "Add new burrow", "Create a new burrow", "green")}</div>${paintBar}<div class="burrow-list">${rows.length ? rows.map(row => burrowRowMarkup(row, s)).join("") : '<div class="dwfui-text--empty burrow-empty"></div>'}</div><div class="stock-palette-status${s.statusError ? " err" : ""}" data-burrow-status>${root.DWFUI.esc(s.status || "")}</div>`;
   }
 
   // ---- hauling depth -------------------------------------------------------------------------
@@ -905,7 +904,7 @@
       : `${plaque("hauling-link-arm", { haulingLinkArm: `${key}:take` }, "Take from stockpile", "Click stockpiles to take desired items from them")}
          ${plaque("hauling-link-arm", { haulingLinkArm: `${key}:give` }, "Give to stockpile", "Click stockpiles to give unloaded items to them")}`;
     return `<div class="hauling-stockpile-links">
-      <div class="burrow-section-title">Stockpile links</div>
+      <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Stockpile links")}</div>
       ${root.DWFUI.scrollHtml({ cls: "hauling-stockpile-link-list", rows: ".hauling-stockpile-link",
         preserveKey: `haul-links-${key}`, ariaLabel: "Linked stockpiles" }, rows)}
       <div class="hauling-stockpile-link-add">${addControls}</div>
@@ -950,12 +949,12 @@
 
     return `<div class="hauling-stop-detail">
       ${haulingStockpileLinksMarkup(r, s, st)}
-      <div class="burrow-section-title">Desired items</div>
+      <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Desired items")}</div>
       <div class="hauling-desired">
         <span class="hauling-stop-name">${root.DWFUI.esc(haulingDesiredSummary(s))}</span>
         ${plaque("hauling-desired-edit", { haulingDesiredEdit: key }, "Choose items", "Choose what this stop loads")}
       </div>
-      <div class="burrow-section-title">Departure conditions</div>
+      <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Departure conditions")}</div>
       ${root.DWFUI.scrollHtml({ cls: "hauling-cond-list", rows: ".hauling-cond-row", preserveKey: `haul-cond-${key}`, ariaLabel: "Departure conditions" }, condList)}
       <div class="hauling-cond-form">
         ${modeSeg}${dirSeg}${loadSeg}
@@ -1014,7 +1013,7 @@
     // DFHack's assign-minecarts.lua refuses a stopless route, and so does the server; say so here
     // rather than letting the player click into a 400.
     if (!stops.length)
-      return `<div class="hauling-vehicles"><div class="burrow-section-title">Minecart</div>${assigned}` +
+      return `<div class="hauling-vehicles"><div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Minecart")}</div>${assigned}` +
         `<div class="hauling-stop-name">Add a stop before assigning a minecart.</div></div>`;
 
     const pickable = free.length
@@ -1022,9 +1021,9 @@
       : '<div class="hauling-cond-row"><span class="hauling-stop-name">No free minecarts. Build one, or free one from another route.</span></div>';
 
     return `<div class="hauling-vehicles">
-      <div class="burrow-section-title">Minecart</div>
+      <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Minecart")}</div>
       ${assigned}
-      <div class="burrow-section-title">Free minecarts</div>
+      <div class="dwfui-text--section burrow-section-title">${root.DWFUI.bitmapTextHtml("Free minecarts")}</div>
       ${root.DWFUI.scrollHtml({ cls: "hauling-vehicle-list", rows: ".hauling-cond-row", preserveKey: `haul-veh-${id}`, ariaLabel: "Free minecarts" }, pickable)}
     </div>`;
   }
@@ -1049,7 +1048,7 @@
     const s = state || {}, routes = Array.isArray(s.routes) ? s.routes : [];
     const armed = routes.find(route => Number(route.id) === Number(s.armedRouteId));
     const paintBar = Number(s.armedRouteId) >= 0 ? `<div class="burrow-paint-bar"><div class="burrow-paint-label">Placing stops: ${root.DWFUI.esc(armed?.name || `Route ${s.armedRouteId}`)}</div><div class="burrow-paint-tools">${plaque("burrow-done", { haulingStopDone:"" }, "Done placing stops", "Stop placing stops on this route", "red")}</div></div>` : "";
-    return `<div class="burrow-head">${plaque("burrow-add", { haulingAdd:"" }, "Add new route", "Create a new hauling route", "green")}</div>${paintBar}<div class="burrow-list">${routes.length ? routes.map(route => haulingRouteRowMarkup(route, s)).join("") : '<div class="burrow-empty"></div>'}</div><div class="stock-palette-status${s.statusError ? " err" : ""}" data-hauling-status>${root.DWFUI.esc(s.status || "")}</div>`;
+    return `<div class="burrow-head">${plaque("burrow-add", { haulingAdd:"" }, "Add new route", "Create a new hauling route", "green")}</div>${paintBar}<div class="burrow-list">${routes.length ? routes.map(route => haulingRouteRowMarkup(route, s)).join("") : '<div class="dwfui-text--empty burrow-empty"></div>'}</div><div class="stock-palette-status${s.statusError ? " err" : ""}" data-hauling-status>${root.DWFUI.esc(s.status || "")}</div>`;
   }
 
   const api = { SPRITE_TOKENS, GLOBAL_OPEN_MENU, paintSprite, paintControlIcons, alignControlSubmenus, priorityMarkup, digSubmenuMarkup,

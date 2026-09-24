@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.popup-mirror {
   /* Blocking popup mirror */
@@ -32,7 +32,6 @@
     display: none;
     align-items: center;
     justify-content: center;
-    background: transparent;
   }
   #dfPopupMirror.show {
     display: flex;

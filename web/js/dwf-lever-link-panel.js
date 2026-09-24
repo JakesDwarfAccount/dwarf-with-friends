@@ -19,13 +19,16 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+  // The wrap width of a status sentence in the wide trigger and restraint panels.
+  const WIDE_PANEL_COLUMNS = 56;
+
   async function fetchLeverLinkInfo(id) {
     try {
-      const r = await fetch(`/lever-link?id=${id}&t=${Date.now()}`, { cache: "no-store" });
+      const r = await fetch(`/trigger-info?id=${id}&t=${Date.now()}`, { cache: "no-store" });
       if (!r.ok) return null;
       const data = await r.json();
-      // isTrigger covers levers AND pressure plates; isLever alone is the older host's shape.
-      if (data && data.ok !== false && (data.isTrigger || data.isLever)) return data;
+      // isTrigger covers levers AND pressure plates.
+      if (data && data.ok !== false && data.isTrigger) return data;
     } catch { globalThis.DwfErr?.count("lever-link-panel.info"); }
     return null;
   }
@@ -139,7 +142,8 @@
         })
       : "";
     const note = notice && notice.text
-      ? DWFUI.statusHtml({ cls: "zone-note", tone: notice.error ? "warn" : "dim", text: notice.text })
+      ? DWFUI.statusHtml({ cls: "zone-note", tone: notice.error ? "warn" : "dim",
+          columns: WIDE_PANEL_COLUMNS, text: notice.text })
       : "";
     const noTargets = targets.length === 0;
     const pickDisabled = !picking && (!status.canLink || noTargets);
@@ -156,17 +160,17 @@
     });
     const pickerNote = picking
       ? DWFUI.statusHtml({
-          cls: "zone-note", tone: "dim",
+          cls: "zone-note", tone: "dim", columns: WIDE_PANEL_COLUMNS,
           text: "Choose a highlighted building on the map. Escape or right-click cancels.",
         })
       : "";
     return `${DWFUI.headerHtml({ cls:"building-head", title:data.name || "Lever", titleCls:"building-name", close:false })}` +
       `<div class="building-status">${escapeHtml(data.sourceType || "Lever")} &middot; trigger controls</div>` +
       DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Back to building", dataset: { buildingBack: "" } }) +
-      (pulse ? DWFUI.statusHtml({ cls: "zone-note", tone: "dim", text: pulse }) : "") +
+      (pulse ? DWFUI.statusHtml({ cls: "zone-note", tone: "dim", columns: WIDE_PANEL_COLUMNS, text: pulse }) : "") +
       pullBtn + note +
-      `<div class="zone-section-label">Existing links</div>${window.zoneUnitListHtml(linkedRows, "Nothing linked yet.")}` +
-      `<div class="zone-section-label">Mechanisms</div><div class="zone-note">${escapeHtml(status.label)}</div>` +
+      `<div class="dwfui-text--section zone-section-label">Existing links</div>${window.zoneUnitListHtml(linkedRows, "Nothing linked yet.")}` +
+      `<div class="dwfui-text--section zone-section-label">Mechanisms</div><div class="dwfui-text--note zone-note">${escapeHtml(status.label)}</div>` +
       pickButton + pickerNote;
   }
 
@@ -186,7 +190,7 @@
       return window.zoneUnitRowHtml({
         label: name,
         dataset: { cageRow: Number(unit.id), cageSearch: buildingCageSearchText(unit) },
-        nativeLabelHtml: kind === "unit" ? window.zoneProfessionNameHtml(unit, name) : null,
+        inkColor: kind === "unit" ? unit.professionColor : null,
         meta: flags || unit.race || "",
         trailing: DWFUI.plaqueBtnHtml({
           cls: "zone-unit-act" + (unit.assigned ? " assigned" : ""), size: "compact",
@@ -202,14 +206,11 @@
       dataAttr: "cage-search", type: "search", value: (options && options.search) || "",
       preserveKey: "building-cage", ariaLabel: "Search occupants",
     }) : "";
-    return `${DWFUI.headerHtml({ cls:"building-head", title:data?.name || "Cage", titleCls:"building-name", close:false })}<div class="building-status">Cage / Terrarium &middot; occupant assignment</div>${DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { buildingBack: "" }, label: "Back to building" })}${window.zoneUnitListHtml(rows, "No assignable occupants found.")}<div class="zone-note cage-unit-empty" hidden>No occupants match that search.</div>${search}`;
+    return `${DWFUI.headerHtml({ cls:"building-head", title:data?.name || "Cage", titleCls:"building-name", close:false })}<div class="building-status">Cage / Terrarium &middot; occupant assignment</div>${DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { buildingBack: "" }, label: "Back to building" })}${window.zoneUnitListHtml(rows, "No assignable occupants found.")}<div class="dwfui-text--note zone-note cage-unit-empty" hidden>No occupants match that search.</div>${search}`;
   }
 
   // `assignmentWriteEnabled` comes from the read route, so an older host served to a newer page renders
   // disabled plaques instead of buttons that post into a route that is not there.
-  function buildingRestraintSearchText(unit) {
-    return buildingCageSearchText(unit);
-  }
   function buildingRestraintPanelMarkup(data, options) {
     const opts = options || {};
     const units = window.zoneAnimalSortedRows(data?.units, opts.sortKey || "name",
@@ -233,13 +234,13 @@
         dataset: { restraintId: Number(data?.id), restraintUnit: Number(unit.id) },
       });
       return window.zoneUnitRowHtml({
-        label: name,
+        label: window.zoneAnimalNativeLabel(unit),
+        inkColor: unit.professionColor,
         dataset: {
           restraintRow: Number(unit.id),
-          restraintSearch: buildingRestraintSearchText(unit),
+          restraintSearch: buildingCageSearchText(unit),
         },
         icon: window.zoneCreaturePortraitHtml(unit, name),
-        nativeLabelHtml: window.zoneProfessionNameHtml(unit, window.zoneAnimalNativeLabel(unit)),
         meta: flags || unit.race || "",
         trailing: action,
       });
@@ -252,19 +253,20 @@
     // A refusal must survive the re-render that redraws the list, so it is panel state passed back in,
     // not a title on a button about to be thrown away.
     const noticeHtml = notice && notice.text
-      ? DWFUI.statusHtml({ cls: "zone-note restraint-notice",
-          tone: notice.error ? "warn" : "dim", live: "polite", text: notice.text })
+      ? DWFUI.statusHtml({ cls: "zone-note restraint-notice", tone: notice.error ? "warn" : "dim",
+          live: "polite", columns: WIDE_PANEL_COLUMNS, text: notice.text })
       : "";
     return `${DWFUI.headerHtml({ cls:"building-head", title:data?.name || "Chain / Restraint",
       titleCls:"building-name", close:false })}` +
       `<div class="building-status">Chain / Restraint &middot; creature assignment</div>` +
       DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Back to building",
         dataset: { buildingBack: "" } }) +
-      DWFUI.statusHtml({ cls: "zone-note", tone: writeEnabled ? "dim" : "warn", text: reason }) +
+      DWFUI.statusHtml({ cls: "zone-note", tone: writeEnabled ? "dim" : "warn",
+        columns: WIDE_PANEL_COLUMNS, text: reason }) +
       noticeHtml +
       window.zoneAnimalSortBarHtml(opts.sortKey || "name", Number(opts.sortDirection) < 0 ? -1 : 1) +
       window.zoneUnitListHtml(rows, "No eligible creatures found.") +
-      `<div class="zone-note restraint-unit-empty" hidden>No creatures match that search.</div>` +
+      `<div class="dwfui-text--note zone-note restraint-unit-empty" hidden>No creatures match that search.</div>` +
       search;
   }
 
@@ -272,7 +274,7 @@
   let leverLinkCommitPending = false;
   async function openLeverLinkPanel(id, notice = null) {
     const data = await window.fetchLeverLinkInfo(id);
-    if (!data || !(data.isTrigger || data.isLever)) { window.openBuildingPanel(id); return; }
+    if (!data) { window.openBuildingPanel(id); return; }
     const armed = window.DFLeverLink && window.DFLeverLink.isArmed
       ? window.DFLeverLink.isArmed() : null;
     const picking = !!(armed && Number(armed.sourceId) === Number(data.id));
@@ -324,4 +326,4 @@
   if (typeof window !== "undefined") Object.assign(window.DFBuildingOperationsMarkup ||= {}, { leverLinkPanelMarkup, buildingCagePanelMarkup, buildingRestraintPanelMarkup });
 
   if (typeof window !== "undefined") Object.assign(window, { buildingCagePanelMarkup, buildingRestraintPanelMarkup, fetchLeverLinkInfo, leverLinkLegalTargets, leverLinkMechanismStatus, openLeverLinkPanel, postLeverLink, postLeverPull });
-  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { leverLinkMechanismStatus, leverLinkLegalTargets, leverLinkedTargetRows, linkedTargetMetaLines, leverPulseSentence, leverLinkPanelMarkup, buildingCageSearchText, buildingCagePanelMarkup, buildingRestraintSearchText, buildingRestraintPanelMarkup, openLeverLinkPanel });
+  if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, { leverLinkMechanismStatus, leverLinkLegalTargets, leverLinkedTargetRows, linkedTargetMetaLines, leverPulseSentence, leverLinkPanelMarkup, buildingCageSearchText, buildingCagePanelMarkup, buildingRestraintPanelMarkup, openLeverLinkPanel });

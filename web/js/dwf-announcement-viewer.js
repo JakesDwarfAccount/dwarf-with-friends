@@ -194,7 +194,7 @@
       if (notificationsPanelIsOpen())
         renderAlertBox({ skipIfSame: true });
       void followActiveCombatDrilldowns();
-    } catch (_) {}
+    } catch {}
   }
   let pinnedAlertDrilldownKey = null;
   let panelAlertDrilldownKey = null;
@@ -260,9 +260,7 @@
     const alerts = Array.isArray(notificationState?.alerts) ? notificationState.alerts : [];
     if (pinnedAlertDrilldownKey === key && (pinnedAlertKey || standaloneCombatAlert)) {
       const alert = standaloneCombatAlert || alerts.find(item => item.dismissKey === pinnedAlertKey);
-      const anchor = pinnedAlertKey && Array.from(alertStack.querySelectorAll(".alert-button"))
-        .find(button => button.dataset.alertKey === pinnedAlertKey);
-      if (alert) showAlertPopup(alert, anchor, true);
+      if (alert) showAlertPopup(alert);
     }
     if (panelAlertDrilldownKey === key && notificationsPanelIsOpen()) renderAlertBox();
   }
@@ -349,7 +347,7 @@
         standaloneCombatAlert = null;
         pinnedAlertKey = current.dismissKey || null;
         closePinnedCombatDrilldown();
-        showAlertPopup(current, button, true);
+        showAlertPopup(current);
         renderAlertStack();
       });
       // The badge's context-menu gesture must send every key the alert owns, or its "right-click to
@@ -367,7 +365,7 @@
     const retainedButton = retainedAlert && Array.from(alertStack.querySelectorAll(".alert-button"))
       .find(button => button.dataset.alertKey === retainedAlert.dismissKey);
     if (retainedAlert && retainedButton)
-      showAlertPopup(retainedAlert, retainedButton, true);
+      showAlertPopup(retainedAlert);
     else if (!pinnedAlertKey && !standaloneCombatAlert)
       hideAlertPopup();
   }
@@ -603,63 +601,58 @@
     });
   }
 
-  function showAlertPopup(alert, anchor, pinned) {
+  function showAlertPopup(alert) {
     registerAlertPopupPanel();
-    if (!pinned) return;
-    if (pinned) {
-      const drilldown = alertViewerUnitRef(alert, pinnedAlertDrilldownKey);
-      const lines = alertViewerRows(alert, drilldown);
-      const replaced = updatePinnedAlertPopupMarkup(alertPopup, alertViewerMarkup(alert, drilldown));
-      alertPopup.classList.add("pinned", "native-alert-viewer");
-      alertPopup.style.left = "";
-      alertPopup.style.top = "";
-      // Dropping the inline offsets hands the panel back to the framework, which re-applies the
-      // player's remembered rect for this variant or leaves the CSS dock alone.
-      try { window.DFPanelFrame?.syncOpenState("alertPopup", true); } catch (_) {}
-      alertPopup.oncontextmenu = event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (pinnedAlertDrilldownKey) {
-          closePinnedCombatDrilldown();
-          showAlertPopup(alert, anchor, true);
-          return;
-        }
-        pinnedAlertKey = null;
-        hideAlertPopup();
-        renderAlertStack();
-      };
-      // Only bind after a real markup replacement, or an unchanged poll stacks duplicate listeners.
-      if (!replaced) return;
-      alertPopup.querySelector("[data-alert-open-all]")?.addEventListener("click", () => {
-        const seed = Array.isArray(alert?.reportIds) && alert.reportIds.length
-          ? alert.reportIds[0]
-          : (Array.isArray(alert?.reports) && alert.reports.length ? alert.reports[0].id : null);
-        pinnedAlertKey = null;
+    const drilldown = alertViewerUnitRef(alert, pinnedAlertDrilldownKey);
+    const lines = alertViewerRows(alert, drilldown);
+    const replaced = updatePinnedAlertPopupMarkup(alertPopup, alertViewerMarkup(alert, drilldown));
+    alertPopup.classList.add("pinned", "native-alert-viewer");
+    alertPopup.style.left = "";
+    alertPopup.style.top = "";
+    // Dropping the inline offsets hands the panel back to the framework, which re-applies the
+    // player's remembered rect for this variant or leaves the CSS dock alone.
+    try { window.DFPanelFrame?.syncOpenState("alertPopup", true); } catch {}
+    alertPopup.oncontextmenu = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (pinnedAlertDrilldownKey) {
         closePinnedCombatDrilldown();
-        hideAlertPopup();
-        window.openReportsPanel(seed, alert?.type);
+        showAlertPopup(alert);
+        return;
+      }
+      pinnedAlertKey = null;
+      hideAlertPopup();
+      renderAlertStack();
+    };
+    // Only bind after a real markup replacement, or an unchanged poll stacks duplicate listeners.
+    if (!replaced) return;
+    alertPopup.querySelector("[data-alert-open-all]")?.addEventListener("click", () => {
+      const seed = Array.isArray(alert?.reportIds) && alert.reportIds.length
+        ? alert.reportIds[0]
+        : (Array.isArray(alert?.reports) && alert.reports.length ? alert.reports[0].id : null);
+      pinnedAlertKey = null;
+      closePinnedCombatDrilldown();
+      hideAlertPopup();
+      window.openReportsPanel(seed, alert?.type);
+    });
+    bindAlertViewerUnitActions(alertPopup, key => {
+      selectPinnedCombatDrilldown(key);
+      const ref = alertViewerUnitRef(alert, pinnedAlertDrilldownKey);
+      showAlertPopup(alert);
+      if (ref) void loadCombatDrilldown(ref);
+    });
+    alertPopup.querySelectorAll("[data-alert-viewer-center]").forEach(button => {
+      button.addEventListener("click", async () => {
+        const report = lines.map(line => line.report)
+          .find(item => item && String(item.id) === button.dataset.alertViewerCenter);
+        const pos = alertViewerPosition(report, Number(button.dataset.alertViewerLink));
+        if (!pos) return;
+        const { setCameraToMapPos, flashMapTile, focusPage } = window;
+        await setCameraToMapPos(pos);
+        await flashMapTile(pos);
+        focusPage();
       });
-      bindAlertViewerUnitActions(alertPopup, key => {
-          selectPinnedCombatDrilldown(key);
-          const ref = alertViewerUnitRef(alert, pinnedAlertDrilldownKey);
-          showAlertPopup(alert, anchor, true);
-          if (ref) void loadCombatDrilldown(ref);
-      });
-      alertPopup.querySelectorAll("[data-alert-viewer-center]").forEach(button => {
-        button.addEventListener("click", async () => {
-          const report = lines.map(line => line.report)
-            .find(item => item && String(item.id) === button.dataset.alertViewerCenter);
-          const pos = alertViewerPosition(report, Number(button.dataset.alertViewerLink));
-          if (!pos) return;
-          const { setCameraToMapPos, flashMapTile, focusPage } = window;
-          await setCameraToMapPos(pos);
-          await flashMapTile(pos);
-          focusPage();
-        });
-      });
-      return;
-    }
-
+    });
   }
 
   function unitCombatHistoryModel(unit) {
@@ -683,14 +676,14 @@
     pinnedAlertKey = null;
     const state = combatDrilldownState(ref);
     selectPinnedCombatDrilldown(state.key);
-    showAlertPopup(standaloneCombatAlert, null, true);
+    showAlertPopup(standaloneCombatAlert);
     void loadCombatDrilldown(ref);
   }
 
   function hideAlertPopup() {
     closePinnedCombatDrilldown();
     standaloneCombatAlert = null;
-    try { window.DFPanelFrame?.syncOpenState("alertPopup", false); } catch (_) {}
+    try { window.DFPanelFrame?.syncOpenState("alertPopup", false); } catch {}
     alertPopup.oncontextmenu = null;
     alertPopup.classList.remove("native-alert-viewer");
   }
@@ -710,7 +703,7 @@
     try {
       await fetch(`/notification-action?player=${encodeURIComponent(player)}&action=dismiss&keys=${encodeURIComponent(keys.join(","))}`,
         { method: "POST", cache: "no-store" });
-    } catch (_) {}
+    } catch {}
     // Always drop the popup for the alert just dismissed: re-rendering the stack removes the hovered
     // button, so no mouseleave ever fires and the popup would stay stuck on screen.
     if (!alert || pinnedAlertKey === alert.dismissKey) pinnedAlertKey = null;

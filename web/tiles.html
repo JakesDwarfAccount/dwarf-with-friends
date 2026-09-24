@@ -56,37 +56,37 @@
 <canvas id="tilemap"></canvas>
 <div id="hud">connecting...</div>
 <!-- The shared primitives (clamp), resolved at load by dwf-gl-atlas.js below. -->
-<script src="/js/dwf-util.js?v=064fc876"></script>
+<script src="/js/dwf-util.js?v=cf55fcea"></script>
 <!-- WA-12: protocol v1 reference decoder -- see index.html for the full rationale (needed as
      an ambient global by BOTH dwf-ws.js's main-thread header decode and
      dwf-cache-worker.js's fallback/non-worker mode). -->
 <script src="/js/dwf-wire-v1.js?v=257983aa"></script>
 <!-- WA-6 world cache: see index.html for the full rationale. -->
 <script src="/js/dwf-cache-worker.js?v=a0de8d22"></script>
-<script src="/js/dwf-cache.js?v=501486f7"></script>
+<script src="/js/dwf-cache.js?v=7629f0c5"></script>
 <!-- WS push transport must load BEFORE the tile renderer so window.DwfWS exists
      when boot() wires it. If absent, the renderer silently falls back to HTTP polling. -->
-<script src="/js/dwf-ws.js?v=f311b606"></script>
+<script src="/js/dwf-ws.js?v=9c963a3a"></script>
 <!-- WB-6: shared 8-neighbor adjacency (wall-join upgrade + WB-7's shadow-decal tables). -->
 <script src="/js/dwf-gem-variant.js?v=e330f1ef"></script>
 <script src="/js/dwf-adjacency.js?v=3228e9ef"></script>
 <!-- Ledger 0071 §5 / 0072: native's two-bit terrain variant, keyed on WORLD position.
      Needs DwfGemVariant's splitmix64 (loaded above) and must load before the two
      renderers that consume it (dwf-tiles.js drawWallJoin, dwf-gl.js wallJoinCell). -->
-<script src="/js/dwf-terrain-variant.js?v=85657f61"></script>
+<script src="/js/dwf-terrain-variant.js?v=14622a23"></script>
 <!-- Ledger 0029: shared native grass species/sheet/cell selector for both renderers. -->
 <script src="/js/dwf-grass-selection.js?v=42a14a35"></script>
 <!-- Ledger 0028: shared pure edge-family/side/corner policy consumed by both renderers. -->
-<script src="/js/dwf-edge-overgrowth.js?v=17c98e04"></script>
+<script src="/js/dwf-edge-overgrowth.js?v=1b08a67a"></script>
 <script src="/js/dwf-farm-crops.js?v=b2c67ded"></script>
 <script src="/js/dwf-item-selection.js?v=a2a2f9b6"></script>
-<script src="/js/dwf-unit-status.js?v=efad13f7"></script>
+<script src="/js/dwf-unit-status.js?v=edf5f620"></script>
 <script src="/js/dwf-construction-select.js?v=6141ea8f"></script>
 <script src="/js/dwf-designation-job.js?v=90b3b88b"></script>
-<script src="/js/dwf-tiles.js?v=3e4d8bd7"></script>
+<script src="/js/dwf-tiles.js?v=ef4d5689"></script>
 <!-- WB-8/WB-9 GL renderer (atlas packer + WebGL2 core), behind ?renderer=gl. -->
 <script src="/js/dwf-gl-atlas.js?v=462dd0ce"></script>
-<script src="/js/dwf-gl.js?v=bbd8ef83"></script>
+<script src="/js/dwf-gl.js?v=8984baa8"></script>
 <!-- Renderer seam (WB-1): registers canvas2d/gl + selection/fallback. Loads AFTER
      dwf-tiles.js so window.DwfTiles already exists. -->
 <script src="/js/dwf-render.js?v=85c889fd"></script>

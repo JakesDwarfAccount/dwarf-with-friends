@@ -26,7 +26,8 @@
   "use strict";
 
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
-    DWFUI.require("join", ["windowHtml", "plaqueBtnHtml", "statusHtml", "esc"]);
+    DWFUI.require("join", ["windowHtml", "plaqueBtnHtml", "statusHtml", "textInputHtml", "bitmapTextHtml",
+      "bitmapProseHtml", "esc"]);
 
   var AUTH_COOKIE = "dfcap_auth";
   var NAME_KEY = "dwf.player";
@@ -111,7 +112,7 @@
       var keys = Object.keys(set).sort();
       if (!keys.length) return "";
       return fnv1a(keys.join("|"));
-    } catch (_) { return ""; }
+    } catch { return ""; }
   }
 
   // ---- version banner ----------------------------------------------------------------------
@@ -120,7 +121,7 @@
     return cmp.level === "hard"
       ? (cmp.reason === "protocol"
           ? "The game was updated (protocol changed) - this tab is out of date."
-          : "A new version is live — this browser tab is running stale code.")
+          : "A new version is live; this browser tab is running stale code.")
       : "Some assets were updated - a refresh is recommended.";
   }
   function versionBannerMarkup(cmp) {
@@ -146,7 +147,7 @@
       var t = ev.target && ev.target.closest ? ev.target.closest("[data-dfcj-act]") : null;
       if (!t) return;
       if (t.dataset.dfcjAct === "dismiss") { bannerDismissedSoft = true; el.remove(); return; }
-      try { location.reload(true); } catch (_) { location.reload(); }
+      try { location.reload(true); } catch { location.reload(); }
     });
     document.body.appendChild(el);
   }
@@ -188,10 +189,11 @@
     opts = opts || {};
     var rename = opts.mode === "rename";
     var needPass = !rename && !!opts.needPass;
+    var D = window.DWFUI;
     var passField = needPass
-      ? '<label for="dfcapJoinPass">Join password</label>' +
-        '<input id="dfcapJoinPass" type="password" autocomplete="current-password" ' +
-        'placeholder="shared password from your host">'
+      ? '<label for="dfcapJoinPass">' + D.bitmapTextHtml("Join password") + '</label>' +
+        D.textInputHtml({ id: "dfcapJoinPass", cls: "join-gate-input", type: "password",
+          autocomplete: "current-password", placeholder: "shared password from your host" })
       : "";
     var heading = rename ? "Change your name" : "Dwarf With Friends";
     var sub = rename
@@ -200,11 +202,11 @@
           ? "Enter your name and the password your host shared."
           : "Pick a display name to join.");
     var cardBody =
-      '<h1>' + window.DWFUI.esc(heading) + '</h1>' +
-      '<p class="join-gate-sub">' + sub + '</p>' +
-      '<label for="dfcapJoinName">Your name</label>' +
-      '<input id="dfcapJoinName" type="text" autocomplete="nickname" maxlength="32" ' +
-      'placeholder="e.g. Urist" value="' + window.DWFUI.esc(String(opts.prefillName || "").slice(0, 32)) + '">' +
+      '<h1>' + D.bitmapTextHtml(heading) + '</h1>' +
+      '<p class="join-gate-sub">' + D.bitmapProseHtml(sub, 32) + '</p>' +
+      '<label for="dfcapJoinName">' + D.bitmapTextHtml("Your name") + '</label>' +
+      D.textInputHtml({ id: "dfcapJoinName", cls: "join-gate-input", autocomplete: "nickname", maxLength: 32,
+        placeholder: "e.g. Urist", value: String(opts.prefillName || "").slice(0, 32) }) +
       passField +
       '<div id="dfcapJoinBtn">' + window.DWFUI.plaqueBtnHtml({
         label: rename ? "Save" : "Join", tone: "green", cls: "join-gate-join", dataset: { dfcjJoin: "" },
@@ -251,7 +253,7 @@
           var pass = passEl ? String(passEl.value || "") : "";
           if (!pass) { fail("Please enter the join password."); if (passEl) passEl.focus(); return; }
           // Validate before committing so the user gets immediate right/wrong feedback.
-          var ok = false;
+          var ok;
           try {
             var body = "password=" + encodeURIComponent(pass);
             var r = await fetch("/join", {
@@ -262,7 +264,7 @@
             var j = null; try { j = await r.json(); }
             catch (err) { DwfErr.report("join.password-response", err); }
             ok = r.ok && j && j.ok === true;
-          } catch (_) { ok = false; }
+          } catch { ok = false; }
           if (!ok) { fail("Wrong password. Ask your host for the shared password."); if (passEl) { passEl.focus(); passEl.select(); } return; }
           credential = pass;
           setCookie(AUTH_COOKIE, pass);
@@ -415,7 +417,7 @@
     return new Promise(function (resolve) {
       var ctl = null, settled = false, timer = null;
       function done(v) { if (settled) return; settled = true; clearTimeout(timer); resolve(v); }
-      try { ctl = new AbortController(); } catch (_) { ctl = null; }
+      try { ctl = new AbortController(); } catch { ctl = null; }
       timer = setTimeout(function () {
         try { if (ctl) ctl.abort(); } catch (err) { DwfErr.report("join.version-abort", err); }
         done(null);
@@ -425,7 +427,7 @@
       try {
         fetch("/version", opts).then(function (r) { return r && r.ok ? r.json() : null; })
           .then(done, function (err) { DwfErr.report("join.version-fetch", err); done(null); });
-      } catch (_) { done(null); }
+      } catch { done(null); }
     });
   }
 

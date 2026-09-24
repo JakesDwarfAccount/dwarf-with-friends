@@ -29,6 +29,9 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  // The wrap width of a status sentence in the hospital's narrow scroll.
+  var HOSP_COLUMNS = 30;
+
   // Fallback labels only: the server's `label` is authoritative and its array fixes the order.
   var _HOSP_SUPPLY_LABELS = {
     splints: "Splints", thread: "Thread", cloth: "Cloth", crutches: "Crutches",
@@ -111,7 +114,7 @@
       ? DWFUI.statusHtml({ tag: "span", cls: "location-access-state", tone: "good", text: selected.label })
       : DWFUI.statusHtml({ tag: "span", cls: "location-access-state", tone: "dim", text: "Access unavailable" });
     var guard = enabled ? "" : DWFUI.statusHtml({
-      tag: "span", cls: "location-access-guard", tone: "dim",
+      tag: "span", cls: "location-access-guard", tone: "dim", columns: HOSP_COLUMNS,
       text: "Read-only: the host has not enabled location access changes.",
     });
     return '<div class="location-access hospital-access" aria-label="Hospital access">' +
@@ -123,7 +126,7 @@
     DOCTOR: "Doctor", DIAGNOSTICIAN: "Diagnostician",
     SURGEON: "Surgeon", BONE_DOCTOR: "Bone Doctor",
   };
-  function occupationRows(info) {
+  function hospitalOccupationRows(info) {
     var list = (info && Array.isArray(info.occupations)) ? info.occupations.filter(Boolean) : [];
     return list.map(function (o) {
       var key = (o && o.typeKey) || "";
@@ -195,18 +198,6 @@
       "Traction benches in common area: " + n(f.tractionBenches),
       "Chests in common area: " + n(f.containers),
     ];
-  }
-
-  function furnitureText(info) {
-    var f = (info && info.furniture) || {};
-    var beds = Number(f.beds) || 0;
-    var tables = Number(f.tables) || 0;
-    var traction = Number(f.tractionBenches) || 0;
-    var containers = Number(f.containers) || 0;
-    function plur(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
-    return [plur(beds, "bed"), plur(tables, "table"),
-            plur(traction, "traction bench", "traction benches"),
-            plur(containers, "container")].join(" · ");
   }
 
   // Medical labor key -> display label.
@@ -353,7 +344,7 @@
   }
 
   function _hospBadge(text, cls) {
-    return '<span class="hospital-badge' + (cls ? " " + cls : "") + '">' + _hospEsc(text) + '</span>';
+    return DWFUI.bitmapTextHtml(text, { cls: "hospital-badge" + (cls ? " " + cls : "") });
   }
 
   function _hospProfessionStyle(record) {
@@ -429,7 +420,7 @@
           (c.held ? ' <span class="hospital-dim">already ' + _hospEsc(c.held) + '</span>' : "") +
           '</div>';
       }).join("")
-      : '<div class="building-note">No eligible citizens' + (s.search ? " match that search" : "") + '.</div>';
+      : '<div class="dwfui-text--note building-note">No eligible citizens' + (s.search ? " match that search" : "") + '.</div>';
     return '<div class="hospital-staff-picker">' +
       DWFUI.searchHtml({ cls: "hospital-cand-search-row", inputCls: "hospital-cand-search",
         dataAttr: "hospital-staff-search", value: s.search || "", magnifier: true,
@@ -441,7 +432,7 @@
 
   function hospitalPanelMarkup(state) {
     var s = state || {};
-    if (!s.info) return _hospHeader(s.zoneName || "Hospital") + '<div class="building-status">Loading hospitalâ€¦</div>';
+    if (!s.info) return _hospHeader(s.zoneName || "Hospital") + '<div class="building-status">Loading hospital…</div>';
     var info = s.info || {};
     if (info.ok === false) {
       return _hospHeader(s.zoneName || "Hospital") +
@@ -468,17 +459,11 @@
     var supplies = supplyRows(info);
     var suppliesHtml = supplies.length ? supplies.map(function (r) {
       // The shortfall badge comes from the server's `short` flag (DF's need_more bit), never stock < target.
-      var need = r.short ? _hospBadge("short", "want") : "";
+      var need = r.short ? _hospBadge("short", "warn") : "";
       return '<div class="hospital-supply" data-hosp-supply="' + _hospEsc(r.key) + '"' +
         (r.unitNote ? ' title="' + _hospEsc(r.unitNote) + '"' : "") + '>' +
-        // Native's own row caption is "<Supply> (Desired):" -- the label carries the "(Desired)"
-        // qualifier, and the stock/target pair lives in the stepper's readout beside the tiles.
-        // The `-meta` track therefore holds nothing now: the count it used to carry ("have 0") is
-        // the first half of the readout, and printing it twice is how a row starts disagreeing
-        // with itself. The element stays because the row's four-track grid is pinned by
-        // w4_health_hospital_fixture_test V1 and re-flowing that grid is not this lane's business.
+        // Native's caption is "<Supply> (Desired):"; the stock/target pair is the stepper's readout.
         '<span class="hospital-supply-label">' + _hospEsc(r.label) + ' (Desired):</span>' +
-        '<span class="hospital-supply-meta"></span>' +
         '<span class="hospital-supply-flag">' + need + '</span>' +
         // Native's own value format: stock first, target in parentheses -- "Thread (Desired): 0 (5)".
         DWFUI.stepperHtml({ cls: "hospital-supply-ctrl", value: r.level, min: 0, max: 99, editable: false,
@@ -487,10 +472,10 @@
           ariaLabel: r.label + " maximum stock", hashDataset: { hospSupplyEnter: r.level },
           minusDataset: { hospSupplySet: r.dec }, plusDataset: { hospSupplySet: r.inc } }) +
         '</div>';
-    }).join("") : '<div class="building-note">No supply data.</div>';
+    }).join("") : '<div class="dwfui-text--note building-note">No supply data.</div>';
 
     // The four location posts, distinct from the medical-labor list further down.
-    var occs = occupationRows(info);
+    var occs = hospitalOccupationRows(info);
     // A post is a SLOT and a HOLDER, not a doctor: `.hospital-post`, never the doctor chassis.
     var occsHtml = occs.length ? occs.map(function (o) {
       return '<div class="hospital-post"><span class="hospital-post-label">' + _hospEsc(o.label) + '</span>' +
@@ -509,43 +494,33 @@
       }).join("");
       // Honesty line: a silently-filtered list would imply the wire is clean.
       if (cands.serverChildren > 0)
-        staffHtml += DWFUI.statusHtml({ cls: "hospital-staff-note", tone: "dim",
+        staffHtml += DWFUI.statusHtml({ cls: "hospital-staff-note", tone: "dim", columns: HOSP_COLUMNS,
           text: "Note: the server offered " + cands.serverChildren + " child" +
             (cands.serverChildren === 1 ? "" : "ren") +
             " as staff candidates; they are hidden here. Children cannot hold an occupation." });
     }
 
-    // Native prints four separate lines -- beds, tables, traction benches, chests -- in its own
-    // order and wording. furnitureText() survives only because the offline fixture suite pins it.
+    // Native prints four separate lines -- beds, tables, traction benches, chests -- in its own words.
     var furnHtml = furnitureLines(info).map(function (line) {
-      return '<div class="building-note">' + _hospEsc(line) + '</div>';
+      return '<div class="dwfui-text--note building-note">' + _hospEsc(line) + '</div>';
     }).join("");
 
     // Native reports the appointed chief here but does not offer appointment controls.
     var chief = info.chiefMedical || {};
     var chiefHtml = chief.filled
-      ? '<div class="building-note">Chief Medical Dwarf: <span' + _hospProfessionStyle(chief) + '>' +
+      ? '<div class="dwfui-text--note building-note">Chief Medical Dwarf: <span' + _hospProfessionStyle(chief) + '>' +
         _hospEsc(chief.name || "(appointed)") + '</span></div>'
-      : '<div class="building-note">Chief Medical Dwarf: vacant.</div>';
+      : '<div class="dwfui-text--note building-note">Chief Medical Dwarf: vacant.</div>';
 
-    // Doctors: citizens with medical labors; link to the Labor tab for per-dwarf toggling.
-    //
-    // THIS SECTION IS A DWF ADDITION, not a native region -- native's page has no medical-labor
-    // roster -- and it is the list the owner was looking at when he reported children. On this
-    // fort the server returns 49 "doctors" of which 42 are children, because every citizen
-    // including children carries FEED_WATER_CIVILIANS by default and the server admits anyone with
-    // one medical labor. The same stopgap predicate the candidate picker uses is applied here so
-    // the roster stops being a nursery; the server-side fix is specified in the lane report.
-    // Whether this invented section should exist at all is a product call above this lane -- it is
-    // pinned by two registered tests (panel_parity_corrections_test, w4_health_hospital_fixture
-    // _test), so it is filtered rather than deleted, and reported.
+    // A DWF addition: citizens with a medical labor. The server counts every child (they all carry
+    // FEED_WATER_CIVILIANS), so children are filtered out here as in the candidate picker.
     var docs = doctorRows(info).filter(function (d) { return !isChildProfession(d.profession); });
     var docsHtml = docs.length ? docs.map(function (d) {
       var labs = d.labors.length ? d.labors.map(function (l) { return _hospBadge(l); }).join("") : _hospBadge("(no labor)", "warn");
       return '<div class="hospital-doctor"><div class="hospital-doctor-name"' + _hospProfessionStyle(d) + '>' + _hospEsc(d.name) +
         (d.profession ? ' <span class="hospital-dim">' + _hospEsc(d.profession) + '</span>' : "") +
         '</div><div class="hospital-doctor-labs">' + labs + '</div></div>';
-    }).join("") : '<div class="building-note">No dwarves have a medical labor enabled.</div>';
+    }).join("") : '<div class="dwfui-text--note building-note">No dwarves have a medical labor enabled.</div>';
     docsHtml += DWFUI.plaqueBtnHtml({ cls: "building-btn", dataset: { hospAct: "labor" }, label: "Manage medical labors (Labor tab)" });
 
     var accessHtml = s.locationData ? hospitalAccessHtml(s.locationData) : "";
@@ -553,24 +528,24 @@
     var accessLine = accessText(info);
     // Page order is native's: name, access strip, common-area counts, supplies, staff. Every DWF
     // addition stays below that, so nothing native must be scrolled past to reach an invention.
+    var section = function (title, body) {
+      return '<div class="dwfui-text--section hospital-section-label">' + _hospEsc(title) + '</div>' + body;
+    };
     var markup = accessHtml +
       '<div class="building-status">Hospital' + (Number(info.value) ? ' · value ' + Number(info.value) : "") + '</div>' +
       (accessLine && !accessHtml
-        ? '<div class="hospital-section"><div class="hospital-section-label">Access</div>' +
-          '<div class="building-note">' + _hospEsc(accessLine) + '</div></div>' : "") +
-      '<div class="hospital-section"><div class="hospital-section-label">Facilities</div>' + furnHtml + '</div>' +
-      '<div class="hospital-section"><div class="hospital-section-label">Supplies (max stock)</div>' + suppliesHtml + '</div>' +
+        ? section("Access", '<div class="dwfui-text--note building-note">' + _hospEsc(accessLine) + '</div>') : "") +
+      section("Facilities", furnHtml) +
+      section("Supplies (max stock)", suppliesHtml) +
       // Without /location-detail ids there is nothing to write against: fall back to read-only posts.
-      (staffHtml
-        ? '<div class="hospital-section"><div class="hospital-section-label">Staff</div>' + staffHtml + '</div>'
-        : (occsHtml ? '<div class="hospital-section"><div class="hospital-section-label">Hospital posts</div>' + occsHtml + '</div>' : "")) +
-      '<div class="hospital-section"><div class="hospital-section-label">Chief Medical Dwarf</div>' + chiefHtml + '</div>' +
-      '<div class="hospital-section"><div class="hospital-section-label">Doctors</div>' + docsHtml + '</div>';
+      (staffHtml ? section("Staff", staffHtml) : (occsHtml ? section("Hospital posts", occsHtml) : "")) +
+      section("Chief Medical Dwarf", chiefHtml) +
+      section("Doctors", docsHtml);
     // `preserveKey`: every staff control re-renders by replacing innerHTML, which resets scrollTop
     // to 0 -- without it, clicking "assign" scrolls away from the picker it just opened.
     return _hospHeader(_hospTitle(info, s.zoneName), s) +
-      DWFUI.scrollHtml({ cls: "hospital-panel-body hospital-native-one-page", preserveKey: "hospital-panel",
-        ariaLabel: "Hospital controls" }, markup);
+      DWFUI.scrollHtml({ cls: "hospital-panel-body", preserveKey: "hospital-panel",
+        rows: ".hospital-panel-body > *", ariaLabel: "Hospital controls" }, markup);
   }
 
   function _hospRender() {
@@ -694,11 +669,11 @@
     });
 
     // Picker search: re-render in place and put the caret back where it was.
-    var search = selection.querySelector("[data-hosp-staff-search]");
+    var search = selection.querySelector("[data-hospital-staff-search]");
     if (search) search.addEventListener("input", function () {
       s.search = search.value || "";
       _hospRender();
-      var next = selection.querySelector("[data-hosp-staff-search]");
+      var next = selection.querySelector("[data-hospital-staff-search]");
       if (next) {
         next.focus();
         try { next.setSelectionRange(next.value.length, next.value.length); } catch { globalThis.DwfErr?.count("hospital-panel.search-caret"); }
@@ -770,7 +745,7 @@
 
   // Browser-safe node export for the offline fixture test.
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { supplyRows, furnitureText, furnitureLines, doctorRows, hospitalPanelMarkup,
-      occupationRows, accessText, isStaffed,
+    module.exports = { supplyRows, furnitureLines, doctorRows, hospitalPanelMarkup,
+      hospitalOccupationRows, accessText, isStaffed,
       staffRows, staffCandidates, isChildProfession, hospitalAccessHtml };
   }

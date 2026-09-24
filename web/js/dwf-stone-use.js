@@ -58,7 +58,7 @@
       itemType: "BOULDER", itemSubtype: -1,
       materialType: Number(s.matType), materialIndex: Number(s.matIndex),
     };
-    return DWFUI.iconHtml({ item: ref, cls: "stone-item", size: 44, alt: s.name });
+    return DWFUI.iconHtml({ item: ref, cls: "stone-item", size: 32, alt: s.name });
   }
   function stoneHasFullWire(s) {
     return !!(s && s.matType !== undefined && s.matIndex !== undefined &&

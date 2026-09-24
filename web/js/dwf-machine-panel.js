@@ -66,34 +66,34 @@
   // building's own header grammar would claim this screen is about one building.
   function machinePanelMarkup(data) {
     const state = machinePanelState(data);
-    const blocks = state.machines.map(machine => {
-      const rows = machine.components.map(c => window.zoneUnitRowHtml({
+    const lines = state.machines.flatMap(machine => [
+      `<div class="dwfui-text--section machine-network-line">${escapeHtml(machine.id === state.selectedId
+        ? `Network ${machine.id} (this building)` : `Network ${machine.id}`)}</div>`,
+      DWFUI.statusHtml({ cls: "machine-network-line", tone: machine.running ? "dim" : "warn",
+                         text: machine.chip.text }),
+      // Spare power is a DISTINCT segment past the 100% mark; `surplus` is measured against the same
+      // requirement the fill is, so the boundary between the segments IS that mark.
+      DWFUI.barRowHtml({ cls: "machine-headroom", label: "Power", pct: machine.fillPct,
+                         tone: machine.running ? "" : "inactive",
+                         max: Math.max(1, machine.minPower),
+                         surplus: machine.running && machine.minPower > 0 ? machine.surplus : 0,
+                         valueText: `${machine.curPower} / ${machine.minPower}` }),
+      ...machine.components.map(c => window.zoneUnitRowHtml({
         label: c.name,
         meta: c.produced > 0 ? `Produces ${c.produced}`
             : c.consumed > 0 ? `Draws ${c.consumed}`
             : "Neither produces nor draws power",
-      }));
-      const title = machine.id === state.selectedId ? `Network ${machine.id} (this building)`
-                                                    : `Network ${machine.id}`;
-      return `<div class="zone-section-label">${escapeHtml(title)}</div>` +
-        DWFUI.statusHtml({ cls: "zone-note", tone: machine.running ? "dim" : "warn",
-                           text: machine.chip.text }) +
-        // Spare power is a DISTINCT segment past the 100% mark; `surplus` is measured against the same
-        // requirement the fill is, so the boundary between the segments IS that mark.
-        DWFUI.barRowHtml({ cls: "machine-headroom", label: "Power", pct: machine.fillPct,
-                           tone: machine.running ? "" : "inactive",
-                           max: Math.max(1, machine.minPower),
-                           surplus: machine.running && machine.minPower > 0 ? machine.surplus : 0, // a minPower-0 network has no requirement to measure surplus against; a segment there is a misleading sliver
-                           valueText: `${machine.curPower} / ${machine.minPower}` }) +
-        window.zoneUnitListHtml(rows, "No components.");
-    });
+      })),
+    ]);
+    // One scroll for every network: a list per network drew a scrollbar beside each one-row list.
     return `${DWFUI.headerHtml({ cls:"building-head", title:"Power networks", titleCls:"building-name", close:false })}` +
-      DWFUI.statusHtml({ cls: "building-status", tone: "dim",
+      DWFUI.statusHtml({ cls: "building-status", tone: "dim", columns: 56,
         text: `${window.DWF_EXTENSION_LABEL} · fortress-wide read-only view` }) +
       DWFUI.plaqueBtnHtml({ cls: "building-btn", label: "Back to building", dataset: { buildingBack: "" } }) +
       (state.empty
-        ? `<div class="zone-note">Nothing is connected to a power network yet. Axles, gears and pumps join one as they are built.</div>`
-        : blocks.join(""));
+        ? `<div class="dwfui-text--note zone-note">Nothing is connected to a power network yet. Axles, gears and pumps join one as they are built.</div>`
+        : DWFUI.scrollHtml({ cls: "zone-unit-list machine-networks", rows: ".machine-networks > *" },
+            lines.join("")));
   }
 
   async function fetchMachineInfo(id) {

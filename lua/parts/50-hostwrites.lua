@@ -234,7 +234,7 @@ local function hw_widget_json(w, depth, max_depth)
     return '{' .. table.concat(parts, ',') .. '}'
 end
 
--- Dump a named widget tree as JSON; served by GET /justice-convict?widgets=1.
+-- Dump a named widget tree as JSON; served by GET /justice-state?widgets=justice (host probe P-J1).
 function hw_widget_dump(which)
     local mi = df.global.game.main_interface
     local root
@@ -570,7 +570,7 @@ local function hw_unit_row_index(rows, unit_id)
     return nil, n
 end
 
--- State snapshot: the GET side of /justice-convict.
+-- Read-only state snapshot, served by GET /justice-state.
 function hw_justice_state()
     local mi = df.global.game.main_interface
     local j = hw_justice()

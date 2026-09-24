@@ -183,12 +183,12 @@
     const pos = rendered
       ? { x: Number(rendered.ox) + pixel.x, y: Number(rendered.oy) + pixel.y, z: Number(rendered.oz) }
       : null;
-    let data = null;
+    let data;
     try {
       const url = `/inspect?player=${encodeURIComponent(player)}&px=${pixel.x}&py=${pixel.y}&w=${pixel.w}&h=${pixel.h}`;
       const r = await fetch(url, { cache: "no-store" });
       data = r.ok ? await r.json() : null;
-    } catch (_) {
+    } catch {
       data = null;   // a dead /inspect degrades to a plain location ping, never to nothing
     }
     if (typeof window.DFChatPing.onPick === "function") window.DFChatPing.onPick(data, pos);

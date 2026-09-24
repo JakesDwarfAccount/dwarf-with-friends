@@ -39,14 +39,14 @@
   function colorizeUnitLine(line, tab, detail) {
     if (typeof line === "string" && line.includes("[")) return renderDfMarkup(line);
     if (detail === "Needs" || /^Unmet need:/.test(line))
-      return `<span class="unit-need-line unit-need-line-inherit">${escapeHtml(line)}</span>`;
+      return `<span class="unit-need-line">${escapeHtml(line)}</span>`;
     return escapeHtml(line);
   }
 
   function renderUnitOverviewLines(unit, lines, tab = "Overview", detail = "") {
     const list = Array.isArray(lines) ? lines : [];
     if (!list.length) return "";
-    return list.map(line => `<div class="unit-cell-line${classForUnitLine(tab, detail, line)}">${colorizeUnitLine(line, tab, detail)}</div>`).join("");
+    return list.map(line => `<div class="unit-cell-line">${colorizeUnitLine(line, tab, detail)}</div>`).join("");
   }
 
   function renderUnitOverviewRelations(unit) {
@@ -254,7 +254,7 @@
   function unitNicknameEditorMarkup(unit, statusText = "") {
     const nickname = String(unit?.nickname || "").slice(0, 64);
     return `<form class="unit-nickname-editor" data-unit-nickname-editor>` +
-      `<label class="unit-nickname-label"><span>Nickname</span>${DWFUI.textInputHtml({ maxLength: 64, value: nickname, ariaLabel: "Unit nickname", autocomplete: "off", spellcheck: false })}</label>` +
+      `<label class="unit-nickname-label"><span>Nickname</span>${DWFUI.textInputHtml({ cls: "unit-nickname-input", maxLength: 64, value: nickname, ariaLabel: "Unit nickname", autocomplete: "off", spellcheck: false })}</label>` +
       DWFUI.plaqueBtnHtml({ type: "submit", cls: "unit-nickname-save", tone: "green", label: "Save" }) +
       DWFUI.plaqueBtnHtml({ type: "button", cls: "unit-nickname-cancel", label: "Cancel", dataset: { unitNicknameCancel: "" } }) +
       DWFUI.statusHtml({ tag: "span", cls: "unit-nickname-status", text: statusText, role: "status", live: "polite" }) +
@@ -344,7 +344,7 @@
       `${fittedIdentityLine("unit-job-line", unitActivityLine(unit))}${nicknameEditor}`;
     const header = DWFUI.headerHtml({
       variant: "unit",
-      cls: "dwfui-head unit-sheet-header",   // .unit-sheet-header is PanelFrame's adoptHeadSel target
+      cls: "unit-sheet-header",   // .unit-sheet-header is PanelFrame's adoptHeadSel target
       close: false,
       // The compositor box is 12x6 cells and the portrait texture is 12x8; keeping them distinct
       // siblings stops the frame table stretching to the artwork's extent.
@@ -600,11 +600,6 @@
     }[tab] || []);
   }
 
-  function classForUnitLine(tab, detail, line) {
-    // Native assigns these hues while drawing the screen: English adjectives are not a colour source.
-    return "";
-  }
-
   // Health lines arrive with a leading [C:...] colour token, and the empty-state match below compares
   // SENTENCES -- strip the markup first or every health empty state loses its native treatment.
   function stripDfMarkup(line) {
@@ -621,7 +616,6 @@
       return line === "No evaluated wounds" || line === "No injuries";
     return ({
       Health: {
-        Status: "No health problems",
         Treatment: "No treatment scheduled",
         History: "No medical history"
       },
@@ -643,6 +637,11 @@
   function unitScrollAttr(key) {
     return key ? ` data-dwfui-scroll-key="${DWFUI.esc(key)}"` : "";
   }
+  // A list of whole rows: the viewport never shows a row cut in half.
+  function unitRowsHtml(cls, scrollKey, rows, empty) {
+    return DWFUI.scrollHtml({ cls, rows: ".dwfui-row", preserveKey: scrollKey },
+      rows || `<div class="dwfui-text--empty">${escapeHtml(empty || "")}</div>`);
+  }
   function unitTabScrollHtml(cfg, innerHtml) {
     return DWFUI.scrollHtml({
       cls: `unit-tab-scroll${cfg && cfg.cls ? " " + cfg.cls : ""}`,
@@ -652,31 +651,22 @@
     }, innerHtml);
   }
 
+  // Native draws an empty tab, Health status and the description as plain lines, and every other
+  // list as one entry per row with no rule between rows.
   function renderUnitListGrid(tab, detail, lines, options, scrollKey) {
     const values = Array.isArray(lines) ? lines : [];
-    // An empty tab is a native EMPTY STATE: a recognised "No X" line AND a bare-empty array both take
-    // the unboxed plain-white treatment -- a zero-length array is no less empty than "No wounds".
-    const healthStatus = tab === "Health" && (detail || "Status") === "Status";
-    const plain = healthStatus || values.length === 0 ||
+    const scroll = !(options && options.scroll === false);
+    const plain = values.length === 0 ||
+      (tab === "Health" && ["Status", "Description"].includes(detail || "Status")) ||
       (values.length === 1 && isNativePlainEmpty(tab, detail, values[0]));
-    // A row states no border; `.dwfui-grid` draws the shared hairline. `.unit-list-row-unboxed` is
-    // native's plain white empty and out-specifies the grey `.unit-list-empty`.
-    const unboxed = plain ? " unit-list-empty unit-list-row-unboxed" : "";
-    const healthState = tab === "Health" ? ` unit-health-${String(detail || "status").toLowerCase()}` : "";
-    const woundRowClass = line => {
-      if (tab !== "Health" || detail !== "Wounds") return "";
-      const text = stripDfMarkup(line);
-      if (text === "---") return " unit-wound-separator";
-      if (text.startsWith(".")) return " unit-wound-detail";
-      if (text === "Has been sutured" || text === "Infection") return " unit-wound-care";
-      return " unit-wound-header";
-    };
-    const rendered = values.length ? values.map(line => {
-      const cls = classForUnitLine(tab, detail, line);
-      return DWFUI.gridCellHtml({ cls: `unit-list-row${woundRowClass(line)}${cls}${unboxed}` }, colorizeUnitLine(line, tab, detail));
-    }).join("") : DWFUI.gridCellHtml({ cls: `unit-list-row${unboxed}` }, "No entries.");
-    const grid = DWFUI.gridHtml({ cls: `unit-list-grid${healthState}${plain ? " unit-list-grid-unboxed" : ""}` }, rendered);
-    if (options && options.scroll === false) return grid;
+    if (plain) {
+      const text = (values.length ? values : ["No entries."]).map(line =>
+        `<p class="unit-text-line">${colorizeUnitLine(line, tab, detail)}</p>`).join("");
+      return scroll ? `<div class="unit-text-block"${unitScrollAttr(scrollKey)}>${text}</div>` : text;
+    }
+    const grid = DWFUI.gridHtml({ cls: "unit-list-grid" }, values.map(line =>
+      DWFUI.gridCellHtml({ cls: "unit-list-row" }, colorizeUnitLine(line, tab, detail))).join(""));
+    if (!scroll) return grid;
     return unitTabScrollHtml({ ariaLabel: detail ? `${tab} ${detail}` : tab, preserveKey: scrollKey }, grid);
   }
 
@@ -695,8 +685,7 @@
     return ["family", "deity", "friend"].includes(value) ? ` unit-relation-${value}` : " unit-relation-friend";
   }
 
-  // OMIT, DO NOT BLANK: the deity row has no portrait tile and no trailing controls -- absent, not
-  // empty. An icon box drawn empty for a god is the failure this row exists to prevent.
+  // A deity row has no portrait tile and no trailing controls; its empty column keeps the name in line.
   function renderUnitRelations(unit, scrollKey) {
     if (!Array.isArray(unit && unit.relations))
       return renderUnitListGrid("Relations", null, unit && unit.relationLines, null, scrollKey);
@@ -718,31 +707,28 @@
             dataset: { unitRelationOpen: uid },
             title: "Open this unit", ariaLabel: `Open ${relation.name}`,
           },
-        ], { cls: "dwfui-actions unit-relation-actions", btnCls: "unit-structured-action" })
+        ], { cls: "unit-relation-actions", btnCls: "unit-structured-action" })
         : "";
       return DWFUI.rowHtml({
         chassis: "table",
         cls: `unit-structured-row unit-relation-row${deity ? " unit-relation-row-deity" : ""}`,
-        icon: deity
-          ? ""
-          : `<div class="unit-structured-portrait">${window.unitPortraitMarkup(relation, "unit-relation-portrait")}</div>`,
+        icon: `<div class="unit-structured-portrait">${deity ? "" : window.unitPortraitMarkup(relation, "unit-relation-portrait")}</div>`,
         // Both vocabularies on purpose: the DWFUI chassis classes carry layout and type, the pinned
         // unit-structured-* names carry the semantic colour roles. Dropping either is a regression.
-        copyCls: "dwfui-copy unit-structured-copy",
-        labelCls: "dwfui-label unit-structured-line",
+        copyCls: "unit-structured-copy",
+        labelCls: "unit-structured-line",
         labelHtml: `<span${unitProfessionColorAttrs(relation, `unit-relation-name${relationColorClass(relation.colorRole)}`)}>` +
           `${DWFUI.bitmapTextHtml(relation.name || "")}</span>` +
           (relation.profession ? `<span class="unit-relation-profession">` +
             `${DWFUI.bitmapTextHtml(`, ${relation.profession}`)}</span>` : ""),
-        sub: { cls: "dwfui-sub unit-structured-subline", text: relation.label || "Relation" },
+        sub: { cls: "unit-structured-subline", text: relation.label || "Relation" },
         trailing,
       });
     }).join("");
-    return `<div class="unit-structured-list unit-relations-list"${unitScrollAttr(scrollKey)}>${rows || `<div class="unit-structured-empty">No relationships recorded.</div>`}</div>`;
+    return unitRowsHtml("unit-structured-list unit-relations-list", scrollKey, rows, "No relationships recorded.");
   }
 
-  // The category is a `cells[]` entry, not a third div in the copy block: it is a COLUMN, and the
-  // grammar for a column is the row's cell list.
+  // Native prints the category right-aligned on the name line.
   function renderUnitGroups(unit, scrollKey) {
     if (!Array.isArray(unit && unit.groups))
       return renderUnitListGrid("Groups", null, unit && unit.groupLines, null, scrollKey);
@@ -750,14 +736,13 @@
       DWFUI.rowHtml({
         chassis: "table",
         cls: "unit-structured-row unit-group-row",
-        copyCls: "dwfui-copy unit-structured-copy",
-        labelCls: "dwfui-label unit-group-name",
-        label: group.entityName,
-        sub: { cls: "dwfui-sub unit-group-status", text: group.status || "Member" },
-        cells: [{ cls: "unit-group-category",
-          html: DWFUI.bitmapTextHtml(group.category || "Group") }],
+        copyCls: "unit-structured-copy",
+        labelCls: "unit-group-label",
+        labelHtml: `<span class="unit-group-name">${DWFUI.bitmapTextHtml(group.entityName, { fitNativeLabel: { host: "parent" } })}</span>` +
+          `<span class="unit-group-category">${DWFUI.bitmapTextHtml(group.category || "Group")}</span>`,
+        sub: { cls: "unit-group-status", text: group.status || "Member" },
       })).join("");
-    return `<div class="unit-structured-list unit-groups-list"${unitScrollAttr(scrollKey)}>${rows || `<div class="unit-structured-empty">No group memberships.</div>`}</div>`;
+    return unitRowsHtml("unit-structured-list unit-groups-list", scrollKey, rows, "No group memberships.");
   }
 
   const UNIT_ROOM_CATEGORIES = ["Study", "Quarters", "Dining Room", "Tomb"];
@@ -793,6 +778,7 @@
             { cls: "unit-room-actions", btnCls: "unit-structured-action" })
         : "";
       return DWFUI.rowHtml({
+        chassis: "table",
         cls: `unit-structured-row unit-room-row${room.assigned ? " assigned" : " unassigned"}${clickable ? " clickable" : ""}`,
         dataset,
         role: clickable ? "button" : undefined,
@@ -804,7 +790,7 @@
         trailing,
       });
     }).join("");
-    return `<div class="unit-structured-list unit-rooms-list"${unitScrollAttr(scrollKey)}>${rows}</div>`;
+    return unitRowsHtml("unit-structured-list unit-rooms-list", scrollKey, rows);
   }
 
   // *** THE ASSIGNMENT-CLASS INDICATOR IS NOT RENDERED (DEF-034). *** The wire ships a body-slot
@@ -816,22 +802,13 @@
       DWFUI.rowHtml({
         chassis: "table",
         cls: "unit-structured-row unit-inventory-row",
-        copyCls: "dwfui-copy unit-structured-copy",
-        labelCls: "dwfui-label unit-inventory-name",
+        copyCls: "unit-structured-copy",
+        labelCls: "unit-inventory-name",
         label: `(${record.name})`,
-        sub: { cls: "dwfui-sub unit-inventory-location",
+        sub: { cls: "unit-inventory-location",
           text: record.bodyPartName || record.role || "Carried" },
       })).join("");
-    return `<div class="unit-structured-list unit-inventory-list"${unitScrollAttr(scrollKey)}>${rows || `<div class="unit-structured-empty">No inventory items.</div>`}</div>`;
-  }
-
-  function renderUnitTextLines(unit, tab, detail, lines, scrollKey) {
-    // This empty inherits the block's own cream body colour; `unit-text-empty` is a colourless hook.
-    const rendered = lines.length ? lines.map(line =>
-      `<p class="unit-text-line${classForUnitLine(tab, detail, line)}">${colorizeUnitLine(line, tab, detail)}</p>`
-    ).join("") : `<p class="unit-text-line unit-text-empty">No entries.</p>`;
-    const healthClass = tab === "Health" ? ` unit-health-${String(detail || "description").toLowerCase()}` : "";
-    return `<div class="unit-text-block${healthClass}"${unitScrollAttr(scrollKey)}>${rendered}</div>`;
+    return unitRowsHtml("unit-structured-list unit-inventory-list", scrollKey, rows, "No inventory items.");
   }
 
   function unitSpanClass(role) {
@@ -885,34 +862,37 @@
     if (detail === "Knowledge") {
       if (!Array.isArray(unit && unit.knowledge))
         return renderUnitListGrid("Skills", detail, [], null, scrollKey);
-      const rows = structuredOrder(unit.knowledge).filter(record => record && record.title).map(record => `
-        <div class="unit-knowledge-row">
-          <div class="unit-knowledge-copy">
-            <div class="unit-knowledge-title">${escapeHtml(record.title)}</div>
-            <div class="unit-knowledge-subtype unit-prose-${unitSpanClass(record.colorRole)}">${escapeHtml(record.subtype || "Knowledge")}</div>
-          </div>
-          ${DWFUI.artBtnHtml({
+      const rows = structuredOrder(unit.knowledge).filter(record => record && record.title).map(record =>
+        DWFUI.rowHtml({
+          chassis: "table",
+          cls: "unit-knowledge-row",
+          labelCls: "unit-knowledge-title",
+          label: record.title,
+          sub: { cls: `unit-prose-${unitSpanClass(record.colorRole)}`, text: record.subtype || "Knowledge" },
+          trailing: DWFUI.artBtnHtml({
             sprite: DWFUI.TOKENS.sprites.view, cls: "unit-knowledge-action", placeholder: true,
             dataset: { unitKnowledgeDetail: record.detailTarget || `${record.type || "knowledge"}:${record.id}` },
             title: "Knowledge details are not implemented yet -- no server route exists for this " +
               "record. The control is kept so the wire is ready; it does nothing today.",
             ariaLabel: `View ${record.title}`,
-          })}
-        </div>`).join("");
-      return `<div class="unit-knowledge-list"${unitScrollAttr(scrollKey)}>${rows || `<div class="unit-structured-empty">No knowledge recorded.</div>`}</div>`;
+          }),
+        })).join("");
+      return unitRowsHtml("unit-knowledge-list", scrollKey, rows, "No knowledge recorded.");
     }
     if (!Array.isArray(unit && unit.skills)) {
       const legacy = detail === "Labor" ? unit && unit.skillLines : [];
       return renderUnitListGrid("Skills", detail, legacy, null, scrollKey);
     }
-    // charprofile_p2_test pins the `caption</span> <span class="unit-skill-rust">` adjacency, which a
-    // rowHtml copy block cannot produce, so this row stays hand-built.
-    const rows = structuredOrder(unit.skills).filter(skill => skill && skill.category === detail).map(skill => `
-      <div class="unit-skill-row unit-skill-${escapeHtml(skill.colorRole || "skill-0")}">
-        <span class="unit-skill-caption"${skillCaptionColorStyle(skill)}>${escapeHtml(`${skill.ratingCaption || "Dabbling"} ${skill.caption || "Skill"}`)}</span>
-        ${skill.rusty ? `<span class="unit-skill-rust"> (Rusty)</span>` : ""}
-      </div>`).join("");
-    return `<div class="unit-skill-list"${unitScrollAttr(scrollKey)}>${rows || `<div class="unit-structured-empty">No ${escapeHtml(detail || "notable").toLowerCase()} skills.</div>`}</div>`;
+    const rows = structuredOrder(unit.skills).filter(skill => skill && skill.category === detail).map(skill =>
+      DWFUI.rowHtml({
+        chassis: "table",
+        cls: "unit-skill-row",
+        labelCls: `unit-skill-${escapeHtml(skill.colorRole || "skill-0")}`,
+        labelHtml: `<span class="unit-skill-caption"${skillCaptionColorStyle(skill)}>` +
+          `${DWFUI.bitmapTextHtml(`${skill.ratingCaption || "Dabbling"} ${skill.caption || "Skill"}`)}</span>` +
+          (skill.rusty ? `<span class="unit-skill-rust">${DWFUI.bitmapTextHtml(" (Rusty)")}</span>` : ""),
+      })).join("");
+    return unitRowsHtml("unit-skill-list", scrollKey, rows, `No ${String(detail || "notable").toLowerCase()} skills.`);
   }
 
   // A skill row is coloured by the SKILL's profession colour, served as skill.color (0..15).
@@ -1022,7 +1002,7 @@
       ariaLabel: `Labor ${detail}`,
       dataset: { unitWorkdetails: uid, unitLaborDetail: detail },
       preserveKey: scrollKey,
-    }, `<div class="unit-list-row unit-list-empty">Loading work details&#8230;</div>`);
+    }, `<div class="dwfui-text--empty unit-list-row unit-list-empty">Loading work details&#8230;</div>`);
   }
 
   let unitLaborSnapshot = null;
@@ -1046,13 +1026,13 @@
     if (!box) return;
     const uid = Number(unit && (unit.id ?? unit.unitId ?? -1));
     if (!Number.isFinite(uid) || uid < 0) {
-      box.innerHTML = `<div class="unit-list-row unit-list-empty">No unit selected.</div>`;
+      box.innerHTML = `<div class="dwfui-text--empty unit-list-row unit-list-empty">No unit selected.</div>`;
       return;
     }
     try {
       renderUnitWorkDetails(unit, box, await fetchUnitLaborSnapshot());
     } catch {
-      box.innerHTML = `<div class="unit-list-row unit-list-empty">Work details unavailable.</div>`;
+      box.innerHTML = `<div class="dwfui-text--empty unit-list-row unit-list-empty">Work details unavailable.</div>`;
     }
   }
 
@@ -1070,8 +1050,8 @@
       dataset: { unitWdToggle: Number(d.index), on: checked ? 1 : 0 },
       title: `Toggle this dwarf's membership in the ${d.name} work detail`,
       icon: `<span class="unit-wd-icon-slot">${icon}</span>`,
-      copyCls: "dwfui-copy unit-wd-copy",
-      labelCls: "dwfui-label unit-wd-name",
+      copyCls: "unit-wd-copy",
+      labelCls: "unit-wd-name",
       label: d.name,
       cells: [{ cls: `unit-wd-check${checked ? " on" : ""}`, html: unitWorkDetailCheckHtml(checked) }],
     });
@@ -1124,10 +1104,10 @@
         chassis: "table",
         cls: `unit-structured-row unit-labor-animal-row ${assigned ? "assigned" : "assignable"}${blocked ? " blocked" : ""}`,
         icon: `<div class="unit-structured-portrait">${window.unitPortraitMarkup(animal, "unit-relation-portrait")}</div>`,
-        copyCls: "dwfui-copy unit-structured-copy",
-        labelCls: "dwfui-label unit-structured-line unit-labor-animal-name",
+        copyCls: "unit-structured-copy",
+        labelCls: "unit-structured-line unit-labor-animal-name",
         label: animal.name,
-        sub: { cls: "dwfui-sub unit-structured-subline", text: animal.trainingType || "Animal training" },
+        sub: { cls: "unit-structured-subline", text: animal.trainingType || "Animal training" },
         cells: [
           { cls: "unit-labor-animal-state",
             html: DWFUI.bitmapTextHtml(assigned ? "Assigned" : (blocked ? "Blocked" : "Assignable")) },
@@ -1146,7 +1126,7 @@
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
     const myRow = rows.find(r => Number(r.id) === uid) || null;
     if (!myRow)
-      return `<div class="unit-list-row unit-list-empty">Only fortress citizens can be assigned work details.</div>`;
+      return `<div class="dwfui-text--empty unit-list-row unit-list-empty">Only fortress citizens can be assigned work details.</div>`;
     const membership = new Set(String(myRow.assignedTo || "").split(", ").map(s => s.trim()).filter(Boolean));
     const specialist = !!myRow.specialist;
     const headText = unitSpecialistText(specialist);
@@ -1156,14 +1136,14 @@
       dataset: { unitWdSpec: uid, on: specialist ? 1 : 0 },
       title: "Toggle whether this dwarf only works its assigned work details",
       icon: `<span class="unit-wd-icon-slot">${unitSpecialistLatchHtml(specialist)}</span>`,
-      copyCls: "dwfui-copy unit-wd-copy",
-      labelCls: "dwfui-label unit-wd-name",
+      copyCls: "unit-wd-copy",
+      labelCls: "unit-wd-name",
       label: headText,
     });
     let body;
     if (detail === "Work details") {
       const list = details.map(d => unitWorkDetailRow(d, membership.has(d.name))).join("");
-      body = list || `<div class="unit-list-row unit-list-empty">No work details defined.</div>`;
+      body = list || `<div class="dwfui-text--empty unit-list-row unit-list-empty">No work details defined.</div>`;
     } else if (detail === "Work animals") {
       body = renderUnitLaborAnimals(unit);
     } else {
@@ -1316,12 +1296,7 @@
         Kills: unit.militaryKillLines
       }[detail] || unit.militaryLines
     };
-    const lines = Array.isArray(map[tab]) ? map[tab] : [];
-    if (tab === "Health" && detail === "Description")
-      return renderUnitTextLines(unit, tab, detail, lines, scrollKey);
-    if (tab === "Health")
-      return renderUnitListGrid(tab, detail, lines, null, scrollKey);
-    return renderUnitListGrid(tab, detail, lines, null, scrollKey);
+    return renderUnitListGrid(tab, detail, Array.isArray(map[tab]) ? map[tab] : [], null, scrollKey);
   }
 
   // The client-wide `escapeHtml` global the panel files call. Its body is DWFUI.esc.

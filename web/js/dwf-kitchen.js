@@ -133,11 +133,11 @@
     const cat = kitchenPrettyCategory(i.category);
     return DWFUI.rowHtml({
       chassis: "table", cls: "kitchen-item-row",
-      iconCfg: { item: i.spriteRef, size: 48, alt: i.name },
+      iconCfg: { item: i.spriteRef, size: 32, alt: i.name },
       labelHtml: DWFUI.bitmapTextHtml(String(i.name || "")),
-      sub: cat ? { html: DWFUI.bitmapTextHtml(cat), cls: "dwfui-sub kitchen-cat" } : null,
+      sub: cat ? { html: DWFUI.bitmapTextHtml(cat), cls: "kitchen-cat" } : null,
       cells: [
-        { html: kitchenCountCell(i.count), cls: "kitchen-count-cell", width: 60 },
+        { html: kitchenCountCell(i.count), cls: "kitchen-count-cell" },
         { html: kitchenItemCookButton(i), cls: "kitchen-cell" },
         { html: kitchenCellHtml(i, "brew", kitchenItemDataset(i)), cls: "kitchen-cell" },
       ],
@@ -146,10 +146,10 @@
   function kitchenPlantRowHtml(p) {
     return DWFUI.rowHtml({
       chassis: "table", cls: "kitchen-plant-row",
-      iconCfg: { item: p.spriteRef, size: 48, alt: p.name },
+      iconCfg: { item: p.spriteRef, size: 32, alt: p.name },
       labelHtml: DWFUI.bitmapTextHtml(String(p.name || "")),
       cells: [
-        { html: "", cls: "kitchen-count-cell", width: 60 },
+        { html: "", cls: "kitchen-count-cell" },
         { html: kitchenToggleButton(p, "cook"), cls: "kitchen-cell" },
         { html: kitchenToggleButton(p, "brew"), cls: "kitchen-cell" },
       ],
@@ -203,11 +203,11 @@
 
   // The carets are two more columns of the ONE sort radiogroup; sortHeaderHtml still owns every caret here.
   const KITCHEN_SORT_COLUMNS = [
-    { key: "type", label: "Type", sort: "desc", title: "Sort by item type" },
-    { key: "name", label: "Name", sort: "desc", title: "Sort by name" },
-    { key: "count", label: "", sort: "desc", title: "Sort by count" },
-    { key: "cook", label: "", sort: "desc", title: "Sort by cooking state" },
-    { key: "brew", label: "", sort: "desc", title: "Sort by brewing state" },
+    { key: "type", label: "Type", title: "Sort by item type" },
+    { key: "name", label: "Name", title: "Sort by name" },
+    { key: "count", label: "", title: "Sort by count" },
+    { key: "cook", label: "", title: "Sort by cooking state" },
+    { key: "brew", label: "", title: "Sort by brewing state" },
   ];
   // Descending = the most permissive state first, which is what the native caret shows.
   const KITCHEN_STATE_RANK = { allowed: 2, restricted: 1, cannot: 0 };

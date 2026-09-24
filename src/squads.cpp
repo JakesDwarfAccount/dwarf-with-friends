@@ -2772,7 +2772,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         json_error(res, status == 1 ? 409 : 400, err);
     };
-    server.Get("/squad-create", squad_create_handler);
     server.Post("/squad-create", squad_create_handler);
 
     // POST /squad-rename?id=&name= -> set squad alias.
@@ -2792,7 +2791,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-rename", squad_rename_handler);
     server.Post("/squad-rename", squad_rename_handler);
 
     // POST /squad-assign?squad=&unit=&pos= (pos optional, default -1 = first free).
@@ -2814,7 +2812,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-assign", squad_assign_handler);
     server.Post("/squad-assign", squad_assign_handler);
 
     // POST /squad-remove?unit= -> removeFromSquad.
@@ -2831,7 +2828,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-remove", squad_remove_handler);
     server.Post("/squad-remove", squad_remove_handler);
 
     // POST /squad-delete?squad= -- irreversible; the client confirms before calling.
@@ -2850,7 +2846,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-delete", squad_delete_handler);
     server.Post("/squad-delete", squad_delete_handler);
 
     // move's px/py index into the REQUESTING player's rendered window and z comes from that
@@ -3024,7 +3019,6 @@ void register_squad_routes(httplib::Server& server) {
         else
             set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-order", squad_order_handler);
     server.Post("/squad-order", squad_order_handler);
 
     // Every field is OPTIONAL: an omitted (or negative) param leaves that component unchanged.
@@ -3050,7 +3044,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-emblem", squad_emblem_handler);
     server.Post("/squad-emblem", squad_emblem_handler);
 
     // set-month requires sleep AND uniform together: resend the month's existing value for
@@ -3117,7 +3110,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-schedule", squad_schedule_handler);
     server.Post("/squad-schedule", squad_schedule_handler);
 
     // POST /squad-supplies?squad=&food=<0-3>&water=<none|nowater|water|drink> (native 5.4).
@@ -3143,7 +3135,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-supplies", squad_supplies_handler);
     server.Post("/squad-supplies", squad_supplies_handler);
 
     auto routine_create_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3158,7 +3149,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(new_id) + "}\n");
     };
-    server.Get("/routine-create", routine_create_handler);
     server.Post("/routine-create", routine_create_handler);
 
     auto routine_rename_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3177,7 +3167,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/routine-rename", routine_rename_handler);
     server.Post("/routine-rename", routine_rename_handler);
 
     auto routine_delete_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3194,7 +3183,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/routine-delete", routine_delete_handler);
     server.Post("/routine-delete", routine_delete_handler);
 
     auto squad_uniform_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -3228,7 +3216,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-uniform", squad_uniform_handler);
     server.Post("/squad-uniform", squad_uniform_handler);
 
     // POST /squad-equipment?squad=&pos=&action=add|update|remove&cat=&index=...
@@ -3259,7 +3246,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-equipment", squad_equipment_handler);
     server.Post("/squad-equipment", squad_equipment_handler);
 
     // ------------- uniform-template authoring + squad ammunition authoring
@@ -3289,7 +3275,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(new_id) + "}\n");
     };
-    server.Get("/uniform-create", uniform_create_handler);
     server.Post("/uniform-create", uniform_create_handler);
 
     // POST /uniform-rename?id=&name=
@@ -3308,7 +3293,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/uniform-rename", uniform_rename_handler);
     server.Post("/uniform-rename", uniform_rename_handler);
 
     // POST /uniform-delete?id=
@@ -3325,7 +3309,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/uniform-delete", uniform_delete_handler);
     server.Post("/uniform-delete", uniform_delete_handler);
 
     // subtype -1 = any subtype; matclass -1 = any material; choice = uniform_indiv_choice bits
@@ -3351,7 +3334,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/uniform-item-add", uniform_item_add_handler);
     server.Post("/uniform-item-add", uniform_item_add_handler);
 
     // POST /uniform-item-remove?id=&cat=&index=
@@ -3368,7 +3350,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/uniform-item-remove", uniform_item_remove_handler);
     server.Post("/uniform-item-remove", uniform_item_remove_handler);
 
     // POST /uniform-flags?id=&replaceClothing=0|1&exactMatches=0|1 (send both; the client reads
@@ -3387,7 +3368,6 @@ void register_squad_routes(httplib::Server& server) {
         }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/uniform-flags", uniform_flags_handler);
     server.Post("/uniform-flags", uniform_flags_handler);
 
     // update resends every field, never a partial patch.
@@ -3457,7 +3437,6 @@ void register_squad_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/squad-ammo", squad_ammo_handler);
     server.Post("/squad-ammo", squad_ammo_handler);
 }
 

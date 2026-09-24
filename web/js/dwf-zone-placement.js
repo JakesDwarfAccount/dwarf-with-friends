@@ -33,7 +33,7 @@
     if (!window.DFPanelFrame || !window.DFPanelFrame.register) return;
     window.DFPanelFrame.register({
       key: "zonePalette", el: () => zonePalette, title: "Zones",
-      closable: true, menu: false, zBand: false, escClosable: false, persistOpen: false,
+      chromeless: true, closable: false, menu: false, zBand: false, escClosable: false, persistOpen: false,
       resizable: { minW: 260, minH: 200 },
       fillSel: ".zone-type-panel",
       isOpen: () => !zonePalette.hidden,
@@ -502,7 +502,7 @@
       }
       setZoneStatus(msg, !r.ok);
       if (r.ok) loadZones();
-    } catch (_) {
+    } catch {
       setZoneStatus("Remove failed.", true);
     }
   }

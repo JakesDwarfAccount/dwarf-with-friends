@@ -19,7 +19,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-  function bipSelBuild() { try { return selectedBuild; } catch (_) { return null; } }
+  function bipSelBuild() { try { return selectedBuild; } catch { return null; } }
   function minimapElement() { return document.getElementById("minimap"); }
 
   async function performAction(action) {
@@ -37,7 +37,7 @@
         try {
           if (reason && window.DwfPause && typeof DwfPause.toast === "function")
             DwfPause.toast(reason);
-        } catch (_) { DwfErr.count("placement.action-toast"); }
+        } catch { DwfErr.count("placement.action-toast"); }
       }
     } catch (err) { DwfOrder.lost("placement.action", err, `"${action}"`); }
     loadHud();
@@ -114,22 +114,6 @@
 
   // --- Settings cog: the full Settings panel is the single settings entry point. ---
   const settingsBtn = document.getElementById("settingsBtn");
-  const settingsMenu = document.getElementById("settingsMenu");
-  // index.html ships the legacy cog popover as static markup; remove it or DFSettings gets a
-  // second, divergent surface for the same preferences.
-  if (settingsMenu) settingsMenu.remove();
-  const setInstantRow = document.getElementById("setInstantDig");
-  const setPredictiveRow = document.getElementById("setPredictivePan");
-  const setUnitImagesRow = document.getElementById("setUnitImages");
-  const setShowAttributionRow = document.getElementById("setShowAttribution");
-  function refreshSettingsUi() {
-    if (setInstantRow) setInstantRow.classList.toggle("on", instantDesignate);
-    if (setPredictiveRow) setPredictiveRow.classList.toggle("on", predictivePan);
-    if (setUnitImagesRow) setUnitImagesRow.classList.toggle("on", unitImagesEnabled);
-    if (setShowAttributionRow) setShowAttributionRow.classList.toggle("on",
-      typeof attribShowEnabled === "function" ? attribShowEnabled() : true);
-    if (settingsBtn) settingsBtn.classList.toggle("sb-active", !!settingsMenu && settingsMenu.classList.contains("open"));
-  }
   function setInstantDesignate(on) {
     instantDesignate = !!on;
     window.DwfUtil.lsSet("dfplex.instantDesignate", instantDesignate ? "1" : "0");
@@ -141,13 +125,11 @@
       dragPreview = null;
       renderZoneOverlay();
     }
-    refreshSettingsUi();
   }
   function setPredictivePan(on) {
     predictivePan = !!on;
     window.DwfUtil.lsSet("dfplex.predictivePan", predictivePan ? "1" : "0");
     if (predictivePan) applyPanPrediction(); else clearPanPrediction();
-    refreshSettingsUi();
   }
   function setUnitImagesEnabled(on) {
     unitImagesEnabled = !!on;
@@ -156,49 +138,18 @@
       renderUnitSheet();
     if (activeInfoPanel && clientPanel.classList.contains("visible"))
       openPanel(activeInfoPanel, activeInfoSection || "", activeInfoDetail || "");
-    refreshSettingsUi();
   }
   function setShowAttributionEnabled(on) {
     if (typeof attribSetShow === "function") attribSetShow(!!on);
     if (activeInfoPanel && clientPanel.classList.contains("visible"))
       openPanel(activeInfoPanel, activeInfoSection || "", activeInfoDetail || "");
-    refreshSettingsUi();
   }
   if (settingsBtn) {
     settingsBtn.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
       if (window.DFSettings && typeof window.DFSettings.open === "function") window.DFSettings.open();
-      refreshSettingsUi();
-      focusPage();
-    });
-  }
-  if (settingsMenu) {
-    if (setInstantRow) setInstantRow.addEventListener("click", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      setInstantDesignate(!instantDesignate);
-    });
-    if (setPredictiveRow) setPredictiveRow.addEventListener("click", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      setPredictivePan(!predictivePan);
-    });
-    if (setUnitImagesRow) setUnitImagesRow.addEventListener("click", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      setUnitImagesEnabled(!unitImagesEnabled);
-    });
-    if (setShowAttributionRow) setShowAttributionRow.addEventListener("click", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      setShowAttributionEnabled(!(typeof attribShowEnabled === "function" ? attribShowEnabled() : true));
-    });
-    document.addEventListener("pointerdown", event => {
-      if (!settingsMenu.classList.contains("open")) return;
-      if (event.target.closest("#settingsMenu, #settingsBtn")) return;
-      settingsMenu.classList.remove("open");
-      refreshSettingsUi();
+        focusPage();
     });
   }
   if (topbarHelpBtn) topbarHelpBtn.addEventListener("click", event => {
@@ -208,7 +159,6 @@
     else if (window.DFSettings && typeof window.DFSettings.open === "function") window.DFSettings.open("keybinds");
     focusPage();
   });
-  refreshSettingsUi();
 
   // dwf-settings.js's Interface panel renders and toggles these rows off DFClientPrefs.list(), so
   // a client pref missing from this list gets no row there.
@@ -231,37 +181,14 @@
     set(id, on) { const p = this.list().find(x => x.id === id); if (p) p.set(!!on); },
   };
 
-  // --- Zoom controls in the settings menu (UI mirror of the wheel / [ ] zoom) ---
-  const zoomOutBtn = document.getElementById("zoomOutBtn");
-  const zoomInBtn = document.getElementById("zoomInBtn");
-  const zoomResetBtn = document.getElementById("zoomResetBtn");
-  const zoomReadout = document.getElementById("zoomReadout");
-  function updateZoomReadout() {
-    if (!zoomReadout) return;
-    if (!tileRenderer || typeof tileRenderer.getZoom !== "function") return;
-    const z = tileRenderer.getZoom();
-    if (z && z.def) zoomReadout.textContent = Math.round((z.px / z.def) * 100) + "%";
-  }
-  if (zoomOutBtn) zoomOutBtn.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation(); zoomView("out"); updateZoomReadout(); focusPage();
-  });
-  if (zoomInBtn) zoomInBtn.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation(); zoomView("in"); updateZoomReadout(); focusPage();
-  });
-  if (zoomResetBtn) zoomResetBtn.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation(); resetZoomView(); updateZoomReadout(); focusPage();
-  });
-
   const UI_SCALE_MIN = 0.7, UI_SCALE_MAX = 1.6, UI_SCALE_STEP = 0.1;
   let uiScale = 1;
   {
     const saved = parseFloat(window.DwfUtil.lsGet("dfplex.uiScale"));
     if (Number.isFinite(saved)) uiScale = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, saved));
   }
-  const uiScaleReadout = document.getElementById("uiScaleReadout");
   function applyUiScale() {
     document.documentElement.style.setProperty("--ui-scale", String(uiScale));
-    if (uiScaleReadout) uiScaleReadout.textContent = Math.round(uiScale * 100) + "%";
   }
   function setUiScale(v) {
     uiScale = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, Math.round(v * 100) / 100));
@@ -272,18 +199,6 @@
   function resetUiScale() { setUiScale(1); }
   window.DWFUIScale = { adjust: adjustUiScale, set: setUiScale, reset: resetUiScale, get: () => uiScale };
   applyUiScale();
-  const uiScaleOutBtn = document.getElementById("uiScaleOutBtn");
-  const uiScaleInBtn = document.getElementById("uiScaleInBtn");
-  const uiScaleResetBtn = document.getElementById("uiScaleResetBtn");
-  if (uiScaleOutBtn) uiScaleOutBtn.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation(); adjustUiScale(-1); focusPage();
-  });
-  if (uiScaleInBtn) uiScaleInBtn.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation(); adjustUiScale(1); focusPage();
-  });
-  if (uiScaleResetBtn) uiScaleResetBtn.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation(); resetUiScale(); focusPage();
-  });
   // Ctrl/Cmd +/-/0: block the browser's own page zoom and drive UI scale instead.
   window.addEventListener("keydown", event => {
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
@@ -319,7 +234,7 @@
       try {
         if (window.DWFUI && typeof window.DWFUI.paintSprites === "function")
           window.DWFUI.paintSprites(button);
-      } catch (_) { /* zoom remains usable when optional sprite art cannot paint */ }
+      } catch { /* zoom remains usable when optional sprite art cannot paint */ }
     });
   }
   document.querySelectorAll("[data-map-zoom]").forEach(button => {
@@ -329,7 +244,6 @@
       const direction = button.dataset.mapZoom;
       if (direction !== "in" && direction !== "out") return;
       zoomView(direction);
-      updateZoomReadout();
       refreshZoomLimitFaces();
       focusPage();
     });
@@ -469,7 +383,7 @@
     icon.setAttribute("data-dwfui-sprite", token);
     try {
       if (window.DWFUI && typeof window.DWFUI.paintSprites === "function") window.DWFUI.paintSprites(btn);
-    } catch (_) { DwfErr.count("chrome.display-toggle-paint"); }
+    } catch { DwfErr.count("chrome.display-toggle-paint"); }
   }
   function refreshDisplayToggleButtons() {
     if (liquidNumbersBtn) {
@@ -539,7 +453,7 @@
     try {
       if (window.DWFUI && typeof window.DWFUI.paintSprites === "function")
         window.DWFUI.paintSprites(zScrollTrack);
-    } catch (_) { /* z navigation remains usable when optional band art cannot paint */ }
+    } catch { /* z navigation remains usable when optional band art cannot paint */ }
   }
   function renderZScrollbar(hud) {
     if (!zScrollTrack) return;
@@ -598,7 +512,7 @@
         tri.title = `${triName} — z ${p.camz}`;
         zScrollTrack.appendChild(tri);
       }
-    } catch (_) { /* player elevation remains readable from the primary marker list */ }
+    } catch { /* player elevation remains readable from the primary marker list */ }
   }
   function setZFromScrollbarEvent(event) {
     if (!currentHud) return;
@@ -625,7 +539,7 @@
     });
     const endZDrag = event => { zDragging = false;
       try { zScrollbar.releasePointerCapture(event.pointerId); }
-      catch (_) { /* release is harmless after lost capture */ }
+      catch { /* release is harmless after lost capture */ }
     };
     zScrollbar.addEventListener("pointerup", endZDrag);
     zScrollbar.addEventListener("pointercancel", endZDrag);
@@ -658,7 +572,7 @@
       if (window.DFTileList && typeof window.DFTileList.consumeInspect === "function" &&
           window.DFTileList.consumeInspect(data, pixel)) return;
       showSelection(data);
-    } catch (_) {
+    } catch {
       // Failure to inspect a tile is silent too: DF shows no "Nothing selected" box.
     }
   }

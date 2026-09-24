@@ -794,7 +794,7 @@
     const rows = civs.length
       ? civs.map(c => DWFUI.rowHtml({
           tag: "button", cls: "world-civ-row", dataset: { worldCivId: c.id },
-          label: c.name, trailing: `<span>${DWFUI.esc(worldPrettyKey(c.relation))}</span>`,
+          label: c.name, trailing: DWFUI.bitmapTextHtml(worldPrettyKey(c.relation)),
         })).join("")
       : `<div class="info-message">No civilizations recorded.</div>`;
     const head = DWFUI.headerHtml({ cls: "world-civs-head", title: "Civilizations", titleCls: "world-civs-title", close: { cls: "world-civs-close", dataset: { worldCivsClose: "" }, title: "Close" } });
@@ -903,22 +903,23 @@
     renderWorldScreenShell();
   }
 
+  const WORLD_TEXT_COLS = 52;   // a world list row's text width, in cells, inside the 58-cell panel
+
   // News text is a GRAMMAR, not a field: native composes each sentence from fragments, so it must be
   // generated once server-side as `news[].sentence`. Never print the enum key as if it were the sentence.
   function worldNewsRowHtml(item) {
     const source = item?.source || "Unknown source";
     const year = Number(item?.year) >= 0 ? `Year ${Number(item.year)}` : "";
     if (item && typeof item.sentence === "string" && item.sentence)
-      return DWFUI.rowHtml({ cls: "world-news-row", label: item.sentence,
+      return DWFUI.rowHtml({ chassis: "table", cls: "world-news-row",
+        labelHtml: DWFUI.bitmapProseHtml(item.sentence, WORLD_TEXT_COLS),
         sub: { text: [source, year].filter(Boolean).join(" · ") } });
     return DWFUI.rowHtml({
-      cls: "world-news-row world-news-uncomposed",
+      chassis: "table", cls: "world-news-row world-news-uncomposed",
+      title: "Native composes each sentence from about twenty-one fragments; the server has to " +
+             "compose it once, from the event record.",
       label: source,
-      sub: { text: year },
-      trailing: DWFUI.statusHtml({ tag: "span", tone: "danger",
-        text: "The wording of this report is not composed yet.",
-        title: "Native composes each sentence from about twenty-one fragments; the server has to " +
-               "compose it once, from the event record." }),
+      sub: [{ text: year }, { text: "The wording of this report is not composed yet.", tone: "danger" }],
     });
   }
 
@@ -997,10 +998,10 @@
       });
     }
     const rows = entries.map(entry => DWFUI.rowHtml({
-      cls: "world-report-row",
+      chassis: "table", cls: "world-report-row",
       label: worldTruncate(entry.title || "An untitled account", WORLD_REPORT_TITLE_BUDGET),
-      sub: { text: entry.kind === "tribute" ? "Tribute" : "Expedition" },
-      trailing: Number(entry.year) >= 0 ? `Year ${entry.year}` : "",
+      sub: { text: [entry.kind === "tribute" ? "Tribute" : "Expedition",
+        Number(entry.year) >= 0 ? `Year ${entry.year}` : ""].filter(Boolean).join(" · ") },
     })).join("");
     return `<div class="world-reports-body world-reports-list">${
       DWFUI.scrollHtml({ cls: "world-civs-list", rows: ".world-report-row", ariaLabel: "Reports" }, rows)}</div>`;

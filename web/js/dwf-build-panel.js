@@ -139,7 +139,6 @@
   }
 
   // ---- the category grid is pure arithmetic ----------------------------------------------------
-  // One cell size for the whole client: DwfGrid.BASE_CELL. BUILD_CELL is an alias kept for imports.
   const BUILD_PAGE_STATUS = { NONE: -1, FULL: 0, ICONS_ONLY: 1, OFF: 2 };
   // An ICONS_ONLY page costs a flat 5 columns; turning it OFF removes 6 (its 5 plus its separator).
   const BUILD_ICONS_ONLY_WIDTH = 5;
@@ -162,8 +161,6 @@
     }
     return null;
   };
-  // DF's authoring cell, aliased from DwfGrid; the literal is a fallback for a lost load order.
-  const BUILD_CELL = (G() && G().BASE_CELL) || { w: 8, h: 12 };
   // READ THE GRID THROUGH DwfGrid, never by measuring here: `zoom:` on #clientPanel makes a raw
   // innerHeight division short by the zoom factor, and native truncates one cell pair for the screen.
   function buildGrid() {
@@ -798,8 +795,6 @@
       return (plan.status === BUILD_PAGE_STATUS.OFF || page.selected) ? html : html + sepHtml;
     }).join("");
     return `<div class="build-block" style="` +
-      `--build-cell-w:var(--dwfui-cell-drawn-w, calc(${BUILD_CELL.w}px * var(--dwfui-interface-scale, 1)));` +
-      `--build-cell-h:var(--dwfui-cell-drawn-h, calc(${BUILD_CELL.h}px * var(--dwfui-interface-scale, 1)));` +
       `--build-grid-rows:${layout.maxHeight || 1};` +
       `--build-block-cells:${layout.available || 0}">${body}</div>`;
   }
@@ -896,8 +891,10 @@
     const showStatus = v.status && v.mode === BUILD_MODE.MENU && v.statusError;
     const status = showStatus
       ? `<div class="build-status error">${escapeHtml(v.status)}</div>` : "";
+    // Placement and the material picker are framed sheets; the mode-0 cascade has no frame.
+    const sheet = v.mode === BUILD_MODE.MENU ? body : DWFUI.windowHtml({ cls: "build-sheet", bodyHtml: body });
     return `<div class="build-window ${modeCls}" data-build-mode="${Number(v.mode)}">` +
-      `<div class="build-body">${status}${body}</div></div>`;
+      `<div class="build-body">${status}${sheet}</div></div>`;
   }
 
   function renderBuildPanel() {
@@ -1103,7 +1100,7 @@
       value: picker.filter || "", placeholder: "...", ariaLabel: "Filter materials",
       maxLength: BUILD_PICKER_FILTER_MAX,
     });
-    const body = rows || `<div class="build-picker-empty">${
+    const body = rows || `<div class="dwfui-text--empty build-picker-empty">${
       DWFUI.bitmapTextHtml("Nothing on hand for this requirement.")}</div>`;
     return `<div class="build-picker" data-build-picker-side="${rect.flipped ? "left" : "right"}" ` +
       `data-build-picker-required="${required}" ` +
@@ -1124,7 +1121,6 @@
     const s = state || {};
     const materials = Object.prototype.hasOwnProperty.call(s, "materials") ? s.materials : buildMaterials;
     const materialsToken = Object.prototype.hasOwnProperty.call(s, "materialsToken") ? s.materialsToken : buildMaterialsToken;
-    const matPicks = s.matPicks || buildMatPicks;
     const materialMode = s.materialMode || buildMaterialMode;
     const options = s.options || buildOptions || defaultBuildOptions();
     const direction = Object.prototype.hasOwnProperty.call(s, "direction") ? s.direction : buildDirection;
@@ -1137,7 +1133,7 @@
     // tick, nothing else. Requirements are surfaced where native surfaces them: mode 2, one slot at a time.
     const eightWay = Number(item.type) === 22 && dirs.length === 8;
     const directionHtml = item.direction ? `
-      <div class="build-section-title">Direction</div>
+      <div class="dwfui-text--section build-section-title">Direction</div>
       <div class="build-dir-row${eightWay ? " build-dir-8way" : ""}"${eightWay ? ` data-build-dir-row="8way"` : ""}>
         ${dirs.map(dir => DWFUI.plaqueBtnHtml({
           cls: `build-dir${Number(dir.value) === Number(direction) ? " active" : ""}`,
@@ -1145,17 +1141,17 @@
         })).join("")}
       </div>` : "";
     const hollowHtml = item.hollow ? `
-      <div class="build-section-title">Area</div>
+      <div class="dwfui-text--section build-section-title">Area</div>
       <div class="build-toggle-row">
         ${toggleButton("hollow", "Hollow", options)}
       </div>` : "";
     const weaponHtml = item.weaponCount ? `
-      <div class="build-section-title">Weapons</div>
+      <div class="dwfui-text--section build-section-title">Weapons</div>
       <div class="build-num-grid">
         ${numInput("weapon_count", "Count", 1, 10, options)}
       </div>` : "";
     const pressureHtml = item.pressure ? `
-      <div class="build-section-title">Triggers</div>
+      <div class="dwfui-text--section build-section-title">Triggers</div>
       <div class="build-toggle-row">
         ${toggleButton("plate_units", "Units", options)}
         ${toggleButton("plate_water", "Water", options)}
@@ -1180,7 +1176,7 @@
       dataset: { buildDump: "", dumpX: dx, dumpY: dy }, label,
     });
     const trackHtml = item.trackStop ? `
-      <div class="build-section-title">Track stop</div>
+      <div class="dwfui-text--section build-section-title">Track stop</div>
       <div class="build-toggle-row">
         ${toggleButton("track_dump", "Dump", options)}
       </div>
@@ -1195,7 +1191,7 @@
         ${stepperInput("friction", "Friction", 0, 50000, options)}
       </div>` : "";
     const speedHtml = item.speed ? `
-      <div class="build-section-title">Speed</div>
+      <div class="dwfui-text--section build-section-title">Speed</div>
       <div class="build-num-grid">
         ${stepperInput("speed", "Speed", 1000, 100000, options)}
       </div>` : "";
@@ -1227,10 +1223,10 @@
       ? `<div class="build-advisory">${advisory.map(line =>
           `<div class="build-advisory-line">${DWFUI.bitmapTextHtml(line)}</div>`).join("")}</div>`
       : "";
-    const radio = (mode, label, on) => DWFUI.selectCellHtml({
-      selected: on, cls: `build-matmode build-matmode-${mode}`,
-      dataset: { buildMatmode: mode }, ariaLabel: label,
-    }, DWFUI.bitmapTextHtml(label, { cls: "build-matmode-label" }));
+    const radio = (mode, label, on) => DWFUI.rowHtml({
+      tag: "button", role: "radio", checked: on, chassis: "slab", state: "on", selected: on,
+      cls: `build-matmode build-matmode-${mode}`, dataset: { buildMatmode: mode }, ariaLabel: label, label,
+    });
     const radios = DWFUI.selectCellGroupHtml(
       { cls: "build-placement-toggle", ariaLabel: "Material selection mode" },
       radio("select", "Select material after placement", materialMode === "select") +
@@ -1276,7 +1272,7 @@
   function numInput(key, label, min, max, values) {
     const source = values || buildOptions || defaultBuildOptions();
     const value = Math.max(min, Math.min(max, Math.floor(Number(source[key] ?? min))));
-    return `<label class="build-num-label">${escapeHtml(label)}<input class="build-num" data-build-num="${key}" type="number" min="${min}" max="${max}" value="${value}"></label>`;
+    return `<label class="build-num-label">${DWFUI.bitmapTextHtml(label)}<input class="build-num" data-build-num="${key}" type="number" min="${min}" max="${max}" value="${value}"></label>`;
   }
 
   function stepperInput(key, label, min, max, values) {
@@ -1347,7 +1343,7 @@
       renderBuildPanel();
   }
 
-  function appendBuildOptions(params, item) {
+  function appendBuildOptions(params) {
     const add = key => params.set(key, String(Math.floor(Number(buildOptions[key] ?? 0))));
     add("hollow");
     add("weapon_count");
@@ -1380,7 +1376,7 @@
         const text = await r.text();
         throw new Error(text.trim() || "building failed");
       }
-      const data = await r.json();
+      await r.json();
       buildStatus = "";
       buildStatusError = false;
       buildPlacementErrors = [];
@@ -1445,7 +1441,7 @@
     if (picker.reqIndex < picker.requirements.length) { renderBuildPanel(); return; }
     // Last requirement confirmed -> finalize, then the keep-building branch inside submitBuildPlacement.
     const params = new URLSearchParams(picker.params);
-    appendBuildOptions(params, picker.item);
+    appendBuildOptions(params);
     submitBuildPlacement(picker.item, params, picker.itemId);
   }
 
@@ -1486,7 +1482,7 @@
     // The picker column flips to whichever half of the viewport the BUILDING is not on. Solved at the
     // click, the only moment the build site is known, and before mode 2 renders.
     buildPickerFlipped = (() => {
-      let mapGridWidth = 0;
+      let mapGridWidth;
       try {
         const tiles = typeof DwfTiles !== "undefined" ? DwfTiles : null;
         const rendered = tiles && typeof tiles.getRenderRect === "function"
@@ -1499,7 +1495,7 @@
     // The map click is the ONLY commit. Three exits: no item requirements -> finalize; closest/last
     // -> the picker is auto-satisfied; otherwise mode 2, one pass per requirement.
     if (buildMaterialMode !== "select") {
-      appendBuildOptions(params, item);
+      appendBuildOptions(params);
       await submitBuildPlacement(item, params);
       return;
     }
@@ -1541,7 +1537,7 @@
     }
     if (!requirements.length) {
       // A building with no item requirements skips the picker: always showing one shows an EMPTY one.
-      appendBuildOptions(params, item);
+      appendBuildOptions(params);
       await submitBuildPlacement(item, params);
       return;
     }
@@ -1564,7 +1560,7 @@
     normalizeBuildCatalog, b79ConstructionGroupFor, buildPlacementBounds, verminCaption: (...args) => window.verminCaption(...args), verminBodyLines: (...args) => window.verminBodyLines(...args),
     verminSheetMarkup: (...args) => window.verminSheetMarkup(...args), plannedEngravingSheetMarkup: (...args) => window.plannedEngravingSheetMarkup(...args),
     // The pure arithmetic and composition rules, exported so the offline suite can check them.
-    BUILD_MODE, BUILD_CELL, BUILD_PAGE_STATUS, BUILD_PLACE_PANEL, BUILD_PROMPT,
+    BUILD_MODE, BUILD_PAGE_STATUS, BUILD_PLACE_PANEL, BUILD_PROMPT,
     buildBlockRect, buildColumnHeight, buildColumnWidth, buildMenuLayout, buildMenuMarkup,
     buildCascadeLevels, buildPaintableCells, buildPaintableCellsLive,
     buildPlacementLayout, buildSubPanelRect, buildDirectionButtonRect, buildDirectionRects,
@@ -1615,7 +1611,7 @@
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { infoRowSearchText: (...args) => window.infoRowSearchText(...args), taskNameProf: (...args) => window.taskNameProf(...args), infoFilterRows: (...args) => window.infoFilterRows(...args), infoRowActions: (...args) => window.infoRowActions(...args), infoText: (...args) => window.infoText(...args), placeIdentity: (...args) => window.placeIdentity(...args), geldButtonSpec: (...args) => window.geldButtonSpec(...args), memorialButtonSpec: (...args) => window.memorialButtonSpec(...args), creatureSexGlyphHtml: (...args) => window.creatureSexGlyphHtml(...args), creatureRowsMarkup: (...args) => window.creatureRowsMarkup(...args), residentLaborState: (...args) => window.residentLaborState(...args), professionColorStyle: (...args) => window.professionColorStyle(...args),
       overallTrainingBarHtml: (...args) => window.overallTrainingBarHtml(...args), trainingKnowledgePageHtml: (...args) => window.trainingKnowledgePageHtml(...args), creatureRowActionsHtml: (...args) => window.creatureRowActionsHtml(...args), stockItemPileNumber: (...args) => window.stockItemPileNumber(...args), resolveStockItemPileLocation: (...args) => window.resolveStockItemPileLocation(...args), withStockItemPileLocation: (...args) => window.withStockItemPileLocation(...args), stockItemSheetMarkup: (...args) => window.stockItemSheetMarkup(...args), stocksPanelMarkup: (...args) => window.stocksPanelMarkup(...args),
-      infoDetailTabRowHtml: (...args) => window.infoDetailTabRowHtml(...args), infoTabRowHtml: (...args) => window.infoTabRowHtml(...args), infoSearchInputHtml: (...args) => window.infoSearchInputHtml(...args), renderInfoRows: (...args) => window.renderInfoRows(...args), placeRowsHtml: (...args) => window.placeRowsHtml(...args), taskRowsHtml: (...args) => window.taskRowsHtml(...args),
+      infoDetailTabRowHtml: (...args) => window.infoDetailTabRowHtml(...args), infoTabRowHtml: (...args) => window.infoTabRowHtml(...args), infoSearchInputHtml: (...args) => window.infoSearchInputHtml(...args), objectRowsHtml: (...args) => window.objectRowsHtml(...args), placeRowsHtml: (...args) => window.placeRowsHtml(...args), taskRowsHtml: (...args) => window.taskRowsHtml(...args),
       taskJobModel: (...args) => window.taskJobModel(...args), taskJobControlsHtml: (...args) => window.taskJobControlsHtml(...args), taskUnitControlsHtml: (...args) => window.taskUnitControlsHtml(...args),
       stocksSearchGroups: (...args) => window.stocksSearchGroups(...args), stocksGroupActionCluster: (...args) => window.stocksGroupActionCluster(...args), patchStockItemFlags: (...args) => window.patchStockItemFlags(...args), taskPlaceCellHtml: (...args) => window.taskPlaceCellHtml(...args), infoPlaceDetailWide: (...args) => window.infoPlaceDetailWide(...args), wireBuildNumberControls,
       ...buildPanelApi };

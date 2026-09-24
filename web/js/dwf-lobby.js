@@ -25,7 +25,7 @@
   "use strict";
 
   if (typeof DWFUI !== "undefined" && typeof DWFUI.require === "function")
-    DWFUI.require("lobby", ["headerHtml", "rowHtml", "plaqueBtnHtml", "scrollHtml", "esc"]);
+    DWFUI.require("lobby", ["headerHtml", "rowHtml", "plaqueBtnHtml", "scrollHtml", "esc", "bitmapTextHtml", "setBitmapText"]);
 
   // A raw session key must never render as a player name: it becomes "Guest <first-4>", with the full
   // key kept on the title and dataset so follow and jump still address the real roster entry.
@@ -104,24 +104,18 @@
         dataset: { lobbyRename: rawName },
         title: "Change your display name (others will see it)",
       }) : null;
-      // Column grammar: [swatch] [name (+you/HOST tags)] [follow/rename]. Only the name cell flexes, and it
-      // clips with an ellipsis, so no name length can push or overlap the action column.
+      // [swatch] [name, then the you/HOST tags that never shrink] ... [follow/rename]
       return window.DWFUI.rowHtml({
         chassis: "table",
         cls: `lobby-row${idle}${canSpectate ? " lobby-jumpable" : " lobby-no-camera"}`,
         dataset: { lobbyPlayer: rawName },
         title: rowTitle,
-        copyCls: "lobby-copy",
-        cells: [
-          { html: `<span class="lobby-swatch" data-lobby-color="${DWFUI.esc(col)}" title="Cursor color on the map"></span>`, cls: "lobby-swatch-cell" },
-          {
-            html: `<span class="lobby-name${dn.anon ? " lobby-anon" : ""}" data-lobby-color="${DWFUI.esc(col)}" title="${DWFUI.esc(nameTitle)}">${DWFUI.esc(dn.text)}</span>` +
-              (p.self ? '<span class="lobby-you" title="This is you">(you)</span>' : "") +
-              (isHost ? '<span class="lobby-host" title="Host: runs the fort">HOST</span>' : ""),
-            cls: "lobby-name-cell",
-          },
-          { html: rename || follow, cls: "lobby-follow-cell" },
-        ],
+        icon: `<span class="lobby-swatch" data-lobby-color="${DWFUI.esc(col)}" title="Cursor color on the map"></span>`,
+        labelHtml: `<span class="lobby-name${dn.anon ? " lobby-anon" : ""}" data-lobby-color="${DWFUI.esc(col)}" title="${DWFUI.esc(nameTitle)}">${DWFUI.bitmapTextHtml(dn.text)}</span>` +
+          (p.self ? `<span class="lobby-you" title="This is you">${DWFUI.bitmapTextHtml("(you)")}</span>` : "") +
+          (isHost ? `<span class="lobby-host" title="Host: runs the fort">${DWFUI.bitmapTextHtml("HOST")}</span>` : ""),
+        labelCls: "lobby-label",
+        trailing: rename || follow,
       });
     }).join("");
   }
@@ -135,11 +129,12 @@
     return window.DWFUI.headerHtml({ tag: "h3", titleTag: "span", titleCls: "lobby-count", title: `Players - ${roster.length}`, close: false }) +
       `<div class="lobby-status${paused ? " lobby-status-paused" : ""}">` +
       '<span class="lobby-status-dot" aria-hidden="true"></span>' +
-      `<span class="lobby-pause">${DWFUI.esc(options.pauseText || "Running")}</span></div>` +
+      `<span class="lobby-pause">${DWFUI.bitmapTextHtml(options.pauseText || "Running")}</span></div>` +
       window.DWFUI.scrollHtml({ cls: "lobby-rows", rows: ".lobby-row", ariaLabel: "Connected players" },
-        rows || '<div class="lobby-empty">No players connected</div>');
+        rows || LOBBY_EMPTY);
   }
 
+  const LOBBY_EMPTY = `<div class="lobby-empty">${DWFUI.bitmapTextHtml("No players connected")}</div>`;
   let panel = null, btn = null, pauseText = "Running";
 
   function ensurePanel() {
@@ -154,7 +149,7 @@
     if (el.querySelector(".lobby-rows")) return;
     el.innerHTML =
       window.DWFUI.headerHtml({ tag: "h3", titleTag: "span", titleCls: "lobby-count", title: "", close: false }) +
-      '<div class="lobby-status"><span class="lobby-status-dot" aria-hidden="true"></span><span class="lobby-pause"></span></div>' +
+      `<div class="lobby-status"><span class="lobby-status-dot" aria-hidden="true"></span><span class="lobby-pause">${DWFUI.bitmapTextHtml("")}</span></div>` +
       window.DWFUI.scrollHtml({ cls: "lobby-rows", rows: ".lobby-row", ariaLabel: "Connected players" }, "");
   }
 
@@ -165,13 +160,16 @@
     const P = window.DwfPresence;
     const roster = sortRoster((P && Array.isArray(P.roster)) ? P.roster.slice() : []);
     const rows = lobbyRowsHtml(roster);
-    el.querySelector(".lobby-count").textContent = `Players - ${roster.length}`;
-    el.querySelector(".lobby-pause").textContent = pauseText;
+    DWFUI.setBitmapText(el.querySelector(".lobby-count"), `Players - ${roster.length}`);
+    DWFUI.setBitmapText(el.querySelector(".lobby-pause"), pauseText);
     // The status strip is green "Running" / warning-orange anything else ("Paused by X",
     // "Paused -- X left"); the dot color is the paused-state signal, the text is the actor.
     const status = el.querySelector(".lobby-status");
     if (status) status.classList.toggle("lobby-status-paused", !/^running$/i.test(pauseText));
-    el.querySelector(".lobby-rows").innerHTML = rows || '<div class="lobby-empty">No players connected</div>';
+    // The HUD calls setPauseText every second: rebuild the rows (and their bitmaps) only when they changed.
+    const list = el.querySelector(".lobby-rows");
+    const markup = rows || LOBBY_EMPTY;
+    if (list.__dwfLobbyRows !== markup) { list.innerHTML = markup; list.__dwfLobbyRows = markup; }
   }
 
   function isOpen() { return !!panel && panel.classList.contains("open"); }
@@ -238,7 +236,7 @@
           spectate.jumpToPlayer(row.getAttribute("data-lobby-player"));
       });
     }
-    // Close on outside click, mirroring #settingsMenu.
+    // Close on outside click.
     document.addEventListener("pointerdown", event => {
       if (!isOpen()) return;
       if (event.target.closest("#lobbyPanel, #lobbyBtn")) return;
@@ -250,7 +248,7 @@
     if (panel && window.DFPanelFrame) window.DFPanelFrame.register({
       key: "lobby", el: () => panel, title: "Players",
       headSel: "h3", closable: true, persistOpen: false,
-      defaultPos: (vw, vh) => ({ anchor: "tr", x: 212, y: 52, w: 360, h: 264 }),
+      defaultPos: () => ({ anchor: "tr", x: 212, y: 52, w: 360, h: 264 }),
       open, close, isOpen, escClosable: true,
     });
     // Live-update the open panel on roster change (cheap; only re-renders when visible).

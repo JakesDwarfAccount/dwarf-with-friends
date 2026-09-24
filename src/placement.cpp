@@ -930,7 +930,6 @@ void register_placement_routes(httplib::Server& server) {
                             std::string(camera.placement_mode ? "true" : "false") + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/placement-mode", placement_mode_handler);
     server.Post("/placement-mode", placement_mode_handler);
 
     auto placement_cursor_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -966,7 +965,6 @@ void register_placement_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/placement-cursor", placement_cursor_handler);
     server.Post("/placement-cursor", placement_cursor_handler);
 
     auto designate_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -1017,53 +1015,54 @@ void register_placement_routes(httplib::Server& server) {
                             ",\"tool\":" + json_string(result.tool) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/designate", designate_handler);
     server.Post("/designate", designate_handler);
 
-    // The LIVE per-fort traffic costs are plotinfo.main.traffic_cost_*. d_init's path_cost[4] is
-    // only the new-fort seed those are filled from, so writing it changes nothing in a running fort.
-    auto traffic_costs_handler = [](const httplib::Request& req, httplib::Response& res) {
-        auto plotinfo = df::global::plotinfo;
-        if (!plotinfo) {
-            res.status = 503;
-            res.set_content("{\"ok\":false,\"error\":\"world unavailable\"}\n",
-                            "application/json; charset=utf-8");
-            return;
-        }
-        // Native's sliders run 1..100 and snap anything larger down the moment a player touches
-        // them. The lower bound guards DF's A*: a 0 cost would make restricted tiles free.
-        auto clamp_cost = [](int v) { return std::max(1, std::min(100, v)); };
-        int written = 0;
-        {
-            DFHack::CoreSuspender suspend;
-            struct { const char* param; int32_t* field; } fields[] = {
-                { "high",       &plotinfo->main.traffic_cost_high },
-                { "normal",     &plotinfo->main.traffic_cost_normal },
-                { "low",        &plotinfo->main.traffic_cost_low },
-                { "restricted", &plotinfo->main.traffic_cost_restricted },
-            };
-            for (const auto& f : fields) {
-                int v = 0;
-                if (!query_int(req, f.param, v))
-                    continue;
-                *f.field = clamp_cost(v);
-                ++written;
+    // GET reads the LIVE per-fort traffic costs (plotinfo.main.traffic_cost_*); POST also writes
+    // any given. d_init's path_cost[4] is only the new-fort seed; writing it changes nothing live.
+    auto traffic_costs_handler = [](bool may_write) {
+        return [may_write](const httplib::Request& req, httplib::Response& res) {
+            auto plotinfo = df::global::plotinfo;
+            if (!plotinfo) {
+                res.status = 503;
+                res.set_content("{\"ok\":false,\"error\":\"world unavailable\"}\n",
+                                "application/json; charset=utf-8");
+                return;
             }
-            std::ostringstream body;
-            body << "{\"ok\":true,\"written\":" << written
-                 << ",\"costs\":{\"high\":" << plotinfo->main.traffic_cost_high
-                 << ",\"normal\":" << plotinfo->main.traffic_cost_normal
-                 << ",\"low\":" << plotinfo->main.traffic_cost_low
-                 << ",\"restricted\":" << plotinfo->main.traffic_cost_restricted
-                 << "}}\n";
-            res.set_header("Cache-Control", "no-store");
-            res.set_content(body.str(), "application/json; charset=utf-8");
-        }
-        if (written)
-            notify_player_input();
+            // Native's sliders run 1..100 and snap anything larger down the moment a player touches
+            // them. The lower bound guards DF's A*: a 0 cost would make restricted tiles free.
+            auto clamp_cost = [](int v) { return std::max(1, std::min(100, v)); };
+            int written = 0;
+            {
+                DFHack::CoreSuspender suspend;
+                struct { const char* param; int32_t* field; } fields[] = {
+                    { "high",       &plotinfo->main.traffic_cost_high },
+                    { "normal",     &plotinfo->main.traffic_cost_normal },
+                    { "low",        &plotinfo->main.traffic_cost_low },
+                    { "restricted", &plotinfo->main.traffic_cost_restricted },
+                };
+                for (const auto& f : fields) {
+                    int v = 0;
+                    if (!may_write || !query_int(req, f.param, v))
+                        continue;
+                    *f.field = clamp_cost(v);
+                    ++written;
+                }
+                std::ostringstream body;
+                body << "{\"ok\":true,\"written\":" << written
+                     << ",\"costs\":{\"high\":" << plotinfo->main.traffic_cost_high
+                     << ",\"normal\":" << plotinfo->main.traffic_cost_normal
+                     << ",\"low\":" << plotinfo->main.traffic_cost_low
+                     << ",\"restricted\":" << plotinfo->main.traffic_cost_restricted
+                     << "}}\n";
+                res.set_header("Cache-Control", "no-store");
+                res.set_content(body.str(), "application/json; charset=utf-8");
+            }
+            if (written)
+                notify_player_input();
+        };
     };
-    server.Get("/traffic-costs", traffic_costs_handler);
-    server.Post("/traffic-costs", traffic_costs_handler);
+    server.Get("/traffic-costs", traffic_costs_handler(false));
+    server.Post("/traffic-costs", traffic_costs_handler(true));
 
     server.Get("/build-catalog", [](const httplib::Request&, httplib::Response& res) {
         std::string err;
@@ -1183,7 +1182,6 @@ void register_placement_routes(httplib::Server& server) {
                         ",\"ids\":[" + ids_json + "]}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/build-place", build_place_handler);
     server.Post("/build-place", build_place_handler);
 
     auto stockpile_create_handler = [current_save_dir](const httplib::Request& req, httplib::Response& res) {
@@ -1217,7 +1215,6 @@ void register_placement_routes(httplib::Server& server) {
         res.set_content("{\"ok\":true,\"id\":" + std::to_string(id) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/stockpile", stockpile_create_handler);
     server.Post("/stockpile", stockpile_create_handler);
 
     auto zone_create_handler = [current_save_dir](const httplib::Request& req, httplib::Response& res) {
@@ -1252,7 +1249,6 @@ void register_placement_routes(httplib::Server& server) {
         res.set_content("{\"ok\":true,\"id\":" + std::to_string(id) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/zone", zone_create_handler);
     server.Post("/zone", zone_create_handler);
 }
 

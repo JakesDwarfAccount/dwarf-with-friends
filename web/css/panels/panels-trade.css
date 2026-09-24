@@ -21,20 +21,13 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.trade {
-  .trade-screen-window,
-  .depot-goods-window {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
   .trade-screen-window .trade-screen-close,
   .depot-goods-window .depot-goods-close {
     position: absolute;
-    top: 8px;
-    right: 10px;
+    right: var(--dwfui-space-m);
     z-index: 3;
   }
 
@@ -42,8 +35,8 @@
   .trade-screen-head {
     display: flex;
     align-items: flex-start;
-    gap: 14px;
-    padding: 10px 44px 10px 14px;
+    gap: var(--dwfui-space-l);
+    padding: var(--dwfui-space-m) 44px var(--dwfui-space-m) var(--dwfui-space-l);
     border-bottom: 2px solid var(--dwfui-gold);
     position: relative;
   }
@@ -56,7 +49,6 @@
     flex: 0 0 auto;
     width: 48px;
     min-height: 56px;
-    display: block;
   }
   .trade-screen-portrait img {
     max-width: 48px;
@@ -65,25 +57,22 @@
   .trade-screen-head-lines {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--dwfui-space-s);
     min-width: 0;
-    padding-top: 2px;
+    padding-top: var(--dwfui-space-xs);
   }
   .trade-screen-head-quote {
     color: var(--dwfui-text-numeric);
-  }
-  .trade-screen-head-mood {
-    color: var(--dwfui-text-row);
   }
 
   /* two goods panels side by side (left merchant, right fortress) */
   .trade-screen-body {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: var(--dwfui-space-m);
     flex: 1 1 auto;
     min-height: 0;
-    padding: 8px 10px 0;
+    padding: var(--dwfui-space-m) var(--dwfui-space-m) 0;
   }
   .trade-screen-side {
     display: flex;
@@ -92,39 +81,48 @@
     min-width: 0;
   }
   .trade-screen-side .trade-screen-search {
-    margin-bottom: 4px;
-  }
-  .trade-screen-list {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
+    margin-bottom: var(--dwfui-space-s);
   }
   .trade-screen-row-icon,
   .depot-goods-row-icon {
     background: var(--dwfui-plum);
   }
-  .trade-screen-contains {
-    color: var(--dwfui-text-numeric);
-  }
   .depot-goods-gap-note {
-    border-top: 1px solid var(--dwfui-slab);
+    border-top: var(--dwfui-divider) solid var(--dwfui-slab);
+  }
+  .trade-screen-empty,
+  .trade-screen-note,
+  .depot-goods-note,
+  .trade-screen-error,
+  .depot-goods-gap-note,
+  .depot-goods-child-note {
+    padding: var(--dwfui-space-m) var(--dwfui-space-m);
+    color: var(--dwfui-text-secondary);
   }
 
   /* bottom bar: totals blocks + per-side Mark/Unmark + centre Seize/Trade/Offer (barter-1..4) */
   .trade-screen-window-footer {
-    padding: 6px 12px 10px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
     border-top: 2px solid var(--dwfui-gold);
+  }
+  .trade-screen-footer {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .trade-screen-footer-sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--dwfui-space-m);
   }
   .trade-screen-footer-row {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--dwfui-space-m);
+    margin-bottom: var(--dwfui-space-s);
   }
   .trade-screen-totals {
     display: flex;
     flex-direction: column;
-    gap: 1px;
     flex: 1 1 0;
     min-width: 0;
   }
@@ -132,30 +130,33 @@
   .trade-screen-totals-excess {
     color: var(--dwfui-text-warning);
   }
-  .trade-screen-totals-weight {
-    color: var(--dwfui-text-row);
-  }
   .trade-screen-markalls {
     display: flex;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
     align-items: flex-start;
-    padding-top: 2px;
+    padding-top: var(--dwfui-space-xs);
   }
+  /* Seize, trade and offer centred under the table; closing the host session sits at the right. */
   .trade-screen-footer-commits {
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 40px;
+    gap: var(--dwfui-space-m);
+  }
+  .trade-screen-footer-center {
+    display: flex;
+    gap: var(--dwfui-space-2xl);
   }
   .trade-screen-host-close {
-    margin-top: 2px;
+    justify-self: end;
   }
 
   /* bring-goods screen: search + native tool tiles on top, grouped list below (depot-1..7) */
   .depot-goods-top {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 44px 6px 10px;
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-m) 44px var(--dwfui-space-s) var(--dwfui-space-m);
     position: relative;
   }
   .depot-goods-top .depot-goods-search {
@@ -168,14 +169,66 @@
     flex: 0 0 auto;
   }
   .depot-goods-list {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    margin: 0 10px;
+    margin: 0 var(--dwfui-space-m);
   }
   /* inline container expansion (depot-3): children indented, no distance, no checkbox */
   .depot-goods-children {
     margin-left: 46px;
-    border-left: 1px solid var(--dwfui-slab);
+    border-left: var(--dwfui-divider) solid var(--dwfui-slab);
+  }
+  /* group headers: lighter slate bar spanning the pane, checkbox at the right edge */
+  .trade-screen-group-head,
+  .depot-goods-group-head {
+    display: flex;
+    align-items: center;
+    gap: var(--dwfui-space-m);
+    background: var(--dwfui-slate);
+    min-height: 36px;
+    padding: 0 var(--dwfui-space-s) 0 var(--dwfui-space-m);
+    margin-top: var(--dwfui-space-xs);
+  }
+  /* item rows: sprite | name (+contains subline) | value/weight meta | check tile */
+  .trade-screen-row,
+  .depot-goods-row {
+    min-height: var(--dwfui-height-row-tall);
+    padding: 1px var(--dwfui-space-s) 1px var(--dwfui-space-xs);
+  }
+  /* Native greys an unmarked item and whitens a marked one. */
+  .trade-screen-row-name {
+    color: var(--dwfui-text-secondary);
+  }
+  .trade-screen-row.selected .trade-screen-row-name {
+    color: var(--dwfui-text-row);
+  }
+  .trade-screen-row-meta,
+  .depot-goods-row-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 110px;
+  }
+  .trade-screen-meta-value,
+  .depot-goods-meta-value {
+    color: var(--dwfui-text-numeric);
+  }
+  .trade-screen-meta-weight {
+    color: var(--dwfui-text-secondary);
+  }
+  .depot-goods-meta-dist {
+    color: var(--dwfui-text-good);
+  }
+  .trade-screen-totals-value,
+  .trade-screen-totals-profit {
+    color: var(--dwfui-text-numeric);
+  }
+  .trade-screen-commit {
+    min-width: 120px;
+    min-height: 34px;
+  }
+  .trade-screen-counter {
+    color: var(--dwfui-text-numeric);
+  }
+  .depot-goods-child-row {
+    min-height: 34px;
   }
 }

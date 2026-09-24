@@ -518,7 +518,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_content(ok ? "{\"ok\":true}\n" : "{\"ok\":false}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-rename", stockpile_rename_handler);
     server.Post("/stockpile-rename", stockpile_rename_handler);
 
     auto stockpile_remove_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -533,7 +532,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_content(ok ? "{\"ok\":true}\n" : "{\"ok\":false}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-remove", stockpile_remove_handler);
     server.Post("/stockpile-remove", stockpile_remove_handler);
 
     auto stockpile_links_only_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -549,7 +547,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_content(ok ? "{\"ok\":true}\n" : "{\"ok\":false}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-links-only", stockpile_links_only_handler);
     server.Post("/stockpile-links-only", stockpile_links_only_handler);
 
     auto stockpile_storage_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -570,7 +567,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_content(ok ? "{\"ok\":true}\n" : "{\"ok\":false}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-storage", stockpile_storage_handler);
     server.Post("/stockpile-storage", stockpile_storage_handler);
 
     auto stockpile_link_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -594,7 +590,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-link", stockpile_link_handler);
     server.Post("/stockpile-link", stockpile_link_handler);
 
     auto stockpile_set_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -614,7 +609,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-set", stockpile_set_handler);
     server.Post("/stockpile-set", stockpile_set_handler);
 
     auto stockpile_group_from_request = [](const httplib::Request& req) {
@@ -700,7 +694,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-toggle-item", stockpile_toggle_item_handler);
     server.Post("/stockpile-toggle-item", stockpile_toggle_item_handler);
 
     auto stockpile_toggle_all_handler =
@@ -724,7 +717,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-toggle-all", stockpile_toggle_all_handler);
     server.Post("/stockpile-toggle-all", stockpile_toggle_all_handler);
 
     auto stockpile_repaint_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -853,7 +845,6 @@ void register_stockpile_routes(httplib::Server& server) {
         res.set_content("{\"ok\":true,\"id\":" + std::to_string(final_id) + "}\n",
                         "application/json; charset=utf-8");
     };
-    server.Get("/stockpile-repaint", stockpile_repaint_handler);
     server.Post("/stockpile-repaint", stockpile_repaint_handler);
 }
 

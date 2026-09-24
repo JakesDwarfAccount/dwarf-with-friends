@@ -21,10 +21,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.settings {
-  /* Settings modal */
   #dfSettingsBackdrop {
     position: fixed;
     inset: 0;
@@ -38,41 +37,32 @@
     display: flex;
   }
   #dfSettingsPanel {
-    width: min(720px, 94vw);
+    width: min(calc(72 * var(--dwfui-cell-drawn-w)), 94vw);
     max-height: 88vh;
     display: flex;
     flex-direction: column;
     background: var(--dwfui-surface);
     border: 2px solid var(--dwfui-gold);
-    color: var(--dwfui-text-body);
-    font:
-      12px/1.4 ui-monospace,
-      Consolas,
-      monospace;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    font: var(--dwfui-font);
   }
   #dfSettingsPanel .settings-head {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--dwfui-gold);
+    padding: var(--dwfui-space-m);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-gold);
   }
   #dfSettingsPanel .settings-head h2 {
     margin: 0;
-    font-size: 14px;
     color: var(--dwfui-text-numeric);
-    letter-spacing: 0.5px;
   }
   #dfSettingsPanel .settings-body {
     display: flex;
     min-height: 0;
     flex: 1;
+    padding: var(--dwfui-space-m) 0;
   }
   #dfSettingsPanel .settings-nav {
-    flex: 0 0 130px;
-    border-right: 1px solid var(--dwfui-gold);
-    padding: 8px 0;
+    flex: 0 0 calc(13 * var(--dwfui-cell-drawn-w));
+    border-right: var(--dwfui-divider) solid var(--dwfui-gold);
     display: flex;
     flex-direction: column;
   }
@@ -81,9 +71,8 @@
     border: none;
     color: var(--dwfui-text-secondary);
     text-align: left;
-    padding: 8px 14px;
+    padding: var(--dwfui-space-m) var(--dwfui-space-l);
     cursor: pointer;
-    font: inherit;
   }
   #dfSettingsPanel .settings-tab:hover {
     background: var(--dwfui-hatch);
@@ -93,23 +82,36 @@
     background: var(--dwfui-slab);
     color: var(--dwfui-text-numeric);
     border-left: 3px solid var(--dwfui-gold);
-    padding-left: 11px;
+    padding-left: var(--dwfui-space-m);
+  }
+  #dfSettingsPanel .settings-pane {
+    flex: 1;
+    min-width: 0;
+    padding: 0 var(--dwfui-space-l);
   }
   #dfSettingsPanel h3 {
-    margin: 14px 0 6px;
-    font-size: 12px;
+    margin: var(--dwfui-space-l) 0 var(--dwfui-space-s);
     color: var(--dwfui-text-numeric);
-    font-weight: 700;
-    border-bottom: 1px solid var(--dwfui-gold);
-    padding-bottom: 3px;
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-gold);
+    padding-bottom: var(--dwfui-space-xs);
   }
   #dfSettingsPanel h3:first-child {
     margin-top: 0;
   }
   #dfSettingsPanel .settings-note {
-    color: var(--dwfui-text-secondary);
-    font-size: 11px;
-    margin: 4px 0 8px;
+    margin: 0 0 var(--dwfui-space-m);
+  }
+  #dfSettingsPanel .settings-banner {
+    background: var(--dwfui-destructive);
+    border: var(--dwfui-divider) solid var(--dwfui-text-warning);
+    color: var(--dwfui-text-title);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    margin: 0 0 var(--dwfui-space-m);
+  }
+  #dfSettingsPanel .settings-actions {
+    display: flex;
+    gap: var(--dwfui-space-m);
+    margin-top: var(--dwfui-space-m);
   }
   #dfSettingsPanel .keyboard-binding-row.conflict {
     background: var(--dwfui-destructive);
@@ -117,31 +119,26 @@
   #dfSettingsPanel .keyboard-binding-row.readonly {
     opacity: 0.6;
   }
-  #dfSettingsPanel .keyboard-binding-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
+  #dfSettingsPanel .keyboard-binding-key {
+    width: calc(12 * var(--dwfui-cell-drawn-w));
   }
-  #dfSettingsPanel .keyboard-binding-bind {
+  #dfSettingsPanel .keyboard-binding-undo {
+    width: calc(8 * var(--dwfui-cell-drawn-w));
+  }
+  #dfSettingsPanel .keyboard-binding-bind,
+  #dfSettingsPanel .keyboard-binding-reset {
     width: 100%;
-    min-width: 0;
   }
   #dfSettingsPanel .keyboard-binding-bind.listening {
     animation: dfsPulse 1s infinite;
   }
-  #dfSettingsPanel .settings-banner {
-    background: var(--dwfui-destructive);
-    border: 1px solid var(--dwfui-text-warning);
-    color: var(--dwfui-text-title);
-    padding: 6px 8px;
-    margin: 0 0 8px;
-    font-size: 11px;
-  }
-  #dfSettingsPanel .settings-actions {
+  #dfSettingsPanel .interface-option-row {
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    align-items: center;
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-xs);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-hatch);
+    cursor: pointer;
   }
   #dfSettingsPanel .interface-option-row:hover {
     background: var(--dwfui-hatch);
@@ -149,25 +146,17 @@
   #dfSettingsPanel .interface-option-scale {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 2px;
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-m) var(--dwfui-space-xs);
   }
   #dfSettingsPanel .interface-option-scale input[type="range"] {
     flex: 1;
     accent-color: var(--dwfui-text-numeric);
   }
   #dfSettingsPanel .interface-option-scale .val {
-    min-width: 44px;
+    min-width: calc(5 * var(--dwfui-cell-drawn-w));
     text-align: right;
     color: var(--dwfui-text-numeric);
-    font-variant-numeric: tabular-nums;
-  }
-  #dfSettingsPanel .info-row .k {
-    color: var(--dwfui-text-secondary);
-  }
-  #dfSettingsPanel .info-row .v {
-    color: var(--dwfui-text-body);
-    text-align: right;
   }
 
   @keyframes dfsPulse {

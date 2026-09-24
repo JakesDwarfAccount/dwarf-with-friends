@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.audio {
   .audio-hidden {
@@ -35,21 +35,15 @@
     z-index: 9100;
     width: 258px;
     background: var(--dwfui-surface);
-    color: var(--dwfui-text-body);
-    border: 1px solid var(--dwfui-gold);
-    padding: 10px 12px;
-    font-family: inherit;
-    font-size: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+    border: var(--dwfui-divider) solid var(--dwfui-gold);
+    padding: var(--dwfui-space-m);
     display: none;
   }
   #dfAudioPop.open {
     display: block;
   }
   #dfAudioPop h4 {
-    margin: 0 0 8px;
-    font-size: 12px;
-    letter-spacing: 0.03em;
+    margin: 0 0 var(--dwfui-space-m);
     color: var(--dwfui-text-numeric);
   }
   #dfAudioPop h4.pf-handle {
@@ -58,17 +52,16 @@
   }
   #dfAudioPop h4 .pf-x {
     float: right;
-    font-size: 12px !important;
     padding: 0;
   }
   #dfAudioPop .audio-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 5px 0;
+    gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-s) 0;
   }
   #dfAudioPop .audio-row label {
-    flex: 0 0 58px;
+    flex: 0 0 calc(7 * var(--dwfui-cell-drawn-w));
     color: var(--dwfui-text-secondary);
   }
   #dfAudioPop .audio-row input[type="range"] {
@@ -78,24 +71,20 @@
     cursor: pointer;
   }
   #dfAudioPop .audio-row input[type="range"]:focus {
-    outline: 1px solid var(--dwfui-gold-bright);
+    outline: var(--dwfui-divider) solid var(--dwfui-gold-bright);
     outline-offset: 2px;
   }
   #dfAudioPop .audio-message {
     color: var(--dwfui-text-warning);
-    margin: 6px 0 2px;
-    font-size: 11px;
-    line-height: 1.35;
+    margin: var(--dwfui-space-s) 0 var(--dwfui-space-xs);
   }
   #dfAudioPop .now {
     color: var(--dwfui-text-good);
-    margin: 4px 0 6px;
-    font-size: 11px;
+    margin: var(--dwfui-space-s) 0 var(--dwfui-space-s);
   }
   #dfAudioPop .audio-row.music {
-    gap: 4px;
+    gap: var(--dwfui-space-s);
     flex-wrap: wrap;
-    align-items: center;
   }
   #dfAudioPop .audio-track {
     flex: 1 1 100%;
@@ -104,11 +93,10 @@
   #dfAudioPop .clicklbl {
     flex: 1;
     color: var(--dwfui-text-secondary);
-    font-size: 11px;
   }
   #dfAudioPop hr {
     border: 0;
-    border-top: 1px solid var(--dwfui-hatch);
-    margin: 8px 0;
+    border-top: var(--dwfui-divider) solid var(--dwfui-hatch);
+    margin: var(--dwfui-space-m) 0;
   }
 }

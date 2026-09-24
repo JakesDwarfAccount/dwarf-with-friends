@@ -57,7 +57,7 @@
 
   function decodeLayout(raw, knownKeys) {
     var parsed;
-    try { parsed = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (_) { return { v: VERSION, panels: {} }; }
+    try { parsed = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return { v: VERSION, panels: {} }; }
     if (!parsed || parsed.v !== VERSION || !parsed.panels || typeof parsed.panels !== "object" || Array.isArray(parsed.panels))
       return { v: VERSION, panels: {} };
     var panels = {};
@@ -306,7 +306,7 @@
     return inset;
   }
   function visible(el) { return !!el && styleFor(el).display !== "none"; }
-  function specEl(spec) { try { return spec.el && spec.el(); } catch (_) { return null; } }
+  function specEl(spec) { try { return spec.el && spec.el(); } catch { return null; } }
 
   // Only the layout MAP is variant-scoped; identity (focus, z, escStack, attached) always stays
   // keyed on spec.key.
@@ -352,7 +352,7 @@
     if (!spec || !spec.fillSel || !el || !el.querySelectorAll) return [];
     var choice;
     try { choice = typeof spec.fillSel === "function" ? spec.fillSel(el) : spec.fillSel; }
-    catch (_) { return []; }
+    catch { return []; }
     var selectors = Array.isArray(choice) ? choice : [choice];
     for (var i = 0; i < selectors.length; i++) {
       if (typeof selectors[i] !== "string" || !selectors[i]) continue;
@@ -403,7 +403,7 @@
     if (!spec || !spec.contentHost) return null;
     var wrap = childByClass(el, "pf-content");
     if (!wrap || !wrap.querySelector) return null;
-    try { return wrap.querySelector(CLOSE_SEL); } catch (_) { return null; }
+    try { return wrap.querySelector(CLOSE_SEL); } catch { return null; }
   }
 
   // `closable` may be a predicate of the live element. Dropping a variant's close X without one
@@ -411,7 +411,7 @@
   function closableFor(spec, el) {
     if (!spec) return false;
     if (typeof spec.closable === "function") {
-      try { return !!spec.closable(el || (spec.el && spec.el())); } catch (_) { return true; }
+      try { return !!spec.closable(el || (spec.el && spec.el())); } catch { return true; }
     }
     return !!spec.closable;
   }
@@ -433,8 +433,8 @@
     if (!spec || !spec.contentHost || !spec.adoptHeadSel) return null;
     var wrap = childByClass(el, "pf-content");
     if (!wrap || !wrap.querySelector) return null;
-    var head = null;
-    try { head = wrap.querySelector(spec.adoptHeadSel); } catch (_) { return null; }
+    var head;
+    try { head = wrap.querySelector(spec.adoptHeadSel); } catch { return null; }
     // Adoption requires a CLOSABLE skin to provide its own close: hiding the bar hides its X. A
     // variant declared close-less has none to lose, so its header is adopted without one.
     if (!head || (closableFor(spec, el) && !skinCloseFor(spec, el))) return null;
@@ -474,8 +474,8 @@
   // never write an entry nobody reads: a dead write is a stale rect waiting for a future reader.
   function persistBlocked(spec, lk, el) {
     if (spec.persistGeometry && el) {
-      var keep = false;
-      try { keep = !!spec.persistGeometry(el); } catch (_) { keep = true; }
+      var keep;
+      try { keep = !!spec.persistGeometry(el); } catch { keep = true; }
       if (!keep) return true;
     }
     return (spec.contentHost || spec.variantKey || spec.cssDocked) &&
@@ -696,7 +696,6 @@
       } else {
         escStack = escStack.filter(function (item) { return item !== key; });
       }
-      refreshPanelsMenu();
       return;
     }
     if (isOpen) {
@@ -713,7 +712,6 @@
       escStack = escStack.filter(function (item) { return item !== key; });
     }
     saveSoon();
-    refreshPanelsMenu();
   }
 
   function makeX(spec, el, head) {
@@ -788,7 +786,7 @@
       focus(spec.key);
       start = explicitRect(spec, el);
       try { captureNode.setPointerCapture(event.pointerId); }
-      catch (_) { /* dragging continues from document listeners without capture */ }
+      catch { /* dragging continues from document listeners without capture */ }
       setDragging(true);
     }
     function move(ev) {
@@ -880,7 +878,7 @@
   function surfaceDragRefused(el, event) {
     var target = event.target;
     if (!target || target.nodeType !== 1) return true;
-    try { if (target.closest && target.closest(SURFACE_NODRAG_SEL)) return true; } catch (_) { return true; }
+    try { if (target.closest && target.closest(SURFACE_NODRAG_SEL)) return true; } catch { return true; }
     for (var node = target; node && node !== el.parentElement; node = node.parentElement)
       if (onScrollbarGutter(node, event)) return true;
     return false;
@@ -947,7 +945,7 @@
         event.preventDefault(); event.stopPropagation(); focus(spec.key);
         var start = explicitRect(spec, el), pointerStart = { x: event.clientX, y: event.clientY }, pending = null, raf = 0;
         try { grip.setPointerCapture(event.pointerId); }
-        catch (_) { /* resizing continues from document listeners without capture */ }
+        catch { /* resizing continues from document listeners without capture */ }
         function paintPending() {
           if (!pending) return;
           var latest = pending;
@@ -1000,20 +998,12 @@
     }
   }
 
-  function openPanel(spec) {
-    if (spec.open) spec.open();
-    rememberPanel(spec);
-    focus(spec.key);
-    saveSoon();
-    refreshPanelsMenu();
-  }
   function closePanel(spec) {
     rememberPanel(spec);
     if (spec.close) spec.close();
     if (spec.persistOpen !== false && layoutState()[spec.key]) layoutState()[spec.key].open = false;
     escStack = escStack.filter(function (key) { return key !== spec.key; });
     saveSoon();
-    refreshPanelsMenu();
   }
 
   // Idempotent: the pf*Bound datasets stop repeat calls double-binding, and contentEl reuses its wrapper.
@@ -1076,7 +1066,7 @@
           try {
             root.console.error("[DFPanelFrame] settle budget exceeded for panel '" + spec.key +
               "': a reconciler is not converging; observers disconnected, re-arming next frame.");
-          } catch (_) { /* the settle guard remains armed even when console access fails */ }
+          } catch { /* the settle guard remains armed even when console access fails */ }
           if (root.requestAnimationFrame) root.requestAnimationFrame(function () {
             if (attached[spec.key] !== state || !state.observers || !enabled()) return;
             state.settlePasses = 0;
@@ -1103,7 +1093,7 @@
       if (!state.healWarned) {
         state.healWarned = true;
         try { root.console && root.console.warn("[DFPanelFrame] direct innerHTML write to #" + (el.id || spec.key) + " bypassed panelContent(); framework header re-healed. Convert this writer to panelContent()."); }
-        catch (_) { /* the healed header remains authoritative when console access fails */ }
+        catch { /* the healed header remains authoritative when console access fails */ }
       }
       state.head = buildChrome(spec, el);
       var lk = layoutKeyFor(spec, el), saved = layoutState()[lk];
@@ -1173,7 +1163,6 @@
       clampOpenRect(spec, el);
     }
     if (spec.escClosable && spec.isOpen && spec.isOpen()) focus(spec.key);
-    refreshPanelsMenu();
   }
 
   function detach(key) {
@@ -1207,37 +1196,6 @@
     order = order.filter(function (item) { return item !== key; });
   }
 
-  function refreshPanelsMenu() {
-    if (!hasDom) return;
-    // Truthiness, not closableFor(): the cog's Panels list is a per-PANEL affordance, not a per-skin one.
-    var closable = Object.keys(registry).filter(function (key) { return registry[key].closable && registry[key].menu !== false && attached[key]; });
-    var existing = root.document.getElementById("dfPanelFrameMenu");
-    if (!closable.length) { if (existing) existing.remove(); return; }
-    var menu = root.document.getElementById("settingsMenu");
-    if (!menu) return;
-    if (!existing) {
-      existing = root.document.createElement("div");
-      existing.id = "dfPanelFrameMenu";
-      existing.className = "pf-menu";
-      menu.appendChild(existing);
-    }
-    existing.innerHTML = "<h3>Panels</h3>";
-    closable.forEach(function (key) {
-      var spec = registry[key], row = root.document.createElement("div"), open = !spec.isOpen || !!spec.isOpen();
-      row.className = "set-row" + (open ? " on" : "");
-      row.tabIndex = 0;
-      row.innerHTML = '<div class="set-toggle"></div><div class="set-label"><b></b></div>';
-      row.querySelector("b").textContent = spec.title || key;
-      function toggle(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (!spec.isOpen || spec.isOpen()) closePanel(spec); else openPanel(spec);
-      }
-      row.addEventListener("click", toggle);
-      row.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") toggle(event); });
-      existing.appendChild(row);
-    });
-  }
-
   function escCloseTopmost() {
     if (!enabled()) return false;
     var candidates = Object.keys(registry).filter(function (key) {
@@ -1268,7 +1226,6 @@
     });
     order = [];
     escStack = [];
-    refreshPanelsMenu();
   }
 
   function register(spec) {
@@ -1281,7 +1238,6 @@
     DwfUtil.lsSet(ENABLED_KEY, on ? "1" : "0");
     if (on) Object.keys(registry).forEach(function (key) { attach(registry[key]); });
     else Object.keys(attached).forEach(detach);
-    refreshPanelsMenu();
   }
 
   if (hasDom) {
@@ -1298,17 +1254,11 @@
         else clampOpenRect(spec, el);
       });
     });
-    register({
-      key: "settingsMenu", el: function () { return root.document.getElementById("settingsMenu"); },
-      movable: false, closable: false, zBand: false, escClosable: true, persistOpen: false,
-      isOpen: function () { var el = root.document.getElementById("settingsMenu"); return !!el && el.classList.contains("open"); },
-      close: function () { var el = root.document.getElementById("settingsMenu"); if (el) el.classList.remove("open"); },
-    });
   }
 
   var api = {
     register: register, escCloseTopmost: escCloseTopmost, resetAll: resetAll,
-    setEnabled: setEnabled, chromeInsets: chromeInsets, refreshPanelsMenu: refreshPanelsMenu,
+    setEnabled: setEnabled, chromeInsets: chromeInsets,
     syncOpenState: syncOpenState, contentEl: contentEl,
     _pure: PURE,
   };

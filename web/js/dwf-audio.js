@@ -1105,7 +1105,7 @@
       var nowText = "";
       if (state.available && state.allowed && state.musicTrack) {
         nowText = (state.director.mode === "gap")
-          ? "♪ " + trackLabel(state.musicTrack) + " — quiet interlude"
+          ? "♪ " + trackLabel(state.musicTrack) + ": quiet interlude"
           : "♪ Now playing: " + trackLabel(state.musicTrack);
       }
       now.textContent = nowText;
@@ -1114,7 +1114,7 @@
       var msg = pop.querySelector("#dfAudioMsg"), text = "";
       if (!state.probed) text = "";
       else if (!state.available) text = "Host needs a plugin update for audio.";
-      else if (!state.allowed) text = "Host has not enabled remote audio — UI sounds only.";
+      else if (!state.allowed) text = "Host has not enabled remote audio; UI sounds only.";
       else if (!state.unlocked) text = "Click anywhere to enable sound.";
       msg.textContent = text;
       msg.classList.toggle("audio-hidden", !text);

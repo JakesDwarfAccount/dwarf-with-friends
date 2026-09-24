@@ -27,7 +27,7 @@
   // ---- player identity (same convention as dwf-core.js) ------------------
   const params = new URLSearchParams(location.search);
   const stored = (function () {
-    try { return localStorage.getItem("dwf.player"); } catch (_) { return null; }
+    try { return localStorage.getItem("dwf.player"); } catch { return null; }
   })();
   const fresh = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() :
     `p-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
@@ -45,7 +45,7 @@
         sessionStorage.setItem("dwf.cid", id);
       }
       return id;
-    } catch (_) {
+    } catch {
       return `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
     }
   })();
@@ -492,7 +492,7 @@
       }
       s.visibleCells.set(key, visible);
       return visible;
-    } catch (_) {
+    } catch {
       s.visibleCells.set(key, true);
       return true;
     }
@@ -751,8 +751,8 @@
 
   function terrainSpriteRef(t, gx, gy) {
     if (!t) return null;
-    let c = null;
-    try { c = resolveSprite(t, gx, gy); } catch (_) { return null; }
+    let c;
+    try { c = resolveSprite(t, gx, gy); } catch { return null; }
     if (!c || !c.sheet || typeof c.col !== "number" || typeof c.row !== "number") return null;
     return { sheet: c.sheet, col: c.col, row: c.row };
   }
@@ -840,7 +840,6 @@
     let saved = false;
     if (a < 1) { ctx.save(); ctx.globalAlpha = a; saved = true; }
     // DF composites a material-colour BASE first, then the sprite on top (sprites are transparent).
-    const tt = (typeof t.tt === "number") ? t.tt : -1;
     const wantsHidden = wantsHiddenHatch(t, v1MapDims);
     const hiddenSprite = wantsHidden
       ? resolveHiddenSprite(t, (typeof camOz === "number") ? camOz - d : undefined) : null;
@@ -901,7 +900,7 @@
       // Native draws liquid over bed contaminants, so spatter belongs below the liquid depth cell.
       drawSpatter(t, px, py, cell, gx, gy);
       ctx.drawImage(liquidSprite.img, liquidSprite.col * 32, liquidSprite.row * 32, 32, 32, px, py, cell, cell);
-      if (drawLiquidEdges(t, px, py, cell, gx, gy)) drew = true;
+      drawLiquidEdges(t, px, py, cell, gx, gy);
       drew = true;
     } else if (sprite) {
       let cdrew = false;
@@ -970,7 +969,7 @@
       drawTree(t, px, py, cell, gx, gy);
       drawWallJoin(t, px, py, cell, gx, gy, wallOpenMask,
         (typeof camOz === "number") ? camOz - d : undefined);
-      drawEngraving(t, px, py, cell, gx, gy);
+      drawEngraving(t, px, py, cell);
       // The rope-and-post border is a BOUNDARY: drawn last so it stays above contents and engraving.
       drawStockpileRope(t, px, py, cell, gx, gy);
     }
@@ -1008,7 +1007,7 @@
         }
         if (ct) drawTileComposite(ct, px, py, cell, gx, gy, 0, 1, camOz);
         // (3) see-above: nothing is drawn -- DF renders no above-camera translucent canopy.
-      } catch (_) { /* per-cell guarded: one bad cell never blanks the map */ }
+      } catch { /* per-cell guarded: one bad cell never blanks the map */ }
     }
   }
 
@@ -1044,7 +1043,7 @@
         DwfCache.setItemTypeMeta(list);
       }
       draw();
-    } catch (_) { /* table stays whatever it was -- projectiles just keep the marker */ }
+    } catch { /* table stays whatever it was -- projectiles just keep the marker */ }
   }
   // Index IS the wire's subcat code: this array's order must stay DFHack's ITEMDEF_VECTORS order,
   // or every itemdef subtype resolves to the wrong item type.
@@ -1072,7 +1071,7 @@
       }
       itemDefTokens = m;
       draw();
-    } catch (_) { /* dict stays whatever it was -- resolution just skips the bytoken step */ }
+    } catch { /* dict stays whatever it was -- resolution just skips the bytoken step */ }
   }
 
   // A 404 here is transient (the host bakes only once the unit renders): retry, never cache the miss.
@@ -1151,7 +1150,7 @@
   function unitMapFlash(st, nowMs) {
     st = st | 0;
     if (typeof nowMs !== "number" || !isFinite(nowMs)) nowMs = Date.now();
-    let period = 0, onWindow = 0, rgb = null;
+    let period, onWindow, rgb = null;
     if ((st & USTAT_SLEEPING) && (st & USTAT_UNCONSCIOUS)) { period = 1000; onWindow = 500; }
     else if (st & USTAT_UNCONSCIOUS) { period = 500; onWindow = 100; }
     else if (st & USTAT_PARALYZED) { period = 500; onWindow = 100; rgb = FLASH_CYAN_RGB; }
@@ -1249,7 +1248,7 @@
     jsonMemo.set(url, p);
     return p;
   }
-  try { window.DwfJson = { get: fetchJsonOnce }; } catch (_) { /* non-browser context */ }
+  try { window.DwfJson = { get: fetchJsonOnce }; } catch { /* non-browser context */ }
 
   async function loadJsonMap(url, assign) {
     const data = await fetchJsonOnce(url);
@@ -1333,7 +1332,7 @@
     if (paletteCellCache.has(key)) return paletteCellCache.get(key);
     const s = getSheet(sheetName);
     if (!s || !s.loaded || s.failed) return null; // not cached: retried next frame once loaded
-    let out = null;
+    let out;
     try {
       const oc = document.createElement("canvas");
       oc.width = 32; oc.height = 32;
@@ -1346,7 +1345,7 @@
       remapPaletteData(d, paletteLookup, target);
       octx.putImageData(id, 0, 0);
       out = stampCellProvenance(oc, sheetName, col, row, { paletteRow: palRow });
-    } catch (_) { out = null; } // tainted canvas / decode race -> fall back to untinted blit
+    } catch { out = null; } // tainted canvas / decode race -> fall back to untinted blit
     paletteCellCache.set(key, out);
     return out;
   }
@@ -1360,7 +1359,7 @@
     if (gemVariantCache.has(key)) return gemVariantCache.get(key);
     const s = getSheet(sheetName);
     if (!s || !s.loaded || s.failed) return null;  // not cached: retried next frame once loaded
-    let out = null;
+    let out;
     try {
       const geom = sheetCellGeometry(sheetName);
       const dim = GV.destSize(geom.cellW, geom.cellH);
@@ -1383,80 +1382,34 @@
       }
       out = stampCellProvenance(oc, sheetName, col, row,
         typeof palRow === "number" ? { paletteRow: palRow } : null);
-    } catch (_) { out = null; }  // tainted canvas / decode race -> caller blits the plain cell
+    } catch { out = null; }  // tainted canvas / decode race -> caller blits the plain cell
     gemVariantCache.set(key, out);
     return out;
   }
 
   function multiplyTintedCell(sheetName, col, row, rgb) {
-
-
     if (!Array.isArray(rgb) || rgb.length < 3) return null;
-
-
     const key = sheetName + ":" + col + ":" + row + ":" + (rgb[0] | 0) + "," + (rgb[1] | 0) + "," + (rgb[2] | 0);
-
-
     if (multiplyCellCache.has(key)) return multiplyCellCache.get(key);
-
-
     const s = getSheet(sheetName);
-
-
     if (!s || !s.loaded || s.failed) return null;
-
-
-    let out = null;
-
-
+    let out;
     try {
-
-
       const oc = document.createElement("canvas");
-
-
       oc.width = 32; oc.height = 32;
-
-
       const octx = oc.getContext("2d");
-
-
       octx.imageSmoothingEnabled = false;
-
-
       const geom = sheetCellGeometry(sheetName);
-
-
       octx.drawImage(s.img, col * geom.cellW, row * geom.cellH, geom.cellW, geom.cellH, 0, 0, 32, 32);
-
-
       octx.globalCompositeOperation = "multiply";
-
-
       octx.fillStyle = "rgb(" + (rgb[0] | 0) + "," + (rgb[1] | 0) + "," + (rgb[2] | 0) + ")";
-
-
       octx.fillRect(0, 0, 32, 32);
-
-
       octx.globalCompositeOperation = "destination-in";
-
-
       octx.drawImage(s.img, col * geom.cellW, row * geom.cellH, geom.cellW, geom.cellH, 0, 0, 32, 32);
-
-
       out = stampCellProvenance(oc, sheetName, col, row, { tintRgb: rgb });
-
-
-    } catch (_) { out = null; }
-
-
+    } catch { out = null; }
     multiplyCellCache.set(key, out);
-
-
     return out;
-
-
   }
 
   function unitGhostPlan(u) {
@@ -1482,7 +1435,7 @@
       octx.drawImage(img, sx, sy, sSW, sSH, 0, 0, w, h);   // 3) re-clip to the sprite's alpha
       octx.globalCompositeOperation = "source-over";
       ctx.drawImage(ghostBuf, 0, 0, w, h, dx, dy, dw, dh); // 4) blit (honors ctx.globalAlpha)
-    } catch (_) {
+    } catch {
       ctx.drawImage(img, sx, sy, sSW, sSH, dx, dy, dw, dh);
     }
   }
@@ -1562,7 +1515,7 @@
       const x = gx - latest.origin.x, y = gy - latest.origin.y;
       if (x < 0 || y < 0 || x >= latest.width || y >= latest.height) return null;
       return latest.tiles[y * latest.width + x] || null;
-    } catch (_) { return null; }
+    } catch { return null; }
   }
 
   function drawLiquidEdges(t, px, py, cell, gx, gy) {
@@ -1575,7 +1528,7 @@
         if (e && e.sheet && blitCell(e.sheet, e.col, e.row, px, py, cell)) drew = true;
       }
       return drew;
-    } catch (_) { return false; }
+    } catch { return false; }
   }
 
   function drawItemTint(mat_type, px, py, cell) {
@@ -1893,7 +1846,7 @@
           }
         }
       }
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
 
   // ---- vermin / vermin-colony sprite --------------------------------------------------
@@ -1915,7 +1868,7 @@
     try {
       const e = resolveVerminEntry(t);
       if (e && e.sheet) blitCell(e.sheet, e.col, e.row, px, py, cell);
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
 
   // ---- material-spatter decal + fallen-leaves/fruit litter ------------------------------
@@ -2003,14 +1956,14 @@
   function resolveSpatterFullKey(fam, gx, gy, wx, wy, wz) {
     const Adj = window.DwfAdjacency;
     if (!Adj || typeof gx !== "number" || typeof gy !== "number") return "FULL_ISOLATED";
-    let mask4 = 0;
+    let mask4;
     try {
       const mask8 = Adj.computeMask8(tileAt, gx, gy, (nt) => {
         const nsp = nt && ((nt.spatters && nt.spatters[0]) || nt.spatter);
         return !!nt && spatterVisible(nsp && nsp.amount) && spatterFamilyFor(nsp) === fam;
       });
       mask4 = mask8 & Adj.CARDINAL_BITS;
-    } catch (_) { mask4 = 0; }
+    } catch { mask4 = 0; }
     let suf = "";
     if (mask4 & Adj.BIT.N) suf += "N";
     if (mask4 & Adj.BIT.S) suf += "S";
@@ -2058,7 +2011,7 @@
         if (cellDef && blitCell(cellDef.sheet, cellDef.col, cellDef.row, px, py, cell)) drewAny = true;
       }
       if (!drewAny) drawSpatterFallbackWash(firstVisibleSpatter(arr), px, py, cell);
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
 
   // Litter is PARTIAL-only in spatter_map.json, so a FULL threshold hit downgrades to the densest PARTIAL.
@@ -2078,7 +2031,7 @@
       const tinted = tint && multiplyTintedCell(best.famDef.sheet, cellDef.col, cellDef.row, tint);
       if (tinted) ctx.drawImage(tinted, 0, 0, 32, 32, px, py, cell, cell);
       else blitCell(best.famDef.sheet, cellDef.col, cellDef.row, px, py, cell);
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
 
   function plantEntry(p) {
@@ -2092,7 +2045,7 @@
     try {
       const e = plantEntry(t && t.plant);
       if (e) blitCell(e.sheet, e.col, e.row, px, py, cell);
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
   function plantSpriteRef(t) {
     const e = plantEntry(t && t.plant);
@@ -2138,7 +2091,7 @@
     }
     if (rest === "Branch") return { family: "TREE_BRANCH", altFamily: "TREE_HEAVY_BRANCH", variant: "_", dead };
     if (rest === "CapPillar") return { family: "TREE_CAP", variant: "PILLAR", dead };
-    if ((m = /^CapPillar[NSEW]{1,4}$/.exec(rest))) return { family: "TREE_CAP", variant: "PILLAR", dead };
+    if (/^CapPillar[NSEW]{1,4}$/.test(rest)) return { family: "TREE_CAP", variant: "PILLAR", dead };
     if ((m = /^TrunkBranch([NSEW])$/.exec(rest))) return { family: "TREE_BASE", variant: "TRUNK_" + m[1], dead };
     if ((m = /^TrunkThick([NSEW]{1,2})$/.exec(rest))) return { family: "TREE_TRUNK_THICK", variant: canonicalDirs(m[1]), dead };
     if ((m = /^CapWallThick([NSEW]{1,2})$/.exec(rest))) return { family: "TREE_CAP", variant: "WALL_THICK_" + canonicalDirs(m[1]), dead };
@@ -2267,7 +2220,7 @@
         const over = resolveOverleaves(sel, pid);
         if (over && over.sheet) blitCell(over.sheet, over.col, over.row, px, py, cell);
       }
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
   function treeSpriteRef(t, gx, gy) {
     const p = t && t.plant;
@@ -2302,7 +2255,7 @@
   function edgeOvergrowthPlan(gx, gy, lookup) {
     const Edge = window.DwfEdgeOvergrowth;
     if (!Edge || typeof gx !== "number" || typeof gy !== "number") return null;
-    return Edge.plan(lookup || tileAt, gx, gy, materialMap);
+    return Edge.plan(lookup || tileAt, gx, gy);
   }
 
   function drawEdgeOvergrowth(t, px, py, cell, gx, gy, lookup) {
@@ -2344,7 +2297,7 @@
         const visCell = resolveShadowToken("visionShadow", hiddenMask);
         if (visCell) ctx.drawImage(visCell.img, visCell.col * 32, visCell.row * 32, 32, 32, px, py, cell, cell);
       }
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
 
   function wallPrefix(mat, base_mt) {
@@ -2424,7 +2377,7 @@
         const e = spriteMap[cands[i]];
         if (e && e.sheet && blitCell(e.sheet, e.col, e.row, px, py, cell, (typeof palRow === "number") ? palRow : undefined)) return;
       }
-    } catch (_) { /* layer guarded */ }
+    } catch { /* layer guarded */ }
   }
 
   // ============================================================================ engravings ====
@@ -2442,7 +2395,7 @@
     }
     return { token: "FLOOR_STONE_ENGRAVED_NON_PALETTE", palRow: null };
   }
-  function drawEngraving(t, px, py, cell, gx, gy) {
+  function drawEngraving(t, px, py, cell) {
     const hits = t.engravings;
     if (!hits || !hits.length || !spriteMap) return;
     let mask = 0;
@@ -2692,7 +2645,6 @@
     return { sheet: anchor.sheet, w, h, cells };
   }
 
-  const CATAPULT_CONST_FRAMES = ["CATAPULT_CONST_0", "CATAPULT_CONST_1", "CATAPULT_CONST_2", "CATAPULT_CONST_3"];
   const SIEGE_DIR = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   const SIEGE_KIND = ["CATAPULT", "BALLISTA", "BOLT_THROWER"];
   function siegeEngineToken(b) {
@@ -2982,7 +2934,7 @@
   // ~2 Hz machine animation; ?freezeAnim=1 pins it for deterministic parity captures.
   const MACHINE_ANIM_MS = 500;
   let _machineFreezeAnim = false;
-  try { _machineFreezeAnim = /[?&]freezeAnim=1\b/.test(location.search || ""); } catch (_e) { }
+  try { _machineFreezeAnim = /[?&]freezeAnim=1\b/.test(location.search || ""); } catch { }
   function machineAnimPhase(nowMs) {
     if (typeof nowMs !== "number" || !Number.isFinite(nowMs)) nowMs = Date.now();
     return Math.floor(nowMs / MACHINE_ANIM_MS);
@@ -2994,7 +2946,7 @@
     try {
       var c = (typeof window !== "undefined") && window.DFAnimClock;
       if (c && typeof c.offset === "function") return c.offset(wallMs) || 0;
-    } catch (_e) { /* inert-graceful */ }
+    } catch { /* inert-graceful */ }
     return 0;
   }
   function worldAnimMs(wallMs) {
@@ -3216,7 +3168,7 @@
         ctx.strokeRect(px + 0.5, py + 0.5, cell - 1, cell - 1);
         ctx.restore();
       }
-    } catch (_) { /* overlay guarded */ }
+    } catch { /* overlay guarded */ }
   }
 
   function drawMiningIndicator(t, px, py, cell) {
@@ -3226,7 +3178,7 @@
       const s = getSheet(MINING_SHEET);
       if (!s || !s.loaded || s.failed) return;
       ctx.drawImage(s.img, mc[0] * 32, mc[1] * 32, 32, 32, px, py, cell, cell);
-    } catch (_) { /* overlay guarded */ }
+    } catch { /* overlay guarded */ }
   }
 
   function drawDesigSynthetic(cat, px, py, cell) {
@@ -3267,7 +3219,7 @@
       if (!s || !s.loaded || s.failed) return;
       const sz = Math.max(8, Math.round(cell * 0.55));
       ctx.drawImage(s.img, e.col * 32, e.row * 32, 32, 32, px + cell - sz, py + cell - sz, sz, sz);
-    } catch (_) { /* overlay guarded */ }
+    } catch { /* overlay guarded */ }
   }
 
   function itemMarkToken(iflags) {
@@ -3283,7 +3235,7 @@
   let spIndex = null, spIndexSig = "";
   let spRefBuildings = null, spRefOz = null, spRefPaintRev = null;
   function paintSessionRevision() {
-    try { return window.DwfPaintSession ? window.DwfPaintSession.revision() : -1; } catch (_) { return -1; }
+    try { return window.DwfPaintSession ? window.DwfPaintSession.revision() : -1; } catch { return -1; }
   }
   function stockpileIndexFor(buildings, oz) {
     const B = (typeof window !== "undefined") && window.DwfOverlayBoxes;
@@ -3343,7 +3295,7 @@
       if (!s || !s.loaded || s.failed) return;
       const sz = Math.max(8, Math.round(cell * 0.55));
       ctx.drawImage(s.img, e.col * 32, e.row * 32, 32, 32, px, py, sz, sz);
-    } catch (_) { /* overlay guarded */ }
+    } catch { /* overlay guarded */ }
   }
 
   function projCenterPx(worldCoord, originCoord, fraw, cell) {
@@ -3417,7 +3369,7 @@
           ctx.stroke();
         }
         ctx.restore();
-      } catch (_) { /* per-projectile guarded */
+      } catch { /* per-projectile guarded */
       } finally { ctx.restore(); }   // pairs the see-down alpha save; runs on the `continue` too
     }
   }
@@ -3480,7 +3432,7 @@
         grad.addColorStop(1, "rgba(" + plan.rgb[0] + "," + plan.rgb[1] + "," + plan.rgb[2] + ",0)");
         ctx.fillStyle = grad;
         ctx.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
-      } catch (_) { /* per-cloud guarded */ }
+      } catch { /* per-cloud guarded */ }
     }
   }
 
@@ -3500,7 +3452,7 @@
     try {
       if (window.DwfLobby && typeof DwfLobby.displayName === "function")
         return DwfLobby.displayName(name).text;
-    } catch (_) {}
+    } catch {}
     return String(name == null ? "" : name);
   }
 
@@ -3512,19 +3464,19 @@
       const subs = [];
       window.DwfPresence = {
         roster: [],
-        onChange(cb) { if (typeof cb === "function") { subs.push(cb); try { cb(this.roster); } catch (_) {} } },
+        onChange(cb) { if (typeof cb === "function") { subs.push(cb); try { cb(this.roster); } catch {} } },
         _emit(next) {
           this.roster = Array.isArray(next) ? next : [];
-          for (let i = 0; i < subs.length; i++) { try { subs[i](this.roster); } catch (_) {} }
+          for (let i = 0; i < subs.length; i++) { try { subs[i](this.roster); } catch {} }
         },
       };
-    } catch (_) { /* non-browser context */ }
+    } catch { /* non-browser context */ }
   })();
   function publishRoster(list) {
     try {
       const P = window.DwfPresence;
       if (P && typeof P._emit === "function") P._emit(Array.isArray(list) ? list : []);
-    } catch (_) { /* presence surface is best-effort; never break the render path */ }
+    } catch { /* presence surface is best-effort; never break the render path */ }
   }
 
   function drawPresence(data, ox, oy, oz, cell, gw, gh) {
@@ -3578,7 +3530,7 @@
         ctx.fillStyle = "#fff";
         ctx.fillText(label, lx + 4, ly + 1);
         ctx.restore();
-      } catch (_) { /* per-player guarded */ }
+      } catch { /* per-player guarded */ }
     }
   }
 
@@ -3622,7 +3574,7 @@
         if (now - lastCursorSend < CURSOR_SEND_MS) return;
         lastCursorSend = now;
         sendSmoothCursor(event.clientX, event.clientY);
-      } catch (_) { /* never throw out of an input handler */ }
+      } catch { /* never throw out of an input handler */ }
     }, { passive: true });
   }
 
@@ -3655,7 +3607,7 @@
         cursorCanvas.className = "dwf-remote-cursor-canvas";
         document.body.appendChild(cursorCanvas);
         cursorCtx = cursorCanvas.getContext("2d");
-      } catch (_) { cursorCanvas = null; cursorCtx = null; return false; }
+      } catch { cursorCanvas = null; cursorCtx = null; return false; }
     }
     if (!cursorCtx) return false;
     const rect = canvas.getBoundingClientRect();
@@ -3698,7 +3650,7 @@
     const octx = cursorCtx;
     octx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
     if (!geom) return;                                    // no map yet -> nothing to place against
-    try { drawRemoteDragRects(octx); } catch (_) { /* overlay must never throw */ }
+    try { drawRemoteDragRects(octx); } catch { /* overlay must never throw */ }
     const now = Date.now();
     const cell = geom.cell, ox = geom.ox, oy = geom.oy, oz = geom.oz;
     for (const [name, c] of smoothCursors) {
@@ -3712,9 +3664,9 @@
       const px = (c.rx - ox) * cell;                                 // world -> our backing px
       const py = (c.ry - oy) * cell + (oz - c.z) * 3;                // small lift per z-level
       if (px < -40 || py < -40 || px > cursorCanvas.width + 40 || py > cursorCanvas.height + 40) continue;
-      try { drawOneCursor(octx, name, px, py, alpha, c, oz); } catch (_) { /* per-cursor guarded */ }
+      try { drawOneCursor(octx, name, px, py, alpha, c, oz); } catch { /* per-cursor guarded */ }
     }
-    try { drawPingSplashes(octx, now); } catch (_) { /* a splash must never break the overlay */ }
+    try { drawPingSplashes(octx, now); } catch { /* a splash must never break the overlay */ }
   }
 
   function drawOneCursor(octx, name, px, py, alpha, c, oz) {
@@ -3755,7 +3707,7 @@
     if (cursorRaf !== null) return;                       // already running
     const tick = () => {
       cursorRaf = requestAnimationFrame(tick);
-      try { drawSmoothCursors(); } catch (_) { /* overlay must never throw */ }
+      try { drawSmoothCursors(); } catch { /* overlay must never throw */ }
     };
     cursorRaf = requestAnimationFrame(tick);
   }
@@ -3880,7 +3832,7 @@
       }
       if (mapDirty) {
         mapDirty = false;
-        try { draw(); } catch (_) { /* draw() already self-guards; belt & suspenders */ }
+        try { draw(); } catch { /* draw() already self-guards; belt & suspenders */ }
       }
     };
     mapDrawRaf = requestAnimationFrame(tick);
@@ -3916,7 +3868,7 @@
     mapDirty = true; // instant re-window from the cache on the next rAF -- no wire wait
     if (bufOz !== _lastCamHintZSent) {
       _lastCamHintZSent = bufOz;
-      try { if (window.DwfCache && typeof DwfCache.setCamHintZ === "function") DwfCache.setCamHintZ(bufOz); } catch (_) {}
+      try { if (window.DwfCache && typeof DwfCache.setCamHintZ === "function") DwfCache.setCamHintZ(bufOz); } catch {}
     }
   }
   function noteCamDelta(dx, dy, dz) {
@@ -3991,8 +3943,8 @@
 
   function refreshFromCacheIfNeeded() {
     if (!wsAlive || !shouldUseCacheDraw() || bufW <= 0 || bufH <= 0) return;
-    let view = null;
-    try { view = DwfCache.windowView(bufOx, bufOy, bufOz, bufW, bufH); } catch (_) { view = null; }
+    let view;
+    try { view = DwfCache.windowView(bufOx, bufOy, bufOz, bufW, bufH); } catch { view = null; }
     if (!view || !Array.isArray(view.tiles)) return;
     tileBuf = view.tiles;
     latest = {
@@ -4021,7 +3973,7 @@
     try {
       if (!(window.DwfRender && window.DwfRender.active === "gl")) return false;
       return window.__dfcGLVisible === true;
-    } catch (_) { return false; }
+    } catch { return false; }
   }
   function markMapUpdate() { lastMapUpdateTime = Date.now(); }
   function recordDraw(ms) {
@@ -4036,7 +3988,7 @@
       diagEl = document.createElement("div");
       diagEl.className = "df-tile-diag";
       document.body.appendChild(diagEl);
-    } catch (_) { diagEl = null; }
+    } catch { diagEl = null; }
     return diagEl;
   }
   function diagText() {
@@ -4101,7 +4053,7 @@
         if (ci) retainedDiagLines.push(`now:   ${ci.x},${ci.y},${ci.z} ${ci.width}x${ci.height}`);
         if (br) retainedDiagLines.push(`rect:  ${br.x0},${br.y0} .. ${br.x1},${br.y1}`);
       }
-    } catch (_) { /* overlay must never throw */ }
+    } catch { /* overlay must never throw */ }
     const lines = [
       "Dwf perf  [F3]",
       renderLine,
@@ -4117,7 +4069,7 @@
           : (p.source === "url" ? "url" : p.source === "stored" ? "localStorage" : "default");
         lines.push(`renderer: ${p.active} (${how})`);
       }
-    } catch (_) { /* overlay must never throw */ }
+    } catch { /* overlay must never throw */ }
     if (ws) {
       lines.push(`proto: ${ws.proto}   rtt: ${ws.rttMs}ms   ack-lag: ${ws.inflightAcks}`);
       if (ws.proto === "v1") {
@@ -4140,7 +4092,7 @@
         const mb = (cs.bytes / (1024 * 1024)).toFixed(1);
         lines.push(`cache: ${cs.chunks} chunks / ${cs.zLevels} z / ${mb} MB / ${cs.evictions} evictions`);
       }
-    } catch (_) { /* diag must never affect rendering */ }
+    } catch { /* diag must never affect rendering */ }
     return lines.join("\n");
   }
   function toggleDiag() {
@@ -4150,9 +4102,9 @@
     el.classList.toggle("df-tile-diag-active", diagOn);
     if (diagOn && diagTimer === null) {
       diagTimer = setInterval(() => {
-        try { if (diagOn && diagEl) diagEl.textContent = diagText(); } catch (_) { /* overlay must never throw */ }
+        try { if (diagOn && diagEl) diagEl.textContent = diagText(); } catch { /* overlay must never throw */ }
       }, 250);
-      try { diagEl.textContent = diagText(); } catch (_) {}
+      try { diagEl.textContent = diagText(); } catch {}
     } else if (!diagOn && diagTimer !== null) {
       clearInterval(diagTimer); diagTimer = null;
     }
@@ -4167,7 +4119,7 @@
   try {
     const v = parseFloat(sessionStorage.getItem("dwf.tilePx"));
     if (Number.isFinite(v) && v >= TILE_PX_MIN && v <= TILE_PX_MAX) targetTilePx = clampTilePx(v);
-  } catch (_) { /* no sessionStorage -> default zoom */ }
+  } catch { /* no sessionStorage -> default zoom */ }
 
   // Ladder-snap is THE clamp: off-ladder zoom levels cannot exist, so a fractional cell cannot come back.
   function clampTilePx(px) {
@@ -4182,16 +4134,16 @@
   // localStorage['dwf.dpr']='0' as the kill switch. targetTilePx keeps its CSS-px-per-tile meaning.
   let backingDpr = 1;
   function hiDpiEnabled() {
-    try { return localStorage.getItem("dwf.dpr") !== "0"; } catch (_) { return true; }
+    try { return localStorage.getItem("dwf.dpr") !== "0"; } catch { return true; }
   }
   function backingScale() {
     try {
       if (!hiDpiEnabled()) return 1;
       return Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    } catch (_) { return 1; }
+    } catch { return 1; }
   }
   function setHiDpi(on) {
-    try { localStorage.setItem("dwf.dpr", on ? "1" : "0"); } catch (_) { /* private mode */ }
+    try { localStorage.setItem("dwf.dpr", on ? "1" : "0"); } catch { /* private mode */ }
     resizeCanvas();
   }
   // Physical (backing-store) pixels per tile at a CSS px/tile rung -- ALWAYS an integer.
@@ -4228,7 +4180,7 @@
     const clamped = clampTilePx(px);
     if (clamped === targetTilePx) return { dw: 0, dh: 0 };
     targetTilePx = clamped;
-    try { sessionStorage.setItem("dwf.tilePx", String(targetTilePx)); } catch (_) {}
+    try { sessionStorage.setItem("dwf.tilePx", String(targetTilePx)); } catch {}
     const after = desiredWinDims();
     if (v1Active() && desiredCam) { bufW = after.w; bufH = after.h; mapDirty = true; }
     if (after.w !== before.w || after.h !== before.h) {
@@ -4237,7 +4189,7 @@
           DwfWS.updateDimsNow(after.w, after.h, targetTilePx);
         else if (window.DwfWS && typeof DwfWS.updateDims === "function")
           DwfWS.updateDims(after.w, after.h, targetTilePx);
-      } catch (_) { /* ignore */ }
+      } catch { /* ignore */ }
       pollNow();
     }
     mapDirty = true;
@@ -4266,7 +4218,7 @@
         const d = desiredWinDims();
         DwfWS.updateDims(d.w, d.h);
       }
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
     draw();
   }
 
@@ -4287,17 +4239,17 @@
     let painted = false;
     try {
       painted = drawInner();       // false when the keep-warm gate skipped the (occluded) paint this frame
-    } catch (_) {
+    } catch {
       // Never let a draw error take down the poll loop.
     }
     if (painted) {
       try {
         const _t1 = (window.performance && performance.now) ? performance.now() : Date.now();
         recordDraw(_t1 - _t0);
-      } catch (_) { /* diag must never affect rendering */ }
+      } catch { /* diag must never affect rendering */ }
     }
     // This embed hook ALWAYS fires, so host overlays stay cursor-aligned even on a skipped paint.
-    if (onDrawCb) { try { onDrawCb(); } catch (_) { /* overlay hook is non-fatal */ } }
+    if (onDrawCb) { try { onDrawCb(); } catch { /* overlay hook is non-fatal */ } }
   }
 
   // TRUE if it painted this frame, FALSE if the keep-warm gate skipped the occluded paint.
@@ -4495,7 +4447,7 @@
           ctx.lineWidth = 1;
           ctx.strokeRect(bx1 + 0.5, by1 + 0.5, Math.max(1, bx2 - bx1 - 1), Math.max(1, by2 - by1 - 1));
         }
-      } catch (_) { /* per-building guarded */ }
+      } catch { /* per-building guarded */ }
         ctx.restore();
       }
     }, () => {
@@ -4591,7 +4543,7 @@
                           plan.dx, plan.dy, plan.dw, plan.dh);
           }
         }
-      } catch (_) { /* per-unit guarded */ }
+      } catch { /* per-unit guarded */ }
       if (flash && flash.on) {
         try {
           const fx = (u.x - ox) * cell, fy = (u.y - oy) * cell;
@@ -4599,7 +4551,7 @@
           ctx.globalAlpha = (ghost ? uAlpha * ghost.alpha : uAlpha) * 0.35;
           ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
           ctx.fillRect(fx, fy, cell, cell);
-        } catch (_f) { /* a flash never blanks a unit */ }
+        } catch { /* a flash never blanks a unit */ }
       }
       ctx.restore();
     }
@@ -4727,7 +4679,7 @@
         let data = null;
         try {
           data = await resp.json();
-        } catch (_) {
+        } catch {
           data = null;
         }
         if (isValidMapData(data)) {
@@ -4738,7 +4690,7 @@
           // fill the cache too or a WS-less GL player sees a blank map with units and buildings floating on it.
           try {
             if (window.DwfCache && typeof DwfCache.ingest === "function") DwfCache.ingest(data);
-          } catch (_) { /* shadow cache: never affect the poll's real job */ }
+          } catch { /* shadow cache: never affect the poll's real job */ }
           publishRoster(data.players);   // the poll fallback also feeds the roster surface
           setHud(`player: ${player}  camera: ${data.origin.x}, ${data.origin.y}, ${data.origin.z}`);
           draw();
@@ -4748,7 +4700,7 @@
           draw();
         }
       }
-    } catch (_) {
+    } catch {
       connected = false;
       setHud("connecting...");
       draw();
@@ -4823,7 +4775,7 @@
           toggleDiag();
           event.preventDefault();
         }
-      } catch (_) { /* never throw out of an input handler */ }
+      } catch { /* never throw out of an input handler */ }
     }, { capture: true });
     if (manageCamera) {
       addEventListener("keydown", (event) => {
@@ -4831,14 +4783,14 @@
           if (handleCameraKey(event)) {
             event.preventDefault();
           }
-        } catch (_) {
+        } catch {
           // never throw out of an input handler
         }
       }, { capture: true });
     }
     // Always keep the canvas sized to the window (both modes want this).
     addEventListener("resize", () => {
-      try { resizeCanvas(); } catch (_) { /* ignore */ }
+      try { resizeCanvas(); } catch { /* ignore */ }
     });
     // Standalone only: the embedded client owns input and already sends /placement-cursor.
     if (manageCamera) bindPresenceBroadcast();
@@ -4869,7 +4821,7 @@
         lastPresenceSend = now;
         lastPresenceKey = key;
         sendPresenceCursor(g.gx, g.gy);
-      } catch (_) { /* never throw out of an input handler */ }
+      } catch { /* never throw out of an input handler */ }
     });
     // Clear our cursor when the pointer leaves so it doesn't linger for others.
     canvas.addEventListener("mouseleave", () => {
@@ -4877,7 +4829,7 @@
         lastPresenceKey = "";
         lastPresenceSend = Date.now();
         sendPresenceCursor(-1, -1);
-      } catch (_) { /* ignore */ }
+      } catch { /* ignore */ }
     });
   }
 
@@ -4925,9 +4877,9 @@
         if (typeof ack.world_seq === "number") v1WorldSeq = ack.world_seq;
         if (worldChanged) {
           try { if (window.DwfCache && typeof window.DwfCache.reset === "function") window.DwfCache.reset(); }
-          catch (_) { /* cache optional */ }
+          catch { /* cache optional */ }
           try { if (typeof window.dfcResetPortraitState === "function") window.dfcResetPortraitState(); }
-          catch (_) { /* unit HUD optional on tiles.html */ }
+          catch { /* unit HUD optional on tiles.html */ }
           // The hidden-tile scatter is deliberately NOT reset on a world change: it is a pure function of
           // (block_x, block_y, z), so a leftover entry hands the new world exactly what regenerating would.
         }
@@ -4935,14 +4887,14 @@
           if (window.DwfCache && typeof window.DwfCache.setMapDims === "function") {
             window.DwfCache.setMapDims(ack.map.w, ack.map.h, ack.map.z);
           }
-        } catch (_) { /* cache optional; canvas2d reads v1MapDims directly */ }
+        } catch { /* cache optional; canvas2d reads v1MapDims directly */ }
       }
       // Adopt the server's authoritative (possibly deduped) player name so every ?player= key matches it.
       if (ack && typeof ack.player === "string" && ack.player && ack.player !== player) {
         player = ack.player;
         if (typeof window.__dwfAdoptName === "function") window.__dwfAdoptName(ack.player);
       }
-    } catch (_) { /* diagnostic-only field; a missing/malformed map just skips clamping */ }
+    } catch { /* diagnostic-only field; a missing/malformed map just skips clamping */ }
   }
   // AUX (~30Hz): units/buildings/players plus the authoritative server camera. On a v1 session this is
   // the ONLY source of lastAux and window reconciliation -- block sets feed the world cache directly.
@@ -4953,7 +4905,7 @@
       if (!aux || typeof aux !== "object") return;
       if (aux.type === "auxd") {
         if (typeof aux.aseq !== "number" || aux.base !== auxSeqV1) {
-          try { if (window.DwfWS) DwfWS.send({ type: "auxr" }); } catch (_) {}
+          try { if (window.DwfWS) DwfWS.send({ type: "auxr" }); } catch {}
           return;
         }
         let changed = false;
@@ -5042,7 +4994,7 @@
       markMapUpdate();
       setHud(`player: ${player}  camera: ${bufOx}, ${bufOy}, ${bufOz}`);
       mapDirty = true; // belt & suspenders: units/buildings changed even if cam didn't
-    } catch (_) { /* never throw out of the socket callback */ }
+    } catch { /* never throw out of the socket callback */ }
   }
 
   // ---- boot / public API ------------------------------------------------------
@@ -5084,7 +5036,7 @@
       loadJsonMap("/item_map.json", (d) => { itemMap = d; });
       // __dfcMaterialSettled is set once the fetch ATTEMPT completes, success or fail, and blocks nothing.
       loadJsonMap("/material_map.json?v=c3b8ef13", (d) => { materialMap = d; buildPaletteLookup(); })
-        .then(() => { try { window.__dfcMaterialSettled = true; } catch (_) {} });
+        .then(() => { try { window.__dfcMaterialSettled = true; } catch {} });
       loadJsonMap("/plant_map.json", (d) => { plantMap = d; });
       loadJsonMap("/tree_map.json", (d) => { treeMap = d; });
       loadJsonMap("/building_map.json", (d) => { buildingMap = d; });
@@ -5096,7 +5048,7 @@
       getBaked("dwarf_female.png");
       getSheet("liquids.png");
       getSheet(DESIG_SHEET); // designation-overlay glyph sheet (wire:5)
-    } catch (_) {
+    } catch {
       // Even boot failures should leave the page inert rather than throwing.
     }
   }
@@ -5353,12 +5305,12 @@
     // Escalating sheet-retry backoff: 2s, 4s, 8s ... capped.
     _sheetRetryDelayForTest: sheetRetryDelay,
   };
-  try { window.DwfTiles = api; } catch (_) { /* non-browser context */ }
+  try { window.DwfTiles = api; } catch { /* non-browser context */ }
 
   try {
     const legacy = document.getElementById("tilemap");
     if (legacy && !canvas) {
       init({ canvas: legacy, hud: "hud", manageCamera: true, managePoll: true });
     }
-  } catch (_) { /* ignore */ }
+  } catch { /* ignore */ }
 })();

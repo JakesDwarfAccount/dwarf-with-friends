@@ -21,46 +21,33 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.engraving {
+  .engraving-window .engrave-head {
+    padding-inline: var(--dwfui-space-m);
+  }
   .engraving-window .engrave-row {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
-    padding: 2px 10px;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
-  }
-  .engraving-window .engrave-key {
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m);
     color: var(--dwfui-text-secondary);
   }
-  .engraving-window .engrave-val {
+  .engraving-window .engrave-value {
     color: var(--dwfui-text-body);
-    text-align: right;
   }
   .engraving-window .engrave-scroll {
     max-height: 220px;
-    margin: 12px 0 4px;
+    margin: var(--dwfui-space-m) 0 var(--dwfui-space-s);
   }
   .engraving-window .engrave-prose {
     color: var(--dwfui-text-prose);
-    font:
-      400 12px/1.45 ui-monospace,
-      Consolas,
-      monospace;
-    padding: 4px 10px;
-    white-space: normal;
+    font: var(--dwfui-font);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     overflow-wrap: anywhere;
   }
   .engraving-window .engrave-note {
-    color: var(--dwfui-text-secondary);
-    font:
-      400 11px/1.5 ui-monospace,
-      Consolas,
-      monospace;
-    padding: 6px 10px 10px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
   }
 }

@@ -3574,7 +3574,6 @@ void register_unit_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content("{\"ok\":true}\n", "application/json; charset=utf-8");
     };
-    server.Get("/task-cancel", task_cancel_handler);
     server.Post("/task-cancel", task_cancel_handler);
 
     // POST /task-action -- native's four non-details controls in Info > Tasks, keyed by job id.
@@ -3642,7 +3641,6 @@ void register_unit_routes(httplib::Server& server) {
         res.set_header("Cache-Control", "no-store");
         res.set_content(livestock_state_json(unit_id, state), "application/json; charset=utf-8");
     };
-    server.Get("/livestock-action", livestock_action_handler);
     server.Post("/livestock-action", livestock_action_handler);
 
     // Writes only unit.name.nickname; an empty nickname deliberately clears it.

@@ -86,7 +86,7 @@
       plantSprites = typeof tiles.getPlantMap === "function" ? tiles.getPlantMap() : null;
       plotSprites = typeof tiles.getSpriteMap === "function" ? tiles.getSpriteMap() : null;
     }
-    let cell = null;
+    let cell;
     if (kind === "fallow" || kind === "plot") {
       cell = plotSprites && (plotSprites.FURROWED_SOIL_1 || plotSprites.FARMPLOT || plotSprites.FARMPLOT_PLANTED);
       // The terrain map can arrive after the panel opens; retain the known furrow sprite until it does.

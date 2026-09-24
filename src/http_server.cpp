@@ -113,6 +113,7 @@
 #include <cstdio>
 #include <cstring>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -134,6 +135,8 @@
 // Safe here: httplib.h above has already pulled in <winsock2.h>, so windows.h cannot drag in the
 // conflicting legacy <winsock.h>.
 #include <windows.h>
+#else
+#include <sys/stat.h>
 #endif
 
 namespace dwf {
@@ -215,8 +218,12 @@ bool stat_file(const std::string& path, FileStamp& out) {
     out.size = ((uint64_t)a.nFileSizeHigh << 32) | a.nFileSizeLow;
     return true;
 #else
-    (void)path; (void)out;
-    return false;
+    struct stat st;
+    if (::stat(path.c_str(), &st) != 0 || !S_ISREG(st.st_mode))
+        return false;
+    out.mtime = (uint64_t)st.st_mtim.tv_sec * 1000000000ull + (uint64_t)st.st_mtim.tv_nsec;
+    out.size = (uint64_t)st.st_size;
+    return true;
 #endif
 }
 
@@ -244,7 +251,19 @@ void index_png_dir(const std::string& dir, const std::string& prefix, bool recur
     } while (FindNextFileA(h, &fd));
     FindClose(h);
 #else
-    (void)dir; (void)prefix; (void)recurse; (void)out;
+    std::error_code ec;
+    for (std::filesystem::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec)) {
+        std::string entry = it->path().filename().string();
+        std::error_code type_ec;
+        if (it->is_directory(type_ec)) {
+            if (recurse)
+                index_png_dir(dir + "/" + entry, prefix + ascii_lower(entry) + "/", false, out);
+            continue;
+        }
+        std::string lower = ascii_lower(entry);
+        if (lower.size() > 4 && lower.compare(lower.size() - 4, 4, ".png") == 0)
+            out.emplace(prefix + lower, dir + "/" + entry);
+    }
 #endif
 }
 

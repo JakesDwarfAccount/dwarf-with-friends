@@ -79,17 +79,10 @@
   function infoSearchInputHtml(value, attr) {
     const a = attr || "creature-search";
     return DWFUI.searchHtml({
-      cls: "info-search", inputCls: "dwfui-search-input info-search-input",
+      cls: "info-search", inputCls: "info-search-input",
       placement: "footer", magnifier: true, type: "search", dataAttr: a,
       value: value || "", ariaLabel: "Search this information view", preserveKey: `info-${a}`,
     });
-  }
-
-  function rowTone(text) {
-    // The payload carries no draw colour yet, and English-word matching is not DF state: leave these
-    // cells uncoloured until the server ships an authoritative index.
-    void text;
-    return "";
   }
 
   // A Tasks row that names no entity has an EMPTY icon column in native -- a different thing from a
@@ -176,9 +169,9 @@
     return { label, sub: [generic ? "" : name, status].filter(Boolean).join(" \u00b7 "), status: "" };
   }
 
-  // Places has its own row recipe. Sharing Objects' five-column table invented Name/Cat/Prof headings
-  // on Places and made the native width-gated detail impossible.
-  function placeRowsHtml(rows) {
+  // Places and Objects share one row on native's column anchors: icon, name over subtitle, detail, and
+  // the locate/view pair. Native puts a place's detail before the pair and an object's status after it.
+  function infoListRowsHtml(rows, objects) {
     if (!Array.isArray(rows) || !rows.length)
       return "";
     const rowsHtml = rows.map(row => {
@@ -195,29 +188,36 @@
       const status = identity.status;
       const job = infoText(row.job);
       const detailHtml = `${status ? DWFUI.bitmapTextHtml(status, { cls: "info-status" }) : ""}` +
-        `${job ? DWFUI.bitmapTextHtml(job, { cls: "info-muted" }) : ""}` +
+        `${job ? DWFUI.bitmapTextHtml(job) : ""}` +
         `${badges.length ? `<span class="info-badges">${badges.map(badge =>
-          DWFUI.bitmapTextHtml(badge, { cls: "info-badge" })).join("")}</span>` : ""}`;
+          DWFUI.bitmapTextHtml(badge)).join("")}</span>` : ""}`;
       const dataset = {
         unitId, placeKind: kind, locationId, buildingId, itemId,
       };
       if (pos) Object.assign(dataset, { posX: pos.x, posY: pos.y, posZ: pos.z });
+      const detail = { cls: "info-place-detail", html: detailHtml };
+      const actions = infoRowActions(row);
       return DWFUI.rowHtml({
-        cls: `info-row info-place-row${clickable ? " clickable" : ""}${row.muted ? " info-muted" : ""}`,
-        icon: infoPlaceIconMarkup(row),
+        cls: `info-row info-place-row${objects ? " info-object-row" : ""}${clickable ? " clickable" : ""}` +
+          `${row.muted ? " info-muted" : ""}`,
+        icon: objects && unitId >= 0 ? unitPortraitMarkup(row, "info-portrait-small") : infoPlaceIconMarkup(row),
+        copyCls: "info-place-copy",
         labelHtml: DWFUI.bitmapTextHtml(identity.label, { cls: "info-name-main" }),
         sub: identity.sub
           ? { html: DWFUI.bitmapTextHtml(identity.sub, { cls: "info-subtitle" }) }
           : null,
-        cells: [{ cls: "info-place-detail info-badges", html: detailHtml }],
-        trailing: infoRowActions(row),
+        cells: objects ? [{ cls: "info-row-actions-cell", html: actions }, detail] : [detail],
+        trailing: objects ? "" : actions,
         dataset,
       });
     }).join("");
     return DWFUI.scrollHtml({
-      cls: "info-table info-place-table", rows: ".info-place-row", ariaLabel: "Places",
+      cls: "info-table info-place-table", rows: ".info-place-row",
+      ariaLabel: objects ? "Objects" : "Places",
     }, rowsHtml);
   }
+  const placeRowsHtml = rows => infoListRowsHtml(rows, false);
+  const objectRowsHtml = rows => infoListRowsHtml(rows, true);
 
   // Measure the mounted `.info-main`, not window.innerWidth: the client panel can be narrow in a wide page.
   function infoPlaceDetailWide(widthPx, interfaceScale = 1) {
@@ -243,7 +243,7 @@
       infoPlaceWidthObserver.disconnect();
       infoPlaceWidthObserver = null;
     }
-    if (activeInfoSection !== "places") return;
+    if (activeInfoSection !== "places" && activeInfoSection !== "objects") return;
     const root = scope || clientPanel;
     const main = root?.matches?.(".info-main") ? root : root?.querySelector?.(".info-main");
     if (!main) return;
@@ -255,49 +255,6 @@
     infoPlaceWidthObserver.observe(main);
   }
 
-  function renderInfoRows(rows) {
-    if (!Array.isArray(rows) || !rows.length)
-      return "";
-    const rowsHtml = rows.map(row => {
-      const hasUnit = Number(row.unitId ?? -1) >= 0;
-      const kind = String(row.kind || "");
-      const buildingId = Number(row.buildingId ?? -1);
-      const itemId = Number(row.itemId ?? -1);
-      const clickable = (hasUnit || itemId >= 0 || (buildingId >= 0 && kind)) ? " clickable" : "";
-      const status = row.status || "";
-      const tone = rowTone(`${status} ${row.job || ""}`);
-      const badges = Array.isArray(row.badges) ? row.badges : [];
-      const pos = infoRowPos(row);
-      return `
-        <div class="info-row${clickable}${row.muted ? " info-muted" : ""}"
-          data-unit-id="${escapeHtml(row.unitId ?? -1)}"
-          data-place-kind="${escapeHtml(kind)}"
-          data-building-id="${escapeHtml(row.buildingId ?? -1)}"
-          data-item-id="${escapeHtml(row.itemId ?? -1)}"
-          ${pos ? `data-pos-x="${escapeHtml(pos.x)}" data-pos-y="${escapeHtml(pos.y)}" data-pos-z="${escapeHtml(pos.z)}"` : ""}>
-          ${hasUnit ? unitPortraitMarkup(row, "info-portrait-small") : infoPlaceIconMarkup(row)}
-          <div>
-            ${DWFUI.bitmapTextHtml(row.name || "", { cls: "info-name-main" })}
-            ${row.subtitle ? DWFUI.bitmapTextHtml(row.subtitle, { cls: "info-subtitle" }) : ""}
-          </div>
-          <div>${escapeHtml(row.category || "")}</div>
-          <div>${escapeHtml(row.profession || "")}</div>
-          <div>
-            ${status ? `<div class="info-status ${tone}">${escapeHtml(status)}</div>` : ""}
-            ${row.job ? `<div class="info-muted">${escapeHtml(row.job)}</div>` : ""}
-            ${badges.length ? `<div class="info-badges">${badges.map(badge => `<span class="info-badge">${escapeHtml(badge)}</span>`).join("")}</div>` : ""}
-            ${infoRowActions(row)}
-          </div>
-        </div>
-      `;
-    }).join("");
-    return `
-      <div class="info-table-head">
-        <span></span><span>Name</span><span>Cat</span><span>Prof</span><span>Job / Status</span>
-      </div>
-      ${DWFUI.scrollHtml({ cls: "info-table", rows: ".info-row", ariaLabel: "Places and objects" }, rowsHtml)}
-    `;
-  }
   // Functional bottom search for the generic info panels, same token-filter convention as Creatures.
   // The query resets whenever the active section changes.
   let infoSearch = "";
@@ -325,7 +282,7 @@
     if (needle && !filtered.length)
       return `${infoMessageHtml}<div class="info-message">No matches.</div>`;
     const rowsHtml = infoIsTasks ? window.taskRowsHtml(filtered)
-      : (activeInfoSection === "places" ? placeRowsHtml(filtered) : renderInfoRows(filtered));
+      : (activeInfoSection === "places" ? placeRowsHtml(filtered) : objectRowsHtml(filtered));
     return `${infoMessageHtml}${rowsHtml}`;
   }
 
@@ -468,13 +425,12 @@
     const sideHtml = sideItems.length ? `
       <div class="info-side-list">
         ${sideItems.map((item, index) => `
-          <div class="info-side-item${index === 1 ? " selected" : ""}">
+          <div class="info-side-item${index === 1 ? " selected dwfui-focus-brackets" : ""}">
             <span>${index ? "" : "+"}</span><strong>${escapeHtml(item)}</strong>
           </div>
         `).join("")}
       </div>
     ` : "";
-    // The Creatures tab has its own row anatomy; every other tab still uses the generic renderInfoRows.
     const isCreatures = (data.panel || "") === "citizens";
     if (isCreatures) {
       window.DFBuildInfoController.creatureRowsRaw = Array.isArray(data.rows) ? data.rows : [];
@@ -624,14 +580,14 @@
   }
 
   if (typeof window !== "undefined") Object.assign(window, {
-    rowTone, infoRowHasPlaceArt, infoPlaceIconMarkup, infoRowPos, infoRowActions, infoText,
-    placeIdentity, placeRowsHtml, infoPlaceDetailWide, renderInfoRows, infoRowSearchText,
+    infoRowHasPlaceArt, infoPlaceIconMarkup, infoRowPos, infoRowActions, infoText,
+    placeIdentity, placeRowsHtml, infoPlaceDetailWide, objectRowsHtml, infoRowSearchText,
     infoFilterRows, infoDetailTabRowHtml, infoSearchInputHtml, openInfoPlace, openUnitById,
     openPanel, renderInfoPanel,
   });
 
   if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, {
-    infoDetailTabRowHtml, infoTabRowHtml, infoSearchBoxHtml, infoSearchInputHtml, rowTone,
+    infoDetailTabRowHtml, infoTabRowHtml, infoSearchBoxHtml, infoSearchInputHtml,
     infoRowHasPlaceArt, infoPlaceIconMarkup, infoRowPos, infoRowActions, infoText, placeIdentity,
-    placeRowsHtml, infoPlaceDetailWide, renderInfoRows, infoRowSearchText, infoFilterRows,
+    placeRowsHtml, infoPlaceDetailWide, objectRowsHtml, infoRowSearchText, infoFilterRows,
   });

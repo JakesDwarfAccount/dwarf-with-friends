@@ -58,7 +58,7 @@
         const j = await r.json();
         if (j && j.ok && j.guards && typeof j.guards === "object") next = j.guards;
       }
-    } catch (_) { /* unreachable -> locked */ }
+    } catch { /* unreachable -> locked */ }
     const changed = JSON.stringify(next) !== JSON.stringify(state);
     state = next;
     if (changed && typeof window !== "undefined") {

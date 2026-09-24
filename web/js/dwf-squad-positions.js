@@ -21,7 +21,7 @@
 
   // ---- Positions screen (native 4): roster only; an unfilled position is a plain assign plaque. ----
   // A FILLED row is a div, not a button: it has a real tick-box, and a button inside a button eats the click.
-  function sqPositionRows(members, esc = window.sqEsc, selected = null) {
+  function sqPositionRows(members, selected = null) {
     if (!Array.isArray(members) || !members.length) {
       return `<div class="info-message">This squad has no positions.</div>`;
     }
@@ -33,20 +33,16 @@
           title: `Choose a citizen for position ${m.idx}` });
       }
       const name = m.name || ("Unit " + m.unitId);
-      const meta = [m.positionName || "", ...(Array.isArray(m.topSkills) ? m.topSkills : [])]
-        .filter(Boolean).join(" - ");
       const orders = Array.isArray(m.orders) ? m.orders : [];
       const line = window.sqOrderLine(orders[0]);
       const labelHtml = DWFUI.rawHtml("DF profession colour wraps the bitmap-rendered squad member name",
         `<span class="squad-roster-name-fit"${window.sqProfessionColorStyle(m)}>${DWFUI.bitmapTextHtml(name,
           { fitNativeLabel: { host: "parent" } })}</span>`);
-      const sub = [{
+      const sub = {
         html: DWFUI.bitmapTextHtml(orders.length > 1
-          ? `${line.text} (+${orders.length - 1} more)` : line.text),
-        cls: "dwfui-sub squad-pos-order", tone: line.tone,
-      }];
-      if (meta) sub.push({ html: DWFUI.bitmapTextHtml(meta,
-        { fitNativeLabel: { host: "parent" } }), cls: "dwfui-sub squad-pos-role" });
+          ? `${line.text} (+${orders.length - 1} more)` : line.text, { fitNativeLabel: { host: "parent" } }),
+        cls: "squad-pos-order", tone: line.tone,
+      };
       return DWFUI.rowHtml({
         tag: "div", cls: "squad-position-row", chassis: "table",
         dataset: { squadPickPos: m.idx }, icon: window.sqUnitPortrait(m),
@@ -72,7 +68,7 @@
     return rows;
   }
 
-  function sqCandidateRows(candidates, pos, esc = window.sqEsc) {
+  function sqCandidateRows(candidates, pos) {
     if (!Array.isArray(candidates) || !candidates.length) {
       return `<div class="info-message">No available citizens.</div>`;
     }
@@ -102,17 +98,17 @@
     return `
       ${window.sqBackHeader(squad, esc)}
       <div id="squadStatus" class="info-message squad-status"></div>
-      <div class="squad-section-title">Positions</div>
+      <div class="dwfui-text--section squad-section-title">Positions</div>
       ${window.sqListHtml({ cls: "squad-pos-list", rows: ".squad-position-row, .squad-position-assign", preserveKey: "squads:positions" },
-        sqPositionRows(members, esc, picks))}
+        sqPositionRows(members, picks))}
       ${opts.showOrders === false ? "" : window.sqOrderToolbar(squad, {
         moveArmed: window.DFSquadController.squadMoveArmedFor.id === squad.id,
         killArmed: window.DFSquadController.squadKillArmedFor.id === squad.id, killTargets: window.DFSquadController.squadKillArmedFor.targets,
-        memberPicks: picks }, esc)}`;
+        memberPicks: picks })}`;
   }
 
   // Native screen 4.1: one exact SQUAD_FILL_POSITION target, never a roster+slot-stepper mashup.
-  function sqCandidateView(detail, pos, options = {}, esc = window.sqEsc) {
+  function sqCandidateView(detail, pos, options = {}) {
     const squad = detail && detail.squad;
     if (!squad) return `<div class="info-message">Select a squad.</div>`;
     const members = Array.isArray(squad.members) ? squad.members : [];
@@ -142,7 +138,7 @@
       ${sort}${remove}
       ${DWFUI.scrollHtml({ cls: "squad-candidate-list", preserveKey: `squads:candidates:${pos}`,
         dataset: { dwfuiTable: ".squad-candidate-row", dwfuiTableFlex: 1 } },
-        sqCandidateRows(candidates, pos, esc))}
+        sqCandidateRows(candidates, pos))}
       ${DWFUI.searchHtml({ cls: "squad-candidate-search", placement: "footer", magnifier: true,
         dataAttr: "squad-candidate-search", type: "search", value: options.search || "",
         preserveKey: `squads:candidates:${pos}`, ariaLabel: "Search citizens" })}

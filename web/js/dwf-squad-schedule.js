@@ -62,9 +62,8 @@
     const routineScheds = Array.isArray(detail.routineSchedules) ? detail.routineSchedules : [];
     const header = `<div id="squadStatus" class="info-message squad-status"></div>`;
     if (!routines.length) {
-      return header + DWFUI.gridHtml({ cls: "squad-schedule-overview" },
-        sqScheduleSquadCell(squad, esc) +
-        `<div class="info-message">No military routines exist yet. Use ?Add/edit routines? to create this squad's first training routine.</div>`);
+      return header + `<div class="squad-schedule-overview">${sqScheduleSquadCell(squad, esc)}` +
+        `<div class="info-message">No military routines exist yet. Use Add/edit routines to create this squad's first training routine.</div></div>`;
     }
     const routineCells = routines.map(routine => {
       const served = routineScheds.find(rs => Number(rs.idx) === Number(routine.idx));
@@ -100,15 +99,14 @@
         ariaLabel: name,
       }, inner);
     }).join("");
-    return header + DWFUI.gridHtml({ cls: "squad-schedule-overview" },
-      sqScheduleSquadCell(squad, esc) +
+    return header + `<div class="squad-schedule-overview">${sqScheduleSquadCell(squad, esc)}${
       DWFUI.selectCellGroupHtml({ cls: "squad-schedule-routines",
-        ariaLabel: "Training routine for this squad" }, routineCells));
+        ariaLabel: "Training routine for this squad" }, routineCells)}</div>`;
   }
 
 
   // ---- Add/Edit Routines (native 7.1): fort-global routine list authoring. ----
-  function sqRoutinesView(detail, esc = window.sqEsc) {
+  function sqRoutinesView(detail) {
     const squad = detail && detail.squad;
     if (!squad) return `<div class="info-message">Select a squad.</div>`;
     const routines = Array.isArray(detail.routines) ? detail.routines : [];
@@ -133,13 +131,12 @@
       : `<div class="info-message">No routines.</div>`;
     return `
       <div id="squadStatus" class="info-message squad-status"></div>
-      <div class="squad-routine-head"><div class="squad-section-title">Military routines</div>
+      <div class="squad-routine-head"><div class="dwfui-text--section squad-section-title">Military routines</div>
         ${window.sqBackPlaque("Done")}</div>
-      <div class="info-message squad-routine-note">These routines belong to the whole fortress: adding
-        one gives every squad a new slot, and deleting one takes that slot away from every squad.
-        Dwarf Fortress also matches the names <strong>Off duty</strong> and
-        <strong>Staggered training</strong> exactly, and seeds newly created squads from them —
-        renaming either changes what future squads start with.</div>
+      <div class="info-message squad-routine-note">${"These routines belong to the whole fortress: " +
+        "adding one gives every squad a new slot, and deleting one takes that slot away from every squad. " +
+        "Dwarf Fortress also matches the names <strong>Off duty</strong> and <strong>Staggered training</strong> " +
+        "exactly, and seeds newly created squads from them, so renaming either changes what future squads start with."}</div>
       ${window.sqListHtml({ cls: "squad-routine-list", rows: ".squad-routine-row", preserveKey: "squads:routines" }, rows)}
       <div class="squad-controls">
         ${DWFUI.textInputHtml({ cls: "squad-input squad-routine-newname", id: "routineNewName",
@@ -187,7 +184,7 @@
       return `<div class="squad-month-row"><div class="squad-month-name">${esc(mn)}</div>${cells}</div>`;
     }).join("");
     return `${header}
-      <div class="squad-section-title">Monthly schedule</div>
+      <div class="dwfui-text--section squad-section-title">Monthly schedule</div>
       ${DWFUI.scrollHtml({ preserveKey: "squads:monthly" },
         DWFUI.gridHtml({ cls: "squad-month-grid" },
           `<div class="squad-month-row squad-month-header"><div class="squad-month-name"></div>${headCells}</div>
@@ -258,7 +255,7 @@
       </div>`;
     }).join("");
     return `${header}
-      <div class="squad-section-title">Editing routine ${esc(rs.name || ("Routine " + rs.idx))} &middot; ${
+      <div class="dwfui-text--section squad-section-title">Editing routine ${esc(rs.name || ("Routine " + rs.idx))} &middot; ${
         allMonths ? "all twelve months" : esc(MONTH_NAMES[month.month] || ("Month " + (month.month + 1)))}</div>
       <div class="squad-controls">
         <span class="squad-field-label">Month</span>${window.sqCyclerHtml("trainMonth", monthOptions,
@@ -279,7 +276,7 @@
         <label class="squad-ammo-flag">${window.sqWithId(DWFUI.checkHtml({ checked: train,
           dataset: { trainOrder: "" }, title: "Train order", ariaLabel: "Train order" }), "trainOrder")}Train</label>
         <label class="squad-ammo-flag">Min soldiers&nbsp;${window.sqStepperHtml({
-          cls: "squad-pos-input squad-train-min", inputCls: "squad-input squad-train-min-input",
+          cls: "squad-train-min", inputCls: "squad-input squad-train-min-input",
           inputId: "trainMin", min: 0,
           max: Math.max(Number(min) || 0, Number(squad.positionCount) || 99),
           value: min, ariaLabel: "Minimum soldiers" })}</label>

@@ -55,7 +55,7 @@
   // `buildDirection` is dwf-build-info-panels.js's, read through the same accessor idiom as
   // bipSelBuild(), because that module loads first in the product but need not exist in a fixture.
   function buildDirectionForPlacement() {
-    try { return typeof buildDirection === "number" ? buildDirection : 0; } catch (_) { return 0; }
+    try { return typeof buildDirection === "number" ? buildDirection : 0; } catch { return 0; }
   }
   const PLACEMENT_WIRE_TYPE = {
     0: "Chair", 1: "Bed", 2: "Table", 3: "Coffin", 4: "FarmPlot", 5: "Furnace", 6: "TradeDepot",
@@ -105,15 +105,15 @@
     try {
       const tiles = typeof DwfTiles !== "undefined" ? DwfTiles : null;
       return tiles && typeof tiles.getLatest === "function" ? tiles.getLatest() : null;
-    } catch (_) { return null; }
+    } catch { return null; }
   }
   // DwfTiles' blitter is bound to the map canvas context, so use that as a scratch surface and copy
   // the sprite into #zoneOverlay: passing #zoneOverlay directly makes it paint a different canvas.
   const placementGhostCache = new Map();
   function paintGhostScratch(overlayCtx, bounds, cacheKey, draw) {
-    let mapCtx = null;
+    let mapCtx;
     try { mapCtx = view && typeof view.getContext === "function" ? view.getContext("2d") : null; }
-    catch (_) { mapCtx = null; }
+    catch { mapCtx = null; }
     if (!mapCtx || !overlayCtx || !bounds || typeof draw !== "function") return 0;
     const cssRect = view.getBoundingClientRect();
     const scale = cssRect.width > 0 ? view.width / cssRect.width : 1;
@@ -129,9 +129,9 @@
         Number(bounds.w), Number(bounds.h));
       return cached.drawn;
     }
-    let before = null;
-    try { before = mapCtx.getImageData(sx, sy, ex - sx, ey - sy); } catch (_) { return 0; }
-    let drawn = 0;
+    let before;
+    try { before = mapCtx.getImageData(sx, sy, ex - sx, ey - sy); } catch { return 0; }
+    let drawn;
     let scratchSaved = false;
     try {
       mapCtx.save();
@@ -156,8 +156,8 @@
           Number(bounds.w), Number(bounds.h));
       }
     } finally {
-      if (scratchSaved) try { mapCtx.restore(); } catch (_) { /* scratch pixels are discarded after this frame */ }
-      try { mapCtx.putImageData(before, sx, sy); } catch (_) { /* the retained source frame remains authoritative */ }
+      if (scratchSaved) try { mapCtx.restore(); } catch { /* scratch pixels are discarded after this frame */ }
+      try { mapCtx.putImageData(before, sx, sy); } catch { /* the retained source frame remains authoritative */ }
     }
     return drawn;
   }
@@ -283,7 +283,7 @@
   try {
     window.DFPlacementCursor = {
       paint: (ctx, rendered) => {
-        try { return paintPlacementCursor(ctx, rendered); } catch (_) { return false; }
+        try { return paintPlacementCursor(ctx, rendered); } catch { return false; }
       },
       // Disarming drops the cursor. The build panel calls this from its two stand-down paths
       // (clearBuildPlacement, closeBuildUi) so a ghost cannot outlive the tool that armed it.
@@ -292,7 +292,7 @@
         placementCursorTile = null;
         gatedBuildPreview = null;
         frameBuildPreview = null;
-        try { renderZoneOverlay(); } catch (_) { DwfErr.count("placement.zone-overlay-frame"); }
+        try { renderZoneOverlay(); } catch { DwfErr.count("placement.zone-overlay-frame"); }
       },
       // Pure seams for the offline suite: the classification and the asymmetric extents.
       _kindFor: placementCursorKindFor,
@@ -301,7 +301,7 @@
       _fineFor: placementTileIsFineForGatedGhost,
       _modeFor: window.placementModeForActiveTool,
     };
-  } catch (_) { /* non-browser context */ }
+  } catch { /* non-browser context */ }
   function rectanglePaintSelected() {
     return window.paintModeOf(window.activePaintSubsystem()) === "rect" && !!(window.DFPlacementController.stockPreset || window.DFPlacementController.stockRepaintId || window.DFPlacementController.stockEraseArmed ||
       window.DFPlacementController.zonePreset || window.DFPlacementController.zoneRepaintId || window.DFPlacementController.zoneEraseArmed || window.DFPlacementController.burrowPaintId >= 0);
@@ -452,7 +452,7 @@
   // The pending volume's far z is the LIVE camera elevation, but only queueMove() re-derives it:
   // setZFromScrollbarEvent() and resetToHost() bypass it, so those leave the preview stale.
   try { window.DFGestureCameraMoved = () => {
-    try { refreshPendingGesture(); } catch (_) { DwfErr.count("placement.gesture-refresh"); }
+    try { refreshPendingGesture(); } catch { DwfErr.count("placement.gesture-refresh"); }
   }; }
   catch (err) { DwfErr.report("placement.gesture-export", err); }
 
@@ -495,7 +495,7 @@
     rect.tool = anchor.tool || window.DFPlacementController.selectedDesignation;
     stairRangePreview = null;
     window.DFPlacementController.twoClickCursor = null;
-    await window.submitDesignationRange(rect, pointZ);
+    await window.submitDesignationRange(rect);
     window.updateDesignationButtons();
   }
   async function commitZoneGesture(rect) {
@@ -695,7 +695,7 @@
     }
     // A synthetic tap from the touch layer carries a pointerId that is no longer active, which makes
     // setPointerCapture throw. Harmless to skip: capture only matters for real drags.
-    try { view.setPointerCapture(event.pointerId); } catch (_) { /* capture is optional for non-drag clicks */ }
+    try { view.setPointerCapture(event.pointerId); } catch { /* capture is optional for non-drag clicks */ }
   });
   view.addEventListener("pointermove", event => {
     if (window.twoClickArmed()) window.updateTwoClickRubberBand(event.clientX, event.clientY);
@@ -760,7 +760,7 @@
       if (cur) window.sendPlacementUi(cur.x, cur.y, cur.w, cur.h, false, 0, 0, true);
       dragAnchor = null;
     }
-    try { view.releasePointerCapture(event.pointerId); } catch (_) { /* release is harmless after lost capture */ }
+    try { view.releasePointerCapture(event.pointerId); } catch { /* release is harmless after lost capture */ }
     const clickDistance = Math.hypot(event.clientX - downX, event.clientY - downY);
     // ONE release leg for all four rectangle families: the spine decides, the per-family handler
     // commits. "hold" is click 1 -- the anchor stays armed with the button up.

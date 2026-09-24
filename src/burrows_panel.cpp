@@ -578,7 +578,6 @@ void register_burrows_routes(httplib::Server& server) {
         if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(result.value) + "}\n");
     };
-    server.Get("/burrow-create", create_handler);
     server.Post("/burrow-create", create_handler);
 
     auto rename_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -593,7 +592,6 @@ void register_burrows_routes(httplib::Server& server) {
         if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/burrow-rename", rename_handler);
     server.Post("/burrow-rename", rename_handler);
 
     auto member_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -609,7 +607,6 @@ void register_burrows_routes(httplib::Server& server) {
         if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/burrow-unit", member_handler);
     server.Post("/burrow-unit", member_handler);
 
     auto action_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -623,7 +620,6 @@ void register_burrows_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/burrow-action", action_handler);
     server.Post("/burrow-action", action_handler);
 
     auto symbol_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -645,7 +641,6 @@ void register_burrows_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/burrow-symbol", symbol_handler);
     server.Post("/burrow-symbol", symbol_handler);
 
     auto delete_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -659,7 +654,6 @@ void register_burrows_routes(httplib::Server& server) {
         notify_player_input();
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/burrow-delete", delete_handler);
     server.Post("/burrow-delete", delete_handler);
 
     auto paint_handler = [](const httplib::Request& req, httplib::Response& res) {
@@ -687,7 +681,6 @@ void register_burrows_routes(httplib::Server& server) {
         set_no_store_json(res, "{\"ok\":true,\"id\":" + std::to_string(id) +
                                 ",\"count\":" + std::to_string(result.value) + "}\n");
     };
-    server.Get("/burrow-paint", paint_handler);
     server.Post("/burrow-paint", paint_handler);
 }
 

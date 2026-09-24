@@ -131,7 +131,6 @@ function repUnitButtonHtml(report) {
 
 function repRecenterButtonHtml(report, which) {
   if (!repPosition(report, which)) return "";
-  // The report row owns a 3x2 allocation; CSS gives this button that, not the generic 4x3 action cell.
   return DWFUI.artBtnHtml({
     sprite: DWFUI.TOKENS.sprites.recenter,
     cls: "reports-native-link reports-recenter-link",
@@ -146,22 +145,19 @@ function repRowHtml(report) {
   const tools = repUnitButtonHtml(report) +
     repRecenterButtonHtml(report, 1) +
     repRecenterButtonHtml(report, 2);
-  const rowBody = `<div class="reports-row-main">${tools}` +
-      DWFUI.statusHtml({
-        cls: "reports-message",
-        text: message,
-        columns: 72,
-        dfColor: Math.max(0, Math.min(7, Number(report?.color) || 0)) + (report?.bright ? 8 : 0),
-      }) +
-      `</div>` +
-      DWFUI.statusHtml({ cls: "reports-date", text: repDate(report), dfColor: 15 });
+  const rowBody = DWFUI.statusHtml({
+    cls: "reports-message",
+    text: message,
+    columns: 72,
+    dfColor: Math.max(0, Math.min(7, Number(report?.color) || 0)) + (report?.bright ? 8 : 0),
+  }) +
+    DWFUI.statusHtml({ cls: "reports-date", text: repDate(report), dfColor: 15 });
   return DWFUI.rowHtml({
     cls: "reports-row",
     announce: true,
     dataset: { reportId: report?.id },
-    labelHtml: DWFUI.rawHtml(
-      "The decoded report row composes optional action widgets with two independently styled text lines.",
-      rowBody),
+    labelHtml: DWFUI.rawHtml("A report is two independently coloured text lines.", rowBody),
+    trailing: tools ? `<span class="dwfui-announce-actions">${tools}</span>` : "",
   });
 }
 
@@ -169,7 +165,7 @@ function repEligibleRows(log) {
   return repGroupReports(log).filter(repEligible);
 }
 
-function repAvailableTabs(_log) {
+function repAvailableTabs() {
   const fmt = repFormat();
   return fmt ? fmt.NATIVE_TABS.slice() : [REP_TAB_ALL, "General"];
 }
@@ -185,7 +181,7 @@ function repRows(log, tab = repTab) {
 }
 
 function repTabsHtml(log, active = repTab) {
-  const tabs = repAvailableTabs(log);
+  const tabs = repAvailableTabs();
   if (!tabs.length) return "";
   const selected = tabs.includes(active) ? active : tabs[0];
   return DWFUI.tabsHtml({
@@ -204,9 +200,9 @@ function repTabsHtml(log, active = repTab) {
   });
 }
 
-function reportsPanelMarkup(state, options = {}) {
+function reportsPanelMarkup(state) {
   const log = Array.isArray(state?.log) ? state.log : [];
-  const tabs = repAvailableTabs(log);
+  const tabs = repAvailableTabs();
   const selected = tabs.includes(state?.tab) ? state.tab : (tabs[0] || "");
   const rows = repRows(log, selected);
   const content = rows || DWFUI.statusHtml({
@@ -214,10 +210,8 @@ function reportsPanelMarkup(state, options = {}) {
     text: "No announcements.",
     dfColor: 15,
   });
-  const shell = options.shell === "default" ? {} : { nativeFrame: "masterChrome" };
   return DWFUI.windowHtml({
     cls: "reports-native-window",
-    ...shell,
     ariaLabel: "Announcements",
     bodyHtml:
       `<div class="reports-tabs-host" data-announcement-tabs>${repTabsHtml(log, selected)}</div>` +
@@ -342,14 +336,14 @@ function renderReportsPanel(options = {}) {
   const oldRows = oldGeom ? oldGeom.totalItems : 0;
   const atEnd = !oldGeom || oldGeom.position >= oldGeom.bottomMost;
 
-  const tabs = repAvailableTabs(repLog);
+  const tabs = repAvailableTabs();
   if (!tabs.includes(repTab)) repTab = tabs[0] || "";
   clientPanel.className = "visible info-panel alerts-window reports-window";
   panelContent(clientPanel).innerHTML = reportsPanelMarkup({ log: repLog, tab: repTab });
 
-  clientPanel.querySelectorAll("[data-rep-tab]").forEach(button => {
+  clientPanel.querySelectorAll("[data-reports-tab]").forEach(button => {
     button.addEventListener("click", () => {
-      repTab = button.dataset.repTab || repTab;
+      repTab = button.dataset.reportsTab || repTab;
       renderReportsPanel();
     });
   });
@@ -392,7 +386,6 @@ async function openReportsPanel(seedReportId = null, _seedAlertType = null) {
   clientPanel.className = "visible info-panel alerts-window reports-window";
   panelContent(clientPanel).innerHTML = DWFUI.windowHtml({
     cls: "reports-native-window",
-    nativeFrame: "masterChrome",   // the ring is the panel's own, so it exists before the rows do
     ariaLabel: "Announcements loading",
     bodyHtml: DWFUI.statusHtml({ cls: "reports-empty", text: "Loading reports...", dfColor: 15 }),
   });
@@ -408,7 +401,7 @@ async function openReportsPanel(seedReportId = null, _seedAlertType = null) {
     const fmt = repFormat();
     const hinted = fmt && _seedAlertType != null ? fmt.alertTab(_seedAlertType) : "";
     repTab = hinted && !["Combat", "Sparring", "Hunting"].includes(hinted) &&
-      repAvailableTabs(repLog).includes(hinted) ? hinted : REP_TAB_ALL;
+      repAvailableTabs().includes(hinted) ? hinted : REP_TAB_ALL;
   }
   renderReportsPanel();
   repStartPolling();

@@ -42,7 +42,7 @@
       if (!root.localStorage) return false;
       root.localStorage.removeItem(key);
       return true;
-    } catch (_) { return false; }
+    } catch { return false; }
   }
 
   function ssGet(key, onError) {
@@ -71,7 +71,7 @@
       if (!storage) return false;
       storage.removeItem(key);
       return true;
-    } catch (_) { return false; }
+    } catch { return false; }
   }
 
   function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
@@ -86,7 +86,7 @@
     if (detail == null) return "no detail";
     if (typeof detail === "string") return detail;
     if (detail.message) return String(detail.message);
-    try { return String(detail); } catch (_) { return "unprintable detail"; }
+    try { return String(detail); } catch { return "unprintable detail"; }
   }
 
   function count(key, by) {
@@ -135,6 +135,6 @@
     clamp: clamp, DwfErr: DwfErr,
   };
 
-  try { root.DwfUtil = api; root.DwfErr = DwfErr; } catch (_) { /* non-browser/worker context */ }
+  try { root.DwfUtil = api; root.DwfErr = DwfErr; } catch { /* non-browser/worker context */ }
   if (typeof module === "object" && module && module.exports) module.exports = api;
 })(typeof self !== "undefined" ? self : this);

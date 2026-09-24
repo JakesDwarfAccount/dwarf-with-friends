@@ -82,62 +82,61 @@
 }(window));
 </script>
 <style id="dwfCascadeOrder">
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
-@layer panels.hauling, panels.burrows, panels.farm, panels.building, panels.engraving, panels.trade-depot, panels.hospital, panels.locations, panels.workshop, panels.zones, panels.siege, panels.stockpile-links, panels.build-placement, panels.item-information, panels.unit-information, panels.information-tables, panels.training-knowledge, panels.fortress-information, panels.labor, panels.alerts, panels.work-orders, panels.squads, panels.reports, panels.fortress-management, panels.help, panels.stockpiles, panels.activity, panels.console, panels.trade, panels.build-information, panels.common, panels.join-gates, panels.unit-cycle, panels.host-settings, panels.digest, panels.popup-mirror, panels.hotkeys, panels.settings, panels.audio, panels.diplomacy, panels.attribution, panels.chat;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
+@layer panels.shell, panels.hauling, panels.burrows, panels.farm, panels.building, panels.engraving, panels.trade-depot, panels.hospital, panels.locations, panels.workshop, panels.zones, panels.siege, panels.stockpile-links, panels.build-placement, panels.item-information, panels.unit-information, panels.information-tables, panels.training-knowledge, panels.fortress-information, panels.labor, panels.alerts, panels.work-orders, panels.squads, panels.reports, panels.fortress-management, panels.help, panels.stockpiles, panels.activity, panels.console, panels.trade, panels.build-information, panels.join-gates, panels.unit-cycle, panels.host-settings, panels.digest, panels.popup-mirror, panels.hotkeys, panels.settings, panels.audio, panels.diplomacy, panels.attribution, panels.chat;
 </style>
 <!-- F00 pass 2: modules may parse before the password card, but protected fetches and image
      preloads must not leave the page until that card resolves. This executes before CSS or any
      classic module, while leaving /version, /join, and dependency recovery available. -->
-<script src="/js/dwf-auth-gate.js?v=547e81e8"></script>
+<script src="/js/dwf-auth-gate.js?v=2f3ba9d1"></script>
 <!-- The production stylesheet is one file per cascade layer, linked in the order the layer
      statement above declares. A subset, or a different order, is a different cascade.
      tools/lib/css_sources.mjs is the list every other consumer reads. -->
-<link rel="stylesheet" href="/css/dwf-tokens.css?v=37292bc2">
-<link rel="stylesheet" href="/css/dwf-chrome.css?v=988bdb5d">
-<link rel="stylesheet" href="/css/panels/panels-hauling.css?v=5962fa1c">
-<link rel="stylesheet" href="/css/panels/panels-burrows.css?v=8021f3c9">
-<link rel="stylesheet" href="/css/panels/panels-farm.css?v=2cde07f6">
-<link rel="stylesheet" href="/css/panels/panels-building.css?v=ff695e34">
-<link rel="stylesheet" href="/css/panels/panels-engraving.css?v=4440511f">
-<link rel="stylesheet" href="/css/panels/panels-trade-depot.css?v=1029589a">
-<link rel="stylesheet" href="/css/panels/panels-hospital.css?v=c7fdee83">
-<link rel="stylesheet" href="/css/panels/panels-locations.css?v=64ddaa36">
-<link rel="stylesheet" href="/css/panels/panels-workshop.css?v=49829b69">
-<link rel="stylesheet" href="/css/panels/panels-zones.css?v=4810571a">
-<link rel="stylesheet" href="/css/panels/panels-siege.css?v=9051c9d7">
-<link rel="stylesheet" href="/css/panels/panels-stockpile-links.css?v=7d9188a4">
-<link rel="stylesheet" href="/css/panels/panels-build-placement.css?v=13a6eca4">
-<link rel="stylesheet" href="/css/panels/panels-item-information.css?v=ce5a28a1">
-<link rel="stylesheet" href="/css/panels/panels-unit-information.css?v=8ddb1537">
-<link rel="stylesheet" href="/css/panels/panels-information-tables.css?v=6e771930">
-<link rel="stylesheet" href="/css/panels/panels-training-knowledge.css?v=875ce5f2">
-<link rel="stylesheet" href="/css/panels/panels-fortress-information.css?v=99dea8f5">
-<link rel="stylesheet" href="/css/panels/panels-labor.css?v=2ca09b7d">
-<link rel="stylesheet" href="/css/panels/panels-alerts.css?v=7c27f1f3">
-<link rel="stylesheet" href="/css/panels/panels-work-orders.css?v=a0067923">
-<link rel="stylesheet" href="/css/panels/panels-squads.css?v=3a413dcf">
-<link rel="stylesheet" href="/css/panels/panels-reports.css?v=0d553414">
-<link rel="stylesheet" href="/css/panels/panels-fortress-management.css?v=d3d22769">
-<link rel="stylesheet" href="/css/panels/panels-help.css?v=f284e1e3">
-<link rel="stylesheet" href="/css/panels/panels-stockpiles.css?v=75f2d749">
-<link rel="stylesheet" href="/css/panels/panels-activity.css?v=ab708036">
-<link rel="stylesheet" href="/css/panels/panels-console.css?v=84b57350">
-<link rel="stylesheet" href="/css/panels/panels-trade.css?v=71220cfb">
-<link rel="stylesheet" href="/css/panels/panels-build-information.css?v=cd76d0d1">
-<link rel="stylesheet" href="/css/panels/panels-common.css?v=ebe8cdb0">
-<link rel="stylesheet" href="/css/panels/panels-join-gates.css?v=db09344f">
-<link rel="stylesheet" href="/css/panels/panels-unit-cycle.css?v=29f29e6c">
-<link rel="stylesheet" href="/css/panels/panels-host-settings.css?v=0cf2dafb">
-<link rel="stylesheet" href="/css/panels/panels-digest.css?v=675ff064">
-<link rel="stylesheet" href="/css/panels/panels-popup-mirror.css?v=642c6b68">
-<link rel="stylesheet" href="/css/panels/panels-hotkeys.css?v=04ca778d">
-<link rel="stylesheet" href="/css/panels/panels-settings.css?v=da80a384">
-<link rel="stylesheet" href="/css/panels/panels-audio.css?v=b20e527a">
-<link rel="stylesheet" href="/css/panels/panels-diplomacy.css?v=98c48318">
-<link rel="stylesheet" href="/css/panels/panels-attribution.css?v=11802119">
-<link rel="stylesheet" href="/css/panels/panels-chat.css?v=feaca2e0">
-<link rel="stylesheet" href="/css/dwf-dwfui.css?v=0c450ec9">
-<link rel="stylesheet" href="/css/dwf-adaptations.css?v=4c62ac79">
+<link rel="stylesheet" href="/css/dwf-tokens.css?v=6ab52ed1">
+<link rel="stylesheet" href="/css/dwf-chrome.css?v=4e6ff4b2">
+<link rel="stylesheet" href="/css/dwf-dwfui.css?v=64a7a0f3">
+<link rel="stylesheet" href="/css/panels/panels-shell.css?v=ae7cc1c2">
+<link rel="stylesheet" href="/css/panels/panels-hauling.css?v=17100692">
+<link rel="stylesheet" href="/css/panels/panels-burrows.css?v=44c8aaba">
+<link rel="stylesheet" href="/css/panels/panels-farm.css?v=1b6bb44d">
+<link rel="stylesheet" href="/css/panels/panels-building.css?v=60a6a12b">
+<link rel="stylesheet" href="/css/panels/panels-engraving.css?v=bf1fc1ca">
+<link rel="stylesheet" href="/css/panels/panels-trade-depot.css?v=742fac0d">
+<link rel="stylesheet" href="/css/panels/panels-hospital.css?v=b36f1444">
+<link rel="stylesheet" href="/css/panels/panels-locations.css?v=e3a17625">
+<link rel="stylesheet" href="/css/panels/panels-workshop.css?v=6738410f">
+<link rel="stylesheet" href="/css/panels/panels-zones.css?v=693c550c">
+<link rel="stylesheet" href="/css/panels/panels-siege.css?v=7428e3f4">
+<link rel="stylesheet" href="/css/panels/panels-stockpile-links.css?v=21402bb5">
+<link rel="stylesheet" href="/css/panels/panels-build-placement.css?v=21cf017a">
+<link rel="stylesheet" href="/css/panels/panels-item-information.css?v=39ccdf5d">
+<link rel="stylesheet" href="/css/panels/panels-unit-information.css?v=9fafed6a">
+<link rel="stylesheet" href="/css/panels/panels-information-tables.css?v=73f62d6d">
+<link rel="stylesheet" href="/css/panels/panels-training-knowledge.css?v=acefdfea">
+<link rel="stylesheet" href="/css/panels/panels-fortress-information.css?v=3529beb3">
+<link rel="stylesheet" href="/css/panels/panels-labor.css?v=1690e56b">
+<link rel="stylesheet" href="/css/panels/panels-alerts.css?v=434a178a">
+<link rel="stylesheet" href="/css/panels/panels-work-orders.css?v=0ec9111f">
+<link rel="stylesheet" href="/css/panels/panels-squads.css?v=af772a64">
+<link rel="stylesheet" href="/css/panels/panels-reports.css?v=c17c42d3">
+<link rel="stylesheet" href="/css/panels/panels-fortress-management.css?v=d4caaa0d">
+<link rel="stylesheet" href="/css/panels/panels-help.css?v=09102c12">
+<link rel="stylesheet" href="/css/panels/panels-stockpiles.css?v=90848b89">
+<link rel="stylesheet" href="/css/panels/panels-activity.css?v=5fb9ddb0">
+<link rel="stylesheet" href="/css/panels/panels-console.css?v=6918a93d">
+<link rel="stylesheet" href="/css/panels/panels-trade.css?v=a0404fd0">
+<link rel="stylesheet" href="/css/panels/panels-build-information.css?v=a70f0dd0">
+<link rel="stylesheet" href="/css/panels/panels-join-gates.css?v=ea27f835">
+<link rel="stylesheet" href="/css/panels/panels-unit-cycle.css?v=31bd23e8">
+<link rel="stylesheet" href="/css/panels/panels-host-settings.css?v=00c9e92c">
+<link rel="stylesheet" href="/css/panels/panels-digest.css?v=8ed1d797">
+<link rel="stylesheet" href="/css/panels/panels-popup-mirror.css?v=7af0cbcc">
+<link rel="stylesheet" href="/css/panels/panels-hotkeys.css?v=28173e38">
+<link rel="stylesheet" href="/css/panels/panels-settings.css?v=cf7bd163">
+<link rel="stylesheet" href="/css/panels/panels-audio.css?v=8248dea3">
+<link rel="stylesheet" href="/css/panels/panels-diplomacy.css?v=170098c2">
+<link rel="stylesheet" href="/css/panels/panels-attribution.css?v=941c4bcb">
+<link rel="stylesheet" href="/css/panels/panels-chat.css?v=892c0483">
 <!-- VERSION-MISMATCH GATE: the client's baked build stamp. The server STAMPS this at serve time --
      GET /view replaces the DFCAPTURE_BUILD placeholder token (the quoted value in the script tag
      below) with its own build id (wire CRC + git short hash), so a freshly loaded tab always
@@ -185,9 +184,7 @@
        category -- already wired to open a popup / recenter on click, right-click
        dismiss). Native has no separate bottom-left announcement stream. -->
   <div id="leftBadges">
-    <button class="badge alert-badge" data-panel="alerts" title="Announcements">
-      <span class="alert-badge-text" aria-hidden="true">ALERT</span>
-    </button>
+    <button class="badge alert-badge" data-panel="alerts" title="Announcements"></button>
   </div>
   <!-- WD-8.5: active dig/designation-tool status plate (top-left, 01-dig.png ground
        truth: e.g. "Regular mining"). Shown only while a dig-family tool is selected;
@@ -247,66 +244,6 @@
   </div>
   <!-- WT03(a): multiplayer lobby -- connected players in their colors (dwf-lobby.js) -->
   <div id="lobbyPanel"></div>
-  <div id="settingsMenu">
-    <h3>Client settings</h3>
-    <div class="set-row" id="setInstantDig" title="Toggle how dig/zone/stockpile selections are drawn while you drag">
-      <div class="set-toggle"></div>
-      <div class="set-label">
-        <b>Instant designations</b>
-        <span>Draw the drag selection in your browser with no lag. Off = Dwarf Fortress' grid (smoother look, slight delay while dragging).</span>
-      </div>
-    </div>
-    <div class="set-row" id="setPredictivePan" title="Hide camera-pan latency by shifting the current frame immediately while the server catches up">
-      <div class="set-toggle"></div>
-      <div class="set-label">
-        <b>Predictive panning</b>
-        <span>Pan the camera instantly by sliding the current frame, then snap to the server frame as it catches up. Off = wait for each panned frame.</span>
-      </div>
-    </div>
-    <div class="set-row" id="setUnitImages" title="Toggle native unit portrait/body image requests">
-      <div class="set-toggle"></div>
-      <div class="set-label">
-        <b>Unit images</b>
-        <span>Show native portraits and body sprites in unit lists. Off = text glyphs only, avoiding DF unit texture generation.</span>
-      </div>
-    </div>
-    <div class="set-row" id="setShowAttribution" title="Show which player ordered a building or work order">
-      <div class="set-toggle"></div>
-      <div class="set-label">
-        <b>Show attribution</b>
-        <span>Show a colored dot with the name of the player who ordered a building, stockpile, zone, or work order. Off = hide the attribution dots.</span>
-      </div>
-    </div>
-    <div class="set-row set-row-zoom" id="setZoomRow" title="Map zoom: how much of the map fills the screen">
-      <div class="set-label">
-        <b>Zoom</b>
-        <span>How much of the map fills the screen. Also <b>Ctrl</b> + mouse wheel (or a trackpad pinch), or the <b>[</b> / <b>]</b> keys.</span>
-      </div>
-      <div class="zoom-controls">
-        <button type="button" id="zoomOutBtn" title="Zoom out (])">&minus;</button>
-        <span id="zoomReadout">100%</span>
-        <button type="button" id="zoomInBtn" title="Zoom in ([)">+</button>
-        <button type="button" id="zoomResetBtn" title="Reset zoom">Reset</button>
-      </div>
-    </div>
-    <div class="set-row set-row-zoom" id="setUiScaleRow" title="UI scale: size of the game interface (replaces browser page zoom)">
-      <div class="set-label">
-        <b>UI scale</b>
-        <span>Size of the interface panels and toolbars. Also <b>Ctrl</b> <b>+</b> / <b>&minus;</b> / <b>0</b>. (Use this instead of the browser's own zoom; <b>Ctrl</b> + wheel zooms the map, like DF.)</span>
-      </div>
-      <div class="zoom-controls">
-        <button type="button" id="uiScaleOutBtn" title="Smaller UI">&minus;</button>
-        <span id="uiScaleReadout">100%</span>
-        <button type="button" id="uiScaleInBtn" title="Larger UI">+</button>
-        <button type="button" id="uiScaleResetBtn" title="Reset UI scale">Reset</button>
-      </div>
-    </div>
-    <div class="set-row" data-action="reset" title="Reset camera to host view">
-      <div class="set-label">
-        <b>Reset camera to host view</b>
-      </div>
-    </div>
-  </div>
   <!-- WD-6: real DF minimap/z cluster, top-right (00-base-map.png ground truth): a
        vertical tool column LEFT of the minimap (follow/x-marker, recenter surface/deepest,
        zoom in/out, the two DISPLAY_TOGGLE_* buttons), the minimap + "Elevation N" label, and a
@@ -501,7 +438,7 @@
        [data-df-btn] buttons total: 8 info-window openers (left) + 12 designation/
        structure/mode tools in 4 sub-groups (center) + 2 (squads/world, right).
        Order, grouping and art tokens match the ui-truth captures; see
-       dwf-designation-controls.js's SPRITE_TOKENS + TOOLBAR_TOOLTIPS for the
+       dwf-control-shell.js's SPRITE_TOKENS + dwf-designation-controls.js's TOOLBAR_TOOLTIPS for the
        per-button DF sprite + hover-text/hotkey table (titles are set from that
        table at runtime, not hardcoded here). -->
   <div id="bottomBar">
@@ -568,34 +505,34 @@
 <!-- WD-27: Esc menu -- DF's real menu list, client-scoped; see dwf-escmenu.js. -->
 <div id="escMenu" aria-live="polite"></div>
 <!-- The shared storage primitives, clamp, and error reporter load before every consumer. -->
-<script src="/js/dwf-util.js?v=064fc876"></script>
+<script src="/js/dwf-util.js?v=cf55fcea"></script>
 <!-- COLD-LOAD ROUND 2: boot health -- the ring buffer's API surface (DwfBoot.note), the
      script-chain integrity check, and the one-shot self-heal that re-injects a script the link
      dropped. First after util so every later file can report through it. If THIS file is the one
      that goes missing, the inline core in <head> still records it and the boot tail below still
      boots (every DwfBoot call site is guarded). -->
-<script src="/js/dwf-boot-health.js?v=04eba8bf"></script>
+<script src="/js/dwf-boot-health.js?v=8326e0f8"></script>
 <!-- THE GRID AUTHORITY (FOUNDATIONS wave 1). Owns cells->pixels for the whole client: DF's 8x12
      authoring cell, the interface scale, the in-client `zoom:`, the DPR, the ONE rounding seam
      (ledger 0089), and grid_x/grid_y for the current viewport. It is the RUNTIME WRITER of
      --dwfui-cell-* / --dwfui-cell-drawn-* (dwf.css declares the same properties as the pre-boot
      fallback), so it loads BEFORE anything that measures or paints: bitmap text, DWFUI, every
      panel. No dependencies of its own. -->
-<script src="/js/dwf-grid.js?v=ac8038c4"></script>
-<script src="/js/dwf-bitmap-text.js?v=f5698167"></script>
+<script src="/js/dwf-grid.js?v=d9b271a2"></script>
+<script src="/js/dwf-bitmap-text.js?v=98b913e3"></script>
 <!-- Text-color: DF's [C:fg:bg:bright] markup parser (window.DwfDfMarkup), a faithful port of
      Gui::MTB_parse. Standalone (no deps); loads before any consumer of raw DF markup strings. -->
 <script src="/js/dwf-df-markup.js?v=88e23acc"></script>
-<script src="/js/dwf-ui-components.js?v=bda8eb5e"></script>
+<script src="/js/dwf-ui-components.js?v=e915180c"></script>
 <!-- W23: guarded-write flag mirror (fail-closed). Loads early so every panel can consult it. -->
-<script src="/js/dwf-write-guards.js?v=bd7e89a6"></script>
+<script src="/js/dwf-write-guards.js?v=fda3c53d"></script>
 <!-- COLD-LOAD ROUND 2: guarded. This is a DECLARATION of what the app shell uses; it must not be
      the thing that throws when dwf-ui-components.js is the file the link dropped (an inline script
      cannot be re-injected, so its throw would be unrepairable). -->
 <script>
 if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabsHtml", "rowHtml", "searchHtml", "scrollHtml", "headerHtml", "stepperHtml", "switchHtml", "statusHtml"]);
 </script>
-<script src="/js/dwf-interface-shell.js?v=2acb386e"></script>
+<script src="/js/dwf-interface-shell.js?v=cf373d32"></script>
 <!-- Tile renderer must load BEFORE core so window.DwfTiles exists when core inits the
      map surface. It only auto-boots standalone when a #tilemap canvas is present (tiles.html);
      here there is none, so it just exposes its API for core.js to drive. -->
@@ -610,10 +547,10 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      worker script doubles as the synchronous ingest-core fallback when loaded as a plain
      <script> (see the dual-mode banner in dwf-cache-worker.js), so it must load first. -->
 <script src="/js/dwf-cache-worker.js?v=a0de8d22"></script>
-<script src="/js/dwf-cache.js?v=501486f7"></script>
+<script src="/js/dwf-cache.js?v=7629f0c5"></script>
 <!-- WS push transport must load BEFORE the tile renderer so window.DwfWS exists
      when it wires the push hook. Absent => the renderer just keeps HTTP polling. -->
-<script src="/js/dwf-ws.js?v=f311b606"></script>
+<script src="/js/dwf-ws.js?v=9c963a3a"></script>
 <!-- WB-6: shared 8-neighbor adjacency (wall-join upgrade + WB-7's shadow-decal tables).
      Renderer-agnostic, must load before dwf-tiles.js's drawWallJoin/drawTileComposite
      reference window.DwfAdjacency. -->
@@ -622,11 +559,11 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
 <!-- Ledger 0071 §5 / 0072: native's two-bit terrain variant, keyed on WORLD position.
      Needs DwfGemVariant's splitmix64 (loaded above) and must load before the two
      renderers that consume it (dwf-tiles.js drawWallJoin, dwf-gl.js wallJoinCell). -->
-<script src="/js/dwf-terrain-variant.js?v=85657f61"></script>
+<script src="/js/dwf-terrain-variant.js?v=14622a23"></script>
 <!-- Ledger 0029: shared native grass species/sheet/cell selector for both renderers. -->
 <script src="/js/dwf-grass-selection.js?v=42a14a35"></script>
 <!-- Ledger 0028: shared pure edge-family/side/corner policy consumed by both renderers. -->
-<script src="/js/dwf-edge-overgrowth.js?v=17c98e04"></script>
+<script src="/js/dwf-edge-overgrowth.js?v=1b08a67a"></script>
 <!-- B206 PAUSE-ANIM: server-driven pause-aware WORLD animation clock. Both renderers subtract its
      paused-span offset from their sprite/flow/machine clocks so game-world animations (miasma,
      fire, water shimmer, machine frames) freeze while the game is paused and resume with no jump.
@@ -634,15 +571,15 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
 <script src="/js/dwf-animclock.js?v=7eb6717d"></script>
 <script src="/js/dwf-farm-crops.js?v=b2c67ded"></script>
 <script src="/js/dwf-item-selection.js?v=a2a2f9b6"></script>
-<script src="/js/dwf-unit-status.js?v=efad13f7"></script>
+<script src="/js/dwf-unit-status.js?v=edf5f620"></script>
 <script src="/js/dwf-construction-select.js?v=6141ea8f"></script>
 <script src="/js/dwf-designation-job.js?v=90b3b88b"></script>
-<script src="/js/dwf-tiles.js?v=3e4d8bd7"></script>
+<script src="/js/dwf-tiles.js?v=ef4d5689"></script>
 <!-- WB-8/WB-9 GL renderer: the instanced-quad atlas packer + the WebGL2 core pipeline. Behind
      the ?renderer=gl seam flag (default stays canvas2d until WB-14). Load BEFORE render.js so
      its gl impl can reference window.DwfGL / window.DwfGLAtlas at init. -->
 <script src="/js/dwf-gl-atlas.js?v=462dd0ce"></script>
-<script src="/js/dwf-gl.js?v=bbd8ef83"></script>
+<script src="/js/dwf-gl.js?v=8984baa8"></script>
 <!-- Renderer seam (WB-1): registers canvas2d/gl + selection/fallback. Loads AFTER
      dwf-tiles.js (so window.DwfTiles already exists) and BEFORE core.js. -->
 <script src="/js/dwf-render.js?v=85c889fd"></script>
@@ -650,7 +587,7 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      panels + the work-orders list. Loads AFTER dwf-tiles.js (window.DwfTiles
      .playerColor) and BEFORE the panels that call attribRowHtml(). Graceful on the pre-WP-C
      DLL (/attrib 404 -> dormant, no dots, no errors). -->
-<script src="/js/dwf-attribution.js?v=618e6ffc"></script>
+<script src="/js/dwf-attribution.js?v=85c48165"></script>
 <!-- Feel-sweep rank 1: the shared drag-preview MODEL (inclusive W x H x D readout math, label
      placement away from the growth direction, and the per-tool-family add/erase/remove palette).
      Pure arithmetic + colour tables, no DOM. Must load BEFORE dwf-core.js, whose drawDragPreview
@@ -667,7 +604,7 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
 <!-- Feel-sweep rank 2: the back-out ladder. One ordered set of predicate-backed rungs shared by
      Escape and right-click, so exactly one level pops per press in every flow. Must load before
      every module that registers a rung on it (placement, squads, work orders, building panels). -->
-<script src="/js/dwf-mode-stack.js?v=a00ac5e4"></script>
+<script src="/js/dwf-mode-stack.js?v=279abd5f"></script>
 <!-- Feel-sweep rank 12: the safety-and-honesty foundations -- a two-step confirm latch for
      destructive actions (in-UI, never a browser confirm()) and the per-subsystem rect/free paint
      flags. Pure state, no DOM. Must load before the modules that read them. -->
@@ -678,30 +615,33 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      secondary path, and the world->window conversion the still-window-addressed paint routes
      need. Pure state + arithmetic, no DOM. Must load BEFORE dwf-designation-controls.js and dwf-map-placement-input.js, its consumers. -->
 <script src="/js/dwf-gesture.js?v=28f4302e"></script>
-<script src="/js/dwf-core.js?v=34a54044"></script>
-
+<script src="/js/dwf-core.js?v=270e86d9"></script>
+<!-- B169 DWFUI shared component layer: dumb declarative HTML builders (rows, tabs, action
+     clusters, tri-state marks, search, headers, tokens). Dependency-free; must load BEFORE any
+     panel module that builds markup through window.DWFUI (building-zone-stockpile-panels first).
+     Spec: docs/superpowers/specs/ui/2026-07-10-ui-component-architecture.md -->
 <script src="/js/dwf-menu-tree.js?v=99f3a035"></script>
-<script src="/js/dwf-building-panel.js?v=71576d73"></script>
-<script src="/js/dwf-machine-panel.js?v=ddda8821"></script>
-<script src="/js/dwf-siege-engine-panel.js?v=b444b73a"></script>
-<script src="/js/dwf-farm-plot-panel.js?v=22f1b1ae"></script>
-<script src="/js/dwf-lever-link-panel.js?v=051a6970"></script>
-<script src="/js/dwf-workshop-panel.js?v=f52bfef9"></script>
-<script src="/js/dwf-zone-panel.js?v=f00ed8d2"></script>
-<script src="/js/dwf-stockpile-panel.js?v=477a06a4"></script>
-<script src="/js/dwf-stockpile-settings.js?v=7aee58f9"></script>
+<script src="/js/dwf-building-panel.js?v=0e0c39f6"></script>
+<script src="/js/dwf-machine-panel.js?v=3cd7114f"></script>
+<script src="/js/dwf-siege-engine-panel.js?v=6af2d159"></script>
+<script src="/js/dwf-farm-plot-panel.js?v=e871ed77"></script>
+<script src="/js/dwf-lever-link-panel.js?v=8ba5ac1e"></script>
+<script src="/js/dwf-workshop-panel.js?v=bc3d2fef"></script>
+<script src="/js/dwf-zone-panel.js?v=14e01851"></script>
+<script src="/js/dwf-stockpile-panel.js?v=9b8a23df"></script>
+<script src="/js/dwf-stockpile-settings.js?v=551d1dfd"></script>
 <script src="/js/dwf-trade-model.js?v=57b459a9"></script>
-<script src="/js/dwf-tradedepot-panel.js?v=a26da201"></script>
+<script src="/js/dwf-tradedepot-panel.js?v=e957d216"></script>
 <!-- B226: the full trade screen (barter, oracle B226-barter-1..4) + the bring-goods-to-depot
      screen (B226-depot-1..7). Loads AFTER dwf-ui-components.js (DWFUI) and after the
      depot panel whose plaques open it. -->
-<script src="/js/dwf-tradescreen.js?v=52421754"></script>
+<script src="/js/dwf-tradescreen.js?v=fefcbc6a"></script>
 <script src="/js/dwf-location-model.js?v=25d7c0bf"></script>
-<script src="/js/dwf-hospital-panel.js?v=ef569306"></script>
+<script src="/js/dwf-hospital-panel.js?v=3ac9a033"></script>
 <!-- B229: Location Details (occupants / occupation assignment / temple-deity + guild pickers /
      rented rooms). Loads AFTER the hospital panel: openLocationPanel hands a hospital location
      off to openHospitalPanel, which must already be on window. -->
-<script src="/js/dwf-location-panel.js?v=6dd4ac80"></script>
+<script src="/js/dwf-location-panel.js?v=b6b23fa2"></script>
 <!-- TX14: shared announcement formatting (DwfAnnouncementFormat) -- the 37-entry
      category table + the zoom-target resolver (pos/pos2, zoom_type/zoom_type2, NONE
      handling). Must load BEFORE every consumer: unit-hud-notifications (popups/alert
@@ -720,40 +660,40 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      these two tags CLOSED. ui_drift_guard now pins unclosed-script-tag detection. -->
 <script src="/js/dwf-unit-portrait.js?v=9749e94f"></script>
 <script src="/js/dwf-unit-follow.js?v=faa9cb36"></script>
-<script src="/js/dwf-unit-profile.js?v=fcdd72eb"></script>
-<script src="/js/dwf-fortress-hud.js?v=91b7d8c1"></script>
+<script src="/js/dwf-unit-profile.js?v=3b6f41af"></script>
+<script src="/js/dwf-fortress-hud.js?v=11674c4c"></script>
 <script src="/js/dwf-minimap.js?v=41062e9c"></script>
-<script src="/js/dwf-announcement-viewer.js?v=4cb41331"></script>
+<script src="/js/dwf-announcement-viewer.js?v=9d2f84aa"></script>
 <script src="/js/dwf-local-panel-router.js?v=adbf52d2"></script>
-<script src="/js/dwf-info-panel.js?v=52a30dd8"></script>
-<script src="/js/dwf-creatures-panel.js?v=61f4b3fc"></script>
+<script src="/js/dwf-info-panel.js?v=8fa508a1"></script>
+<script src="/js/dwf-creatures-panel.js?v=85b991a1"></script>
 <script src="/js/dwf-vermin-panel.js?v=78180e4d"></script>
 <script src="/js/dwf-planned-engraving-panel.js?v=14364da5"></script>
-<script src="/js/dwf-item-panel.js?v=eab7c7ce"></script>
-<script src="/js/dwf-stocks-panel.js?v=1474b70c"></script>
+<script src="/js/dwf-item-panel.js?v=0f129deb"></script>
+<script src="/js/dwf-stocks-panel.js?v=925db9ec"></script>
 <script src="/js/dwf-tasks-panel.js?v=3bb0371a"></script>
-<script src="/js/dwf-build-panel.js?v=8a45ba17"></script>
-<script src="/js/dwf-labor-details.js?v=289fe5af"></script>
-<script src="/js/dwf-standing-orders.js?v=89d46a8d"></script>
-<script src="/js/dwf-stone-use.js?v=b5f38612"></script>
-<script src="/js/dwf-work-orders.js?v=3ce839d0"></script>
-<script src="/js/dwf-squad-positions.js?v=810c2134"></script>
-<script src="/js/dwf-squad-equipment.js?v=dfed4045"></script>
-<script src="/js/dwf-squad-schedule.js?v=38b30433"></script>
-<script src="/js/dwf-squad-emblem.js?v=55177a6c"></script>
+<script src="/js/dwf-build-panel.js?v=e6fa67af"></script>
+<script src="/js/dwf-labor-details.js?v=a44aed9e"></script>
+<script src="/js/dwf-standing-orders.js?v=269f5dd4"></script>
+<script src="/js/dwf-stone-use.js?v=fa8d98e5"></script>
+<script src="/js/dwf-work-orders.js?v=08979d4c"></script>
+<script src="/js/dwf-squad-positions.js?v=3dedd369"></script>
+<script src="/js/dwf-squad-equipment.js?v=57424430"></script>
+<script src="/js/dwf-squad-schedule.js?v=f853254a"></script>
+<script src="/js/dwf-squad-emblem.js?v=ea05e551"></script>
 <script src="/js/dwf-squad-burrow-order.js?v=fef1212c"></script>
 <script src="/js/dwf-squad-patrol-order.js?v=3e5d8dd5"></script>
-<script src="/js/dwf-squad-panel.js?v=db0e3dcd"></script>
-<script src="/js/dwf-announcements.js?v=5882f65d"></script>
+<script src="/js/dwf-squad-panel.js?v=b15e14d6"></script>
+<script src="/js/dwf-announcements.js?v=4329eb55"></script>
 <!-- WT13: Fortress-activity (analytics) overview. Aggregates GET /attrib (the AttributionRegistry)
      client-side into per-player action counts. Loads AFTER dwf-ui-components.js (DWFUI) +
      dwf-attribution.js (window.attribRefresh); registers with DFPanelFrame lazily. -->
-<script src="/js/dwf-analytics-panel.js?v=75ba062a"></script>
+<script src="/js/dwf-analytics-panel.js?v=c759edbf"></script>
 <!-- WT26: browser DFHack command console (gui/launcher equivalent). Fetches the helpdb catalog +
      server deny table once from GET /console/commands and filters client-side; POST /console/run
      executes. Available to any AUTHED player (not host-only, the owner decision) -- containment is the
      server-side blocklist (src/console_policy.h). Loads AFTER dwf-ui-components.js (DWFUI). -->
-<script src="/js/dwf-console-panel.js?v=f068db7d"></script>
+<script src="/js/dwf-console-panel.js?v=de16a4ba"></script>
 <!-- WT28/B218: native popup mirror. Push-driven ({"type":"popup"} WS frames via dwf-ws.js);
      fully dormant against a server without the popup routes. Any player can dismiss the mirrored
      native modal (POST /popup/dismiss) so an unattended host PC never wedges the fortress.
@@ -763,66 +703,66 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      {"type":"diplo"} frames (feature-detect: an old server never emits them, so the module
      stays invisible there). Loads AFTER dwf-info-panel.js (openPanel) and
      dwf-ui-components.js (DWFUI.lightPlaqueHtml). -->
-<script src="/js/dwf-diplo.js?v=1dc709ee"></script>
-<script src="/js/dwf-missions.js?v=cb202631"></script>
+<script src="/js/dwf-diplo.js?v=9de4d0f1"></script>
+<script src="/js/dwf-missions.js?v=e51a69fa"></script>
 <script src="/js/dwf-fort-panels.js?v=ea83d943"></script>
-<script src="/js/dwf-fort-admin.js?v=32c14b99"></script>
+<script src="/js/dwf-fort-admin.js?v=bec8ffd9"></script>
 <!-- WT15: summonable Obligations board (noble mandates + guildhall/temple agreements). -->
-<script src="/js/dwf-obligations.js?v=b9fb7bda"></script>
+<script src="/js/dwf-obligations.js?v=c3081f00"></script>
 <!-- WD-13: the invented add-unit-by-id burrows window was removed. DF's real burrows mode
      (full-height left panel + tile painting, 09-burrows.png) lives in
      dwf-burrow-panel.js now, and the old panel was already unreachable
      (nothing called openBurrowsPanel; openPanel("burrows") hit the renderLocalPanel stub). -->
-<script src="/js/dwf-kitchen.js?v=1d735fdd"></script>
+<script src="/js/dwf-kitchen.js?v=d159b377"></script>
 <!-- WD-27: World screen rebuilt as a full-screen takeover (was a floating fort-window panel). -->
-<script src="/js/dwf-worldmap.js?v=35c87207"></script>
+<script src="/js/dwf-worldmap.js?v=7792e835"></script>
 <!-- WT11: 3D world viewer. THREE pure stages (model -> voxelizer -> mesher) + a WebGL2 overlay.
      Loads AFTER dwf-tiles.js (needs DwfTiles.tileColor) and dwf-cache.js
      (windowView + mapDims). The model carries the orbit camera + z-slab state machines. -->
 <script src="/js/dwf-world3d-model.js?v=bf1714b0"></script>
 <script src="/js/dwf-voxelizer.js?v=8cf559cf"></script>
 <script src="/js/dwf-voxel-mesh.js?v=fc3e8857"></script>
-<script src="/js/dwf-world3d.js?v=02fa5008"></script>
+<script src="/js/dwf-world3d.js?v=be8ed587"></script>
 <!-- WD-26: DF-styled tooltip + first-time help-popup component. Delegation-based (no
      call-site changes needed anywhere else), so load order relative to the panel scripts
      doesn't matter -- placed here alongside the other chrome helpers. -->
-<script src="/js/dwf-tooltip.js?v=584a51d3"></script>
+<script src="/js/dwf-tooltip.js?v=22cc0c2e"></script>
 <!-- WD-3: interface-sprite blit helper (interface_map.json + DFChrome.icon/
      dfChromeIcon). Loads BEFORE the controls/placement modules so window.DFChrome
      exists when paintSprite() calls into it. -->
 <script src="/js/dwf-chrome.js?v=85f0e23a"></script>
-<script src="/js/dwf-control-shell.js?v=d6d60c4b"></script>
-<script src="/js/dwf-map-chrome-controls.js?v=6e9eb6f6"></script>
-<script src="/js/dwf-designation-controls.js?v=a9e72c5b"></script>
-<script src="/js/dwf-stockpile-placement.js?v=4c008ff3"></script>
-<script src="/js/dwf-zone-placement.js?v=280159a7"></script>
-<script src="/js/dwf-burrow-panel.js?v=d1c27fc3"></script>
-<script src="/js/dwf-hauling-panel.js?v=275ef2d1"></script>
-<script src="/js/dwf-map-target-modes.js?v=dfd46ecc"></script>
-<script src="/js/dwf-tool-mode-controller.js?v=8a2ad72e"></script>
-<script src="/js/dwf-map-placement-input.js?v=ca005236"></script>
+<script src="/js/dwf-control-shell.js?v=37acb96f"></script>
+<script src="/js/dwf-map-chrome-controls.js?v=bee2e3ad"></script>
+<script src="/js/dwf-designation-controls.js?v=1d8c0bf9"></script>
+<script src="/js/dwf-stockpile-placement.js?v=eddb3b21"></script>
+<script src="/js/dwf-zone-placement.js?v=8a0919bb"></script>
+<script src="/js/dwf-burrow-panel.js?v=fe2ba95b"></script>
+<script src="/js/dwf-hauling-panel.js?v=e737fbbc"></script>
+<script src="/js/dwf-map-target-modes.js?v=e1870472"></script>
+<script src="/js/dwf-tool-mode-controller.js?v=d7d3ed83"></script>
+<script src="/js/dwf-map-placement-input.js?v=ec77c4f2"></script>
 <script src="/js/dwf-map-hover.js?v=9be4acbf"></script>
 <!-- WT20 (mobile): touch-gesture layer for the map canvas -- one-finger pan / pinch zoom /
      two-finger z-swipe / tap-as-click, all routed into the EXISTING camera+selection
      primitives (window.DFTouchNav from core.js, window.DFPlacementArmed from
      dwf-map-placement-input.js). Acts only on pointerType==="touch" events; a mouse-only desktop
      never enters it. Also maintains the --dfvv-kb-inset keyboard var for chat. -->
-<script src="/js/dwf-touch.js?v=e3744189"></script>
+<script src="/js/dwf-touch.js?v=95bb04c4"></script>
 <!-- WD-27: Esc menu (client-scoped; see file header for save permissions). -->
-<script src="/js/dwf-escmenu.js?v=ff47ff62"></script>
+<script src="/js/dwf-escmenu.js?v=65de91ca"></script>
 <!-- HOST SETTINGS panel: host-only point-and-click for pause permissions, join password, and the
      connected-players roster. Styling ships in dwf.css; entry row injected into the Esc menu
      for the loopback host only. Dormant-graceful against an older DLL (missing routes -> hints). -->
-<script src="/js/dwf-hostpanel.js?v=e293aaae"></script>
+<script src="/js/dwf-hostpanel.js?v=f9ef683f"></script>
 <!-- WD-28: keyboard parity audit + keymap documentation + in-UI hotkey reference overlay -->
 <script src="/js/dwf-keymap.js?v=3b54c3e1"></script>
 <!-- B207: full "?" help reference. Corpus is generated from source (never hand-maintained);
      curated adds optional one-line clarifications; panel renders the searchable reference. Loads
      after dwf-ui-components.js (DWFUI) and dwf-keymap.js. -->
-<script src="/js/dwf-help-corpus.js?v=193c474a"></script>
+<script src="/js/dwf-help-corpus.js?v=55b3c7b4"></script>
 <script src="/js/dwf-help-curated.js?v=71e191b0"></script>
-<script src="/js/dwf-help-panel.js?v=e7f87275"></script>
-<script src="/js/dwf-lobby.js?v=1aa73cb1"></script>
+<script src="/js/dwf-help-panel.js?v=875d1886"></script>
+<script src="/js/dwf-lobby.js?v=40c58358"></script>
 <!-- WP-B: pause-arbiter client consumer ({"type":"pause"} who-paused line + toast, {"type":"busy"}
      saving indicator). Loads after lobby.js (calls DwfLobby.setPauseText) + ws.js (routes
      the frames here). Inert-graceful against an old DLL that never emits these frames. -->
@@ -832,15 +772,15 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      tiles.js (player colors + live unit roster), core.js (window.playerName/camera), and DWFUI
      (composer/suggestion components). XSS-safe: raw chat reaches textContent/safe link attributes
      only. Graceful-dormant against an old DLL (no /chat route -> disabled). -->
-<script src="/js/dwf-digest.js?v=fb4e2894"></script>
-<script src="/js/dwf-chat.js?v=900a3670"></script>
+<script src="/js/dwf-digest.js?v=2106a01e"></script>
+<script src="/js/dwf-chat.js?v=5812cbf0"></script>
 <!-- B04: per-tile unit selection cycling. Loads after core.js + unit-hud so it can read the
      shared `player`/`selectedUnitData`/`showUnitSheet` bindings; injects a unit-cycle bar into
      the open unit sheet whenever the clicked tile holds more than one unit. -->
-<script src="/js/dwf-unitcycle.js?v=1303e1f8"></script>
+<script src="/js/dwf-unitcycle.js?v=56331b84"></script>
 <!-- B15: saved map-location (DF hotkey) fly-out panel. Self-contained; reads GET /hotkeys,
      mutates POST /hotkey-action; recenters via the shared `player` camera. -->
-<script src="/js/dwf-hotkeys.js?v=0f354bce"></script>
+<script src="/js/dwf-hotkeys.js?v=258af49a"></script>
 <!-- WC-20: weather ambience (rain/snow) overlay. Self-contained top layer above the map
      canvases; reads DwfTiles.getLatest().env; ?weatherfx=0 disables (parity kill switch). -->
 <script src="/js/dwf-weather.js?v=f55c52db"></script>
@@ -848,18 +788,18 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
      schedule derived from server env.music), budgeted+hysteretic ambience bed, spaced/ducked
      stingers. Self-contained; graceful-dormant vs a DLL with no /sound route (shows "host needs
      update"). Kill switch: ?audio=0. -->
-<script src="/js/dwf-audio.js?v=fc2876d4"></script>
+<script src="/js/dwf-audio.js?v=cd4cd0b0"></script>
 <!-- Phase-5 client Settings panel (Esc > Settings): keybind remapping, interface prefs, UI scale
      (absorbs PDF-B17), read-only info. Its styling ships in dwf.css. Exposes
      window.DFKeybinds.resolve() consumed by dwf-tool-mode-controller.js's hotkey switch.
      Fully dormant-safe: zero behavior change if the panel is never opened / this file never loads. -->
-<script src="/js/dwf-panelframe.js?v=14d9e6bc"></script>
-<script src="/js/dwf-settings.js?v=b8b3053b"></script>
+<script src="/js/dwf-panelframe.js?v=37829a63"></script>
+<script src="/js/dwf-settings.js?v=209399c3"></script>
 <!-- B08/B18 (WC-7 residual): renderer-agnostic building-overlay pass -- stockpile designation
      boxes (always) + queued/unbuilt construction boxes (dormant until the server ships `built`).
      Self-owned canvas above the map; reads DwfTiles.getRenderRect/getLatest, so canvas2d
      and WebGL reach parity for free (lives in neither renderer). -->
-<script src="/js/dwf-overlay-canvas.js?v=bb155cf2"></script>
+<script src="/js/dwf-overlay-canvas.js?v=dd2baa27"></script>
 <script src="/js/dwf-overlay-boxes.js?v=cdd3afc6"></script>
 <!-- B230 BURROW TILE OVERLAY: draws each burrow's assigned tiles (the `rects` /burrows has shipped
      since WD-13 and nothing consumed) while burrow mode is open, tinted with the burrow's own DF
@@ -869,7 +809,7 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
 <!-- JOIN SECURITY + VERSION GATE (ship-blockers): renders the join screen (name + password) and
      the stale-tab banner, then boots the app. Self-contained; must define DwfJoin before the
      boot call below. -->
-<script src="/js/dwf-join.js?v=f93cee2d"></script>
+<script src="/js/dwf-join.js?v=8b667843"></script>
 <!-- COLD-LOAD ROUND 2 -- SCRIPT MANIFEST. Generated; do not hand-edit. Refresh with
      `node tools/architecture/browser_dependency_inventory.mjs --write`, which derives it from the
      <script src> chain above and each file's own window-global assignments (the same scan that
@@ -878,134 +818,134 @@ if (window.DWFUI) window.DWFUI.require("application-shell", ["windowHtml", "tabs
 <!-- BEGIN GENERATED SCRIPT MANIFEST -->
 <script>
 window.__DWF_SCRIPT_MANIFEST__ = [
-  {"file":"dwf-auth-gate.js","url":"/js/dwf-auth-gate.js?v=547e81e8","provides":["DwfAuthGate"]},
-  {"file":"dwf-util.js","url":"/js/dwf-util.js?v=064fc876","provides":["DwfErr","DwfUtil"]},
-  {"file":"dwf-boot-health.js","url":"/js/dwf-boot-health.js?v=04eba8bf","provides":["DwfBoot"]},
-  {"file":"dwf-grid.js","url":"/js/dwf-grid.js?v=ac8038c4","provides":["DwfGrid"]},
-  {"file":"dwf-bitmap-text.js","url":"/js/dwf-bitmap-text.js?v=f5698167","provides":["DFBitmapText"]},
+  {"file":"dwf-auth-gate.js","url":"/js/dwf-auth-gate.js?v=2f3ba9d1","provides":["DwfAuthGate"]},
+  {"file":"dwf-util.js","url":"/js/dwf-util.js?v=cf55fcea","provides":["DwfErr","DwfUtil"]},
+  {"file":"dwf-boot-health.js","url":"/js/dwf-boot-health.js?v=8326e0f8","provides":["DwfBoot"]},
+  {"file":"dwf-grid.js","url":"/js/dwf-grid.js?v=d9b271a2","provides":["DwfGrid"]},
+  {"file":"dwf-bitmap-text.js","url":"/js/dwf-bitmap-text.js?v=98b913e3","provides":["DFBitmapText"]},
   {"file":"dwf-df-markup.js","url":"/js/dwf-df-markup.js?v=88e23acc","provides":["DwfDfMarkup"]},
-  {"file":"dwf-ui-components.js","url":"/js/dwf-ui-components.js?v=bda8eb5e","provides":["DWFUI"]},
-  {"file":"dwf-write-guards.js","url":"/js/dwf-write-guards.js?v=bd7e89a6","provides":["DFWriteGuards"]},
-  {"file":"dwf-interface-shell.js","url":"/js/dwf-interface-shell.js?v=2acb386e","provides":["DwfInterfaceShell"]},
+  {"file":"dwf-ui-components.js","url":"/js/dwf-ui-components.js?v=e915180c","provides":["DWFUI"]},
+  {"file":"dwf-write-guards.js","url":"/js/dwf-write-guards.js?v=fda3c53d","provides":["DFWriteGuards"]},
+  {"file":"dwf-interface-shell.js","url":"/js/dwf-interface-shell.js?v=cf373d32","provides":["DwfInterfaceShell"]},
   {"file":"dwf-wire-v1.js","url":"/js/dwf-wire-v1.js?v=257983aa","provides":["DwfWireV1"]},
   {"file":"dwf-cache-worker.js","url":"/js/dwf-cache-worker.js?v=a0de8d22","provides":[]},
-  {"file":"dwf-cache.js","url":"/js/dwf-cache.js?v=501486f7","provides":["DwfCache"]},
-  {"file":"dwf-ws.js","url":"/js/dwf-ws.js?v=f311b606","provides":["DwfSessionInfo","DwfWS"]},
+  {"file":"dwf-cache.js","url":"/js/dwf-cache.js?v=7629f0c5","provides":["DwfCache"]},
+  {"file":"dwf-ws.js","url":"/js/dwf-ws.js?v=9c963a3a","provides":["DwfSessionInfo","DwfWS"]},
   {"file":"dwf-gem-variant.js","url":"/js/dwf-gem-variant.js?v=e330f1ef","provides":["DwfGemVariant"]},
   {"file":"dwf-adjacency.js","url":"/js/dwf-adjacency.js?v=3228e9ef","provides":["DwfAdjacency"]},
-  {"file":"dwf-terrain-variant.js","url":"/js/dwf-terrain-variant.js?v=85657f61","provides":["DwfTerrainVariant"]},
+  {"file":"dwf-terrain-variant.js","url":"/js/dwf-terrain-variant.js?v=14622a23","provides":["DwfTerrainVariant"]},
   {"file":"dwf-grass-selection.js","url":"/js/dwf-grass-selection.js?v=42a14a35","provides":["DwfGrassSelection"]},
-  {"file":"dwf-edge-overgrowth.js","url":"/js/dwf-edge-overgrowth.js?v=17c98e04","provides":["DwfEdgeOvergrowth"]},
+  {"file":"dwf-edge-overgrowth.js","url":"/js/dwf-edge-overgrowth.js?v=1b08a67a","provides":["DwfEdgeOvergrowth"]},
   {"file":"dwf-animclock.js","url":"/js/dwf-animclock.js?v=7eb6717d","provides":["DFAnimClock"]},
   {"file":"dwf-farm-crops.js","url":"/js/dwf-farm-crops.js?v=b2c67ded","provides":["DwfFarmCrops"]},
   {"file":"dwf-item-selection.js","url":"/js/dwf-item-selection.js?v=a2a2f9b6","provides":["DwfItemSelection"]},
-  {"file":"dwf-unit-status.js","url":"/js/dwf-unit-status.js?v=efad13f7","provides":["DwfUnitStatus"]},
+  {"file":"dwf-unit-status.js","url":"/js/dwf-unit-status.js?v=edf5f620","provides":["DwfUnitStatus"]},
   {"file":"dwf-construction-select.js","url":"/js/dwf-construction-select.js?v=6141ea8f","provides":["DwfConstructionSelect"]},
   {"file":"dwf-designation-job.js","url":"/js/dwf-designation-job.js?v=90b3b88b","provides":["DwfDesignationJob"]},
-  {"file":"dwf-tiles.js","url":"/js/dwf-tiles.js?v=3e4d8bd7","provides":["DwfJson","DwfPresence","DwfTiles"]},
+  {"file":"dwf-tiles.js","url":"/js/dwf-tiles.js?v=ef4d5689","provides":["DwfJson","DwfPresence","DwfTiles"]},
   {"file":"dwf-gl-atlas.js","url":"/js/dwf-gl-atlas.js?v=462dd0ce","provides":["DwfGLAtlas"]},
-  {"file":"dwf-gl.js","url":"/js/dwf-gl.js?v=bbd8ef83","provides":["DwfGL"]},
+  {"file":"dwf-gl.js","url":"/js/dwf-gl.js?v=8984baa8","provides":["DwfGL"]},
   {"file":"dwf-render.js","url":"/js/dwf-render.js?v=85c889fd","provides":["DwfRender"]},
-  {"file":"dwf-attribution.js","url":"/js/dwf-attribution.js?v=618e6ffc","provides":[]},
+  {"file":"dwf-attribution.js","url":"/js/dwf-attribution.js?v=85c48165","provides":[]},
   {"file":"dwf-drag-preview.js","url":"/js/dwf-drag-preview.js?v=4621a361","provides":["DwfDragPreview"]},
   {"file":"dwf-paint-session.js","url":"/js/dwf-paint-session.js?v=06d53706","provides":["DwfPaintSession"]},
-  {"file":"dwf-mode-stack.js","url":"/js/dwf-mode-stack.js?v=a00ac5e4","provides":["DwfModeStack"]},
+  {"file":"dwf-mode-stack.js","url":"/js/dwf-mode-stack.js?v=279abd5f","provides":["DwfModeStack"]},
   {"file":"dwf-safety.js","url":"/js/dwf-safety.js?v=ae02c79d","provides":["DwfConfirmGate","DwfPaintModes"]},
   {"file":"dwf-gesture.js","url":"/js/dwf-gesture.js?v=28f4302e","provides":["DwfGesture"]},
-  {"file":"dwf-core.js","url":"/js/dwf-core.js?v=34a54044","provides":["DFBackOut","DFDesignationRangeWheel","DFDragIntent","DFTouchNav","DwfCore","DwfCoreTransport","DwfOrder","DwfReportTransport","DwfSpectate"]},
+  {"file":"dwf-core.js","url":"/js/dwf-core.js?v=270e86d9","provides":["DFBackOut","DFDesignationRangeWheel","DFDragIntent","DFTouchNav","DwfCore","DwfCoreTransport","DwfOrder","DwfReportTransport","DwfSpectate"]},
   {"file":"dwf-menu-tree.js","url":"/js/dwf-menu-tree.js?v=99f3a035","provides":["DwfMenuTree"]},
-  {"file":"dwf-building-panel.js","url":"/js/dwf-building-panel.js?v=71576d73","provides":["DFBuildingOperationsMarkup"]},
-  {"file":"dwf-machine-panel.js","url":"/js/dwf-machine-panel.js?v=ddda8821","provides":["DWF_EXTENSION_LABEL"]},
-  {"file":"dwf-siege-engine-panel.js","url":"/js/dwf-siege-engine-panel.js?v=b444b73a","provides":[]},
-  {"file":"dwf-farm-plot-panel.js","url":"/js/dwf-farm-plot-panel.js?v=22f1b1ae","provides":["FARM_SEED_STACK_WIRE_CAP"]},
-  {"file":"dwf-lever-link-panel.js","url":"/js/dwf-lever-link-panel.js?v=051a6970","provides":[]},
-  {"file":"dwf-workshop-panel.js","url":"/js/dwf-workshop-panel.js?v=f52bfef9","provides":["DFWsLink"]},
-  {"file":"dwf-zone-panel.js","url":"/js/dwf-zone-panel.js?v=f00ed8d2","provides":[]},
-  {"file":"dwf-stockpile-panel.js","url":"/js/dwf-stockpile-panel.js?v=477a06a4","provides":[]},
-  {"file":"dwf-stockpile-settings.js","url":"/js/dwf-stockpile-settings.js?v=7aee58f9","provides":["DFStockpileSettings"]},
+  {"file":"dwf-building-panel.js","url":"/js/dwf-building-panel.js?v=0e0c39f6","provides":["DFBuildingOperationsMarkup"]},
+  {"file":"dwf-machine-panel.js","url":"/js/dwf-machine-panel.js?v=3cd7114f","provides":["DWF_EXTENSION_LABEL"]},
+  {"file":"dwf-siege-engine-panel.js","url":"/js/dwf-siege-engine-panel.js?v=6af2d159","provides":[]},
+  {"file":"dwf-farm-plot-panel.js","url":"/js/dwf-farm-plot-panel.js?v=e871ed77","provides":["FARM_SEED_STACK_WIRE_CAP"]},
+  {"file":"dwf-lever-link-panel.js","url":"/js/dwf-lever-link-panel.js?v=8ba5ac1e","provides":[]},
+  {"file":"dwf-workshop-panel.js","url":"/js/dwf-workshop-panel.js?v=bc3d2fef","provides":["DFWsLink"]},
+  {"file":"dwf-zone-panel.js","url":"/js/dwf-zone-panel.js?v=14e01851","provides":[]},
+  {"file":"dwf-stockpile-panel.js","url":"/js/dwf-stockpile-panel.js?v=9b8a23df","provides":[]},
+  {"file":"dwf-stockpile-settings.js","url":"/js/dwf-stockpile-settings.js?v=551d1dfd","provides":["DFStockpileSettings"]},
   {"file":"dwf-trade-model.js","url":"/js/dwf-trade-model.js?v=57b459a9","provides":["DwfTradeModel"]},
-  {"file":"dwf-tradedepot-panel.js","url":"/js/dwf-tradedepot-panel.js?v=a26da201","provides":["DFTradeDepotMarkup"]},
-  {"file":"dwf-tradescreen.js","url":"/js/dwf-tradescreen.js?v=52421754","provides":["DFTradeScreen"]},
+  {"file":"dwf-tradedepot-panel.js","url":"/js/dwf-tradedepot-panel.js?v=e957d216","provides":["DFTradeDepotMarkup"]},
+  {"file":"dwf-tradescreen.js","url":"/js/dwf-tradescreen.js?v=fefcbc6a","provides":["DFTradeScreen"]},
   {"file":"dwf-location-model.js","url":"/js/dwf-location-model.js?v=25d7c0bf","provides":["DwfLocationModel"]},
-  {"file":"dwf-hospital-panel.js","url":"/js/dwf-hospital-panel.js?v=ef569306","provides":["DFHospitalMarkup"]},
-  {"file":"dwf-location-panel.js","url":"/js/dwf-location-panel.js?v=6dd4ac80","provides":["DFLocationMarkup"]},
+  {"file":"dwf-hospital-panel.js","url":"/js/dwf-hospital-panel.js?v=3ac9a033","provides":["DFHospitalMarkup"]},
+  {"file":"dwf-location-panel.js","url":"/js/dwf-location-panel.js?v=b6b23fa2","provides":["DFLocationMarkup"]},
   {"file":"dwf-announcement-format.js","url":"/js/dwf-announcement-format.js?v=d4c3ec33","provides":["DwfAnnouncementFormat"]},
   {"file":"dwf-announce-taxonomy.js","url":"/js/dwf-announce-taxonomy.js?v=afe47515","provides":["DwfAnnounceTaxonomy"]},
   {"file":"dwf-unit-portrait.js","url":"/js/dwf-unit-portrait.js?v=9749e94f","provides":[]},
   {"file":"dwf-unit-follow.js","url":"/js/dwf-unit-follow.js?v=faa9cb36","provides":["DwfUnitFollow"]},
-  {"file":"dwf-unit-profile.js","url":"/js/dwf-unit-profile.js?v=fcdd72eb","provides":["DFUnitProfileMarkup"]},
-  {"file":"dwf-fortress-hud.js","url":"/js/dwf-fortress-hud.js?v=91b7d8c1","provides":["DFRefreshPauseIcons"]},
+  {"file":"dwf-unit-profile.js","url":"/js/dwf-unit-profile.js?v=3b6f41af","provides":["DFUnitProfileMarkup"]},
+  {"file":"dwf-fortress-hud.js","url":"/js/dwf-fortress-hud.js?v=11674c4c","provides":["DFRefreshPauseIcons"]},
   {"file":"dwf-minimap.js","url":"/js/dwf-minimap.js?v=41062e9c","provides":[]},
-  {"file":"dwf-announcement-viewer.js","url":"/js/dwf-announcement-viewer.js?v=4cb41331","provides":["DFAnnouncementMarkup"]},
+  {"file":"dwf-announcement-viewer.js","url":"/js/dwf-announcement-viewer.js?v=9d2f84aa","provides":["DFAnnouncementMarkup"]},
   {"file":"dwf-local-panel-router.js","url":"/js/dwf-local-panel-router.js?v=adbf52d2","provides":[]},
-  {"file":"dwf-info-panel.js","url":"/js/dwf-info-panel.js?v=52a30dd8","provides":[]},
-  {"file":"dwf-creatures-panel.js","url":"/js/dwf-creatures-panel.js?v=61f4b3fc","provides":["CREATURE_LIST_KEY","DFBuildInfoController"]},
+  {"file":"dwf-info-panel.js","url":"/js/dwf-info-panel.js?v=8fa508a1","provides":[]},
+  {"file":"dwf-creatures-panel.js","url":"/js/dwf-creatures-panel.js?v=85b991a1","provides":["CREATURE_LIST_KEY","DFBuildInfoController"]},
   {"file":"dwf-vermin-panel.js","url":"/js/dwf-vermin-panel.js?v=78180e4d","provides":[]},
   {"file":"dwf-planned-engraving-panel.js","url":"/js/dwf-planned-engraving-panel.js?v=14364da5","provides":[]},
-  {"file":"dwf-item-panel.js","url":"/js/dwf-item-panel.js?v=eab7c7ce","provides":[]},
-  {"file":"dwf-stocks-panel.js","url":"/js/dwf-stocks-panel.js?v=1474b70c","provides":[]},
+  {"file":"dwf-item-panel.js","url":"/js/dwf-item-panel.js?v=0f129deb","provides":[]},
+  {"file":"dwf-stocks-panel.js","url":"/js/dwf-stocks-panel.js?v=925db9ec","provides":[]},
   {"file":"dwf-tasks-panel.js","url":"/js/dwf-tasks-panel.js?v=3bb0371a","provides":["TASK_JOB_ACTION"]},
-  {"file":"dwf-build-panel.js","url":"/js/dwf-build-panel.js?v=8a45ba17","provides":["DFBuildPanelMarkup","DFCancelBuildCornerAnchor"]},
-  {"file":"dwf-labor-details.js","url":"/js/dwf-labor-details.js?v=289fe5af","provides":[]},
-  {"file":"dwf-standing-orders.js","url":"/js/dwf-standing-orders.js?v=89d46a8d","provides":[]},
-  {"file":"dwf-stone-use.js","url":"/js/dwf-stone-use.js?v=b5f38612","provides":[]},
-  {"file":"dwf-work-orders.js","url":"/js/dwf-work-orders.js?v=3ce839d0","provides":[]},
-  {"file":"dwf-squad-positions.js","url":"/js/dwf-squad-positions.js?v=810c2134","provides":[]},
-  {"file":"dwf-squad-equipment.js","url":"/js/dwf-squad-equipment.js?v=dfed4045","provides":["EQUIP_TABS","EQUIP_VIEWS","UNIFORM_CATS"]},
-  {"file":"dwf-squad-schedule.js","url":"/js/dwf-squad-schedule.js?v=38b30433","provides":[]},
-  {"file":"dwf-squad-emblem.js","url":"/js/dwf-squad-emblem.js?v=55177a6c","provides":[]},
+  {"file":"dwf-build-panel.js","url":"/js/dwf-build-panel.js?v=e6fa67af","provides":["DFBuildPanelMarkup","DFCancelBuildCornerAnchor"]},
+  {"file":"dwf-labor-details.js","url":"/js/dwf-labor-details.js?v=a44aed9e","provides":[]},
+  {"file":"dwf-standing-orders.js","url":"/js/dwf-standing-orders.js?v=269f5dd4","provides":[]},
+  {"file":"dwf-stone-use.js","url":"/js/dwf-stone-use.js?v=fa8d98e5","provides":[]},
+  {"file":"dwf-work-orders.js","url":"/js/dwf-work-orders.js?v=08979d4c","provides":[]},
+  {"file":"dwf-squad-positions.js","url":"/js/dwf-squad-positions.js?v=3dedd369","provides":[]},
+  {"file":"dwf-squad-equipment.js","url":"/js/dwf-squad-equipment.js?v=57424430","provides":["EQUIP_TABS","EQUIP_VIEWS","UNIFORM_CATS"]},
+  {"file":"dwf-squad-schedule.js","url":"/js/dwf-squad-schedule.js?v=f853254a","provides":[]},
+  {"file":"dwf-squad-emblem.js","url":"/js/dwf-squad-emblem.js?v=ea05e551","provides":[]},
   {"file":"dwf-squad-burrow-order.js","url":"/js/dwf-squad-burrow-order.js?v=fef1212c","provides":[]},
   {"file":"dwf-squad-patrol-order.js","url":"/js/dwf-squad-patrol-order.js?v=3e5d8dd5","provides":[]},
-  {"file":"dwf-squad-panel.js","url":"/js/dwf-squad-panel.js?v=db0e3dcd","provides":["DFSquadController","DFSquadMarkup","SQUAD_SYMBOL_COUNT","UNIFORM_CAT_SLOT"]},
-  {"file":"dwf-announcements.js","url":"/js/dwf-announcements.js?v=5882f65d","provides":["DFReportsMarkup"]},
-  {"file":"dwf-analytics-panel.js","url":"/js/dwf-analytics-panel.js?v=75ba062a","provides":[]},
-  {"file":"dwf-console-panel.js","url":"/js/dwf-console-panel.js?v=f068db7d","provides":[]},
+  {"file":"dwf-squad-panel.js","url":"/js/dwf-squad-panel.js?v=b15e14d6","provides":["DFSquadController","DFSquadMarkup","SQUAD_SYMBOL_COUNT","UNIFORM_CAT_SLOT"]},
+  {"file":"dwf-announcements.js","url":"/js/dwf-announcements.js?v=4329eb55","provides":["DFReportsMarkup"]},
+  {"file":"dwf-analytics-panel.js","url":"/js/dwf-analytics-panel.js?v=c759edbf","provides":[]},
+  {"file":"dwf-console-panel.js","url":"/js/dwf-console-panel.js?v=de16a4ba","provides":[]},
   {"file":"dwf-popup.js","url":"/js/dwf-popup.js?v=47524431","provides":["DwfPopup"]},
-  {"file":"dwf-diplo.js","url":"/js/dwf-diplo.js?v=1dc709ee","provides":["DwfDiplo"]},
-  {"file":"dwf-missions.js","url":"/js/dwf-missions.js?v=cb202631","provides":["DwfMissions"]},
+  {"file":"dwf-diplo.js","url":"/js/dwf-diplo.js?v=9de4d0f1","provides":["DwfDiplo"]},
+  {"file":"dwf-missions.js","url":"/js/dwf-missions.js?v=e51a69fa","provides":["DwfMissions"]},
   {"file":"dwf-fort-panels.js","url":"/js/dwf-fort-panels.js?v=ea83d943","provides":[]},
-  {"file":"dwf-fort-admin.js","url":"/js/dwf-fort-admin.js?v=32c14b99","provides":[]},
-  {"file":"dwf-obligations.js","url":"/js/dwf-obligations.js?v=b9fb7bda","provides":[]},
-  {"file":"dwf-kitchen.js","url":"/js/dwf-kitchen.js?v=1d735fdd","provides":[]},
-  {"file":"dwf-worldmap.js","url":"/js/dwf-worldmap.js?v=35c87207","provides":["DFWorldMapMarkup"]},
+  {"file":"dwf-fort-admin.js","url":"/js/dwf-fort-admin.js?v=bec8ffd9","provides":[]},
+  {"file":"dwf-obligations.js","url":"/js/dwf-obligations.js?v=c3081f00","provides":[]},
+  {"file":"dwf-kitchen.js","url":"/js/dwf-kitchen.js?v=d159b377","provides":[]},
+  {"file":"dwf-worldmap.js","url":"/js/dwf-worldmap.js?v=7792e835","provides":["DFWorldMapMarkup"]},
   {"file":"dwf-world3d-model.js","url":"/js/dwf-world3d-model.js?v=bf1714b0","provides":["DFWorld3DModel"]},
   {"file":"dwf-voxelizer.js","url":"/js/dwf-voxelizer.js?v=8cf559cf","provides":["DFVoxelizer"]},
   {"file":"dwf-voxel-mesh.js","url":"/js/dwf-voxel-mesh.js?v=fc3e8857","provides":["DFVoxelMesh"]},
-  {"file":"dwf-world3d.js","url":"/js/dwf-world3d.js?v=02fa5008","provides":["DFWorld3D"]},
-  {"file":"dwf-tooltip.js","url":"/js/dwf-tooltip.js?v=584a51d3","provides":["DFHelpPopup","DFTooltip"]},
+  {"file":"dwf-world3d.js","url":"/js/dwf-world3d.js?v=be8ed587","provides":["DFWorld3D"]},
+  {"file":"dwf-tooltip.js","url":"/js/dwf-tooltip.js?v=22cc0c2e","provides":["DFHelpPopup","DFTooltip"]},
   {"file":"dwf-chrome.js","url":"/js/dwf-chrome.js?v=85f0e23a","provides":["DFChrome"]},
-  {"file":"dwf-control-shell.js","url":"/js/dwf-control-shell.js?v=d6d60c4b","provides":["DwfControlShell"]},
-  {"file":"dwf-map-chrome-controls.js","url":"/js/dwf-map-chrome-controls.js?v=6e9eb6f6","provides":["DFClientPrefs","DFPlacementController","DFRefreshPauseIcons","DWFUIScale"]},
-  {"file":"dwf-designation-controls.js","url":"/js/dwf-designation-controls.js?v=a9e72c5b","provides":["DFDesignationRangeWheel","DFToolbarTooltips"]},
-  {"file":"dwf-stockpile-placement.js","url":"/js/dwf-stockpile-placement.js?v=4c008ff3","provides":["DFStockRepaint","DFZoneRepaint","ZONE_TYPES"]},
-  {"file":"dwf-zone-placement.js","url":"/js/dwf-zone-placement.js?v=280159a7","provides":[]},
-  {"file":"dwf-burrow-panel.js","url":"/js/dwf-burrow-panel.js?v=d1c27fc3","provides":["DFBurrowSync"]},
-  {"file":"dwf-hauling-panel.js","url":"/js/dwf-hauling-panel.js?v=275ef2d1","provides":[]},
-  {"file":"dwf-map-target-modes.js","url":"/js/dwf-map-target-modes.js?v=dfd46ecc","provides":["DFChatPing","DFLeverLink","DFSquadKill","DFSquadMove","DFSquadPatrol","DFWsLink"]},
-  {"file":"dwf-tool-mode-controller.js","url":"/js/dwf-tool-mode-controller.js?v=8a2ad72e","provides":["DFBackOut","MODE_STACK"]},
-  {"file":"dwf-map-placement-input.js","url":"/js/dwf-map-placement-input.js?v=ca005236","provides":["DFCancelBuildCornerAnchor","DFDragIntent","DFGestureCameraMoved","DFPlacementArmed","DFPlacementCursor"]},
+  {"file":"dwf-control-shell.js","url":"/js/dwf-control-shell.js?v=37acb96f","provides":["DwfControlShell"]},
+  {"file":"dwf-map-chrome-controls.js","url":"/js/dwf-map-chrome-controls.js?v=bee2e3ad","provides":["DFClientPrefs","DFPlacementController","DFRefreshPauseIcons","DWFUIScale"]},
+  {"file":"dwf-designation-controls.js","url":"/js/dwf-designation-controls.js?v=1d8c0bf9","provides":["DFDesignationRangeWheel","DFToolbarTooltips"]},
+  {"file":"dwf-stockpile-placement.js","url":"/js/dwf-stockpile-placement.js?v=eddb3b21","provides":["DFStockRepaint","DFZoneRepaint","ZONE_TYPES"]},
+  {"file":"dwf-zone-placement.js","url":"/js/dwf-zone-placement.js?v=8a0919bb","provides":[]},
+  {"file":"dwf-burrow-panel.js","url":"/js/dwf-burrow-panel.js?v=fe2ba95b","provides":["DFBurrowSync"]},
+  {"file":"dwf-hauling-panel.js","url":"/js/dwf-hauling-panel.js?v=e737fbbc","provides":[]},
+  {"file":"dwf-map-target-modes.js","url":"/js/dwf-map-target-modes.js?v=e1870472","provides":["DFChatPing","DFLeverLink","DFSquadKill","DFSquadMove","DFSquadPatrol","DFWsLink"]},
+  {"file":"dwf-tool-mode-controller.js","url":"/js/dwf-tool-mode-controller.js?v=d7d3ed83","provides":["DFBackOut","MODE_STACK"]},
+  {"file":"dwf-map-placement-input.js","url":"/js/dwf-map-placement-input.js?v=ec77c4f2","provides":["DFCancelBuildCornerAnchor","DFDragIntent","DFGestureCameraMoved","DFPlacementArmed","DFPlacementCursor"]},
   {"file":"dwf-map-hover.js","url":"/js/dwf-map-hover.js?v=9be4acbf","provides":[]},
-  {"file":"dwf-touch.js","url":"/js/dwf-touch.js?v=e3744189","provides":["DFTouch"]},
-  {"file":"dwf-escmenu.js","url":"/js/dwf-escmenu.js?v=ff47ff62","provides":["DwfEscMenu"]},
-  {"file":"dwf-hostpanel.js","url":"/js/dwf-hostpanel.js?v=e293aaae","provides":["DwfHostPanel"]},
+  {"file":"dwf-touch.js","url":"/js/dwf-touch.js?v=95bb04c4","provides":["DFTouch"]},
+  {"file":"dwf-escmenu.js","url":"/js/dwf-escmenu.js?v=65de91ca","provides":["DwfEscMenu"]},
+  {"file":"dwf-hostpanel.js","url":"/js/dwf-hostpanel.js?v=f9ef683f","provides":["DwfHostPanel"]},
   {"file":"dwf-keymap.js","url":"/js/dwf-keymap.js?v=3b54c3e1","provides":["DwfKeymap"]},
-  {"file":"dwf-help-corpus.js","url":"/js/dwf-help-corpus.js?v=193c474a","provides":["DFHelpCorpus"]},
+  {"file":"dwf-help-corpus.js","url":"/js/dwf-help-corpus.js?v=55b3c7b4","provides":["DFHelpCorpus"]},
   {"file":"dwf-help-curated.js","url":"/js/dwf-help-curated.js?v=71e191b0","provides":["DFHelpCurated"]},
-  {"file":"dwf-help-panel.js","url":"/js/dwf-help-panel.js?v=e7f87275","provides":["DFHelpPanel"]},
-  {"file":"dwf-lobby.js","url":"/js/dwf-lobby.js?v=1aa73cb1","provides":["DwfLobby"]},
+  {"file":"dwf-help-panel.js","url":"/js/dwf-help-panel.js?v=875d1886","provides":["DFHelpPanel"]},
+  {"file":"dwf-lobby.js","url":"/js/dwf-lobby.js?v=40c58358","provides":["DwfLobby"]},
   {"file":"dwf-pause.js","url":"/js/dwf-pause.js?v=e90df0b0","provides":["DFRefreshPauseIcons","DwfPause"]},
-  {"file":"dwf-digest.js","url":"/js/dwf-digest.js?v=fb4e2894","provides":["DwfDigest"]},
-  {"file":"dwf-chat.js","url":"/js/dwf-chat.js?v=900a3670","provides":["DFChatPing","DwfChat"]},
-  {"file":"dwf-unitcycle.js","url":"/js/dwf-unitcycle.js?v=1303e1f8","provides":["DFTileList"]},
-  {"file":"dwf-hotkeys.js","url":"/js/dwf-hotkeys.js?v=0f354bce","provides":["DwfHotkeys"]},
+  {"file":"dwf-digest.js","url":"/js/dwf-digest.js?v=2106a01e","provides":["DwfDigest"]},
+  {"file":"dwf-chat.js","url":"/js/dwf-chat.js?v=5812cbf0","provides":["DFChatPing","DwfChat"]},
+  {"file":"dwf-unitcycle.js","url":"/js/dwf-unitcycle.js?v=56331b84","provides":["DFTileList"]},
+  {"file":"dwf-hotkeys.js","url":"/js/dwf-hotkeys.js?v=258af49a","provides":["DwfHotkeys"]},
   {"file":"dwf-weather.js","url":"/js/dwf-weather.js?v=f55c52db","provides":["DwfWeather"]},
-  {"file":"dwf-audio.js","url":"/js/dwf-audio.js?v=fc2876d4","provides":["Audio","DwfAudio"]},
-  {"file":"dwf-panelframe.js","url":"/js/dwf-panelframe.js?v=14d9e6bc","provides":["DFPanelFrame"]},
-  {"file":"dwf-settings.js","url":"/js/dwf-settings.js?v=b8b3053b","provides":["DFKeybinds","DFSettings"]},
-  {"file":"dwf-overlay-canvas.js","url":"/js/dwf-overlay-canvas.js?v=bb155cf2","provides":["DwfOverlayCanvas"]},
+  {"file":"dwf-audio.js","url":"/js/dwf-audio.js?v=cd4cd0b0","provides":["Audio","DwfAudio"]},
+  {"file":"dwf-panelframe.js","url":"/js/dwf-panelframe.js?v=37829a63","provides":["DFPanelFrame"]},
+  {"file":"dwf-settings.js","url":"/js/dwf-settings.js?v=209399c3","provides":["DFKeybinds","DFSettings"]},
+  {"file":"dwf-overlay-canvas.js","url":"/js/dwf-overlay-canvas.js?v=dd2baa27","provides":["DwfOverlayCanvas"]},
   {"file":"dwf-overlay-boxes.js","url":"/js/dwf-overlay-boxes.js?v=cdd3afc6","provides":["DwfOverlayBoxes"]},
   {"file":"dwf-burrow-overlay.js","url":"/js/dwf-burrow-overlay.js?v=51bf84c5","provides":["DwfBurrowOverlay"]},
-  {"file":"dwf-join.js","url":"/js/dwf-join.js?v=f93cee2d","provides":["DwfAuth","DwfJoin"]}
+  {"file":"dwf-join.js","url":"/js/dwf-join.js?v=8b667843","provides":["DwfAuth","DwfJoin"]}
 ];
 </script>
 <!-- END GENERATED SCRIPT MANIFEST -->

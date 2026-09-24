@@ -493,7 +493,6 @@ void register_popup_routes(httplib::Server& server) {
         res.set_content(out.str(), "application/json; charset=utf-8");
     };
     server.Post("/popup/dismiss", dismiss_handler);
-    server.Get("/popup/dismiss", dismiss_handler);
 }
 
 } // namespace dwf

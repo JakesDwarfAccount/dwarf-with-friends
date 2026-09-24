@@ -28,7 +28,7 @@
 
   // The mandatory copy. Stated once, here, so the banner and the confirm step cannot drift apart.
   function consoleFreezeWarning() {
-    return "This command runs under the world lock and CANNOT be interrupted — it may freeze the " +
+    return "This command runs under the world lock and CANNOT be interrupted, so it may freeze the " +
       "fort for everyone until it finishes.";
   }
 
@@ -92,18 +92,19 @@
 
   function _csUI() { return (typeof window !== "undefined" && window.DWFUI) ? window.DWFUI : null; }
 
+  const CS_TEXT_COLS = 48;   // a full-width line of text in the default 520px-wide panel
+
   function _csRowsHtml(D, rows) {
     if (!rows.length)
-      return `<div class="console-empty">No command matches that search.</div>`;
+      return `<div class="dwfui-text--empty console-empty">No command matches that search.</div>`;
     return rows.map(r => D.rowHtml({
       cls: "console-cmd-row", chassis: "slab", label: r.name,
       disabled: r.blocked,
       dataset: { csPick: r.name },
       title: r.blocked ? `Blocked: ${r.reason}` : (r.short || r.name),
       sub: r.blocked
-        ? [{ text: r.short || "", cls: "console-cmd-blurb" },
-           { text: `Blocked — ${r.reason}`, tone: "warning" }]
-        : { text: r.short || "", cls: "console-cmd-blurb" },
+        ? [{ text: r.short || "" }, { text: `Blocked: ${r.reason}`, tone: "warning" }]
+        : { text: r.short || "" },
     })).join("");
   }
 
@@ -121,7 +122,7 @@
     // The freeze warning is ALWAYS on screen -- not only on the confirm step. Any friend can press
     // Run now, so the cost of a bad command is stated up front, permanently.
     const warn = D.statusHtml({
-      cls: "console-warn", tone: "warning", role: "note", text: consoleFreezeWarning(),
+      cls: "console-warn", tone: "warning", role: "note", columns: CS_TEXT_COLS, text: consoleFreezeWarning(),
     });
 
     const search = D.searchHtml({
@@ -142,7 +143,7 @@
 
     // Two-step Run: the first press ARMS (and restates the freeze cost); the second executes. A
     // blocked command never arms at all -- the button is disabled and says why.
-    const runLabel = s.busy ? "Running…" : (s.armed ? "Confirm — run it" : "Run");
+    const runLabel = s.busy ? "Running..." : (s.armed ? "Confirm: run it" : "Run");
     const run = D.plaqueBtnHtml({
       cls: "console-run", label: runLabel, tone: s.armed ? "destructive" : "",
       dataset: { csRun: "" }, disabled: !!s.busy || !cmd.trim() || deny.denied,
@@ -151,16 +152,17 @@
 
     let banner = "";
     if (deny.denied && cmd.trim()) {
-      banner = D.statusHtml({ cls: "console-blocked", tone: "warning", role: "alert",
+      banner = D.statusHtml({ cls: "console-blocked", tone: "warning", role: "alert", columns: CS_TEXT_COLS,
         text: `Blocked by the host: ${deny.reason}` });
     } else if (s.error) {
-      banner = D.statusHtml({ cls: "console-error", tone: "warning", role: "alert", text: String(s.error) });
+      banner = D.statusHtml({ cls: "console-error", tone: "warning", role: "alert", columns: CS_TEXT_COLS,
+        text: String(s.error) });
     } else if (s.busy) {
-      banner = D.statusHtml({ cls: "console-busy", live: "polite",
-        text: "Running — the fort is frozen for everyone until this command returns." });
+      banner = D.statusHtml({ cls: "console-busy", live: "polite", columns: CS_TEXT_COLS,
+        text: "Running: the fort is frozen for everyone until this command returns." });
     } else if (s.armed) {
-      banner = D.statusHtml({ cls: "console-arm", tone: "warning", role: "alert",
-        text: `${consoleFreezeWarning()} Press again to run “${cmd.trim()}”.` });
+      banner = D.statusHtml({ cls: "console-arm", tone: "warning", role: "alert", columns: CS_TEXT_COLS,
+        text: `${consoleFreezeWarning()} Press again to run "${cmd.trim()}".` });
     } else if (typeof s.status === "number") {
       banner = D.statusHtml({ cls: "console-done",
         text: s.status === 0 ? "Command finished." : `Command returned status ${s.status}.` });
@@ -174,13 +176,13 @@
         // UI-DIV-004: command output is meant to be selected and copied, so it opts OUT of the
         // drag-anywhere surface grab. The rest of the console panel still drags from anywhere.
         ? `<pre class="console-output-text" data-pf-nodrag>${D.esc(outText)}</pre>`
-        : `<div class="console-empty">Output appears here.</div>`);
+        : `<div class="dwfui-text--empty console-empty">Output appears here.</div>`);
 
     const history = (Array.isArray(s.history) ? s.history : []).slice(0, 8);
     const historyHtml = history.length
-      ? `<div class="console-section-title">Recent</div><div class="console-history">` +
+      ? `<div class="dwfui-text--section console-section-title">Recent</div><div class="console-history">` +
         history.map(h => D.rowHtml({
-          cls: "console-hist-row", label: h, dataset: { csPick: h }, title: `Reuse: ${h}`,
+          cls: "console-hist-row", chassis: "slab", label: h, dataset: { csPick: h }, title: `Reuse: ${h}`,
         })).join("") + `</div>`
       : "";
 
@@ -189,7 +191,7 @@
       list +
       `<div class="console-runbar">${input}${run}</div>` +
       banner +
-      `<div class="console-section-title">Output</div>` +
+      `<div class="dwfui-text--section console-section-title">Output</div>` +
       output +
       historyHtml;
   }
@@ -316,7 +318,7 @@
         _csSaveHistory(csState.history);
       }
     } catch {
-      csState.error = "The host did not answer — it may still be running the command.";
+      csState.error = "The host did not answer; it may still be running the command.";
     }
     csState.busy = false;
     csPaint();
@@ -337,7 +339,7 @@
 
     panel.addEventListener("click", e => {
       const t = e.target;
-      if (t.closest && t.closest("[data-bld-close]")) { e.preventDefault(); csClose(); return; }
+      if (t.closest && t.closest("[data-building-close]")) { e.preventDefault(); csClose(); return; }
       const pick = t.closest && t.closest("[data-cs-pick]");
       if (pick) {
         e.preventDefault();
@@ -351,7 +353,7 @@
 
     panel.addEventListener("input", e => {
       const t = e.target;
-      if (t.dataset && "csSearch" in t.dataset) { csState.query = t.value || ""; csPaint(); return; }
+      if (t.dataset && "consoleSearch" in t.dataset) { csState.query = t.value || ""; csPaint(); return; }
       if (t.dataset && "csCmd" in t.dataset) {
         csState.cmd = t.value || "";
         csState.armed = false;                       // editing disarms; you re-confirm what you typed

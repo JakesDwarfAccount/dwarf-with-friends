@@ -1,0 +1,383 @@
+/*
+ * dwf - multiplayer Dwarf Fortress in the browser, as a DFHack plugin
+ * Copyright (C) 2026 Gabriel Rios
+ * Copyright (C) 2026 Jake Taplin
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Runs on DFHack (Zlib); descends from DFPlex (Zlib) and webfort (ISC).
+ * Full license: see LICENSE. Third-party credits: see NOTICE.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+/* The shell's own use of DWFUI components: top bar, minimap caption, palettes, lobby, escape menu, help popup, world screens. */
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
+
+@layer panels.shell {
+  /* Top bar */
+  .top-button {
+    grid-column: 3;
+    grid-row: 2 / span 3;
+    align-self: start;
+    pointer-events: auto;
+    color: var(--dwfui-text-body);
+    background: var(--dwfui-slab);
+    border: var(--dwfui-divider) solid var(--dwfui-silver);
+    min-height: 24px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m);
+    font: inherit;
+  }
+  .top-button:hover {
+    border-color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-numeric);
+  }
+  @media (pointer: coarse) {
+    .top-button {
+      min-height: var(--dwfui-height-row-tall);
+    }
+  }
+  .mood-icon {
+    display: block;
+  }
+
+  /* Minimap elevation caption */
+  #elevation {
+    position: absolute;
+    left: calc(6 * var(--dwfui-cell-drawn-w));
+    top: calc(16 * var(--dwfui-cell-drawn-h));
+    z-index: 1;
+    height: var(--dwfui-cell-drawn-h);
+    text-align: left;
+    font-weight: 700;
+    color: var(--dwfui-text-row);
+    border: 0;
+  }
+
+  /* Placement bars and the zone palette */
+  .traffic-band .traffic-cost-entry {
+    width: 100%;
+    height: var(--dwfui-height-row-tall);
+    padding: 0 var(--dwfui-space-xs);
+    border: 0;
+    box-shadow: 0 0 0 var(--dwfui-divider) var(--dwfui-gold);
+    text-align: center;
+  }
+  .traffic-band .traffic-cost-rejected {
+    box-shadow: 0 0 0 var(--dwfui-divider) var(--dwfui-destructive);
+    color: var(--dwfui-text-danger);
+  }
+  .stock-paint-accept {
+    flex: 0 0 auto;
+    padding: var(--dwfui-space-s) var(--dwfui-space-l);
+    color: var(--dwfui-text-selected);
+    background: var(--dwfui-gold);
+    border: 2px solid var(--dwfui-gold-bright);
+    font: var(--dwfui-font);
+  }
+  .stock-paint-accept:hover {
+    background: var(--dwfui-gold-bevel-mid);
+  }
+  /* palette: every type icon sits in a gold box, native row pitch (Z12-jt-1/3) */
+  .zone-type-btn .zone-type-iconbox {
+    border: 2px solid var(--dwfui-gold);
+    background: var(--dwfui-surface);
+  }
+
+  /* Lobby */
+  .lobby-row {
+    min-height: 26px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-s);
+    gap: var(--dwfui-space-s);
+  }
+  .lobby-row .lobby-label {
+    display: flex;
+    align-items: baseline;
+    gap: var(--dwfui-space-s);
+  }
+  .lobby-follow,
+  .lobby-rename {
+    min-height: var(--dwfui-icon-s);
+    height: var(--dwfui-icon-s);
+    padding: 0 var(--dwfui-space-m);
+  }
+
+  /* Escape menu */
+  .esc-panel {
+    width: calc(63 * var(--dwfui-cell-drawn-w));
+    align-items: center;
+    padding-bottom: var(--dwfui-space-2xl);
+  }
+  .esc-panel h2 {
+    margin: 0 0 var(--dwfui-space-l);
+  }
+  .esc-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dwfui-space-xs);
+    width: calc(45 * var(--dwfui-cell-drawn-w));
+  }
+  .esc-row {
+    padding: var(--dwfui-space-m);
+    background: var(--dwfui-slab);
+    border: var(--dwfui-divider) solid var(--dwfui-slate);
+  }
+  .esc-row-save:not(:disabled) {
+    border-color: var(--dwfui-gold-bevel-mid);
+  }
+  .esc-row-disabled,
+  .esc-row:disabled {
+    color: var(--dwfui-text-disabled);
+    background: var(--dwfui-surface);
+  }
+  @media (pointer: coarse) {
+    .zone-type-btn {
+      min-height: var(--dwfui-height-row-tall);
+    }
+  }
+
+  /* First-visit help popup */
+  body:has(#worldScreen.open) #helpPopup.open {
+    background: transparent;
+    pointer-events: auto;
+  }
+  body:has(#worldScreen.open) #helpPopup.open > .df-help-panel {
+    pointer-events: auto;
+  }
+  #helpPopup.open > .df-help-panel {
+    position: relative;
+    top: auto;
+    width: min(560px, 90vw);
+    height: auto;
+    display: block;
+    padding: 0;
+  }
+  #helpPopup.open > .df-help-panel > .dwfui-modal-body {
+    display: contents;
+  }
+  #helpPopup .df-help-collapse,
+  #helpPopup .df-help-x {
+    min-width: 0;
+    height: var(--dwfui-icon-s);
+    min-height: var(--dwfui-icon-s);
+    padding: 0;
+    display: grid;
+  }
+  #helpPopup .df-help-dontshow-check {
+    flex: 0 0 auto;
+  }
+  #helpPopup .df-help-okay {
+    width: max-content;
+    padding: var(--dwfui-space-s) 26px;
+  }
+
+  /* World map */
+  #worldScreenCanvas {
+    caret-color: transparent;
+    user-select: none;
+  }
+  .world-map-input-owner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .world-civs-panel {
+    top: var(--dwfui-grid-origin-y);
+    right: calc(var(--dwfui-grid-origin-x) + var(--dwfui-cell-drawn-w));
+    bottom: auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: calc(58 * var(--dwfui-cell-drawn-w));
+    height: calc(31 * var(--dwfui-cell-drawn-h));
+    max-height: none;
+    overflow: hidden;
+  }
+  .world-civs-panel > .dwfui-scroll,
+  .world-civs-panel > .world-reports-body,
+  .world-new-mission-goal-list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .world-civs-panel > .dwfui-scroll,
+  .world-new-mission-goal-list {
+    overflow: auto;
+  }
+  .world-missions-panel {
+    width: calc(58 * var(--dwfui-cell-drawn-w));
+    height: calc(31 * var(--dwfui-cell-drawn-h));
+  }
+  .world-mission-detail,
+  .world-new-mission-panel {
+    height: calc(43 * var(--dwfui-cell-drawn-h));
+  }
+  .world-reports-panel {
+    width: calc(59 * var(--dwfui-cell-drawn-w));
+    height: calc((var(--dwfui-grid-y) - 25) * var(--dwfui-cell-drawn-h));
+  }
+  .world-reports-list > .dwfui-scroll {
+    height: 100%;
+  }
+  .world-news-panel[hidden] {
+    display: none;
+  }
+  .world-hover-card {
+    top: var(--dwfui-grid-origin-y);
+    right: calc(var(--dwfui-grid-origin-x) + var(--dwfui-cell-drawn-w));
+    box-sizing: border-box;
+    width: calc(58 * var(--dwfui-cell-drawn-w));
+    height: calc(31 * var(--dwfui-cell-drawn-h));
+    max-height: none;
+  }
+  .world-btn-stack {
+    right: calc(var(--dwfui-grid-origin-x) + var(--dwfui-cell-drawn-w));
+    bottom: var(--dwfui-grid-origin-y);
+    box-sizing: border-box;
+    width: calc(19 * var(--dwfui-cell-drawn-w));
+    height: calc(24 * var(--dwfui-cell-drawn-h));
+    gap: 0;
+  }
+  .world-btn {
+    flex: 0 0 calc(3 * var(--dwfui-cell-drawn-h));
+    width: 100%;
+    height: var(--dwfui-height-row-tall);
+    padding: 0 var(--dwfui-space-m);
+  }
+  .world-btn[data-world-btn="done"] {
+    align-self: flex-end;
+    width: calc(8 * var(--dwfui-cell-drawn-w));
+  }
+  .world-loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--dwfui-text-body);
+    font: var(--dwfui-font);
+  }
+  .world-error {
+    color: var(--dwfui-text-danger);
+  }
+  .world-hover-line {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .world-hover-site-name {
+    margin-top: var(--dwfui-space-m);
+    color: var(--dwfui-text-heading);
+  }
+  .world-hover-unserved {
+    color: var(--dwfui-text-disabled);
+    font-style: italic;
+  }
+  .world-reports-unserved {
+    padding: var(--dwfui-space-m) var(--dwfui-space-m);
+    color: var(--dwfui-text-danger);
+    font-style: italic;
+  }
+  .world-civ-row > :last-child {
+    color: var(--dwfui-text-secondary);
+  }
+  .world-civ-unserved {
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    color: var(--dwfui-text-danger);
+    line-height: 1.45;
+  }
+  .world-civ-trade-nobroker {
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    color: var(--dwfui-text-warning);
+    line-height: 1.45;
+  }
+  .world-civ-extension-note {
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    color: var(--dwfui-text-secondary);
+    line-height: 1.4;
+  }
+  .world-report-playback-state {
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    color: var(--dwfui-text-secondary);
+  }
+  .world-mission-note {
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    color: var(--dwfui-text-prose);
+    line-height: 1.45;
+  }
+
+  /* World 3D view */
+  #world3dScreen .world3d-head .dwfui-head-title,
+  #world3dScreen .world3d-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--dwfui-text-body);
+    font: var(--dwfui-font);
+  }
+  .world3d-zstep {
+    flex: 0 0 auto;
+    min-width: var(--dwfui-icon-s);
+    padding-left: var(--dwfui-space-xs);
+    padding-right: var(--dwfui-space-xs);
+  }
+  .world3d-zstep:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  #world3dScreen .world3d-chip.active {
+    outline: 2px solid var(--dwfui-gold-bright);
+    outline-offset: -2px;
+  }
+  .world3d-bg-swatch {
+    min-width: var(--dwfui-icon-s);
+    min-height: var(--dwfui-icon-s);
+    width: var(--dwfui-icon-s);
+    height: var(--dwfui-icon-s);
+    padding: 0;
+    border: 2px solid var(--dwfui-hatch);
+  }
+  .world3d-bg-swatch:hover {
+    border-color: var(--dwfui-text-numeric);
+  }
+  .world3d-status,
+  .world3d-hint {
+    display: block;
+    max-width: 100%;
+    color: var(--dwfui-text-secondary);
+    font: var(--dwfui-font);
+    pointer-events: none;
+  }
+  .world3d-hint {
+    color: var(--dwfui-text-secondary);
+  }
+  body.world3d-mode #hud,
+  body.world3d-mode #zoneOverlay,
+  body.world3d-mode #selection,
+  body.world3d-mode #clientPanel,
+  body.world3d-mode #hoverInfo,
+  body.world3d-mode #digSelect,
+  body.world3d-mode #tileFlash,
+  body.world3d-mode #alertStack,
+  body.world3d-mode #alertPopup,
+  body.world3d-mode #dfTooltip,
+  body.world3d-mode .world-site-tooltip,
+  body.world3d-mode .activity-panel,
+  body.world3d-mode .console-panel,
+  body.world3d-mode #dfAudioPop {
+    /* `!important` is LOAD-BEARING: #hoverInfo, #tileFlash, #digSelect, #alertStack, #alertPopup and
+   #dfTooltip are shown and hidden with an INLINE `style.display` by their own modules. */
+    display: none !important;
+  }
+}

@@ -21,67 +21,50 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.burrows {
   .burrow-head {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .burrow-cit-title {
     flex: 1;
     color: var(--dwfui-text-body);
-    font:
-      700 13px/1.3 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .burrow-add {
-    padding: 5px 14px;
     color: var(--dwfui-text-good);
-    background: var(--dwfui-slate);
-    border: 2px solid var(--dwfui-text-good);
-    cursor: pointer;
-    font:
-      800 12px ui-monospace,
-      Consolas,
-      monospace;
   }
   .burrow-add:hover {
     background: var(--dwfui-slate);
   }
   .burrow-paint-bar {
-    padding: 6px 12px 8px;
-    border-top: 1px solid var(--dwfui-slab);
-    border-bottom: 1px solid var(--dwfui-slab);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
+    border-top: var(--dwfui-divider) solid var(--dwfui-slab);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-slab);
   }
   .burrow-paint-label {
-    margin-bottom: 5px;
+    margin-bottom: var(--dwfui-space-s);
     color: var(--dwfui-text-numeric);
-    font:
-      700 12px/1.3 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .burrow-paint-tools {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: var(--dwfui-space-xs);
   }
   .burrow-done {
-    margin-left: 8px;
-    padding: 4px 10px;
+    margin-left: var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
     color: var(--dwfui-text-body);
     background: var(--dwfui-slab);
-    border: 1px solid var(--dwfui-silver);
+    border: var(--dwfui-divider) solid var(--dwfui-silver);
     cursor: pointer;
-    font:
-      700 11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .burrow-done:hover {
     border-color: var(--dwfui-text-numeric);
@@ -90,38 +73,32 @@
   .burrow-list {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
+    padding: var(--dwfui-space-s) 0;
   }
   .burrow-empty {
-    min-height: 40px;
+    min-height: var(--dwfui-height-row-tall);
   }
   .burrow-row {
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--dwfui-surface);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-surface);
   }
   .burrow-row.armed {
     background: rgba(74, 58, 24, 0.62);
   }
+  .burrow-row.armed .burrow-name {
+    color: var(--dwfui-text-numeric);
+  }
   .burrow-row-main {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--dwfui-space-m);
   }
   .burrow-name {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 2px 4px;
-    color: var(--dwfui-text-body);
-    background: transparent;
-    border: 1px solid transparent;
-    cursor: pointer;
     text-align: left;
-    font:
-      700 13px/1.2 ui-monospace,
-      Consolas,
-      monospace;
   }
   .burrow-name:hover {
     border-color: var(--dwfui-text-numeric);
@@ -129,35 +106,33 @@
   }
   .burrow-members {
     color: var(--dwfui-text-secondary);
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .burrow-rename-input {
     flex: 1;
     min-width: 0;
-    padding: 3px 6px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-s);
     color: var(--dwfui-text-body);
     background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-gold-bevel-mid);
-    font:
-      700 12px ui-monospace,
-      Consolas,
-      monospace;
+    border: var(--dwfui-divider) solid var(--dwfui-gold-bevel-mid);
+    border-radius: 0;
+    font: var(--dwfui-font);
   }
   .burrow-row-tools {
     display: flex;
     align-items: center;
-    gap: 3px;
-    margin-top: 4px;
+    gap: var(--dwfui-space-xs);
+    margin-top: var(--dwfui-space-s);
   }
   .burrow-cit-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 12px;
-    border-bottom: 1px solid var(--dwfui-surface);
+    gap: var(--dwfui-space-m);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m);
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-surface);
+  }
+  .burrow-cit-row.is-expanded {
+    display: block;
   }
   .burrow-cit-name {
     flex: 1;
@@ -166,10 +141,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--dwfui-text-body);
-    font:
-      700 12px/1.25 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   #burrowPanel [data-df-color="0"] { color: var(--df-c0); }
   #burrowPanel [data-df-color="1"] { color: var(--df-c1); }
@@ -189,35 +161,21 @@
   #burrowPanel [data-df-color="15"] { color: var(--df-c15); }
   .burrow-cit-prof {
     color: var(--dwfui-text-secondary);
-    font:
-      400 10px/1.25 ui-monospace,
-      Consolas,
-      monospace;
   }
   .burrow-symbol-body {
     flex: 1;
     overflow-y: auto;
-    padding: 2px 12px 10px;
-  }
-  .burrow-section-title {
-    margin: 8px 0 5px;
-    color: var(--dwfui-text-heading);
-    font:
-      700 10px/1.2 ui-monospace,
-      Consolas,
-      monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-m);
   }
   .burrow-symbol-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 2px;
+    gap: var(--dwfui-space-xs);
   }
   .burrow-symbol-cell {
     padding: 1px;
     background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-hatch);
+    border: var(--dwfui-divider) solid var(--dwfui-hatch);
     cursor: pointer;
   }
   .burrow-symbol-cell:hover {
@@ -231,12 +189,12 @@
   .burrow-swatch-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    gap: 3px;
+    gap: var(--dwfui-space-xs);
   }
   .burrow-swatch {
-    height: 20px;
+    height: var(--dwfui-icon-s);
     padding: 0;
-    border: 2px solid var(--dwfui-hatch);
+    border: calc(2 * var(--dwfui-divider)) solid var(--dwfui-hatch);
     cursor: pointer;
   }
   .burrow-swatch:hover {
@@ -248,15 +206,12 @@
   }
   #burrowPanel .zone-unit-act {
     flex: 0 0 auto;
-    padding: 3px 8px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-m);
     color: var(--dwfui-text-row);
     background: var(--dwfui-surface);
-    border: 1px solid var(--dwfui-gold-bevel-mid);
+    border: var(--dwfui-divider) solid var(--dwfui-gold-bevel-mid);
     cursor: pointer;
-    font:
-      700 11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   #burrowPanel .zone-unit-act:hover {
     border-color: var(--dwfui-text-numeric);
@@ -268,29 +223,26 @@
     border-color: var(--dwfui-text-numeric);
   }
   #burrowPanel .stock-palette-status {
-    padding: 4px 12px 8px;
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
     margin: 0;
   }
   .stock-palette-status {
-    min-height: 16px;
-    margin: 6px 0 0;
+    min-height: var(--dwfui-height-line);
+    margin: var(--dwfui-space-s) 0 0;
     color: var(--dwfui-text-good);
-    font:
-      700 11px/1.25 ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .stock-palette-status.err {
     color: var(--dwfui-text-danger);
   }
   #burrowPanel [data-burrow-cit-controls] {
     flex: 0 0 auto;
-    padding: 4px 10px 0;
-    border-bottom: 1px solid var(--dwfui-surface);
+    padding: var(--dwfui-space-s) var(--dwfui-space-m) 0;
+    border-bottom: var(--dwfui-divider) solid var(--dwfui-surface);
   }
   #burrowPanel .burrow-cit-controls {
     display: grid;
-    gap: 4px;
+    gap: var(--dwfui-space-s);
   }
   #burrowPanel .burrow-cit-filters {
     flex-wrap: wrap;
@@ -299,7 +251,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   #burrowPanel .burrow-cit-filter-status {
-    padding: 0 2px 4px;
+    padding: 0 var(--dwfui-space-xs) var(--dwfui-space-s);
   }
   #burrowPanel .burrow-cit-list {
     min-height: 0;
@@ -308,6 +260,6 @@
     flex: 0 0 auto;
   }
   #burrowPanel .burrow-cit-search {
-    margin: 4px 10px 8px;
+    margin: var(--dwfui-space-s) var(--dwfui-space-m) var(--dwfui-space-m);
   }
 }

@@ -39,7 +39,7 @@
         y: Math.round((cam.y || 0) + (vp.h || 0) / 2),
         z: cam.z || 0,
       };
-    } catch (_) { return null; }
+    } catch { return null; }
   }
 
   function recenterOn(x, y, z) {
@@ -137,7 +137,7 @@
       cls: "hotkey-head", titleTag: "span", titleCls: "hotkey-title",
       title: "Recenter locations",
       tools: window.DWFUI.bitmapTextHtml("1-9 to jump", { cls: "hotkey-hint" }),
-      close: { cls: "hotkey-x", data: "hotkey-close", title: "Close", glyph: "&times;" },
+      close: { cls: "hotkey-x", data: "hotkey-close", title: "Close" },
     });
   }
 
@@ -153,7 +153,7 @@
         ? "Recenter to elevation " + hk.z + ", position " + hk.x + "," + hk.y
         : "Not yet assigned";
       var key = hotkeyLabelFor(hk.slot);
-      var body = '<div class="hotkey-row-main">' +
+      var main = '<div class="hotkey-row-main">' +
           DWFUI.textInputHtml({
             cls: "hotkey-name", dataset: { hkName: hk.slot }, value: name, maxLength: 128,
             placeholder: "Unnamed recenter location",
@@ -169,18 +169,16 @@
               title: "Set this location to the current view" },
             { action: "delete", sprite: S.recenterClear, dataset: { hkClear: hk.slot },
               title: "Delete this recenter location" },
-          ], { cls: "dwfui-actions hotkey-tools", ariaLabel: "Location " + (hk.slot + 1) + " actions" }) +
-        "</div>" +
-        DWFUI.bitmapTextHtml(posText, { cls: "hotkey-pos" + (isSet ? "" : " hotkey-unset") }) +
-        (key
-          ? '<div class="hotkey-hotline">' +
-            DWFUI.bitmapTextHtml("Hotkey: ", { cls: "hotkey-hotlabel" }) +
-            DWFUI.bitmapTextHtml(key, { cls: "hotkey-key" }) + "</div>"
-          : "");
+          ], { cls: "hotkey-tools", ariaLabel: "Location " + (hk.slot + 1) + " actions" }) +
+        "</div>";
+      // The name field and action cells sit above the copy: the position line, then "Hotkey: <key>".
       return DWFUI.rowHtml({
         cls: "hotkey-row", dataset: { slot: hk.slot },
-        trailing: DWFUI.rawHtml(
-          "A recenter row composes its editable name, native action cells, position, and hotkey lines.", body),
+        labelCls: "hotkey-pos" + (isSet ? "" : " hotkey-unset"),
+        // One bitmap label per word, so the line wraps to the panel at any interface scale.
+        labelHtml: posText.split(" ").map(function (word) { return DWFUI.bitmapTextHtml(word); }).join(" "),
+        sub: key ? { text: "Hotkey: " + key, cls: "hotkey-hotline" } : null,
+        trailing: DWFUI.rawHtml("A recenter row's editable name field and native action cells.", main),
       });
     }).join("");
   }
@@ -214,7 +212,7 @@
         ariaLabel: "Saved recenter locations",
       }, "") +
       '<div class="hotkey-foot-host"></div><div class="hotkey-status"></div>';
-    panel.querySelector("[data-hk-close]").addEventListener("click", function () { toggle(false); });
+    panel.querySelector("[data-hotkey-close]").addEventListener("click", function () { toggle(false); });
     try { window.DWFUI.paintBitmapText(panel); } catch (err) { DwfErr.report("hotkeys.bitmap-paint", err); }
   }
 

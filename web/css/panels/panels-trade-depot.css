@@ -21,61 +21,21 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.trade-depot {
   .trade-depot-depot-panel .trade-depot-section {
-    padding: 4px 0 6px;
-    border-top: 1px solid var(--dwfui-surface);
-    margin-top: 4px;
+    margin-top: var(--dwfui-space-s);
   }
   .trade-depot-depot-panel .trade-depot-caravan {
-    margin: 3px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m);
   }
-  .trade-depot-depot-panel .trade-depot-caravan-name {
-    color: var(--dwfui-text-heading);
-    font:
-      700 12px ui-monospace,
-      Consolas,
-      monospace;
-  }
-  .trade-depot-depot-panel .trade-depot-caravan-meta {
-    color: var(--dwfui-text-secondary);
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
-    margin-top: 1px;
-  }
-  .trade-depot-depot-panel .trade-depot-badge {
-    display: inline-block;
-    padding: 0 5px;
-    margin-left: 3px;
-    border-radius: 2px;
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-row);
-    font:
-      700 10px ui-monospace,
-      Consolas,
-      monospace;
-  }
-  .trade-depot-depot-panel .trade-depot-badge.ok {
-    background: var(--dwfui-slate);
-    color: var(--dwfui-text-good);
-  }
-  .trade-depot-depot-panel .trade-depot-badge.warn {
-    background: var(--dwfui-gold-bevel-mid);
-    color: var(--dwfui-text-danger);
-  }
-  .trade-depot-depot-panel .trade-depot-badge.want {
-    background: var(--dwfui-gold-bevel-mid);
-    color: var(--dwfui-text-numeric);
-  }
-  .trade-depot-depot-panel .trade-depot-trade-status {
-    color: var(--dwfui-text-secondary);
-  }
-  .trade-depot-depot-panel .trade-depot-goods-list {
-    overflow-y: auto;
-    margin: 0 6px;
+  .trade-depot-depot-panel .trade-depot-caravan-copy {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
   }
 }

@@ -21,118 +21,65 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-@layer preboot, legacy, tokens, chrome, panels, dwfui, adaptations, overrides;
+@layer preboot, tokens, chrome, dwfui, panels, overrides;
 
 @layer panels.hospital {
-  .hospital-panel .hospital-section {
-    padding: 4px 0 6px;
-    border-top: 1px solid var(--dwfui-surface);
-    margin-top: 4px;
-  }
   .hospital-panel .hospital-section-label {
-    color: var(--dwfui-text-heading);
-    font:
-      700 11px ui-monospace,
-      Consolas,
-      monospace;
-    margin: 4px 10px 2px;
+    margin-inline: var(--dwfui-space-m);
   }
   .hospital-panel .hospital-dim {
     color: var(--dwfui-text-secondary);
-    font-weight: 400;
   }
+  /* A labor or a shortfall is a coloured word, as native colours its text, never a filled chip. */
   .hospital-panel .hospital-badge {
-    display: inline-block;
-    padding: 0 5px;
-    margin: 0 3px 2px 0;
-    border-radius: 2px;
-    background: var(--dwfui-surface);
-    color: var(--dwfui-text-row);
-    font:
-      700 10px ui-monospace,
-      Consolas,
-      monospace;
-  }
-  .hospital-panel .hospital-badge.ok {
-    background: var(--dwfui-slate);
-    color: var(--dwfui-text-good);
+    margin-right: var(--dwfui-space-m);
+    color: var(--dwfui-text-secondary);
   }
   .hospital-panel .hospital-badge.warn {
-    background: var(--dwfui-gold-bevel-mid);
-    color: var(--dwfui-text-danger);
-  }
-  .hospital-panel .hospital-badge.want {
-    background: var(--dwfui-gold-bevel-mid);
-    color: var(--dwfui-text-numeric);
+    color: var(--dwfui-text-warning);
   }
   .hospital-panel .hospital-supply {
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    grid-template-areas: "label label label label" "meta flag . ctrl";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label label" "flag ctrl";
     align-items: center;
-    gap: 4px 8px;
-    row-gap: 1px;
-    margin: 3px 10px;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
-    color: var(--dwfui-text-row);
+    column-gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m);
+    font: var(--dwfui-font);
   }
   .hospital-panel .hospital-supply-label {
     grid-area: label;
     min-width: 0;
-    color: var(--dwfui-text-row);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .hospital-panel .hospital-supply-meta {
-    grid-area: meta;
-    justify-self: start;
-    color: var(--dwfui-text-secondary);
-    font-size: 10px;
-    white-space: nowrap;
-  }
   .hospital-panel .hospital-supply-flag {
     grid-area: flag;
-    justify-self: start;
     min-width: 0;
-  }
-  .hospital-panel .hospital-supply-flag .hospital-badge {
-    margin: 0;
   }
   .hospital-panel .hospital-doctor {
-    margin: 3px 10px;
-    min-width: 0;
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m);
   }
   .hospital-panel .hospital-doctor-name {
-    color: var(--dwfui-text-row);
-    font:
-      700 12px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .hospital-panel .hospital-doctor-labs {
-    margin-top: 2px;
+    margin-top: var(--dwfui-space-xs);
   }
   .hospital-panel .hospital-post {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
-    margin: 3px 10px;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
+    gap: var(--dwfui-space-m);
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m);
+    font: var(--dwfui-font);
   }
   .hospital-panel .hospital-post-label {
     min-width: 0;
-    color: var(--dwfui-text-row);
     font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -141,7 +88,6 @@
   .hospital-panel .hospital-post-holder {
     min-width: 0;
     justify-self: end;
-    color: var(--dwfui-text-row);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -156,13 +102,10 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas: "icon role ctrl" "port name name";
     align-items: center;
-    gap: 2px 6px;
-    margin: 3px 10px;
+    gap: var(--dwfui-space-xs) var(--dwfui-space-s);
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m);
     min-height: 26px;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
   }
   .hospital-panel .hospital-staff-icon {
     grid-area: icon;
@@ -203,32 +146,29 @@
     justify-self: end;
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: var(--dwfui-space-xs);
   }
   .hospital-panel .hospital-staff.vacant .hospital-staff-role {
     font-weight: 400;
     color: var(--dwfui-text-secondary);
   }
   .hospital-panel .hospital-staff-note {
-    margin: 4px 10px;
+    margin: var(--dwfui-space-s) var(--dwfui-space-m);
   }
 
   .hospital-panel .hospital-staff-picker {
-    margin: 2px 10px 6px 22px;
+    margin: var(--dwfui-space-xs) var(--dwfui-space-m) var(--dwfui-space-s) var(--dwfui-space-xl);
     border-left: 2px solid var(--dwfui-slab);
-    padding-left: 6px;
+    padding-left: var(--dwfui-space-s);
   }
   .hospital-panel .hospital-cand-list {
     max-height: 190px;
   }
   .hospital-panel .hospital-cand {
-    padding: 2px 4px;
+    padding: var(--dwfui-space-xs) var(--dwfui-space-s);
     cursor: pointer;
     min-width: 0;
-    font:
-      400 11px ui-monospace,
-      Consolas,
-      monospace;
+    font: var(--dwfui-font);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -242,5 +182,15 @@
 
   .hospital-panel .hospital-supply-ctrl {
     grid-area: ctrl;
+    justify-self: end;
+    gap: var(--dwfui-space-xs);
+    padding: 1px;
+    background: transparent;
+  }
+  .hospital-panel .hospital-supply-ctrl .dwfui-stepper-btn,
+  .hospital-panel .hospital-supply-ctrl .dwfui-stepper-value {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
   }
 }

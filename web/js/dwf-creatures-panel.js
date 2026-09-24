@@ -20,7 +20,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
   // ---- the Creatures tab's row anatomy ---------------------------------------------------------
-  // Distinct from the generic renderInfoRows: locate+view pair, mood face, labor hammer, held item.
   let creatureSearch = "";
   let creatureSortKey = "name"; // native unit_list always has one active sort column
   let creatureSortDir = 1;    // 1 = ascending, -1 = descending
@@ -47,11 +46,11 @@
     return "";
   }
 
-  function residentNameProfession(row) {
+  // "Name, Profession" as two labels, so a narrow column wraps the profession under the name.
+  function residentIdentityParts(row) {
     const name = String(row?.name || "");
     const profession = String(row?.profession || "");
-    if (!name) return profession;
-    return profession ? `${name}, ${profession}` : name;
+    return name && profession ? [`${name},`, profession] : [name || profession];
   }
 
   // Newer hosts serve the need state independently of DF's rendered punctuation; older ones omit the
@@ -177,14 +176,12 @@
     return `<div class="livestock-actions">${out}</div>`;
   }
 
-  // A RADIOGROUP over columns (exactly one active key), which is why it is neither actionButtonsHtml
-  // nor tabsHtml. Native encodes ascending and descending as two different sprites.
   function creatureSortHead(sortKey = creatureSortKey, sortDir = creatureSortDir, residents = false) {
     const ui = window.dwfuiAccessor();
     if (!ui) return "";
     const col = (key, label, title = `Sort by ${label}`) => ({
       key, label,
-      sort: sortKey === key ? (Number(sortDir) === -1 ? "desc" : "asc") : "text",
+      sort: sortKey === key && Number(sortDir) !== -1 ? "asc" : "desc",
       title,
     });
     const columns = [col("name", "Name"), col("category", "Cat"), col("profession", "Prof")];
@@ -192,7 +189,7 @@
       col("status", "", "Sort by current job"),
       col("moodCategory", "", "Sort by happiness"));
     return ui.sortHeaderHtml({
-      cls: residents ? "info-sort-head-row" : "info-sort-head-row creature-sort-head-row",
+      cls: residents ? "info-sort-head-row resident-sort-head-row" : "info-sort-head-row creature-sort-head-row",
       dataAttr: "creature-sort",
       ariaLabel: "Sort creatures", active: sortKey || null,
       columns,
@@ -354,17 +351,17 @@
     const sortKey = options.sortKey || "name";
     const sortDir = Number(options.sortDir) === -1 ? -1 : 1;
     const shown = sortKey ? filtered.slice().sort((a, b) => compareCreatureRows(a, b, sortKey, sortDir)) : filtered;
-    const leadingHtml = options.leadingHtml || "";
+    const tableCls = (options.detail || "") === "residents"
+      ? "info-table creature-table creature-table--residents" : "info-table creature-table";
     if (!shown.length)
       return DWFUI.listHtml({
-        hostCls: "creature-info-list", cls: "info-table", rows: ".training-knowledge-row",
+        hostCls: "creature-info-list", cls: tableCls, rows: ".info-row",
         preserveKey: "info-creatures", ariaLabel: "Creatures",
-      }, leadingHtml + `<div class="info-message">${source.length ? "No matches." : ""}</div>`);
+      }, `<div class="info-message">${source.length ? "No matches." : ""}</div>`);
     const isResidentsList = (options.detail || "") === "residents";
     const rowsHtml = shown.map(row => {
           const isResidents = (options.detail || "") === "residents";
           const jobText = isResidents ? residentJobText(row) : (row.status || row.job || "");
-          const tone = window.rowTone(jobText);
           const pos = window.infoRowPos(row);
           const nameColor = professionColorStyle(row);
           const unitId = Number(row.unitId ?? -1);
@@ -372,8 +369,8 @@
           const labor = isResidents ? residentLaborState(row, options.labor || null) : null;
           if (isResidents) {
             const ui = window.dwfuiAccessor();
-            const identity = residentNameProfession(row);
-            const identityHtml = ui ? ui.bitmapTextHtml(identity, { cls: "creature-identity-text" }) : escapeHtml(identity);
+            const identityHtml = residentIdentityParts(row)
+              .map(part => ui ? ui.bitmapTextHtml(part) : escapeHtml(part)).join(" ");
             const jobHtml = ui ? ui.bitmapTextHtml(jobText, { cls: "creature-job-bitmap" }) : escapeHtml(jobText);
             return `
               <div class="info-row creature-row resident-row${unitId >= 0 ? " clickable" : ""}${row.muted ? " info-muted" : ""}"
@@ -401,7 +398,7 @@
               <div>${escapeHtml(row.category || "")}</div>
               <div>${escapeHtml(row.profession || "")}</div>
               <div class="creature-job-cell">
-                ${jobText ? `<div class="info-status ${tone}">${escapeHtml(jobText)}</div>` : ""}
+                ${jobText ? `<div class="info-status">${escapeHtml(jobText)}</div>` : ""}
                 <span class="creature-mood-slot" data-mood-slot="${Number(row.moodCategory ?? -1)}"></span>
                 ${labor ? residentSpecLatchHtml(unitId, labor) : ""}
                 ${labor ? creatureWorkDetailsHtml(labor) : creatureHeldItemHtml(row)}
@@ -411,10 +408,10 @@
             </div>`;
         }).join("");
     return DWFUI.listHtml({
-      hostCls: "creature-info-list", cls: "info-table",
-      rows: ".training-knowledge-row, .info-row",
+      hostCls: "creature-info-list", cls: tableCls, rows: ".info-row",
       preserveKey: "info-creatures", key: CREATURE_LIST_KEY, ariaLabel: "Creatures",
-    }, `${leadingHtml}${creatureSortHead(sortKey, sortDir, isResidentsList)}${rowsHtml}`);
+      headHtml: creatureSortHead(sortKey, sortDir, isResidentsList),
+    }, rowsHtml);
   }
 
   // ---- overall training page ------------------------------------------------------------------
@@ -439,7 +436,7 @@
       const name = String(trainer.name || ("Unit " + id));
       return ui.rowHtml({
         tag: "button", chassis: "slab", layout: "icon",
-        cls: "trainer-choice-row trainer-choice-named",
+        cls: "trainer-choice-row trainer-choice-named", copyCls: "trainer-choice-copy",
         icon: unitPortraitMarkup({ id, name }, "trainer-choice-portrait"),
         label: name, selected: Number(currentTrainer) === id, ariaLabel: name,
         dataset: { trainerChoice: id, livestockUnit: unitId },

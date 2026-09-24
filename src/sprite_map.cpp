@@ -33,6 +33,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <filesystem>
 #include <string>
 #include <utility>
 #include <vector>
@@ -89,6 +90,14 @@ std::vector<std::string> list_txt_files(const std::string& dir) {
             out.push_back(dir + "/" + fd.cFileName);
     } while (FindNextFileA(h, &fd));
     FindClose(h);
+#else
+    std::error_code ec;
+    for (std::filesystem::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec)) {
+        std::error_code type_ec;
+        if (it->is_directory(type_ec) || it->path().extension() != ".txt") continue;
+        out.push_back(dir + "/" + it->path().filename().string());
+    }
+    std::sort(out.begin(), out.end());
 #endif
     return out;
 }

@@ -78,36 +78,30 @@
     // Feed the lobby's pause line; a {"type":"pause"} broadcast overrides it with "Paused by <actor>".
     if (window.DwfLobby && typeof DwfLobby.setPauseText === "function"
         && !window.__dfPauseByBroadcast) DwfLobby.setPauseText(isPaused ? "Paused" : "Running");
-    hudEls.fortName.textContent = hud.fort?.name || "Fortress";
-    hudEls.siteName.textContent = hud.fort?.site || "Site";
-    hudEls.rankName.textContent = hud.fort?.rank || "Outpost";
-    hudEls.population.textContent = hud.population?.total ?? 0;
+    const setText = DWFUI.setBitmapText;
+    setText(hudEls.fortName, hud.fort?.name || "Fortress");
+    setText(hudEls.siteName, hud.fort?.site || "Site");
+    setText(hudEls.rankName, hud.fort?.rank || "Outpost");
+    setText(hudEls.population, hud.population?.total ?? 0);
     const happ = Array.isArray(hud.happiness) ? hud.happiness : [];
     moodCounts.forEach((el, i) => {
       const n = happ[i] || 0;
-      el.textContent = n;
+      setText(el, n);
       el.parentElement.classList.toggle("is-empty", !n);
     });
     // Native dims "None" (0) and brightens an approximate reading; a narrow frame clips the tail.
-    const setStock = (el, n) => {
-      if (!el) return;
-      const count = Math.max(0, Number(n) || 0);
-      el.textContent = count > 0 ? `~${count}` : "None";
+    for (const key of TOP_STOCK_KEYS) {
+      const el = topStockEls[key];
+      if (!el) continue;
+      const count = Math.max(0, Number(hud.stocks?.[key]) || 0);
+      setText(el, count > 0 ? `~${count}` : "None");
       el.classList.toggle("has-value", count > 0);
-    };
-    TOP_STOCK_KEYS.forEach(key => setStock(topStockEls[key], hud.stocks?.[key]));
-    const setBitmapHudText = (node, text) => {
-      if (!node) return;
-      const value = String(text == null ? "" : text);
-      node.setAttribute("data-dwfui-bitmap-text", value);
-      const fallback = node.querySelector(".dwfui-bitmap-fallback");
-      if (fallback) fallback.textContent = value;
-    };
-    setBitmapHudText(hudEls.dateDay, ordinal(hud.date?.day || 1));
-    setBitmapHudText(hudEls.dateMonth, hud.date?.monthName || "Granite");
-    setBitmapHudText(hudEls.dateSeason, hud.date?.season || "Early Spring");
-    setBitmapHudText(hudEls.dateYear, `Year ${hud.date?.year ?? 0}`);
-    setBitmapHudText(hudEls.elevation, `Elevation ${hud.elevation ?? 0}`);
+    }
+    setText(hudEls.dateDay, ordinal(hud.date?.day || 1));
+    setText(hudEls.dateMonth, hud.date?.monthName || "Granite");
+    setText(hudEls.dateSeason, hud.date?.season || "Early Spring");
+    setText(hudEls.dateYear, `Year ${hud.date?.year ?? 0}`);
+    setText(hudEls.elevation, `Elevation ${hud.elevation ?? 0}`);
     // The weather block is the moon_weather strip: DF overrides the moon-phase cell with the Rain or
     // Snow cell (indices 8/9) while precipitating.
     const moonIcon = Math.max(0, Math.min(7, Number(hud.date?.moonIcon ?? 0)));

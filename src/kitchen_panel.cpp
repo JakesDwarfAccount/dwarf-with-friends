@@ -413,7 +413,6 @@ void register_kitchen_routes(httplib::Server& server) {
         if (!result.ok) { send_api_error(result, res); return; }
         set_no_store_json(res, "{\"ok\":true}\n");
     };
-    server.Get("/kitchen-toggle", toggle_handler);
     server.Post("/kitchen-toggle", toggle_handler);
 }
 
